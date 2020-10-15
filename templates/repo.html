@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
+{% block content %}
+    <h1>{{ config['APP_TITLE'] }}</h1>
+    <br/>
+    <p> You are logged in as {{login}}. </p>
+    <hr/>
+
+    <h2> You are in project {{repo_name}} </h2>
+
+    {% if folder_path %}
+        <h3> Folder {{folder_path}} </h3>
+    {% endif %}
+
+    {% if directories|length > 0 %}
+        <b>Folders: </b><br />
+        <ul>
+        {% for dir in directories %}
+            <li> <a href="/repo/{{repo_name}}/{{dir}}">{{dir}}</a> </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if spreadsheets|length > 0 %}
+        <b>Spreadsheets available for editing: </b><br />
+        <ul>
+        {% for spr in spreadsheets %}
+            <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li> </p>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+
+
+{% endblock %}

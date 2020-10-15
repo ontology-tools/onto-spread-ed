@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+  {{ super() }}
+{% endblock %}
+{% block content %}
+    <h1>{{ config['APP_TITLE'] }}</h1>
+    <br/>
+    <p> You are logged in as {{login}}. </p>
+    <hr/>
+
+
+
+   <h2> Choose a project repository: </h2>
+
+    {% for repo in repos.keys() %}
+        <a href="/repo/{{repo}}">
+        <button type="button" class="btn btn-info btn-lg">{{repo}}</button>
+        </a>
+    {% endfor %}
+
+    <hr/>
+{% endblock %}

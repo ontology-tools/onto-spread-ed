@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+  {{ super() }}
+
+{% endblock %}
+{% block content %}
+    <h1>{{ config['APP_TITLE'] }}</h1>
+    <br/>
+    <p> You are logged in as {{login}}. </p>
+    <hr/>
+
+    <h2> Editing {{spreadsheet_name}} </h2>
+
+  <div class="table-responsive">
+   <small>
+
+    <table id="contentTable" class="table table-bordered table-hover table-sm">
+        <thead>
+        <tr>
+        {% for h in header %}
+            <th class="thead-light">{{h}}</th>
+        {% endfor %}
+        </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+        <tr>
+            {% for k in r.keys() %}
+            <td>{% if r[k] %}{{r[k]}} {% endif %}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </small>
+
+</div>
+
+
+{% endblock %}

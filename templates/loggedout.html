@@ -1,0 +1,21 @@
+
+
+{% extends "base.html" %}
+
+{% block content %}
+  <div>
+    <p>You are <strong>logged out</strong>.</p>
+
+    <p>
+    You may also want to
+    <a href="https://github.com/logout">sign out of GitHub</a>.</p>
+    <p>
+
+  </div>
+  <hr />
+  <div>
+
+    Click <a href="/login">here</a> to log back in to <i>{{ appname }}</i> through GitHub.
+  </div>
+
+{% endblock %}
