@@ -124,7 +124,7 @@ def logout():
 
 
 @app.route("/loggedout")
-def logged_out():
+def loggedout():
     """
     Displays the page to be shown to logged out users.
     """
