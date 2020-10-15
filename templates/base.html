@@ -21,7 +21,18 @@
   <body>
     <div class="container-fluid">
         <div id="content">
+            <h1>{{ config['APP_TITLE'] }}</h1>
+
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-8"> You are currently logged in as {{login}}. </div>
+                    <div class="col-4"><span class="float-right"> <a href="/home">Go home</a> | <a href="/logout">Log out</a></span></div>
+                </div>
+            </div>
+            <hr/>
+
             {% block content %}{% endblock %}
+
         </div>
 
         <div id="footer">
