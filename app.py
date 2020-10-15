@@ -192,7 +192,8 @@ def edit(repo_key, folder, spreadsheet):
         values = {}
         for key, cell in zip(header, row):
             values[key] = cell.value
-        rows.append(values)
+        if any(values.values()):
+            rows.append(values)
 
     return render_template('edit.html',
                             login=g.user.github_login,

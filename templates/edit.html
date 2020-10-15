@@ -6,32 +6,38 @@
 {% endblock %}
 {% block content %}
 
+
     <h2> Editing {{spreadsheet_name}} </h2>
 
-  <div class="table-responsive">
-   <small>
+<div class="row">
+    <div class="col-md-12">
 
-    <table id="contentTable" class="table table-bordered table-hover table-sm">
-        <thead>
-        <tr>
-        {% for h in header %}
-            <th class="thead-light">{{h}}</th>
-        {% endfor %}
-        </tr>
-        </thead>
-        <tbody>
-        {% for r in rows %}
-        <tr>
-            {% for k in r.keys() %}
-            <td>{% if r[k] %}{{r[k]}} {% endif %}</td>
+    <div class="table-responsive">
+        <small>
+
+        <table id="contentTable" class="table table-bordered table-hover table-sm">
+            <thead>
+            <tr>
+            {% for h in header %}
+                {% if h %} <th class="thead-light">{{h}}</th> {% endif %}
             {% endfor %}
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    </small>
+            </tr>
+            </thead>
+            <tbody>
+            {% for r in rows %}
+                <tr>
+                    {% for k in r.keys() %}
+                    <td>{% if r[k] %}{{r[k]}} {% endif %}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
 
+            </tbody>
+        </table>
+        </small>
+
+    </div>
+    </div>
 </div>
-
 
 {% endblock %}
