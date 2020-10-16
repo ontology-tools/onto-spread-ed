@@ -65,9 +65,18 @@
 
     <script type="text/javascript">
 
+    //Make the table cells editable
     $('#contentTable').editableTableWidget();
 
-    $('table').excelTableFilter();
+    //Add actions when table cells change their value
+    $('#contentTable').on('change', 'td', function(evt, newValue) {
+        cell = $(this);  //the cell in which the text has just changed
+
+
+    });
+
+    //Make the table columns searchable and filterable
+    $('#contentTable').excelTableFilter();
 
     </script>
 
