@@ -35,7 +35,6 @@ $.fn.editableTableWidget = function (options) {
 				if (active.text() === text || editor.hasClass('error')) {
 					return true;
 				}
-				active.css('color', 'blue');
 				originalContent = active.html();
 				active.text(text).trigger(evt, text);
 				if (evt.result === false) {

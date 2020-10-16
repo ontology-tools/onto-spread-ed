@@ -73,6 +73,7 @@
     //Add actions when table cells change their value
     $('#contentTable').on('change', 'td', function(evt, newValue) {
         cell = $(this);  //the cell in which the text has just changed
+        cell.css('color', 'blue');
 
 
     });
