@@ -63,18 +63,45 @@
 
     <script src="/static/excel-bootstrap-table-filter-bundle.js"></script>
 
+    <script type="text/javascript">
+        highlight = function () {
+            var discussed = "Discussed";
+            var ready = "Ready";
+            var proposed = "Proposed";
 
+            $.each($(".table tbody").find("tr"), function () {                    
+            if ($(this).text().toLowerCase().replace(/\s+/g, '').indexOf(discussed.replace(/\s+/g, '').toLowerCase()) == -1){
+            
+            } else{
+                $(this).css('background-color','orange');
+            }
+            if($(this).text().toLowerCase().replace(/\s+/g, '').indexOf(ready.replace(/\s+/g, '').toLowerCase()) == -1){
+            } else{
+                $(this).css('background-color','greenyellow');
+            }
+            if($(this).text().toLowerCase().replace(/\s+/g, '').indexOf(proposed.replace(/\s+/g, '').toLowerCase()) == -1){
+         
+            } else{
+                $(this).css('background-color','white');
+            }
+            });				 
+        }
+    </script>
 
     <script type="text/javascript">
 
     //Make the table cells editable
     $('#contentTable').editableTableWidget();
 
+    //highlight rows once table first finishes loading:
+    $('#contentTable').ready(function() {
+        highlight();
+    });
     //Add actions when table cells change their value
     $('#contentTable').on('change', 'td', function(evt, newValue) {
         cell = $(this);  //the cell in which the text has just changed
         cell.css('color', 'blue');
-
+        highlight(); //Todo: update only one row here for efficiency
 
     });
 
