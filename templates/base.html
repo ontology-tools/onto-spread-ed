@@ -57,30 +57,140 @@
 
     <!-- MindMup Editable Table -->
 
-    <script type="text/javascript" src="/static/mindmup-editabletable.js"></script>
+    <!-- <script type="text/javascript" src="/static/mindmup-editabletable.js"></script> -->
 
     <!-- Excel Bootstrap filter table -->
 
-    <script src="/static/excel-bootstrap-table-filter-bundle.js"></script>
+    <!-- <script src="/static/excel-bootstrap-table-filter-bundle.js"></script> -->
 
 
 
-    <script type="text/javascript">
+    <!-- <script type="text/javascript"> -->
 
-    //Make the table cells editable
-    $('#contentTable').editableTableWidget();
+    <!-- //Make the table cells editable
+    // $('#contentTable').editableTableWidget();
 
-    //Add actions when table cells change their value
-    $('#contentTable').on('change', 'td', function(evt, newValue) {
-        cell = $(this);  //the cell in which the text has just changed
+    //Add actions when table cells change their value -->
+    <!-- $('#contentTable').on('change', 'td', function(evt, newValue) { -->
+        <!-- cell = $(this);  //the cell in which the text has just changed -->
 
 
-    });
+    <!-- }); -->
 
-    //Make the table columns searchable and filterable
-    $('#contentTable').excelTableFilter();
+    <!-- //Make the table columns searchable and filterable -->
+    <!-- $('#contentTable').excelTableFilter(); -->
 
-    </script>
+    <!-- </script> -->
 
+    <!-- //tabulator: -->
+<!-- <link href="static/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="static/dist/js/tabulator.min.js"></script>
+<script type="text/javascript" src="static/dist/js/jquery_wrapper.min.js"></script> -->
+
+ <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script>
+<script>
+//highlight rows once table first finishes loading:
+    $('#contentTable').ready(function() {
+
+        //generate table header data:
+    // var tableDataArray = [];
+    // var html_table_data = '{title: "';  
+    // var bRowStarted = true;  
+    // var i;
+    // $('#contentTable thead>tr').each(function () {  
+    //     $('th', this).each(function () {  
+    //         if (html_table_data.length == 0 || bRowStarted == true) {  
+    //             html_table_data += $(this).text();  
+    //             bRowStarted = false;  
+    //         }  
+    //         else  {
+    //             html_table_data += '"},'; 
+    //             tableDataArray.push(html_table_data);
+    //             html_table_data = '{title: "' + $(this).text();
+    //             // html_table_data += " | " + $(this).text();
+    //             i++;
+    //         }
+    //     });  
+    //     // html_table_data += "\n";  
+    //     bRowStarted = true;  
+    // });  
+
+    //generate table headers String Array:
+    var tableDataArray = [];
+    var html_table_data = '';  
+    var bRowStarted = true;  
+    var i;
+    $('#contentTable thead>tr').each(function () {  
+        $('th', this).each(function () {  
+            if (html_table_data.length == 0 || bRowStarted == true) {  
+                html_table_data += $(this).text();  
+                bRowStarted = false;  
+            }  
+            else  {
+                // html_table_data += '"},'; 
+                tableDataArray.push(html_table_data);
+                 html_table_data = $(this).text();
+                // html_table_data += " | " + $(this).text();
+                i++;
+            }
+        });  
+        // html_table_data += "\n";  
+        bRowStarted = true;  
+    });  
+
+    //Todo: add this to Tabulator! It works!
+    // console.log(tableDataArray);
+    // for(j = 0; j < tableDataArray.length; j++) {
+    // console.log(tableDataArray[j]);
+    // }
+
+        //tabulator:
+   var table = new Tabulator("#contentTable", {
+    // rowClick:function(e, row){ //trigger an alert message when the row is clicked
+ 	// 	alert("Row " + row.getData().id + " Clicked!!!!");
+     // },
+    //  tooltips:true, //example option (enable tooltips on all cells)
+    //  data:table,
+    // autoColumns:true,
+    // data:table,
+    // columns: tableDataArray, //definitely not working right now..
+    persistentLayout: true,
+    persistentLayoutID:"spreaded",
+    columns:[ //set column definitions for imported table data
+    //Todo: need to add all titles, and make them editable.
+    
+
+        //  {title:tableDataArray[0], field:tableDataArray[0].toLowerCase(), editor:"input", editable:true, headerFilter:true},
+         {title:tableDataArray[0], editor:"input", editable:true, headerFilter:true},
+        // {title:"Curation status", field:"col", editor:"input", editable:true},
+    ],
+
+    cellClick:function(e, cell){
+        // console.log(cell.getValue()); //this works
+    //e - the click event object
+    //cell - cell component
+    },
+    //  cellEditing:function(cell){
+    //     //cell - cell component
+    // },
+    cellEdited:function(cell){
+    //cell - cell component
+    cell.getElement().style.color = "#A6A6DF"; //ok this works!
+    },
+    rowFormatter:function(row){
+    //row - row component
+
+    var data = row.getData();
+// console.log(data);
+//Todo: add regex formatting to data.curation_status here:
+    if(data.curation_status == "Proposed "){
+        row.getElement().style.backgroundColor = "#A6A6DF"; //apply css change to row element
+    }
+},
+
+   });
+});
+</script>
   </body>
 </html>
