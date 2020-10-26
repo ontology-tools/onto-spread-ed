@@ -121,6 +121,7 @@
     var html_table_data = '';  
     var bRowStarted = true;  
     var i;
+    //Todo: below is not including last header, why?
     $('#contentTable thead>tr').each(function () {  
         $('th', this).each(function () {  
             if (html_table_data.length == 0 || bRowStarted == true) {  
@@ -139,11 +140,11 @@
         bRowStarted = true;  
     });  
 
-    //Todo: add this to Tabulator! It works!
-    // console.log(tableDataArray);
-    // for(j = 0; j < tableDataArray.length; j++) {
-    // console.log(tableDataArray[j]);
-    // }
+    //test:
+    console.log(tableDataArray);
+    for(j = 0; j < tableDataArray.length; j++) {
+    console.log(tableDataArray[j]);
+    }
 
         //tabulator:
    var table = new Tabulator("#contentTable", {
@@ -155,15 +156,22 @@
     // autoColumns:true,
     // data:table,
     // columns: tableDataArray, //definitely not working right now..
-    persistentLayout: true,
-    persistentLayoutID:"spreaded",
+    height:500,
+    width:600,
+    // virtualDomHoz:true,
+    // persistentLayout: true,
+    // persistentLayoutID:"spreaded",
+    // movableRows:true,
+    // responsiveLayout:"hide",
     columns:[ //set column definitions for imported table data
     //Todo: need to add all titles, and make them editable.
     
 
         //  {title:tableDataArray[0], field:tableDataArray[0].toLowerCase(), editor:"input", editable:true, headerFilter:true},
-         {title:tableDataArray[0], editor:"input", editable:true, headerFilter:true},
+        {% for i in range(17) %}
+        {title:tableDataArray[{{i}}], editor:"input", editable:true, headerFilter:true, width:"200", formatter:"textarea"},
         // {title:"Curation status", field:"col", editor:"input", editable:true},
+        {% endfor %}
     ],
 
     cellClick:function(e, cell){
@@ -177,20 +185,81 @@
     cellEdited:function(cell){
     //cell - cell component
     cell.getElement().style.color = "#A6A6DF"; //ok this works!
-    },
-    rowFormatter:function(row){
-    //row - row component
-
+    var row = cell.getRow();
+    var discussed = "Discussed";
+        var ready = "Ready";
+        var proposed = "Proposed";
     var data = row.getData();
-// console.log(data);
-//Todo: add regex formatting to data.curation_status here:
-    if(data.curation_status == "Proposed "){
-        row.getElement().style.backgroundColor = "#A6A6DF"; //apply css change to row element
+    
+    if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+        row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+    }
+    if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+        row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+    }
+    if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+        row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+    }
+    },
+//     rowFormatter:function(row){
+//     //row - row component
+
+//     var data = row.getData();
+// // console.log(data);
+// //Todo: add regex formatting to data.curation_status here:
+//     if(data.curation_status == "Proposed "){
+//         row.getElement().style.backgroundColor = "#A6A6DF"; //apply css change to row element
+//     }
+// },
+
+
+////////////////////////////////////////////
+//on cell edited:
+// cellEdited:function(cell){
+//     cell.getElement().style.color = "#A6A6DF"; //ok this works!
+//     },
+
+    //highlight:
+    rowFormatter:function(row){
+        var discussed = "Discussed";
+        var ready = "Ready";
+        var proposed = "Proposed";
+    var data = row.getData();
+    
+    if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+        row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+    }
+    if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+        row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+    }
+    if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+        row.getElement().style.backgroundColor = 'white'; //apply css change to row element
     }
 },
 
+// rowUpdated:function(row){
+// var discussed = "Discussed";
+//         var ready = "Ready";
+//         var proposed = "Proposed";
+//     var data = row.getData();
+    
+//     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+//         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+//     }
+//     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+//         row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+//     }
+//     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+//         row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+//     }
+// },
    });
+
 });
+
+
+
+
 </script>
   </body>
 </html>
