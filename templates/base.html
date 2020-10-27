@@ -94,37 +94,15 @@
  <!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator.min.css" rel="stylesheet"> -->
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script>
 <script>
-//highlight rows once table first finishes loading:
+
     $('#contentTable').ready(function() {
 
-        //generate table header data:
-    // var tableDataArray = [];
-    // var html_table_data = '{title: "';  
-    // var bRowStarted = true;  
-    // var i;
-    // $('#contentTable thead>tr').each(function () {  
-    //     $('th', this).each(function () {  
-    //         if (html_table_data.length == 0 || bRowStarted == true) {  
-    //             html_table_data += $(this).text();  
-    //             bRowStarted = false;  
-    //         }  
-    //         else  {
-    //             html_table_data += '"},'; 
-    //             tableDataArray.push(html_table_data);
-    //             html_table_data = '{title: "' + $(this).text();
-    //             // html_table_data += " | " + $(this).text();
-    //             i++;
-    //         }
-    //     });  
-    //     // html_table_data += "\n";  
-    //     bRowStarted = true;  
-    // });  
+    
 
     //generate table headers String Array:
     var tableDataArray = [];
     var html_table_data = '';  
     var bRowStarted = true;  
-    var i;
     //Todo: below is not including last header, why?
     $('#contentTable thead>tr').each(function () {  
         $('th', this).each(function () {  
@@ -133,14 +111,10 @@
                 bRowStarted = false;  
             }  
             else  {
-                // html_table_data += '"},'; 
                 tableDataArray.push(html_table_data);
                  html_table_data = $(this).text();
-                // html_table_data += " | " + $(this).text();
-                i++;
             }
-        });  
-        // html_table_data += "\n";  
+        });   
         bRowStarted = true;  
     });  
 
@@ -150,15 +124,16 @@
     console.log(tableDataArray[j]);
     }
 
+
+    var discussed = "Discussed";
+    var ready = "Ready";
+    var proposed = "Proposed";
         //tabulator:
    var table = new Tabulator("#contentTable", {
-    // rowClick:function(e, row){ //trigger an alert message when the row is clicked
- 	// 	alert("Row " + row.getData().id + " Clicked!!!!");
-     // },
+    
     //  tooltips:true, //example option (enable tooltips on all cells)
     //  data:table,
-    // autoColumns:true,
-    // data:table,
+    // autoColumns:true
     // columns: tableDataArray, //definitely not working right now..
     groupToggleElement:"header",
     height:600,
@@ -169,25 +144,27 @@
     movableRows:false,
     groupBy:"Id",
     groupStartOpen:true,
-    // width:200, //invalid option??
-    // virtualDomHoz:true,
-    // persistentLayout: true,
-    // persistentLayoutID:"spreaded",
+    persistence:true,
+    // width:200, //invalid option
+    // virtualDomHoz:true, //not working
+    // persistentLayout: true, //depreciated, using persistence
+    // persistentLayoutID:"spreaded", //depreciated, using persistence
     // movableRows:true,
     // responsiveLayout:"hide",
 
     addRowPos:"bottom",
     // virtualDom:false,
-    columns:[ //set column definitions for imported table data
-    //Todo: need to add all titles, and make them editable.
-    
 
-        //  {title:tableDataArray[0], field:tableDataArray[0].toLowerCase(), editor:"input", editable:true, headerFilter:true},
+    columns:[ //set column definitions for imported table data
+    //Todo: need to add all titles, and make them editable. Using Jinja if else?
         {% for i in range(17) %}
         {title:tableDataArray[{{i}}], editor:"input", editable:true, headerFilter:true, width:"200", formatter:"textarea"},
-        // {title:"Curation status", field:"col", editor:"input", editable:true},
         {% endfor %}
     ],
+
+    // rowClick:function(e, row){ //trigger an alert message when the row is clicked
+ 	// 	alert("Row " + row.getData().id + " Clicked!!!!");
+     // },
 
     cellClick:function(e, cell){
         // console.log(cell.getValue()); //this works
@@ -198,14 +175,9 @@
     //     //cell - cell component
     // },
     cellEdited:function(cell){
-    //cell - cell component
     cell.getElement().style.color = "#A6A6DF"; //ok this works!
     var row = cell.getRow();
-    var discussed = "Discussed";
-        var ready = "Ready";
-        var proposed = "Proposed";
-    var data = row.getData();
-    
+    var data = row.getData();    
     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
     }
@@ -216,31 +188,10 @@
         row.getElement().style.backgroundColor = 'white'; //apply css change to row element
     }
     },
-//     rowFormatter:function(row){
-//     //row - row component
 
-//     var data = row.getData();
-// // console.log(data);
-// //Todo: add regex formatting to data.curation_status here:
-//     if(data.curation_status == "Proposed "){
-//         row.getElement().style.backgroundColor = "#A6A6DF"; //apply css change to row element
-//     }
-// },
-
-
-////////////////////////////////////////////
-//on cell edited:
-// cellEdited:function(cell){
-//     cell.getElement().style.color = "#A6A6DF"; //ok this works!
-//     },
-
-    //highlight:
+    //highlight on load table:
     rowFormatter:function(row){
-        var discussed = "Discussed";
-        var ready = "Ready";
-        var proposed = "Proposed";
-    var data = row.getData();
-    
+    var data = row.getData();    
     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
     }
@@ -253,26 +204,14 @@
 },
 
 // rowUpdated:function(row){
-// var discussed = "Discussed";
-//         var ready = "Ready";
-//         var proposed = "Proposed";
-//     var data = row.getData();
-    
-//     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
-//         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
-//     }
-//     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
-//         row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
-//     }
-//     if(data.curation_status.toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
-//         row.getElement().style.backgroundColor = 'white'; //apply css change to row element
-//     }
+//is this for when row is updated on the back end? 
 // },
 
 
 
    });
 
+   //new row button click hanler:
    $("#add-row").click(function(){
     table.addRow({curation_status:"Proposed "});
 });
