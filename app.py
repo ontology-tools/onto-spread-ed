@@ -3,6 +3,7 @@ import io
 import functools
 import openpyxl
 import base64
+import json
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import render_template_string, jsonify
@@ -186,7 +187,7 @@ def edit(repo_key, folder, spreadsheet):
     wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
     sheet = wb.active
 
-    header = [cell.value for cell in sheet[1]]
+    header = [cell.value for cell in sheet[1] if cell.value]
     rows = []
     for row in sheet[2:sheet.max_row]:
         values = {}
@@ -200,8 +201,8 @@ def edit(repo_key, folder, spreadsheet):
                             repo_name = repo_key,
                             folder = folder,
                             spreadsheet_name=spreadsheet,
-                            header=header,
-                            rows=rows
+                            header=json.dumps(header),
+                            rows=json.dumps(rows)
                             )
 
 
