@@ -12,6 +12,9 @@
     <div class="col-md-4">
         <button id=add-row>Add Row</button>
     </div>
+    <div class="col-md-4">
+        <button id=delete-row>Delete Row</button>
+    </div>
 </div>
 <div class="row">
     <div class="col-md-12">
@@ -145,6 +148,21 @@
         var newRowData = {};
         newRowData[curation_status] = "Proposed"
         table.addRow(newRowData);
+    });
+
+//delete row button click handler:
+//todo: this needs a lot of work, how does the tabulator selection stack work?
+   $("#delete-row").click(function(){
+        {# table.deleteRow({curation_status:"Proposed "}); #}
+        var selectedRows = table.getSelectedRows();
+        {# var selectedData = table.getSelectedData(); #}
+                    if (confirm("Do you really want to delete this row?")) {
+                        table.deleteRow(selectedRows); //warning: this deletes all previously selected rows!
+                    } else {
+                        //nothing
+                    }
+        {# alert("Row " + selectedRows + " about to be removed!!!!") #}
+        {# table.deleteRow(selectedRows); //warning: this deletes all previously selected rows! #}
     });
 
     $('#contentTable').ready(function() {
