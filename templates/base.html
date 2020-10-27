@@ -35,6 +35,9 @@
 <div>
     <button id=add-row>Add Row</button>
 </div>
+<div>
+    <button id=delete-row>Delete Row</button>
+</div>
             {% block content %}{% endblock %}
 
         </div>
@@ -162,33 +165,51 @@
     columns:[ //set column definitions for imported table data
     //Todo: need a better way to handle different options per title. Using Jinja if else?
         {% for i in range(15) %}
-        {title:tableDataArray[{{i}}], editor:"input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"},
+        {title:tableDataArray[{{i}}], {# field:tableDataArray[{{i}}].toLowerCase(), #}  editor:"input", editable:true,  headerFilter:"input", width:"200", formatter:"textarea"},
         {% endfor %}
         {% for i in range(1) %} //Curation Status
         {# Todo: deal with DEPRECATION WARNING - values for the select editor must now be passed into the values property of the editorParams object, not as the editorParams object #}
-        {title:tableDataArray[{{i + 15}}], editor:"select", editable:true, headerFilter:"input", editorParams:{values:["Proposed", "Discussed", "Ready"]}, width:"200", formatter:"textarea"},
+        {title:tableDataArray[{{i + 15}}], {# field:tableDataArray[{{i + 15}}].toLowerCase() , #}  editor:"select", editable:true,  headerFilter:"input", editorParams:{values:["Proposed", "Discussed", "Ready"]}, width:"200", formatter:"textarea"},
         {% endfor %}
         {% for i in range(1) %}
-        {title:tableDataArray[{{i + 16}}], editor:"input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"},
+        {title:tableDataArray[{{i + 16}}], {# field:tableDataArray[{{i + 16}}].toLowerCase() , #}  editor:"input", editable:true,  headerFilter:"input", width:"200", formatter:"textarea"},
         {% endfor %}
     ],
 
-    rowSelectionChanged:function(data, rows){
+    rowSelected:function(row){
+                    //row - row component for the selected row
+                    row.getElement().style.backgroundColor = 'blue';
+                    {# console.log("ss"); #}
+                },
+    rowDeselected:function(row){
+                    //row - row component for the selected row
+                    row.getElement().style.backgroundColor = 'white';
+                    {# console.log("ss"); #}
+                }, 
+
+    {# rowSelectionChanged:function(data, rows){
         //update selected row counter on selection change
     	$("#select-stats span").text(data.length);
-    },
-    // rowClick:function(e, row){ //trigger an alert message when the row is clicked
- 	// 	alert("Row " + row.getData().id + " Clicked!!!!");
-     // },
+    }, #}
+     {# rowClick:function(e, row){ //trigger an alert message when the row is clicked
+ 	 	alert("Row " + row.getData().id + " Clicked!!!!");
+      }, #}
 
-    cellClick:function(e, cell){
+    {# cellClick:function(e, cell){
         // console.log(cell.getValue()); //this works
     //e - the click event object
     //cell - cell component
-    },
-    //  cellEditing:function(cell){
-    //     //cell - cell component
-    // },
+    var row = cell.getRow();
+    table.selectRow(row);
+    alert("Row " + row.getData().id + " Clicked!!!!");
+    }, #}
+      cellEditing:function(cell){
+         //cell - cell component
+         var row = cell.getRow();
+         row.toggleSelect();
+         {# table.selectRow(row); #}
+         {# alert("Row " + row.getData().id + " Clicked!!!!"); #}
+     },
     cellEdited:function(cell){
     cell.getElement().style.color = "#A6A6DF"; //ok this works!
     var row = cell.getRow();
@@ -231,6 +252,22 @@
    $("#add-row").click(function(){
     table.addRow({curation_status:"Proposed "});
 });
+
+//delete row button click handler:
+//todo: this needs a lot of work, how does the tabulator selection stack work?
+   $("#delete-row").click(function(){
+    {# table.deleteRow({curation_status:"Proposed "}); #}
+    var selectedRows = table.getSelectedRows();
+    {# var selectedData = table.getSelectedData(); #}
+                if (confirm("Do you really want to delete this row?")) {
+                    table.deleteRow(selectedRows); //warning: this deletes all previously selected rows!
+                } else {
+                    //nothing
+                }
+    {# alert("Row " + selectedRows + " about to be removed!!!!") #}
+    {# table.deleteRow(selectedRows); //warning: this deletes all previously selected rows! #}
+});
+
 });
 
 
