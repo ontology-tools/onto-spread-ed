@@ -99,19 +99,29 @@
         // virtualDom:false,
         data: tableData,
         columns: columnData,
-
+         
+        
+        rowSelected:function(row){
+            row.getElement().style.backgroundColor = 'blue';
+        },
+        rowDeselected:function(row){
+            row.getElement().style.backgroundColor = 'white';
+        }, 
         // rowClick:function(e, row){ //trigger an alert message when the row is clicked
         // 	alert("Row " + row.getData().id + " Clicked!!!!");
         // },
 
-        cellClick:function(e, cell){
+        //cellClick:function(e, cell){
             // console.log(cell.getValue()); //this works
             //e - the click event object
             //cell - cell component
+        //},
+        cellEditing:function(cell){
+            //todo: if row is selected (by clicking in a cell), clicking in the same cell does nothing 
+            var row = cell.getRow();
+            row.toggleSelect();
         },
-        //  cellEditing:function(cell){
-        //     //cell - cell component
-        // },
+
         cellEdited:function(cell){
             cell.getElement().style.color = "#A6A6DF"; //ok this works!
             var row = cell.getRow();
@@ -160,16 +170,15 @@
 //delete row button click handler:
 //todo: this needs a lot of work, how does the tabulator selection stack work?
    $("#delete-row").click(function(){
-        {# table.deleteRow({curation_status:"Proposed "}); #}
-        var selectedRows = table.getSelectedRows();
-        {# var selectedData = table.getSelectedData(); #}
-                    if (confirm("Do you really want to delete this row?")) {
-                        table.deleteRow(selectedRows); //warning: this deletes all previously selected rows!
-                    } else {
-                        //nothing
-                    }
-        {# alert("Row " + selectedRows + " about to be removed!!!!") #}
-        {# table.deleteRow(selectedRows); //warning: this deletes all previously selected rows! #}
+    {# table.deleteRow({curation_status:"Proposed "}); #}
+    var selectedRows = table.getSelectedRows();
+    {# var selectedData = table.getSelectedData(); #}
+                if (confirm("Do you really want to delete this row?")) {
+                    table.deleteRow(selectedRows); //warning: this deletes all previously selected rows!
+                } else {
+                    //nothing
+                    //todo: change row background colour back to white here
+                }
     });
 
     $('#contentTable').ready(function() {
