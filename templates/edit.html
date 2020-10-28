@@ -63,7 +63,14 @@
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     for (var i=0; i<headerLength; i++) {
-        columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:true, width:"200", formatter:"textarea"});
+        //Dropdown list for "Curation status":
+        //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
+        if(headers[i] == "Curation status"){
+            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea"});
+
+        } else{
+            columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"});
+        }
     }
 
     //Create the Tabulator table:
@@ -75,8 +82,8 @@
         height:600,
         // height:"100%",
         layout:"fitColumns",
-        pagination:"local",
-        paginationSize:"20",
+        // pagination:"local",
+        // paginationSize:"20",
         movableRows:false,
         groupBy:"Id",
         groupStartOpen:true,
