@@ -5,15 +5,17 @@
 
 {% endblock %}
 {% block content %}
+<!-- //fontawesome: -->
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.12.1/css/all.css" crossorigin="anonymous">
 
     <h2> Editing {{spreadsheet_name}} </h2>
 
 <div class="row">
     <div class="col-md-4">
-        <button id=add-row>Add Row</button>
+        <button id=add-row><i class="fas fa-plus"></i> Add Row</button>
     </div>
     <div class="col-md-4">
-        <button id=delete-row>Delete Row</button>
+        <button id=delete-row><i class="fas fa-trash-alt"></i> Delete Row</button>
     </div>
 </div>
 <div class="row">
@@ -29,7 +31,6 @@
 <!-- //tabulator: -->
 
 <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
-
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script>
 
 
@@ -62,6 +63,9 @@
 
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
+    //checkbox row selector on the side:
+    //todo: align column definition property is deprecated, you should now use hozAlign
+    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", align:"center", headerSort:false});
     for (var i=0; i<headerLength; i++) {
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
@@ -76,8 +80,6 @@
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
         //  tooltips:true, //example option (enable tooltips on all cells)
-        // autoColumns:true
-        // columns: tableDataArray, //definitely not working right now..
         groupToggleElement:"header",
         height:600,
         // height:"100%",
@@ -87,22 +89,19 @@
         movableRows:false,
         groupBy:"Id",
         groupStartOpen:true,
-        persistence:true,
-        // width:200, //invalid option
-        // virtualDomHoz:true, //not working
-        // persistentLayout: true, //depreciated, using persistence
-        // persistentLayoutID:"spreaded", //depreciated, using persistence
+        persistence:true,        
         // movableRows:true,
         // responsiveLayout:"hide",
-
+        keybindings:true,
+        history:true, //records table interaction
         addRowPos:"bottom",
         // virtualDom:false,
         data: tableData,
         columns: columnData,
          
-        
+        //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
-            row.getElement().style.backgroundColor = 'blue';
+            row.getElement().style.backgroundColor = 'grey';
         },
         rowDeselected:function(row){
             row.getElement().style.backgroundColor = 'white';
@@ -117,13 +116,13 @@
             //cell - cell component
         //},
         cellEditing:function(cell){
-            //todo: if row is selected (by clicking in a cell), clicking in the same cell does nothing 
-            var row = cell.getRow();
-            row.toggleSelect();
+            //now using check box to select rows         
+            //var row = cell.getRow();
+            //row.toggleSelect();
         },
 
         cellEdited:function(cell){
-            cell.getElement().style.color = "#A6A6DF"; //ok this works!
+            cell.getElement().style.color = "#A6A6DF"; //change text colour on edited!
             var row = cell.getRow();
             var data = row.getData();
             if (data[curation_status] !== null) {
@@ -168,7 +167,10 @@
     });
 
 //delete row button click handler:
-//todo: this needs a lot of work, how does the tabulator selection stack work?
+//todo: how does the tabulator selection stack work?
+//todo: additional functionality needed: 
+// 1. if more than one row to be deleted, dialog says "Do you really want to delete these " + numberOfRowsSelected + "rows"
+// 2. if no rows selected, dialog says "No rows selected" and returns 
    $("#delete-row").click(function(){
     {# table.deleteRow({curation_status:"Proposed "}); #}
     var selectedRows = table.getSelectedRows();
