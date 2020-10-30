@@ -71,8 +71,11 @@
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
             columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea"});
-
-        } else{
+        } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
+            columnData.push({title:headers[i], field:headers[i], align:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"200"});
+        }else if(headers[i] == "Fuzzy set"){ //todo: headerFilter can't select by unchecked?
+            columnData.push({title:headers[i], field:headers[i], align:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"200"});
+        }else{
             columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"});
         }
     }
