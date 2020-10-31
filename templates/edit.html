@@ -43,6 +43,8 @@
     var ready = "Ready";
     var proposed = "Proposed";
 
+    //Column name for Proposer
+    var proposer = "Proposer";
 
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
@@ -59,7 +61,21 @@
             rowObj[ headers[j] ] = rowData[i][ headers[j] ];
         }
         tableData.push(rowObj);
+
+        
     }
+
+    //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
+    //var fields = [];
+    //for (var k=0; k<headerLength; k++) {
+    //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
+    //}
+
+    //login
+    
+    var loginName = "{{login}}"; 
+    
+    
 
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
@@ -73,9 +89,15 @@
             columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea"});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
             columnData.push({title:headers[i], field:headers[i], align:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"200"});
-        }else if(headers[i] == "Fuzzy set"){ //todo: headerFilter can't select by unchecked?
+        }else if(headers[i] == "Fuzzy set"){ 
             columnData.push({title:headers[i], field:headers[i], align:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"200"});
-        }else{
+        }
+        //todo: "Proposer" column should not be edited directly
+        //else if(headers[i] == "Proposer"){ 
+        //    columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"});
+        //   console.log("fields i is: " + fields[i]);
+        //}
+        else{
             columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"});
         }
     }
@@ -101,6 +123,7 @@
         // virtualDom:false,
         data: tableData,
         columns: columnData,
+        reactiveData:true, //enables updating cell contents programmatically
          
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
@@ -128,6 +151,8 @@
             cell.getElement().style.color = "#A6A6DF"; //change text colour on edited!
             var row = cell.getRow();
             var data = row.getData();
+            //var pos = row.getPosition(true); //row position from top, todo: is this needed?
+
             if (data[curation_status] !== null) {
                 if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
@@ -139,6 +164,23 @@
                     row.getElement().style.backgroundColor = 'white'; //apply css change to row element
                 }
             }
+            //proposer column - check for loginName and auto fill:            
+                var prevProposer = data[proposer];
+                 
+                if(prevProposer !== null){
+                    var nameCheck = prevProposer.indexOf(loginName);
+                    if(nameCheck > -1) {
+                        //name exists, don't update
+                    } else {
+                        data[proposer] = prevProposer + "; " + loginName;
+                    } 
+                } else{
+                    data[proposer] = loginName;
+                }
+                //table.redraw(true); //not needed - redraws the whole table
+                    //console.log("tableData Proposer is: "  + data[proposer]);
+                    //todo: investigate the difference in tabulator between data[proposer] and tableData[pos].Proposer
+                    //todo: is this going to affect saving the table?
         },
 
         //highlight on load table:
@@ -169,20 +211,16 @@
         table.addRow(newRowData);
     });
 
-//delete row button click handler:
-//todo: how does the tabulator selection stack work?
-//todo: additional functionality needed: 
-// 1. if more than one row to be deleted, dialog says "Do you really want to delete these " + numberOfRowsSelected + "rows"
-// 2. if no rows selected, dialog says "No rows selected" and returns 
-   $("#delete-row").click(function(){
-    {# table.deleteRow({curation_status:"Proposed "}); #}
+    //delete row button click handler:
+    //todo: additional functionality needed: 
+    // 1. if more than one row to be deleted, dialog says "Do you really want to delete these " + numberOfRowsSelected + "rows"
+    // 2. if no rows selected, dialog says "No rows selected" and returns 
+    $("#delete-row").click(function(){
     var selectedRows = table.getSelectedRows();
-    {# var selectedData = table.getSelectedData(); #}
                 if (confirm("Do you really want to delete this row?")) {
-                    table.deleteRow(selectedRows); //warning: this deletes all previously selected rows!
+                    table.deleteRow(selectedRows); 
                 } else {
                     //nothing
-                    //todo: change row background colour back to white here
                 }
     });
 
