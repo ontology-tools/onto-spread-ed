@@ -76,43 +76,60 @@
     var loginName = "{{login}}"; 
     
     
+    //header menu:
+    //define row context menu
+    //todo: resize to header text or initial value per header?
+var headerMenu = [
+    {
+        label:"Hide Column",
+        action:function(e, column){
+            column.setWidth(30);
+        }
+    },
+    {
+        label:"Show Column",
+        action:function(e, column){
+            column.setWidth(200);
+        }
+    },
+]
 
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
-    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerSort:false});
+    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", width:"50", hozAlign:"center", headerSort:false});
     for (var i=0; i<headerLength; i++) {
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea"});
+            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50"});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }else if(headers[i] == "Fuzzy set"){ 
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50"});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }
         //"Proposer" column should not be edited directly
         else if(headers[i] == "Proposer"){ 
-            columnData.push({title:headers[i], field:headers[i], headerFilter:"input", width:"200", formatter:"textarea"});
+            columnData.push({title:headers[i], field:headers[i], headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
         else{
-            columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"});
+            columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
-        //  tooltips:true, //example option (enable tooltips on all cells)
+        // tooltips:true, //example option (enable tooltips on all cells)
         groupToggleElement:"header",
         height:600,
-        // height:"100%",
+        //height:"100%", //this makes the header not stay on the top..
         layout:"fitColumns",
         // pagination:"local",
         // paginationSize:"20",
         movableRows:false,
         groupBy:"Id",
         groupStartOpen:true,
-        persistence:true,        
+        persistence:true,  //todo: add reset all functionality (button?), in case table is put in unusable state by user (very possible based on experience)     
         // movableRows:true,
         // responsiveLayout:"hide",
         keybindings:true,
@@ -149,6 +166,7 @@
             cell.getElement().style.color = "#A6A6DF"; //change text colour on edited!
             var row = cell.getRow();
             var data = row.getData();
+            var column = cell.getColumn();
             //var pos = row.getPosition(true); //row position from top, todo: is this needed?
 
             if (data[curation_status] !== null) {
@@ -202,6 +220,7 @@
         // },
     });
 
+    //todo: FIX BUG - why is row added not accessible to tabulator functions (eg. can't add loginName in cellEdited())
     //new row button click handler:
     $("#add-row").click(function(){
         var newRowData = {};
