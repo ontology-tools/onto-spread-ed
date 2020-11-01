@@ -80,23 +80,21 @@
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
-    //todo: align column definition property is deprecated, you should now use hozAlign
-    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", align:"center", headerSort:false});
+    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", hozAlign:"center", headerSort:false});
     for (var i=0; i<headerLength; i++) {
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
             columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea"});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:headers[i], align:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"200"});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50"});
         }else if(headers[i] == "Fuzzy set"){ 
-            columnData.push({title:headers[i], field:headers[i], align:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"200"});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50"});
         }
-        //todo: "Proposer" column should not be edited directly
-        //else if(headers[i] == "Proposer"){ 
-        //    columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"});
-        //   console.log("fields i is: " + fields[i]);
-        //}
+        //"Proposer" column should not be edited directly
+        else if(headers[i] == "Proposer"){ 
+            columnData.push({title:headers[i], field:headers[i], headerFilter:"input", width:"200", formatter:"textarea"});
+        }
         else{
             columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea"});
         }
