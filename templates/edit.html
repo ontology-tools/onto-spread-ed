@@ -188,10 +188,10 @@ var headerMenu = [
                     row.getElement().style.backgroundColor = 'white'; //apply css change to row element
                 }
             }
-            //proposer column - check for loginName and auto fill:            
-                var prevProposer = data[proposer];
-                 
-                if(prevProposer !== null){
+
+            //proposer column - check for loginName and auto fill:  
+                if(data[proposer] !== null){
+                    var prevProposer = data[proposer];
                     var nameCheck = prevProposer.indexOf(loginName);
                     if(nameCheck > -1) {
                         //name exists, don't update
@@ -204,13 +204,15 @@ var headerMenu = [
                 
                 //text must be coloured if highlighting login set though..
                 if(highlightLogin){ 
-                var proposerA = data[proposer];
-                if(proposerA !== null){
-                    var nameCheckA = proposerA.indexOf(loginName);
-                    if(nameCheckA > -1) {
-                        row.getElement().style.color = 'red'; 
-                    } 
-                } 
+                    if(data[proposer] !== null){
+                        var proposerA = data[proposer];
+                        if(proposerA !== null){
+                            var nameCheckA = proposerA.indexOf(loginName);
+                            if(nameCheckA > -1) {
+                                row.getElement().style.color = 'red'; 
+                            } 
+                        } 
+                    }
             }
                 //table.redraw(true); //not needed - redraws the whole table
                     //console.log("tableData Proposer is: "  + data[proposer]);
@@ -235,8 +237,8 @@ var headerMenu = [
                 }
 
             if(highlightLogin){ 
-                var proposerA = data[proposer];
-                if(proposerA !== null){
+                if(data[proposer] !== null){
+                    var proposerA = data[proposer];
                     var nameCheckA = proposerA.indexOf(loginName);
                     if(nameCheckA > -1) {
                         row.getElement().style.color = 'red'; 
@@ -252,11 +254,12 @@ var headerMenu = [
         // },
     });
 
-    //todo: FIX BUG - why is row added not accessible to tabulator functions (eg. can't add loginName in cellEdited())
     //new row button click handler:
     $("#add-row").click(function(){
         var newRowData = {};
-        newRowData[curation_status] = "Proposed"
+        newRowData[curation_status] = "Proposed";
+        // todo: if newRowData[proposer] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
+        newRowData[proposer] = loginName;  // if we don't want this, maybe use " " instead? 
         table.addRow(newRowData);
     });
 
