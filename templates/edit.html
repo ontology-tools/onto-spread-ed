@@ -17,6 +17,10 @@
     <div class="col-md-4">
         <button id=delete-row><i class="fas fa-trash-alt"></i> Delete Row</button>
     </div>
+    <div class="col-md-4">
+         <!-- //todo: highlight-user button same colour as row highlight colour? -->
+        <button id=highlight-user><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
+    </div>
 </div>
 <div class="row">
     <div class="col-md-12">
@@ -65,6 +69,8 @@
         
     }
 
+    
+
     //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
     //var fields = [];
     //for (var k=0; k<headerLength; k++) {
@@ -74,6 +80,7 @@
     //login
     
     var loginName = "{{login}}"; 
+    var highlightLogin = false; //highlight user edited tables
     
     
     //header menu:
@@ -163,12 +170,13 @@ var headerMenu = [
         },
 
         cellEdited:function(cell){
-            cell.getElement().style.color = "#A6A6DF"; //change text colour on edited!
+            cell.getElement().style.color = "#003399"; //change text colour on edited!
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
             //var pos = row.getPosition(true); //row position from top, todo: is this needed?
-
+            
+            //update highlighting:
             if (data[curation_status] !== null) {
                 if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
@@ -193,6 +201,17 @@ var headerMenu = [
                 } else{
                     data[proposer] = loginName;
                 }
+                
+                //text must be coloured if highlighting login set though..
+                if(highlightLogin){ 
+                var proposerA = data[proposer];
+                if(proposerA !== null){
+                    var nameCheckA = proposerA.indexOf(loginName);
+                    if(nameCheckA > -1) {
+                        row.getElement().style.color = 'red'; 
+                    } 
+                } 
+            }
                 //table.redraw(true); //not needed - redraws the whole table
                     //console.log("tableData Proposer is: "  + data[proposer]);
                     //todo: investigate the difference in tabulator between data[proposer] and tableData[pos].Proposer
@@ -202,17 +221,30 @@ var headerMenu = [
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
-            if (data[curation_status] !== null) {
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+            
+                if (data[curation_status] !== null) {
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+                    }
                 }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+
+            if(highlightLogin){ 
+                var proposerA = data[proposer];
+                if(proposerA !== null){
+                    var nameCheckA = proposerA.indexOf(loginName);
+                    if(nameCheckA > -1) {
+                        row.getElement().style.color = 'red'; 
+                    } 
+                } 
+            } else{
+                    row.getElement().style.color = 'black'; 
                 }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'white'; //apply css change to row element
-                }
-            }
         },
 
         // rowUpdated:function(row){
@@ -233,12 +265,17 @@ var headerMenu = [
     // 1. if more than one row to be deleted, dialog says "Do you really want to delete these " + numberOfRowsSelected + "rows"
     // 2. if no rows selected, dialog says "No rows selected" and returns 
     $("#delete-row").click(function(){
-    var selectedRows = table.getSelectedRows();
-                if (confirm("Do you really want to delete this row?")) {
-                    table.deleteRow(selectedRows); 
-                } else {
-                    //nothing
-                }
+        var selectedRows = table.getSelectedRows();
+        if (confirm("Do you really want to delete this row?")) {
+            table.deleteRow(selectedRows); 
+        } else {
+            //nothing
+        }
+    });
+
+    $("#highlight-user").click(function(){
+        highlightLogin = !highlightLogin;
+        table.redraw(true);
     });
 
     $('#contentTable').ready(function() {
