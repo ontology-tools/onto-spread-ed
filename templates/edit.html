@@ -275,6 +275,11 @@ var headerMenu = [
 
     $("#highlight-user").click(function(){
         highlightLogin = !highlightLogin;
+        if(highlightLogin){
+            this.children[0].style.color = "#FF0000";
+        } else{
+            this.children[0].style.color = "#333300";
+        }
         table.redraw(true);
     });
 
