@@ -5,29 +5,50 @@
 
 {% endblock %}
 {% block content %}
-<!-- //fontawesome: -->
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.12.1/css/all.css" crossorigin="anonymous">
 
-    <h2> Editing {{spreadsheet_name}} </h2>
+<div class="row mb-3">
+    <div class="col-md-12">
+        <h2> Editing {{spreadsheet_name}} </h2>
+    </div>
+</div>
 
-<div class="row">
-    <div class="col-md-4">
-        <button id=add-row><i class="fas fa-plus"></i> Add Row</button>
-    </div>
-    <div class="col-md-4">
-        <button id=delete-row><i class="fas fa-trash-alt"></i> Delete Row</button>
-    </div>
-    <div class="col-md-4">
+<div class="row mb-3">
+    <div class="col-md-9">
+        <button id=add-row class="btn btn-outline-secondary"><i class="fas fa-plus"></i> Add Row</button>
+        <button id=delete-row class="btn btn-outline-secondary"><i class="fas fa-trash-alt"></i> Delete Row</button>
          <!-- //todo: highlight-user button same colour as row highlight colour? -->
-        <button id=highlight-user><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
+        <button id=highlight-user class="btn btn-outline-secondary"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
+    </div>
+
+    <div class="col-md-3">
+        <button id="save-btn" class="btn btn-outline-success" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , table.getData() ) "> Save changes to repository
+        </button>
     </div>
 </div>
 <div class="row">
     <div class="col-md-12">
-    <div id="contentTable" class="table table-bordered table-hover table-sm">
+        <div id="contentTable" class="table table-bordered table-hover table-sm" style="font-size: 0.8em;">
     </div>
     </div>
 </div>
+
+
+<div class="row">
+<!-- The form that gets displayed on the confirmation box, otherwise is hidden -->
+  <div id="message-box" class="form-content" style="display:none;">
+      <form class="form" role="form">
+          <div class="form-group">
+            <label for="commit-msg">Commit message</label>
+            <input type="text" class="form-control" id="commit-msg" name="commit-msg">
+          </div>
+          <div class="form-group">
+            <label for="descr">Detailed description</label>
+            <input type="text" class="form-control" id="descr" name="descr">
+          </div>
+      </form>
+  </div>
+</div>
+
 
 {% endblock %}
 
@@ -36,6 +57,9 @@
 
 <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script>
+
+<!-- bootstrap 4 theme -->
+<link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 
 <script type="text/javascript">
@@ -66,10 +90,10 @@
         }
         tableData.push(rowObj);
 
-        
+
     }
 
-    
+
 
     //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
     //var fields = [];
@@ -78,11 +102,11 @@
     //}
 
     //login
-    
-    var loginName = "{{login}}"; 
+
+    var loginName = "{{login}}";
     var highlightLogin = false; //highlight user edited tables
-    
-    
+
+
     //header menu:
     //define row context menu
     //todo: resize to header text or initial value per header?
@@ -112,11 +136,11 @@ var headerMenu = [
             columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        }else if(headers[i] == "Fuzzy set"){ 
+        }else if(headers[i] == "Fuzzy set"){
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }
         //"Proposer" column should not be edited directly
-        else if(headers[i] == "Proposer"){ 
+        else if(headers[i] == "Proposer"){
             columnData.push({title:headers[i], field:headers[i], headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
         else{
@@ -136,7 +160,7 @@ var headerMenu = [
         movableRows:false,
         groupBy:"Id",
         groupStartOpen:true,
-        persistence:true,  //todo: add reset all functionality (button?), in case table is put in unusable state by user (very possible based on experience)     
+        persistence:true,  //todo: add reset all functionality (button?), in case table is put in unusable state by user (very possible based on experience)
         // movableRows:true,
         // responsiveLayout:"hide",
         keybindings:true,
@@ -146,14 +170,14 @@ var headerMenu = [
         data: tableData,
         columns: columnData,
         reactiveData:true, //enables updating cell contents programmatically
-         
+
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
             row.getElement().style.backgroundColor = 'grey';
         },
         rowDeselected:function(row){
             row.getElement().style.backgroundColor = 'white';
-        }, 
+        },
         // rowClick:function(e, row){ //trigger an alert message when the row is clicked
         // 	alert("Row " + row.getData().id + " Clicked!!!!");
         // },
@@ -164,7 +188,7 @@ var headerMenu = [
             //cell - cell component
         //},
         cellEditing:function(cell){
-            //now using check box to select rows         
+            //now using check box to select rows
             //var row = cell.getRow();
             //row.toggleSelect();
         },
@@ -175,7 +199,7 @@ var headerMenu = [
             var data = row.getData();
             var column = cell.getColumn();
             //var pos = row.getPosition(true); //row position from top, todo: is this needed?
-            
+
             //update highlighting:
             if (data[curation_status] !== null) {
                 if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
@@ -189,7 +213,7 @@ var headerMenu = [
                 }
             }
 
-            //proposer column - check for loginName and auto fill:  
+            //proposer column - check for loginName and auto fill:
                 if(data[proposer] !== null){
                     var prevProposer = data[proposer];
                     var nameCheck = prevProposer.indexOf(loginName);
@@ -197,21 +221,21 @@ var headerMenu = [
                         //name exists, don't update
                     } else {
                         data[proposer] = prevProposer + "; " + loginName;
-                    } 
+                    }
                 } else{
                     data[proposer] = loginName;
                 }
-                
+
                 //text must be coloured if highlighting login set though..
-                if(highlightLogin){ 
+                if(highlightLogin){
                     if(data[proposer] !== null){
                         var proposerA = data[proposer];
                         if(proposerA !== null){
                             var nameCheckA = proposerA.indexOf(loginName);
                             if(nameCheckA > -1) {
-                                row.getElement().style.color = 'red'; 
-                            } 
-                        } 
+                                row.getElement().style.color = 'red';
+                            }
+                        }
                     }
             }
                 //table.redraw(true); //not needed - redraws the whole table
@@ -223,7 +247,7 @@ var headerMenu = [
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
-            
+
                 if (data[curation_status] !== null) {
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
@@ -236,16 +260,16 @@ var headerMenu = [
                     }
                 }
 
-            if(highlightLogin){ 
+            if(highlightLogin){
                 if(data[proposer] !== null){
                     var proposerA = data[proposer];
                     var nameCheckA = proposerA.indexOf(loginName);
                     if(nameCheckA > -1) {
-                        row.getElement().style.color = 'red'; 
-                    } 
-                } 
+                        row.getElement().style.color = 'red';
+                    }
+                }
             } else{
-                    row.getElement().style.color = 'black'; 
+                    row.getElement().style.color = 'black';
                 }
         },
 
@@ -259,18 +283,18 @@ var headerMenu = [
         var newRowData = {};
         newRowData[curation_status] = "Proposed";
         // todo: if newRowData[proposer] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
-        newRowData[proposer] = loginName;  // if we don't want this, maybe use " " instead? 
+        newRowData[proposer] = loginName;  // if we don't want this, maybe use " " instead?
         table.addRow(newRowData);
     });
 
     //delete row button click handler:
-    //todo: additional functionality needed: 
+    //todo: additional functionality needed:
     // 1. if more than one row to be deleted, dialog says "Do you really want to delete these " + numberOfRowsSelected + "rows"
-    // 2. if no rows selected, dialog says "No rows selected" and returns 
+    // 2. if no rows selected, dialog says "No rows selected" and returns
     $("#delete-row").click(function(){
         var selectedRows = table.getSelectedRows();
         if (confirm("Do you really want to delete this row?")) {
-            table.deleteRow(selectedRows); 
+            table.deleteRow(selectedRows);
         } else {
             //nothing
         }
@@ -288,6 +312,84 @@ var headerMenu = [
 
     $('#contentTable').ready(function() {
     });
+
+
+
+
+    /**
+    * Submit a pull request to github to update the given configuration file in the repository.
+    */
+    var save_changes = function(repo_key, folder, spreadsheet, rowData) {
+    $("#commit-msg").attr('value','Updating ' + spreadsheet);
+
+    // Get a confirmation from the user:
+    var modal = bootbox.dialog({
+        title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
+        message: $("#message-box").html(),
+        buttons: {
+        confirm: {
+            label: 'Submit',
+            className: 'btn-danger',
+            callback: function() {
+                var aForm = modal.find(".form");
+                var formData = aForm.serializeArray(),
+                    dataObj = {};
+                $(formData).each(function(i, field){
+                dataObj[field.name] = field.value;
+                });
+                var commit_msg = dataObj["commit-msg"];
+                var msgBody = dataObj["descr"];
+                if (commit_msg !== null && commit_msg !== undefined) {
+                    if (!commit_msg || commit_msg.trim() === "") {
+                    bootbox.alert({
+                        closeButton: false,
+                        message: "Commit message cannot be empty. Your change has not been submitted."});
+                    return;
+                    }
+
+                    // Embed the code into a request.
+                    var request = new XMLHttpRequest();
+                    // Define a function to handle a state change of the request:
+                    request.onreadystatechange = function() {
+                    $("*").css("cursor", "default");
+                    if (request.readyState === 4) {
+                        if (!request.status) {
+                            alert("Problem communicating with server");
+                        }
+                        else if (request.status === 200) {
+                          //var response = JSON.parse(request.responseText);
+                          //var prInfo = response['pr_info'];
+                          //alert('Update submitted successfully. The changes will be ' +
+                          //    'reviewed by a moderator before being added to the repository. Click ' +
+                          //    '<a href="' + prInfo['html_url'] + '" target="__blank">here</a> to view your ' +
+                          //    'pull request on GitHub.');
+                            alert("Updated submitted successfully");
+                        } else {
+                            alert("Submission of update failed.");
+                        }
+                    }
+                    }
+                    // Post the request to the server.
+                    request.open('POST', '/save', true);
+                    request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                    request.send('repo_key=' + repo_key +
+                                '&folder=' + folder +
+                                '&spreadsheet=' + spreadsheet +
+                                '&rowData=' + rowData +
+                                '&commit_msg=' + commit_msg);
+                    $("*").css("cursor", "progress");
+            }
+            }
+        },
+        cancel: {
+            label: 'Cancel',
+            className: 'btn-primary'
+        }
+        }
+    });
+    };
+
+
 
 </script>
 
