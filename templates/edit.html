@@ -18,6 +18,8 @@
         <button id=delete-row class="btn btn-outline-secondary"><i class="fas fa-trash-alt"></i> Delete Row</button>
          <!-- //todo: highlight-user button same colour as row highlight colour? -->
         <button id=highlight-user class="btn btn-outline-secondary"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
+        <button id=remove-formatting class="btn btn-outline-secondary"><i class="fas fa-remove-format"></i> Remove all Filters</button>
+
     </div>
 
     <div class="col-md-3">
@@ -160,7 +162,16 @@ var headerMenu = [
         movableRows:false,
         groupBy:"Id",
         groupStartOpen:true,
+        //todo: persistence doesn't work when column width is changed by the dropdown show/hide!
         persistence:true,  //todo: add reset all functionality (button?), in case table is put in unusable state by user (very possible based on experience)
+        /*persistence:{
+        sort: true, //persist column sorting
+        filter: true, //persist filter sorting
+        group: true, //persist row grouping
+        page: true, //persist page
+        //columns: true, //persist columns
+        columns: ["width", "visible", "frozen"],
+    },*/ //this doesn't work either for dropdown persistence
         // movableRows:true,
         // responsiveLayout:"hide",
         keybindings:true,
@@ -170,6 +181,8 @@ var headerMenu = [
         data: tableData,
         columns: columnData,
         reactiveData:true, //enables updating cell contents programmatically
+
+        virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
@@ -238,7 +251,7 @@ var headerMenu = [
                         }
                     }
             }
-                //table.redraw(true); //not needed - redraws the whole table
+                //table.redraw(true); //not needed here - redraws the whole table
                     //console.log("tableData Proposer is: "  + data[proposer]);
                     //todo: investigate the difference in tabulator between data[proposer] and tableData[pos].Proposer
                     //todo: is this going to affect saving the table?
@@ -277,6 +290,11 @@ var headerMenu = [
         //is this for when row is updated on the back end?
         // },
     });
+    
+    //below recommended for Firefox in particular by Tabulator issue responseText
+    //reference: https://github.com/olifolkerd/tabulator/issues/2117
+    table.redraw(); //may be needed to fix bug where up scroll is disappearing rows. 
+    
 
     //new row button click handler:
     $("#add-row").click(function(){
@@ -296,18 +314,30 @@ var headerMenu = [
         if (confirm("Do you really want to delete this row?")) {
             table.deleteRow(selectedRows);
         } else {
+            
             //nothing
         }
     });
 
+    //todo: add functionality to change button text to "un-highlight your rows and back"
     $("#highlight-user").click(function(){
         highlightLogin = !highlightLogin;
         if(highlightLogin){
             this.children[0].style.color = "#FF0000";
+            //$(this).text('Un-highlight Your Rows'); //overrides icon.. why?
         } else{
             this.children[0].style.color = "#333300";
+            //$(this).text('Highlight Your Rows'); //does nothing.. why?
         }
         table.redraw(true);
+    });
+
+    //todo: button icon highlighted if a filter is active?
+    $("#remove-formatting").click(function(){
+        var filteredColumns = table.getColumns();
+        for(var i = 0; i < filteredColumns.length; i++){
+            table.getColumn(filteredColumns[i]).setHeaderFilterValue("");
+        }
     });
 
     $('#contentTable').ready(function() {
