@@ -112,20 +112,29 @@
     //header menu:
     //define row context menu
     //todo: resize to header text or initial value per header?
-var headerMenu = [
-    {
-        label:"Hide Column",
-        action:function(e, column){
-            column.setWidth(30);
-        }
-    },
-    {
-        label:"Show Column",
-        action:function(e, column){
-            column.setWidth(200);
-        }
-    },
-]
+    var headerMenu = [
+        {
+            label:"Hide Column",
+            action:function(e, column){
+                column.setWidth(30);
+            }
+        },
+        {
+            label:"Show Column",
+            action:function(e, column){
+                column.setWidth(200);
+            }
+        },
+        {
+            label:"Show All",
+            action:function(e, column){
+                var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
+                for(var i = 0; i < allColumns.length; i++){
+                    table.getColumn(allColumns[i]).setWidth(200);
+                }
+            }
+        },
+    ]
 
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
@@ -229,6 +238,7 @@ var headerMenu = [
             }
 
             //proposer column - check for loginName and auto fill:
+            //todo: when clicking on a checkbox once it saves proposer even if there is no change
             if(cell.getValue() !== ""){ //stop saving proposer when cell is empty
                 console.log(cell.getValue());
                 if(data[proposer] !== null){
