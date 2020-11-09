@@ -16,7 +16,6 @@
     <div class="col-md-9">
         <button id=add-row class="btn btn-outline-secondary"><i class="fas fa-plus"></i> Add Row</button>
         <button id=delete-row class="btn btn-outline-secondary"><i class="fas fa-trash-alt"></i> Delete Row</button>
-         <!-- //todo: highlight-user button same colour as row highlight colour? -->
         <button id=highlight-user class="btn btn-outline-secondary"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
         <button id=remove-formatting class="btn btn-outline-secondary"><i class="fas fa-remove-format"></i> Remove all Filters</button>
 
@@ -95,7 +94,7 @@
 
     }
 
-
+    
 
     //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
     //var fields = [];
@@ -104,10 +103,11 @@
     //}
 
     //login
-
     var loginName = "{{login}}";
     var highlightLogin = false; //highlight user edited tables
 
+    // save changes
+    var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
 
     //header menu:
     //define row context menu
@@ -116,7 +116,7 @@
         {
             label:"Hide Column",
             action:function(e, column){
-                column.setWidth(30);
+                column.setWidth(40);
             }
         },
         {
@@ -166,6 +166,7 @@
         height:600,
         //height:"100%", //this makes the header not stay on the top..
         layout:"fitColumns",
+        //layout:window.innerWidth > 800 ? "fitColumns" : "fitData",
         // pagination:"local",
         // paginationSize:"20",
         movableRows:false,
@@ -194,6 +195,12 @@
         virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
         scrollToRowPosition: "bottom", //for scrollToRow()
+
+
+        columnResized:function(column){
+            console.log("resized"); //not triggering on hide, show column dropdown
+        },
+
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
             row.getElement().style.backgroundColor = 'grey';
@@ -272,6 +279,11 @@
                     //console.log("tableData Proposer is: "  + data[proposer]);
                     //todo: investigate the difference in tabulator between data[proposer] and tableData[pos].Proposer
                     //todo: is this going to affect saving the table?
+        },
+
+        dataChanged:function(data){
+            tableEdited = true;
+            //alert("don't forget to save!");
         },
 
         //highlight on load table:
@@ -367,6 +379,11 @@
     });
 
     $('#contentTable').ready(function() {
+        //warn user if unsaved changes:
+        window.onbeforeunload = function(event) {
+            event.returnValue = "Not saved"; //todo: this has no purpose that I can tell, but the onbeforeunload won't run without it?
+        };
+        
     });
 
     function clearFormatting(){
@@ -376,6 +393,15 @@
         }
     }
 
+    $("#save-btn").click(function(){
+        
+        if(tableEdited){
+            //alert("data saved"); // todo: delete this test
+            tableEdited = false;
+        } else{
+            //alert("no changes"); // todo: delete this test
+        }
+          });
 
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
