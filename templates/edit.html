@@ -109,6 +109,8 @@
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
 
+    //experimental row value:
+    var rowValue = 0;
     //header menu:
     //define row context menu
     //todo: resize to header text or initial value per header?
@@ -219,8 +221,10 @@
         //},
         cellEditing:function(cell){
             //now using check box to select rows
-            //var row = cell.getRow();
+            var row = cell.getRow();
+            var position = table.getRowPosition(row, true); 
             //row.toggleSelect();
+            console.log("row position is: " + position); //testing
         },
 
         
@@ -335,14 +339,15 @@
         table.addRow(newRowData);
         clearFormatting();
         //table.redraw(true);
-/*
+        
+
 //working out for scroll to new row:
-        var rowCount = table.getDataCount(); //get number of rows, incorrect?
+        //var rowCount = table.getDataCount(); //get number of rows, incorrect?
+        //var rowCount = table.getDataCount("active"); //get number of filtered rows
+        //console.log(rowCount-10);
         
-        console.log(rowCount);
-        
-        table.scrollToRow(75); //scroll to bottom - not working correctly
-*/ 
+        //table.scrollToRow(rowCount-10); //scroll to bottom - not working correctly
+ 
     });
 
     //delete row button click handler:
@@ -380,28 +385,25 @@
 
     $('#contentTable').ready(function() {
         //warn user if unsaved changes:
-        window.onbeforeunload = function(event) {
-            event.returnValue = "Not saved"; //todo: this has no purpose that I can tell, but the onbeforeunload won't run without it?
+        window.onbeforeunload = function(e) {
+            if(tableEdited){
+                if(e){
+                    var message = "You have not saved your changes.";
+                    e.returnValue = message; 
+                }
+                return message;
+            }
         };
         
     });
 
     function clearFormatting(){
         var filteredColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
-        for(var i = 0; i < filteredColumns.length; i++){
+        for(var i = 1; i < filteredColumns.length; i++){ //filteredColumns array starts at 1? Urrrgh!
             table.getColumn(filteredColumns[i]).setHeaderFilterValue("");
         }
     }
 
-    $("#save-btn").click(function(){
-        
-        if(tableEdited){
-            //alert("data saved"); // todo: delete this test
-            tableEdited = false;
-        } else{
-            //alert("no changes"); // todo: delete this test
-        }
-          });
 
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
@@ -418,6 +420,9 @@
             label: 'Submit',
             className: 'btn-danger',
             callback: function() {
+                if(tableEdited){
+                    tableEdited = false;
+                }
                 var aForm = modal.find(".form");
                 var formData = aForm.serializeArray(),
                     dataObj = {};
