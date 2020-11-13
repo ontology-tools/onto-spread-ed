@@ -196,7 +196,7 @@
 
         virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
-        scrollToRowPosition: "bottom", //for scrollToRow()
+        //scrollToRowPosition: "bottom", //for scrollToRow()
 
 
         columnResized:function(column){
@@ -319,8 +319,17 @@
                 }
         },
 
+        rowAdded:function(row){
+            table.scrollToRow(row); //this works
+            //var cell = row.getCell("Label");
+            //console.log(cell);
+            
+            //cell.getElement().focus(); //this doesn't work
+                
+        },
+
         // rowUpdated:function(row){
-        //is this for when row is updated on the back end?
+        
         // },
     });
     
@@ -335,19 +344,9 @@
         newRowData[curation_status] = "Proposed";
         // todo: if newRowData[proposer] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
         newRowData[proposer] = loginName;  // if we don't want this, maybe use " " instead?
-        //table.addRow(Object.assign({}, newRowData));
+        clearFormatting(); //needs to be here, not after table.addRow or bad things happen
         table.addRow(newRowData);
-        clearFormatting();
-        //table.redraw(true);
-        
-
-//working out for scroll to new row:
-        //var rowCount = table.getDataCount(); //get number of rows, incorrect?
-        //var rowCount = table.getDataCount("active"); //get number of filtered rows
-        //console.log(rowCount-10);
-        
-        //table.scrollToRow(rowCount-10); //scroll to bottom - not working correctly
- 
+        //rowAdded triggered here 
     });
 
     //delete row button click handler:
