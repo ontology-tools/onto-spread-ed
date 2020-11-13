@@ -320,12 +320,15 @@
         },
 
         rowAdded:function(row){
-            table.scrollToRow(row); //this works
-            //var cell = row.getCell("Label");
-            //console.log(cell);
-            
-            //cell.getElement().focus(); //this doesn't work
-                
+            table.scrollToRow(row, "bottom", false)
+            .then(function(){
+                var cell = row.getCell("Label");
+                //console.log(cell);
+                cell.getElement().focus(); 
+            })
+            .catch(function(error){
+                //handle error scrolling to row
+            });                
         },
 
         // rowUpdated:function(row){
