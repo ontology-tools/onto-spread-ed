@@ -109,8 +109,8 @@
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
 
-    //experimental row value:
-    var rowValue = 0;
+    //row value, keep track of where we are:
+    let rowValue = 1;
     //header menu:
     //define row context menu
     //todo: resize to header text or initial value per header?
@@ -175,7 +175,7 @@
         groupBy:"Id",
         groupStartOpen:true,
         //todo: persistence doesn't work when column width is changed by the dropdown show/hide!
-        persistence:true,  //todo: add reset all functionality (button?), in case table is put in unusable state by user (very possible based on experience)
+        persistence:true,  
         /*persistence:{
         sort: true, //persist column sorting
         filter: true, //persist filter sorting
@@ -197,7 +197,17 @@
         virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
         //scrollToRowPosition: "bottom", //for scrollToRow()
-
+        scrollToRowIfVisible: false,
+    
+        //called when table rendered or re-drawn:
+        renderComplete:function(){
+            try{
+                table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
+                console.log("rowValue is: " + rowValue);
+            } catch{
+                console.log("caught"); //this happens on initial load, table loaded twice?
+            }
+        },
 
         columnResized:function(column){
             console.log("resized"); //not triggering on hide, show column dropdown
@@ -206,9 +216,11 @@
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
             row.getElement().style.backgroundColor = 'grey';
+            rowValue = row.getPosition(true);
         },
         rowDeselected:function(row){
             row.getElement().style.backgroundColor = 'white';
+            rowValue = row.getPosition(true);
         },
         // rowClick:function(e, row){ //trigger an alert message when the row is clicked
         // 	alert("Row " + row.getData().id + " Clicked!!!!");
@@ -220,11 +232,8 @@
             //cell - cell component
         //},
         cellEditing:function(cell){
-            //now using check box to select rows
             var row = cell.getRow();
-            var position = table.getRowPosition(row, true); 
-            //row.toggleSelect();
-            console.log("row position is: " + position); //testing
+            rowValue = row.getPosition(true);
         },
 
         
@@ -233,7 +242,6 @@
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
-            //var pos = row.getPosition(true); //row position from top, todo: is this needed?
 
             //update highlighting:
             if (data[curation_status] !== null) {
@@ -277,12 +285,8 @@
                         }
                 }
             }
-            //var position = table.getRowPosition(row, true);
-            //console.log("position is: " + position);
-                //table.redraw(true); //not needed here - redraws the whole table
-                    //console.log("tableData Proposer is: "  + data[proposer]);
-                    //todo: investigate the difference in tabulator between data[proposer] and tableData[pos].Proposer
-                    //todo: is this going to affect saving the table?
+            rowValue = row.getPosition(true);
+                         
         },
 
         dataChanged:function(data){
@@ -328,9 +332,10 @@
             })
             .catch(function(error){
                 //handle error scrolling to row
-            });                
+            });    
+            rowValue = row.getPosition(true);            
         },
-
+        
         // rowUpdated:function(row){
         
         // },
@@ -339,13 +344,12 @@
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
     table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows. 
-    
-//todo: why is this not adding a row on the first run? 
+     
     //new row button click handler:
     $("#add-row").click(function(){
-        var newRowData = {}; //todo; why no header filter set on column: undefined
+        var newRowData = {}; 
         newRowData[curation_status] = "Proposed";
-        // todo: if newRowData[proposer] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
+        //If newRowData[proposer] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
         newRowData[proposer] = loginName;  // if we don't want this, maybe use " " instead?
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen
         table.addRow(newRowData);
