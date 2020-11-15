@@ -1,3 +1,18 @@
+# Copyright 2018 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# [START gae_python37_app]
 import os
 import io
 import functools
@@ -13,27 +28,16 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-
-# Create an app instance
-
-app = Flask(__name__)
-
-app.config.from_object('config')
-app.config['SECRET_KEY']=os.environ['FLASK_SECRET_KEY']
-github = GitHub(app)
-
-
 # setup sqlalchemy
 
-engine = create_engine(app.config['DATABASE_URI'])
+exec(open('config.py').read())
+
+engine = create_engine(DATABASE_URI)
 db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
 Base = declarative_base()
 Base.query = db_session.query_property()
-
-def init_db():
-    Base.metadata.create_all(bind=engine)
 
 class User(Base):
     __tablename__ = 'users'
@@ -45,6 +49,30 @@ class User(Base):
 
     def __init__(self, github_access_token):
         self.github_access_token = github_access_token
+
+def init_db():
+    Base.metadata.create_all(bind=engine)
+
+
+# Create an app instance
+class FlaskApp(Flask):
+    def __init__(self, *args, **kwargs):
+        super(FlaskApp, self).__init__(*args, **kwargs)
+        self._activate_background_job()
+
+    def _activate_background_job(self):
+        init_db()
+
+
+
+# If `entrypoint` is not defined in app.yaml, App Engine will look for an app
+# called `app` in `main.py`.
+app = FlaskApp(__name__)
+
+app.config.from_object('config')
+
+github = GitHub(app)
+
 
 
 def verify_logged_in(fn):
@@ -288,6 +316,6 @@ def save():
 
 
 if __name__ == "__main__":        # on running python app.py
-    init_db()
     app.run(debug=app.config["DEBUG"], port=8080)        # run the flask app
 
+# [END gae_python37_app]

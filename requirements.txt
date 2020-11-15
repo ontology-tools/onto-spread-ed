@@ -1,0 +1,7 @@
+Flask==1.1.1
+pandas
+openpyxl
+gunicorn
+Flask-SQLAlchemy
+GitHub-Flask
+google-cloud-secret-manager
