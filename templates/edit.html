@@ -58,7 +58,6 @@
 
 <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script>
-
 <!-- bootstrap 4 theme -->
 <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
@@ -118,17 +117,24 @@
         {
             label:"Hide Column",
             action:function(e, column){
-                column.setWidth(40);
+                //column.setWidth(40);
+                column.hide();
             }
         },
         {
-            label:"Show Column",
+            label:"Show Hidden",
             action:function(e, column){
-                column.setWidth(200);
+                //column.setWidth(200);
+                var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
+                for(var i = 0; i < allColumns.length; i++){
+                    if(!table.getColumn(allColumns[i]).isVisible()){
+                        table.getColumn(allColumns[i]).show();
+                    }
+                }
             }
         },
         {
-            label:"Show All",
+            label:"Reset All Column Widths",
             action:function(e, column){
                 var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
                 for(var i = 0; i < allColumns.length; i++){
@@ -198,7 +204,7 @@
 
         //scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false,
-    
+        
         //called when table rendered or re-drawn:
         renderComplete:function(){
             try{
@@ -226,11 +232,13 @@
         // 	alert("Row " + row.getData().id + " Clicked!!!!");
         // },
 
-        //cellClick:function(e, cell){
+        cellClick:function(e, cell){
+            var row = cell.getRow();
+            rowValue = row.getPosition(true);
             // console.log(cell.getValue()); //this works
             //e - the click event object
             //cell - cell component
-        //},
+        },
         cellEditing:function(cell){
             var row = cell.getRow();
             rowValue = row.getPosition(true);
@@ -287,6 +295,10 @@
             }
             rowValue = row.getPosition(true);
                          
+        },
+
+        cellEditCancelled:function(cell){
+            
         },
 
         dataChanged:function(data){
@@ -381,7 +393,7 @@
             //$(this).text('Highlight Your Rows'); //does nothing.. why?
         }
         table.redraw(true); //todo: fix scroll position going back to start
-        //table.scrollToRow(position); //scrollToRow not working correctly
+        //renderComplete triggered here
     });
 
     //todo: button icon highlighted if a filter is active?
