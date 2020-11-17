@@ -109,7 +109,7 @@
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
 
     //row value, keep track of where we are:
-    let rowValue = 1;
+    var rowValue = 0;
     //header menu:
     //define row context menu
     //todo: resize to header text or initial value per header?
@@ -157,12 +157,7 @@
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }else if(headers[i] == "Fuzzy set"){
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        }
-        //"Proposer" column should not be edited directly
-        else if(headers[i] == "Proposer"){
-            columnData.push({title:headers[i], field:headers[i], headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        }
-        else{
+        }else{
             columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
@@ -180,7 +175,6 @@
         movableRows:false,
         groupBy:"Id",
         groupStartOpen:true,
-        //todo: persistence doesn't work when column width is changed by the dropdown show/hide!
         persistence:true,  
         /*persistence:{
         sort: true, //persist column sorting
@@ -202,10 +196,12 @@
 
         virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
-        //scrollToRowPosition: "bottom", //for scrollToRow()
+        scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false,
         
         //called when table rendered or re-drawn:
+        //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out. 
+        //do we need a clear cookies button? 
         renderComplete:function(){
             try{
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
@@ -250,7 +246,7 @@
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
-
+            rowValue = row.getPosition(true);//save position
             //update highlighting:
             if (data[curation_status] !== null) {
                 if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
@@ -264,36 +260,53 @@
                 }
             }
 
-            //proposer column - check for loginName and auto fill:
             //todo: when clicking on a checkbox once it saves proposer even if there is no change
-            if(cell.getValue() !== ""){ //stop saving proposer when cell is empty
-                console.log(cell.getValue());
-                if(data[proposer] !== null){
-                        var prevProposer = data[proposer];
-                        var nameCheck = prevProposer.indexOf(loginName);
-                        if(nameCheck > -1) {
-                            //name exists, don't update
-                        } else {
-                            data[proposer] = prevProposer + "; " + loginName;
+            
+            //if a field in any column except "Proposer" edited
+            //check "Proposer" column for loginName and auto fill
+            if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(proposer.toLowerCase()) == -1){
+                if(cell.getValue() !== ""){ //stop saving proposer when cell is empty
+                    if(data[proposer] !== null && data[proposer] !== ""){
+                            var prevProposer = data[proposer];
+                            var nameCheck = prevProposer.indexOf(loginName);
+                            if(nameCheck > -1) {
+                                //name exists, don't update
+                            } else {
+                                data[proposer] = prevProposer + "; " + loginName;
+                            }
+                        } else{
+                            data[proposer] = loginName;
                         }
-                    } else{
-                        data[proposer] = loginName;
-                    }
 
-                    //text must be coloured if highlighting login set though..
-                    if(highlightLogin){
-                        if(data[proposer] !== null){
-                            var proposerA = data[proposer];
-                            if(proposerA !== null){
-                                var nameCheckA = proposerA.indexOf(loginName);
-                                if(nameCheckA > -1) {
-                                    row.getElement().style.color = 'red';
+                        //text must be coloured if highlighting login set though..
+                        if(highlightLogin){
+                            if(data[proposer] !== null){ 
+                                var proposerA = data[proposer];
+                                if(proposerA !== null){
+                                    var nameCheckA = proposerA.indexOf(loginName);
+                                    if(nameCheckA > -1) {
+                                        row.getElement().style.color = 'red';
+                                    }
                                 }
                             }
                         }
                 }
+            } else{ //if editing "Proposer" column, text must be coloured if highlighting login set
+                if(highlightLogin){
+                    if(data[proposer] !== null && data[proposer] !== ""){
+                        var proposerB = data[proposer];
+                        if(proposerB !== null){
+                            var nameCheckB = proposerB.indexOf(loginName);
+                            if(nameCheckB > -1) {
+                                row.getElement().style.color = 'red';
+                            }
+                        }
+                    } else{
+                        row.getElement().style.color = 'black'; //change back to black
+                    }
+                }
             }
-            rowValue = row.getPosition(true);
+            
                          
         },
 
@@ -345,7 +358,7 @@
             .catch(function(error){
                 //handle error scrolling to row
             });    
-            rowValue = row.getPosition(true);            
+            rowValue = row.getPosition(true);          
         },
         
         // rowUpdated:function(row){
@@ -382,17 +395,14 @@
         }
     });
 
-    //todo: add functionality to change button text to "un-highlight your rows and back"
     $("#highlight-user").click(function(){
         highlightLogin = !highlightLogin;
         if(highlightLogin){
             this.children[0].style.color = "#FF0000";
-            //$(this).text('Un-highl10ight Your Rows'); //overrides icon.. why?
         } else{
             this.children[0].style.color = "#333300";
-            //$(this).text('Highlight Your Rows'); //does nothing.. why?
         }
-        table.redraw(true); //todo: fix scroll position going back to start
+        table.redraw(true); 
         //renderComplete triggered here
     });
 
