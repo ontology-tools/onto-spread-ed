@@ -19,6 +19,7 @@ import functools
 import openpyxl
 import base64
 import json
+import traceback
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import render_template_string, jsonify, Response
@@ -27,6 +28,8 @@ from flask_github import GitHub
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+
+from datetime import datetime
 
 # setup sqlalchemy
 
@@ -141,7 +144,7 @@ def authorized(access_token):
 @app.route('/login')
 def login():
     if session.get('user_id', None) is None:
-        return github.authorize()
+        return github.authorize(scope="user,repo")
     else:
         return 'Already logged in'
 
@@ -246,73 +249,117 @@ def save():
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
 
-    # (Re) load the existing spreadsheet
-    #spreadsheet_file = github.get(
-    #    f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
-    #)
-    #base64_bytes = spreadsheet_file['content'].encode('utf-8')
-    #decoded_data = base64.decodebytes(base64_bytes)
-    #wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
+    try:
+        row_data_parsed = json.loads(row_data)
+        #print(row_data_parsed)
+
+        wb = openpyxl.Workbook()
+        sheet = wb.active
+        #sheet.title="Definitions" # This creates a new sheet, no good
+        # Get the data, skip the first 'id' column
+        first_row = row_data_parsed[0]
+        header = [k for k in first_row.keys()]
+        del header[0]
+        for c in range(len(header)):
+            sheet.cell(row=1, column=c+1).value=header[c]
+        for r in range(len(row_data_parsed)):
+            row = [v for v in row_data_parsed[r].values()]
+            del row[0]
+            for c in range(len(header)):
+                sheet.cell(row=r+2, column=c+1).value=row[c]
+
+        # Create version for saving
+        spreadsheet_stream = io.BytesIO()
+        wb.save(spreadsheet_stream)
+
+        #base64_bytes = base64.b64encode(sample_string_bytes)
+        base64_bytes = base64.b64encode(spreadsheet_stream.getvalue())
+        base64_string = base64_bytes.decode("ascii")
+
+        # Create a new branch to commit the change to (in case of simultaneous updates)
+        response = github.get(f"repos/{repo_detail}/git/ref/heads/master")
+        if not response or "object" not in response or "sha" not in response["object"]:
+            raise Exception(f"Unable to get SHA for HEAD of master in {repo_detail}")
+        sha = response["object"]["sha"]
+        branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M')}"
+        print("About to try to create branch in ",f"repos/{repo_detail}/git/refs")
+        response = github.post(
+            f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
+            )
+        if not response:
+            raise Exception(f"Unable to create new branch {branch} in {repo_detail}")
+
+        print("About to get SHA for the spreadsheet file",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        # Get the sha for the file
+        response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        if not response or "sha" not in response:
+            raise Exception(
+                f"Unable to get the current SHA value for {spreadsheet} in {repo_detail}/{folder}"
+                )
+        file_sha = response["sha"]
+
+        # Commit changes to branch (replace code with sheet)
+        data = {
+            "message": commit_msg,
+            "content": base64_string,
+            "branch": branch,
+        }
+        if file_sha:
+            data["sha"] = file_sha
+        print("About to commit file to branch",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
+        if not response:
+            raise Exception(
+                f"Unable to commit addition of {spreadsheet} to branch {branch} in {repo_detail}"
+            )
+
+        # Create a PR for the change
+        print("About to create PR from branch",)
+        response = github.post(
+            f"repos/{repo_detail}/pulls",
+            data={
+                "title": commit_msg,
+                "head": branch,
+                "base": "master",
+            },
+        )
+        if not response:
+            raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
+
+        # Merge the created PR
+        print("About to merge created PR")
+        response = github.post(
+            f"repos/{repo_detail}/merges",
+            data={
+                "head": branch,
+                "base": "master",
+                "commit_message": commit_msg
+            },
+        )
+        if not response:
+            raise Exception(f"Unable to merge PR from branch {branch} in {repo_detail}")
 
 
-    # TODO Check if you CAN edit this version of the spreadsheet, i.e. that it
-    # TODO didn't have any concurrent changes that can't be merged.
+        # Delete the branch again
+        print ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
+        response = github.delete(
+            f"repos/{repo_detail}/git/refs/heads/{branch}")
+        if not response:
+            raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
+
+        print ("Save succeeded")
+        # TODO Figure out responses and send message. Options are Success / Save failure / Merge failure
+        return ( "Success", 200 )
+
+    except Exception as err:
+        print(err)
+        traceback.print_exc()
+        return (
+            format(err),
+            400,
+        )
 
 
-    # TODO Update the values in the spreadsheet with the new values
-
-    # Create version for saving
-    #spreadsheet_stream = io.BytesIO()
-    #wb.save(spreadsheet_stream)
-    #encoded_data = base64.encode(spreadsheet_stream.getvalue())
-
-    # Create a new branch to commit the change to
-    #response = github.get(f"repos/{repo_detail}/git/ref/heads/main")
-    #if not response or "object" not in response or "sha" not in response["object"]:
-    #    raise Exception(f"Unable to get SHA for HEAD of main in {repo_detail}")
-    #sha = response["object"]["sha"]
-    #branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M')}"
-    #response = github.post(
-    #    f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
-    #    )
-    #if not response:
-    #    raise Exception(f"Unable to create new branch {branch} in {repo_detail}")
-
-    # Get the sha for the file
-    #response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
-    #if not response or "sha" not in response:
-    #    raise Exception(
-    #        f"Unable to get the current SHA value for {spreadsheet} in {repo_detail}/{folder}"
-    #        )
-
-    # Commit changes to branch (replace code with sheet)
-    #data = {
-    #    "message": commit_msg,
-    #    "content": base64.b64encode(code.encode("utf-8")).decode(),
-    #    "branch": branch,
-    #}
-
-    #if file_sha:
-    #    data["sha"] = file_sha
-
-    #response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
-    #if not response:
-    #    raise Exception(
-    #        f"Unable to commit addition of {spreadsheet} to branch {branch} in {repo_detail}"
-    #    )
-
-    #response = github.post(
-    #    f"repos/{repo}/pulls",
-    #    data={
-    #        "title": commit_msg,
-    #        "head": branch,
-    #        "base": "main",
-    #    },
-    #)
-    #if not response:
-    #    raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
-
-    return Response(status=200) # (Pretend) Success
 
 
 if __name__ == "__main__":        # on running python app.py

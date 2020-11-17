@@ -22,7 +22,7 @@
     </div>
 
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , table.getData() ) "> Save changes to repository
+        <button id="save-btn" class="btn btn-outline-success" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
         </button>
     </div>
 </div>
@@ -93,7 +93,7 @@
 
     }
 
-    
+
 
     //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
     //var fields = [];
@@ -181,7 +181,7 @@
         groupBy:"Id",
         groupStartOpen:true,
         //todo: persistence doesn't work when column width is changed by the dropdown show/hide!
-        persistence:true,  
+        persistence:true,
         /*persistence:{
         sort: true, //persist column sorting
         filter: true, //persist filter sorting
@@ -204,7 +204,7 @@
 
         //scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false,
-        
+
         //called when table rendered or re-drawn:
         renderComplete:function(){
             try{
@@ -244,7 +244,7 @@
             rowValue = row.getPosition(true);
         },
 
-        
+
         cellEdited:function(cell){
             cell.getElement().style.color = "#003399"; //change text colour on edited!
             var row = cell.getRow();
@@ -294,11 +294,11 @@
                 }
             }
             rowValue = row.getPosition(true);
-                         
+
         },
 
         cellEditCancelled:function(cell){
-            
+
         },
 
         dataChanged:function(data){
@@ -340,32 +340,32 @@
             .then(function(){
                 var cell = row.getCell("Label");
                 //console.log(cell);
-                cell.getElement().focus(); 
+                cell.getElement().focus();
             })
             .catch(function(error){
                 //handle error scrolling to row
-            });    
-            rowValue = row.getPosition(true);            
+            });
+            rowValue = row.getPosition(true);
         },
-        
+
         // rowUpdated:function(row){
-        
+
         // },
     });
-    
+
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
-    table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows. 
-     
+    table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
+
     //new row button click handler:
     $("#add-row").click(function(){
-        var newRowData = {}; 
+        var newRowData = {};
         newRowData[curation_status] = "Proposed";
         //If newRowData[proposer] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
         newRowData[proposer] = loginName;  // if we don't want this, maybe use " " instead?
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen
         table.addRow(newRowData);
-        //rowAdded triggered here 
+        //rowAdded triggered here
     });
 
     //delete row button click handler:
@@ -377,7 +377,7 @@
         if (confirm("Do you really want to delete this row?")) {
             table.deleteRow(selectedRows);
         } else {
-            
+
             //nothing
         }
     });
@@ -407,12 +407,12 @@
             if(tableEdited){
                 if(e){
                     var message = "You have not saved your changes.";
-                    e.returnValue = message; 
+                    e.returnValue = message;
                 }
                 return message;
             }
         };
-        
+
     });
 
     function clearFormatting(){
