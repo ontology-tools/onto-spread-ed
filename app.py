@@ -30,7 +30,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 # setup sqlalchemy
 
-exec(open('config.py').read())
+from config import *
 
 engine = create_engine(DATABASE_URI)
 db_session = scoped_session(sessionmaker(autocommit=False,
