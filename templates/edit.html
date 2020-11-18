@@ -70,6 +70,8 @@
     var discussed = "Discussed";
     var ready = "Ready";
     var proposed = "Proposed";
+    var toBeDiscussed = "ToBeDiscussed";
+    var inDiscussion = "InDiscussion";
 
     //Column name for Proposer
     var proposer = "Proposer";
@@ -152,7 +154,7 @@
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }else if(headers[i] == "Fuzzy set"){
@@ -258,6 +260,12 @@
                 if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'white'; //apply css change to row element
                 }
+                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
+                row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                }
+                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                    row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+                }
             }
 
             //todo: when clicking on a checkbox once it saves proposer even if there is no change
@@ -322,7 +330,7 @@
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
-
+                //todo: this is obviously duplicate code, how to refactor?
                 if (data[curation_status] !== null) {
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
@@ -332,6 +340,12 @@
                     }
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
+                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                     }
                 }
 
