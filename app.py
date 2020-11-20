@@ -67,7 +67,6 @@ class FlaskApp(Flask):
         init_db()
 
 
-
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
 app = FlaskApp(__name__)
@@ -75,7 +74,6 @@ app = FlaskApp(__name__)
 app.config.from_object('config')
 
 github = GitHub(app)
-
 
 
 def verify_logged_in(fn):
@@ -93,6 +91,7 @@ def verify_logged_in(fn):
     return wrapped
 
 # Pages:
+
 
 @app.before_request
 def before_request():
@@ -175,7 +174,9 @@ def user():
 @verify_logged_in
 def home():
     repositories = app.config['REPOSITORIES']
-    return render_template('index.html', login=g.user.github_login, repos=repositories)
+    return render_template('index.html',
+                           login=g.user.github_login,
+                           repos=repositories)
 
 
 @app.route('/repo/<repo_key>')
@@ -195,13 +196,19 @@ def repo(repo_key, folder_path=""):
             dirs.append(directory['name'])
         elif directory['type']=='file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
+    if g.user.github_login in USERS_METADATA:
+        user_initials = USERS_METADATA[g.user.github_login]
+    else:
+        print(f"The user {g.user.github_login} has no known metadata")
+        user_initials = g.user.github_login[0:2]
 
     return render_template('repo.html',
                             login=g.user.github_login,
+                            user_initials=user_initials,
                             repo_name = repo_key,
                             folder_path = folder_path,
                             directories = dirs,
-                            spreadsheets = spreadsheets
+                            spreadsheets = spreadsheets,
                             )
 
 
@@ -226,9 +233,16 @@ def edit(repo_key, folder, spreadsheet):
             values[key] = cell.value
         if any(values.values()):
             rows.append(values)
+    if g.user.github_login in USERS_METADATA:
+        user_initials = USERS_METADATA[g.user.github_login]
+    else:
+        print(f"The user {g.user.github_login} has no known metadata")
+        user_initials = g.user.github_login[0:2]
 
     return render_template('edit.html',
                             login=g.user.github_login,
+                            user_initials=user_initials,
+                            all_initials=ALL_USERS_INITIALS,
                             repo_name = repo_key,
                             folder = folder,
                             spreadsheet_name=spreadsheet,

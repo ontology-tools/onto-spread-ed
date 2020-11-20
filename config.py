@@ -41,3 +41,6 @@ else:
 
 
 REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology"}
+USERS_METADATA = {"jannahastings": "JH", "robertjwest":"RW", "sharoncox":"SC",
+                  "ksoar":"KS", "CaitlinNotley702": "CN", "CaitlinNotley": "CN"}
+ALL_USERS_INITIALS = [v for v in USERS_METADATA.values()]
