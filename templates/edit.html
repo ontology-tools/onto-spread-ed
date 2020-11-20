@@ -73,8 +73,8 @@
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
 
-    //Column name for Proposer
-    var proposer = "Proposer";
+    //Column name for Curator
+    var curator = "Curator";
 
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
@@ -268,30 +268,30 @@
                 }
             }
 
-            //todo: when clicking on a checkbox once it saves proposer even if there is no change
+            //todo: when clicking on a checkbox once it saves curator even if there is no change
             
-            //if a field in any column except "Proposer" edited
-            //check "Proposer" column for loginName and auto fill
-            if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(proposer.toLowerCase()) == -1){
-                if(cell.getValue() !== ""){ //stop saving proposer when cell is empty
-                    if(data[proposer] !== null && data[proposer] !== ""){
-                            var prevProposer = data[proposer];
-                            var nameCheck = prevProposer.indexOf(loginName);
+            //if a field in any column except "Curator" edited
+            //check "Curator" column for loginName and auto fill
+            if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1){
+                if(cell.getValue() !== ""){ //stop saving curator when cell is empty
+                    if(data[curator] !== null && data[curator] !== ""){
+                            var prevCurator = data[curator];
+                            var nameCheck = prevCurator.indexOf(loginName);
                             if(nameCheck > -1) {
                                 //name exists, don't update
                             } else {
-                                data[proposer] = prevProposer + "; " + loginName;
+                                data[curator] = prevCurator + "; " + loginName;
                             }
                         } else{
-                            data[proposer] = loginName;
+                            data[curator] = loginName;
                         }
 
                         //text must be coloured if highlighting login set though..
                         if(highlightLogin){
-                            if(data[proposer] !== null){ 
-                                var proposerA = data[proposer];
-                                if(proposerA !== null){
-                                    var nameCheckA = proposerA.indexOf(loginName);
+                            if(data[curator] !== null){ 
+                                var curatorA = data[curator];
+                                if(curatorA !== null){
+                                    var nameCheckA = curatorA.indexOf(loginName);
                                     if(nameCheckA > -1) {
                                         row.getElement().style.color = 'red';
                                     }
@@ -299,12 +299,12 @@
                             }
                         }
                 }
-            } else{ //if editing "Proposer" column, text must be coloured if highlighting login set
+            } else{ //if editing "Curator" column, text must be coloured if highlighting login set
                 if(highlightLogin){
-                    if(data[proposer] !== null && data[proposer] !== ""){
-                        var proposerB = data[proposer];
-                        if(proposerB !== null){
-                            var nameCheckB = proposerB.indexOf(loginName);
+                    if(data[curator] !== null && data[curator] !== ""){
+                        var curatorB = data[curator];
+                        if(curatorB !== null){
+                            var nameCheckB = curatorB.indexOf(loginName);
                             if(nameCheckB > -1) {
                                 row.getElement().style.color = 'red';
                             }
@@ -350,9 +350,9 @@
                 }
 
             if(highlightLogin){
-                if(data[proposer] !== null){
-                    var proposerA = data[proposer];
-                    var nameCheckA = proposerA.indexOf(loginName);
+                if(data[curator] !== null){
+                    var curatorA = data[curator];
+                    var nameCheckA = curatorA.indexOf(loginName);
                     if(nameCheckA > -1) {
                         row.getElement().style.color = 'red';
                     }
@@ -388,8 +388,8 @@
     $("#add-row").click(function(){
         var newRowData = {};
         newRowData[curation_status] = "Proposed";
-        //If newRowData[proposer] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
-        newRowData[proposer] = loginName;  // if we don't want this, maybe use " " instead?
+        //If newRowData[curator] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
+        newRowData[curator] = loginName;  // if we don't want this, maybe use " " instead?
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen
         table.addRow(newRowData);
         //rowAdded triggered here
