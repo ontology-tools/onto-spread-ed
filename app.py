@@ -17,6 +17,8 @@ import os
 import io
 import functools
 import openpyxl
+from openpyxl.styles import Font
+from openpyxl.styles import PatternFill
 import base64
 import json
 import traceback
@@ -276,11 +278,23 @@ def save():
         del header[0]
         for c in range(len(header)):
             sheet.cell(row=1, column=c+1).value=header[c]
+            sheet.cell(row=1, column=c+1).font = Font(size=12,bold=True)
         for r in range(len(row_data_parsed)):
             row = [v for v in row_data_parsed[r].values()]
             del row[0]
             for c in range(len(header)):
                 sheet.cell(row=r+2, column=c+1).value=row[c]
+                # Set row background colours according to 'Curation status'
+                # These should be kept in sync with those used in edit screen
+                # TODO add to config maybe?
+                if row[header.index("Curation status")]=="Discussed":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="FFE4B5", fill_type = "solid")
+                elif row[header.index("Curation status")]=="In Discussion":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")
+                elif row[header.index("Curation status")]=="To Be Discussed":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
+                elif row[header.index("Curation status")]=="Ready":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
 
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
