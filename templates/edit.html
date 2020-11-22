@@ -104,7 +104,7 @@
     //}
 
     //login
-    var loginName = "{{login}}";
+    var loginInitials = "{{user_initials}}";
     var highlightLogin = false; //highlight user edited tables
 
     // save changes
@@ -271,19 +271,19 @@
             //todo: when clicking on a checkbox once it saves curator even if there is no change
             
             //if a field in any column except "Curator" edited
-            //check "Curator" column for loginName and auto fill
+            //check "Curator" column for loginInitials and auto fill
             if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1){
                 if(cell.getValue() !== ""){ //stop saving curator when cell is empty
                     if(data[curator] !== null && data[curator] !== ""){
                             var prevCurator = data[curator];
-                            var nameCheck = prevCurator.indexOf(loginName);
+                            var nameCheck = prevCurator.indexOf(loginInitials);
                             if(nameCheck > -1) {
                                 //name exists, don't update
                             } else {
-                                data[curator] = prevCurator + "; " + loginName;
+                                data[curator] = prevCurator + "; " + loginInitials;
                             }
                         } else{
-                            data[curator] = loginName;
+                            data[curator] = loginInitials;
                         }
 
                         //text must be coloured if highlighting login set though..
@@ -291,7 +291,7 @@
                             if(data[curator] !== null){ 
                                 var curatorA = data[curator];
                                 if(curatorA !== null){
-                                    var nameCheckA = curatorA.indexOf(loginName);
+                                    var nameCheckA = curatorA.indexOf(loginInitials);
                                     if(nameCheckA > -1) {
                                         row.getElement().style.color = 'red';
                                     }
@@ -304,7 +304,7 @@
                     if(data[curator] !== null && data[curator] !== ""){
                         var curatorB = data[curator];
                         if(curatorB !== null){
-                            var nameCheckB = curatorB.indexOf(loginName);
+                            var nameCheckB = curatorB.indexOf(loginInitials);
                             if(nameCheckB > -1) {
                                 row.getElement().style.color = 'red';
                             }
@@ -352,7 +352,7 @@
             if(highlightLogin){
                 if(data[curator] !== null){
                     var curatorA = data[curator];
-                    var nameCheckA = curatorA.indexOf(loginName);
+                    var nameCheckA = curatorA.indexOf(loginInitials);
                     if(nameCheckA > -1) {
                         row.getElement().style.color = 'red';
                     }
@@ -389,7 +389,7 @@
         var newRowData = {};
         newRowData[curation_status] = "Proposed";
         //If newRowData[curator] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
-        newRowData[curator] = loginName;  // if we don't want this, maybe use " " instead?
+        newRowData[curator] = loginInitials;  // if we don't want this, maybe use " " instead?
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen
         table.addRow(newRowData);
         //rowAdded triggered here
