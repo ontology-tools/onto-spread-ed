@@ -55,11 +55,20 @@
 
 {% block javascriptblock %}
 <!-- //tabulator: -->
+<!-- always up-to-date tabulator CDN? -->
+<!-- <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script> -->
 
-<link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script>
+<!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script> -->
+
+<link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/tabulator_simple.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.1/dist/js/tabulator.min.js"></script>
+
+
 <!-- bootstrap 4 theme -->
-<link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+<!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
+link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 
 <script type="text/javascript">
@@ -72,6 +81,7 @@
     var proposed = "Proposed";
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
+    var whyFuzzy = "Whyfuzzy";
 
     //Column name for Curator
     var curator = "Curator";
@@ -157,7 +167,7 @@
             columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        }else if(headers[i] == "Fuzzy set"){
+        }else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }else{
             columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
@@ -244,7 +254,7 @@
 
 
         cellEdited:function(cell){
-            cell.getElement().style.color = "#003399"; //change text colour on edited!
+            cell.getElement().style.color = "#003399"; //change text colour on edited
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
@@ -273,7 +283,7 @@
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
             if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1){
-                if(cell.getValue() !== ""){ //stop saving curator when cell is empty
+                if(cell.getValue() !== ""){ //stop saving curator when cell is empty - still saves if there are spaces... not an issue?
                     if(data[curator] !== null && data[curator] !== ""){
                             var prevCurator = data[curator];
                             var nameCheck = prevCurator.indexOf(loginInitials);
@@ -315,7 +325,14 @@
                 }
             }
             
-
+            //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true 
+            if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
+                if(cell.getValue() !== ""){
+                    if (data[whyFuzzy] !== null && data[whyFuzzy] !== "") { 
+                        data["Fuzzy set"] = 1;
+                    }
+                }
+            }
         },
 
         cellEditCancelled:function(cell){
