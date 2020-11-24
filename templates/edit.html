@@ -71,8 +71,6 @@
 <!-- link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
 link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
-<script src="https://unpkg.com/jquery-csv@1.0.11/src/jquery.csv.js"></script>
-
 <script type="text/javascript">
     // Column name for curation status
     var curation_status = "Curation status"
@@ -108,25 +106,14 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     }
 
 
-
-    //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
-    //var fields = [];
-    //for (var k=0; k<headerLength; k++) {
-    //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
-    //}
-
     //login
     var loginInitials = "{{user_initials}}"; //todo: remove all '' and ; so I can use this?
     var highlightLogin = false; //highlight user edited tables
 
     //all_initials
-    //var allInitials = "\'JH\', \'TH\', \'SP\'";
-    //var allInitials = "{{all_initials}}";
-    //let allInitialsList = allInitials.replaceAll(";", "");
-    //var allInitialsList = allInitials.replace("J", " ");
-    let allInitials = ['JH', 'TH', 'SP'];
-    //var ttt = $.csv.toObjects(allInitials);
+    var allInitials =  {{ all_initials | safe }};
     console.log("allInitials: " + allInitials);
+
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
 
@@ -177,30 +164,11 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        }else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
+        } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        }else if(headers[i] == "To be reviewed by"){ //todo: this is broken!
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:allInitials}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        }
-        /*
-        else if(headers[i] == "To be reviewed by"){ //todo: this is broken!
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:function(cell){
-                var rows = table.getRows();
-                var values = {};
-
-                rows.forEach(function(row){
-                    //var data = allInitials;
-                    values = $.csv.toObjects(allInitials);
-                    
-                });
-
-                return {values};
-                //var values = {};
-                //values = allInitials;
-                //return {values:values};
-            }, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        }*/
-        else{
+        } else if(headers[i] == "To be reviewed by"){ //todo: this is broken!
+            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:allInitials, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        } else{
             columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
