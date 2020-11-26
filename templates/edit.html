@@ -18,6 +18,8 @@
         <button id=delete-row class="btn btn-outline-secondary"><i class="fas fa-trash-alt"></i> Delete Row</button>
         <button id=highlight-user class="btn btn-outline-secondary"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
         <button id=remove-formatting class="btn btn-outline-secondary"><i class="fas fa-remove-format"></i> Remove all Filters</button>
+        <button id=ask-for-review class="btn btn-outline-secondary"><i class="fas fa-clipboard"></i> Ask for review</button>
+        <button id=reviewed class="btn btn-outline-secondary"><i class="fas fa-clipboard-check"></i> Reviewed</button>
 
     </div>
 
@@ -82,7 +84,8 @@
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
     var whyFuzzy = "Whyfuzzy";
-
+    //for to be reviewed by
+    var to_be_reviewed_by = "To be reviewed by";
     //Column name for Curator
     var curator = "Curator";
 
@@ -105,6 +108,16 @@
 
     }
 
+//todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
+//toLowerCase() messed things up, but addressing by fields is working with UPPERCASE so using below:
+    var fields = [];
+    for (var k=0; k<headerLength; k++) {
+    //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
+    //var fieldsField = headers[k].replace(/\s+/g, '');
+    var fieldsField = headers[k]; //it's the same as headers[] here... 
+    //console.log ("field :" + k + " " + fieldsField);
+        fields.push(fieldsField);
+    }
 
     //login
     var loginInitials = "{{user_initials}}"; //todo: remove all '' and ; so I can use this?
@@ -112,7 +125,7 @@
 
     //all_initials
     var allInitials =  {{ all_initials | safe }};
-    console.log("allInitials: " + allInitials);
+    //console.log("allInitials: " + allInitials);
 
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
@@ -156,23 +169,32 @@
     //Build the column data from the Jinja template object "header"https://store.kde.org/browse/cat/102/
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
-    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", width:"50", hozAlign:"center", headerSort:false});
+    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", width:"50", hozAlign:"center", headerSort:false, frozen:true});
     for (var i=0; i<headerLength; i++) {
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        } else if(headers[i] == "To be reviewed by"){ //todo: this is broken!
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:allInitials, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        } else{
-            columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+        } 
+        else if(headers[i] == "To be reviewed by"){ 
+            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        } 
+        // else if(headers[i] == "To be reviewed by"){ 
+        //     columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        // } 
+        else{
+            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
+    
+    function getDropdown(cell){
+            return(allInitials);
+        }
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
         // tooltips:true, //example option (enable tooltips on all cells)
@@ -199,17 +221,24 @@
         // responsiveLayout:"hide",
         keybindings:true,
         history:true, //records table interaction
-        addRowPos:"bottom",
+        // addRowPos:"bottom",
         // virtualDom:false,
         data: tableData,
         columns: columnData,
+        //autoColumns: true,
         reactiveData:true, //enables updating cell contents programmatically
 
         virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
-        //scrollToRowPosition: "bottom", //for scrollToRow()
+        scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false,
 
+
+        
+        dataSorting:function(sorters){
+            console.log("sorted");
+            //sorters - an array of the sorters currently applied
+        },
         //called when table rendered or re-drawn:
         //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out.
         //do we need a clear cookies button?
@@ -220,6 +249,7 @@
             } catch{
                 console.log("caught"); //this happens on initial load, table loaded twice?
             }
+            //table.setColumns(columnData);
         },
 
         columnResized:function(column){
@@ -237,7 +267,7 @@
         },
         // rowClick:function(e, row){ //trigger an alert message when the row is clicked
         // 	alert("Row " + row.getData().id + " Clicked!!!!");
-        // },
+        // }, //this doesn't work now with ceckbox selection
 
         cellClick:function(e, cell){
             var row = cell.getRow();
@@ -253,11 +283,11 @@
 
 
         cellEdited:function(cell){
-            console.log("all initials: " + allInitials);
             cell.getElement().style.color = "#003399"; //change text colour on edited
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
+
             rowValue = row.getPosition(true);//save position
             //update highlighting:
             if (data[curation_status] !== null) {
@@ -277,6 +307,13 @@
                     row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                 }
             }
+
+            //"to be reviewed by" changed: need to change commas to semi-colons
+            //now the drop-down is not populated..
+            // if (data[to_be_reviewed_by] !== null) {
+            //         var noCommas = data[to_be_reviewed_by].join("; ");
+            //         data[to_be_reviewed_by] = noCommas; 
+            // }
 
             //todo: when clicking on a checkbox once it saves curator even if there is no change
 
@@ -429,7 +466,7 @@
     $("#highlight-user").click(function(){
         highlightLogin = !highlightLogin;
         if(highlightLogin){
-            this.children[0].style.color = "#FF0000";
+            this.children[0].style.color = "#FF0000"; //colour of marker
         } else{
             this.children[0].style.color = "#333300";
         }
@@ -440,6 +477,35 @@
     //todo: button icon highlighted if a filter is active?
     $("#remove-formatting").click(function(){
         clearFormatting();
+    });
+
+    $("#ask-for-review").click(function(){
+        console.log("ask for review");
+        
+    });
+
+    $("#reviewed").click(function(){
+        var selectedRows = table.getSelectedRows(); 
+        
+        selectedRows.forEach(function (row) {
+            var cell = row.getCell(to_be_reviewed_by);
+            var cellValue = cell.getValue();
+            var reviewedCell = "";
+            //three options to replace (eg if loginInitials are "to"):
+            // ; to | to; | to 
+            var semiFirst = "; " + loginInitials;
+            var semiAfter = loginInitials + "; ";
+
+            if (cellValue !== null) {
+                reviewedCell = cellValue.replace(semiFirst, '');
+                reviewedCell = reviewedCell.replace(semiAfter, '');
+                reviewedCell = reviewedCell.replace(loginInitials, '');
+            } 
+            row.update({"To be reviewed by":reviewedCell}); 
+            row.deselect();
+        });
+        //now deselect rows
+
     });
 
     $('#contentTable').ready(function() {
