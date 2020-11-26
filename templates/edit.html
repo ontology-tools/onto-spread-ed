@@ -180,9 +180,14 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
             columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        } else if(headers[i] == "To be reviewed by"){ 
-            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        } else{
+        } 
+        else if(headers[i] == "To be reviewed by"){ 
+            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        } 
+        // else if(headers[i] == "To be reviewed by"){ 
+        //     columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        // } 
+        else{
             columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
@@ -482,9 +487,21 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
     $("#reviewed").click(function(){
         var row = table.getRow(rowValue);
-        var cell = row.getCell("To be reveiwed by");
-        row.update({"To be reviewed by":loginInitials}); //this works!!!!!!!!!! finally!!!!!!
+        var cell = row.getCell(to_be_reviewed_by);
+        var cellValue = cell.getValue();
+        console.log(cellValue);
+        var reviewedCell = "";
+        if (cellValue !== null) {
+            //var noCommas = cellValue.join("; ");
+            reviewedCell = cellValue + "; " + loginInitials;
+        } else{
+            reviewedCell = loginInitials;
+        }
+
+        //var reviewedCell = cell + ", " + loginInitials;
         //row.update({"To be reviewed by":loginInitials}); //this works!!!!!!!!!! finally!!!!!!
+        row.update({"To be reviewed by":reviewedCell}); 
+
         //tableData[rowValue].Parent = loginInitials; //todo: some of these fields work, others not. Spaces in headers...
         //tableData[rowValue].to_be_reviewed_by = loginInitials; //doesn't work..
         console.log("reveiwed row: " + rowValue); //this works
