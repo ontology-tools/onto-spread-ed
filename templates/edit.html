@@ -84,7 +84,8 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
     var whyFuzzy = "Whyfuzzy";
-
+    //for to be reviewed by
+    var to_be_reviewed_by = "To be reviewed by";
     //Column name for Curator
     var curator = "Curator";
 
@@ -113,7 +114,8 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     var fields = [];
     for (var k=0; k<headerLength; k++) {
     //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
-    var fieldsField = headers[k].replace(/\s+/g, '');
+    //var fieldsField = headers[k].replace(/\s+/g, '');
+    var fieldsField = headers[k]; //it's the same as headers[] here...
     console.log ("field :" + k + " " + fieldsField);
         fields.push(fieldsField);
     }
@@ -179,12 +181,16 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
             columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "To be reviewed by"){ 
-            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:allInitials, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else{
             columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
+    
+    function getDropdown(cell){
+            return(allInitials);
+        }
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
         // tooltips:true, //example option (enable tooltips on all cells)
@@ -224,6 +230,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         scrollToRowIfVisible: false,
 
 
+        
         dataSorting:function(sorters){
             console.log("sorted");
             //sorters - an array of the sorters currently applied
@@ -276,6 +283,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
+
             rowValue = row.getPosition(true);//save position
             //update highlighting:
             if (data[curation_status] !== null) {
@@ -294,6 +302,12 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                 if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                 }
+            }
+
+            //"to be reviewed by" changed: need to change commas to semi-colons
+            if (data[to_be_reviewed_by] !== null) {
+                    var noCommas = data[to_be_reviewed_by].join("; ");
+                    data[to_be_reviewed_by] = noCommas; 
             }
 
             //todo: when clicking on a checkbox once it saves curator even if there is no change
@@ -467,9 +481,9 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
     $("#reviewed").click(function(){
         tableData[rowValue].Parent = loginInitials; //todo: some of these fields work, others not. Spaces in headers...
-        tableData[rowValue].BFOentity = loginInitials;
+        tableData[rowValue].To_be_reviewed_by = loginInitials;
         console.log("reveiwed row: " + rowValue); //this works
-        // if (confirm("confirm reviewed?")) {
+        // if (confirm("confirm reviewed?")) {  
             
         // } else {
 
