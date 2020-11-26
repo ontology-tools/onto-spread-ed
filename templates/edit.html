@@ -18,6 +18,8 @@
         <button id=delete-row class="btn btn-outline-secondary"><i class="fas fa-trash-alt"></i> Delete Row</button>
         <button id=highlight-user class="btn btn-outline-secondary"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
         <button id=remove-formatting class="btn btn-outline-secondary"><i class="fas fa-remove-format"></i> Remove all Filters</button>
+        <button id=ask-for-review class="btn btn-outline-secondary"><i class="fas fa-clipboard"></i> Ask for review</button>
+        <button id=reviewed class="btn btn-outline-secondary"><i class="fas fa-clipboard-check"></i> Reviewed</button>
 
     </div>
 
@@ -105,6 +107,16 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
     }
 
+//todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
+//toLowerCase() messed things up, but addressing by fields is working with UPPERCASE so using below:
+//for 
+    var fields = [];
+    for (var k=0; k<headerLength; k++) {
+    //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
+    var fieldsField = headers[k].replace(/\s+/g, '');
+    console.log ("field :" + k + " " + fieldsField);
+        fields.push(fieldsField);
+    }
 
     //login
     var loginInitials = "{{user_initials}}"; //todo: remove all '' and ; so I can use this?
@@ -112,7 +124,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
     //all_initials
     var allInitials =  {{ all_initials | safe }};
-    console.log("allInitials: " + allInitials);
+    //console.log("allInitials: " + allInitials);
 
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
@@ -161,15 +173,15 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        } else if(headers[i] == "To be reviewed by"){ //todo: this is broken!
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:allInitials, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+        } else if(headers[i] == "To be reviewed by"){ 
+            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:allInitials, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else{
-            columnData.push({title:headers[i], field:headers[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
@@ -199,17 +211,23 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         // responsiveLayout:"hide",
         keybindings:true,
         history:true, //records table interaction
-        addRowPos:"bottom",
+        // addRowPos:"bottom",
         // virtualDom:false,
         data: tableData,
         columns: columnData,
+        //autoColumns: true,
         reactiveData:true, //enables updating cell contents programmatically
 
         virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
-        //scrollToRowPosition: "bottom", //for scrollToRow()
+        scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false,
 
+
+        dataSorting:function(sorters){
+            console.log("sorted");
+            //sorters - an array of the sorters currently applied
+        },
         //called when table rendered or re-drawn:
         //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out. 
         //do we need a clear cookies button? 
@@ -220,6 +238,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             } catch{
                 console.log("caught"); //this happens on initial load, table loaded twice?
             }
+            //table.setColumns(columnData);
         },
 
         columnResized:function(column){
@@ -237,7 +256,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         },
         // rowClick:function(e, row){ //trigger an alert message when the row is clicked
         // 	alert("Row " + row.getData().id + " Clicked!!!!");
-        // },
+        // }, //this doesn't work now with ceckbox selection
 
         cellClick:function(e, cell){
             var row = cell.getRow();
@@ -253,7 +272,6 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
 
         cellEdited:function(cell){
-            console.log("all initials: " + allInitials);
             cell.getElement().style.color = "#003399"; //change text colour on edited
             var row = cell.getRow();
             var data = row.getData();
@@ -429,7 +447,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     $("#highlight-user").click(function(){
         highlightLogin = !highlightLogin;
         if(highlightLogin){
-            this.children[0].style.color = "#FF0000";
+            this.children[0].style.color = "#FF0000"; //colour of marker
         } else{
             this.children[0].style.color = "#333300";
         }
@@ -440,6 +458,23 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     //todo: button icon highlighted if a filter is active?
     $("#remove-formatting").click(function(){
         clearFormatting();
+    });
+
+    $("#ask-for-review").click(function(){
+        console.log("ask for review");
+        
+    });
+
+    $("#reviewed").click(function(){
+        tableData[rowValue].Parent = loginInitials; //todo: some of these fields work, others not. Spaces in headers...
+        tableData[rowValue].BFOentity = loginInitials;
+        console.log("reveiwed row: " + rowValue); //this works
+        // if (confirm("confirm reviewed?")) {
+            
+        // } else {
+
+        //     //nothing
+        // }
     });
 
     $('#contentTable').ready(function() {
