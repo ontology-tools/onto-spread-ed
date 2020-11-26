@@ -305,10 +305,11 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             }
 
             //"to be reviewed by" changed: need to change commas to semi-colons
-            if (data[to_be_reviewed_by] !== null) {
-                    var noCommas = data[to_be_reviewed_by].join("; ");
-                    data[to_be_reviewed_by] = noCommas; 
-            }
+            //now the drop-down is not populated..
+            // if (data[to_be_reviewed_by] !== null) {
+            //         var noCommas = data[to_be_reviewed_by].join("; ");
+            //         data[to_be_reviewed_by] = noCommas; 
+            // }
 
             //todo: when clicking on a checkbox once it saves curator even if there is no change
             
@@ -480,8 +481,12 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     });
 
     $("#reviewed").click(function(){
-        tableData[rowValue].Parent = loginInitials; //todo: some of these fields work, others not. Spaces in headers...
-        tableData[rowValue].To_be_reviewed_by = loginInitials;
+        var row = table.getRow(rowValue);
+        var cell = row.getCell("To be reveiwed by");
+        row.update({"To be reviewed by":loginInitials}); //this works!!!!!!!!!! finally!!!!!!
+        //row.update({"To be reviewed by":loginInitials}); //this works!!!!!!!!!! finally!!!!!!
+        //tableData[rowValue].Parent = loginInitials; //todo: some of these fields work, others not. Spaces in headers...
+        //tableData[rowValue].to_be_reviewed_by = loginInitials; //doesn't work..
         console.log("reveiwed row: " + rowValue); //this works
         // if (confirm("confirm reviewed?")) {  
             
