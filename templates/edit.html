@@ -69,7 +69,7 @@
 <!-- bootstrap 4 theme -->
 <!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
 <!-- link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
-link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+<link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
     // Column name for curation status
@@ -211,8 +211,8 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         scrollToRowIfVisible: false,
 
         //called when table rendered or re-drawn:
-        //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out. 
-        //do we need a clear cookies button? 
+        //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out.
+        //do we need a clear cookies button?
         renderComplete:function(){
             try{
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
@@ -279,7 +279,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             }
 
             //todo: when clicking on a checkbox once it saves curator even if there is no change
-            
+
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
             if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1){
@@ -298,7 +298,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
                         //text must be coloured if highlighting login set though..
                         if(highlightLogin){
-                            if(data[curator] !== null){ 
+                            if(data[curator] !== null){
                                 var curatorA = data[curator];
                                 if(curatorA !== null){
                                     var nameCheckA = curatorA.indexOf(loginInitials);
@@ -324,11 +324,11 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                     }
                 }
             }
-            
-            //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true 
+
+            //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true
             if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
                 if(cell.getValue() !== ""){
-                    if (data[whyFuzzy] !== null && data[whyFuzzy] !== "") { 
+                    if (data[whyFuzzy] !== null && data[whyFuzzy] !== "") {
                         data["Fuzzy set"] = 1;
                     }
                 }
@@ -388,8 +388,8 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             })
             .catch(function(error){
                 //handle error scrolling to row
-            });    
-            rowValue = row.getPosition(true);            
+            });
+            rowValue = row.getPosition(true);
         },
 
         // rowUpdated:function(row){
@@ -433,7 +433,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         } else{
             this.children[0].style.color = "#333300";
         }
-        table.redraw(true); 
+        table.redraw(true);
         //renderComplete triggered here
     });
 
