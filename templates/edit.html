@@ -14,18 +14,28 @@
 
 <div class="row mb-3">
     <div class="col-md-9">
-        <button id=add-row class="btn btn-outline-secondary"><i class="fas fa-plus"></i> Add Row</button>
-        <button id=delete-row class="btn btn-outline-secondary"><i class="fas fa-trash-alt"></i> Delete Row</button>
-        <button id=highlight-user class="btn btn-outline-secondary"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
-        <button id=remove-formatting class="btn btn-outline-secondary"><i class="fas fa-remove-format"></i> Remove all Filters</button>
-        <button id=ask-for-review class="btn btn-outline-secondary"><i class="fas fa-clipboard"></i> Ask for review</button>
-        <button id=reviewed class="btn btn-outline-secondary"><i class="fas fa-clipboard-check"></i> Reviewed</button>
+        <button id=add-row class="btn btn-outline-secondary btn-sm"><i class="fas fa-plus"></i> Add Row</button>
+        <button id=delete-row class="btn btn-outline-secondary btn-sm"><i class="fas fa-trash-alt"></i> Delete Row</button>
+        <button id=highlight-user class="btn btn-outline-secondary btn-sm"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
+        <button id=remove-formatting class="btn btn-outline-secondary btn-sm"><i class="fas fa-remove-format"></i> Remove all Filters</button>
+        <button id=ask-for-review class="btn btn-outline-secondary btn-sm"><i class="fas fa-clipboard"></i> Ask for review</button>
+        <button id=reviewed class="btn btn-outline-secondary btn-sm"><i class="fas fa-clipboard-check"></i> Reviewed</button>
 
     </div>
 
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
+        <button id="save-btn" class="btn btn-outline-success btn-sm" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
         </button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+      <div id="saveAlert" class="alert alert-success collapse" role="alert">
+        <button id="closeSaveMsgBtn" type="button" class="close" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        <div id="saveMessage"> </div>
+      </div>
     </div>
 </div>
 <div class="row">
@@ -114,7 +124,7 @@
     for (var k=0; k<headerLength; k++) {
     //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
     //var fieldsField = headers[k].replace(/\s+/g, '');
-    var fieldsField = headers[k]; //it's the same as headers[] here... 
+    var fieldsField = headers[k]; //it's the same as headers[] here...
     //console.log ("field :" + k + " " + fieldsField);
         fields.push(fieldsField);
     }
@@ -179,19 +189,19 @@
             columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
             columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        } 
-        else if(headers[i] == "To be reviewed by"){ 
+        }
+        else if(headers[i] == "To be reviewed by"){
             columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        } 
-        // else if(headers[i] == "To be reviewed by"){ 
+        }
+        // else if(headers[i] == "To be reviewed by"){
         //     columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        // } 
+        // }
         else{
             columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
-    
+
     function getDropdown(cell){
             return(allInitials);
         }
@@ -234,7 +244,7 @@
         scrollToRowIfVisible: false,
 
 
-        
+
         dataSorting:function(sorters){
             console.log("sorted");
             //sorters - an array of the sorters currently applied
@@ -291,19 +301,19 @@
             rowValue = row.getPosition(true);//save position
             //update highlighting:
             if (data[curation_status] !== null) {
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+                if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
                 }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+                if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
                 }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+                if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'white'; //apply css change to row element
                 }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
+                if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
                 row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
                 }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                 }
             }
@@ -312,7 +322,7 @@
             //now the drop-down is not populated..
             // if (data[to_be_reviewed_by] !== null) {
             //         var noCommas = data[to_be_reviewed_by].join("; ");
-            //         data[to_be_reviewed_by] = noCommas; 
+            //         data[to_be_reviewed_by] = noCommas;
             // }
 
             //todo: when clicking on a checkbox once it saves curator even if there is no change
@@ -386,19 +396,19 @@
             var data = row.getData();
                 //todo: this is obviously duplicate code, how to refactor?
                 if (data[curation_status] !== null) {
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+                    if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+                    if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+                    if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'white'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
+                    if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
                     row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                    if(data[curation_status].toString().toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                     }
                 }
@@ -481,18 +491,18 @@
 
     $("#ask-for-review").click(function(){
         console.log("ask for review");
-        
+
     });
 
     $("#reviewed").click(function(){
-        var selectedRows = table.getSelectedRows(); 
-        
+        var selectedRows = table.getSelectedRows();
+
         selectedRows.forEach(function (row) {
             var cell = row.getCell(to_be_reviewed_by);
             var cellValue = cell.getValue();
             var reviewedCell = "";
             //three options to replace (eg if loginInitials are "to"):
-            // ; to | to; | to 
+            // ; to | to; | to
             var semiFirst = "; " + loginInitials;
             var semiAfter = loginInitials + "; ";
 
@@ -500,8 +510,8 @@
                 reviewedCell = cellValue.replace(semiFirst, '');
                 reviewedCell = reviewedCell.replace(semiAfter, '');
                 reviewedCell = reviewedCell.replace(loginInitials, '');
-            } 
-            row.update({"To be reviewed by":reviewedCell}); 
+            }
+            row.update({"To be reviewed by":reviewedCell});
             row.deselect();
         });
         //now deselect rows
@@ -574,15 +584,19 @@
                             alert("Problem communicating with server");
                         }
                         else if (request.status === 200) {
-                          //var response = JSON.parse(request.responseText);
-                          //var prInfo = response['pr_info'];
-                          //alert('Update submitted successfully. The changes will be ' +
-                          //    'reviewed by a moderator before being added to the repository. Click ' +
-                          //    '<a href="' + prInfo['html_url'] + '" target="__blank">here</a> to view your ' +
-                          //    'pull request on GitHub.');
-                            alert("Updated submitted successfully");
+                          $('#saveAlert').removeClass('alert-danger');
+                          $('#saveAlert').addClass('alert-success');
+                          $("#saveMessage").text('Changes were saved successfully to the repository. ');
+                          $("#saveAlert").dismissed = false;
+                          $("#saveAlert").show();
                         } else {
-                            alert("Submission of update failed.");
+                          var response = JSON.parse(request.responseText);
+                          var errInfo = response['Error'];
+                          $('#saveAlert').removeClass('alert-success');
+                          $('#saveAlert').addClass('alert-danger');
+                          $("#saveMessage").text('There was a problem saving changes: '+errInfo);
+                          $(".alert").alert()
+                          $("#saveAlert").show();
                         }
                     }
                     }
@@ -607,6 +621,11 @@
     };
 
 
+    /** Hide save results message */
+    $("#closeSaveMsgBtn").click(function() {
+        $("#saveMessage").text('');
+        $(this).parent().hide();
+    });
 
 </script>
 

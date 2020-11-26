@@ -388,7 +388,7 @@ def save():
         print(err)
         traceback.print_exc()
         return (
-            format(err),
+            JSON.dumps({"Error":format(err)}),
             400,
         )
 
