@@ -110,13 +110,12 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
 //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
 //toLowerCase() messed things up, but addressing by fields is working with UPPERCASE so using below:
-//for 
     var fields = [];
     for (var k=0; k<headerLength; k++) {
     //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
     //var fieldsField = headers[k].replace(/\s+/g, '');
-    var fieldsField = headers[k]; //it's the same as headers[] here...
-    console.log ("field :" + k + " " + fieldsField);
+    var fieldsField = headers[k]; //it's the same as headers[] here... 
+    //console.log ("field :" + k + " " + fieldsField);
         fields.push(fieldsField);
     }
 
@@ -170,7 +169,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     //Build the column data from the Jinja template object "header"https://store.kde.org/browse/cat/102/
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
-    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", width:"50", hozAlign:"center", headerSort:false});
+    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", width:"50", hozAlign:"center", headerSort:false, frozen:true});
     for (var i=0; i<headerLength; i++) {
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
@@ -485,31 +484,28 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         
     });
 
-//todo: this works currently one row at a time, on last focused row. Need to use the checkboxes to select multiple 
     $("#reviewed").click(function(){
-        var selectedRows = table.getSelectedRows(); //need to loop over selectedRows below
-        console.log(selectedRows);
-
-        var row = table.getRow(rowValue);
-        var cell = row.getCell(to_be_reviewed_by);
-        var cellValue = cell.getValue();
-        console.log(cellValue);
-        var reviewedCell = "";
-
-        //three options to replace (eg if loginInitials are "to"):
-        // ; to | to; | to 
-        var semiFirst = "; " + loginInitials;
-        var semiAfter = loginInitials + "; ";
-
-        if (cellValue !== null) {
-            reviewedCell = cellValue.replace(semiFirst, '');
-            reviewedCell = reviewedCell.replace(semiAfter, '');
-            reviewedCell = reviewedCell.replace(loginInitials, '');
-        } 
-        row.update({"To be reviewed by":reviewedCell}); 
-
-        console.log("reveiwed row: " + rowValue); //this works
+        var selectedRows = table.getSelectedRows(); 
         
+        selectedRows.forEach(function (row) {
+            var cell = row.getCell(to_be_reviewed_by);
+            var cellValue = cell.getValue();
+            var reviewedCell = "";
+            //three options to replace (eg if loginInitials are "to"):
+            // ; to | to; | to 
+            var semiFirst = "; " + loginInitials;
+            var semiAfter = loginInitials + "; ";
+
+            if (cellValue !== null) {
+                reviewedCell = cellValue.replace(semiFirst, '');
+                reviewedCell = reviewedCell.replace(semiAfter, '');
+                reviewedCell = reviewedCell.replace(loginInitials, '');
+            } 
+            row.update({"To be reviewed by":reviewedCell}); 
+            row.deselect();
+        });
+        //now deselect rows
+
     });
 
     $('#contentTable').ready(function() {
