@@ -222,6 +222,7 @@ def edit(repo_key, folder, spreadsheet):
     spreadsheet_file = github.get(
         f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
     )
+    file_sha = spreadsheet_file['sha']
     base64_bytes = spreadsheet_file['content'].encode('utf-8')
     decoded_data = base64.decodebytes(base64_bytes)
     wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
@@ -249,7 +250,8 @@ def edit(repo_key, folder, spreadsheet):
                             folder = folder,
                             spreadsheet_name=spreadsheet,
                             header=json.dumps(header),
-                            rows=json.dumps(rows)
+                            rows=json.dumps(rows),
+                            file_sha = file_sha
                             )
 
 
@@ -260,7 +262,10 @@ def save():
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
     row_data = request.form.get("rowData")
+    file_sha = request.form.get("file_sha").strip()
     commit_msg = request.form.get("commit_msg")
+    commit_msg_extra = request.form.get("commit_msg_extra")
+
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
@@ -276,6 +281,7 @@ def save():
         row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
 
         #print(row_data_parsed)
+        print("Got file_sha",file_sha)
 
         wb = openpyxl.Workbook()
         sheet = wb.active
@@ -329,16 +335,15 @@ def save():
             raise Exception(
                 f"Unable to get the current SHA value for {spreadsheet} in {repo_detail}/{folder}"
                 )
-        file_sha = response["sha"]
+        new_file_sha = response['sha']
 
-        # Commit changes to branch (replace code with sheet)
+       # Commit changes to branch (replace code with sheet)
         data = {
             "message": commit_msg,
             "content": base64_string,
             "branch": branch,
         }
-        if file_sha:
-            data["sha"] = file_sha
+        data["sha"] = new_file_sha
         print("About to commit file to branch",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
         if not response:
@@ -354,31 +359,39 @@ def save():
                 "title": commit_msg,
                 "head": branch,
                 "base": "master",
+                "body": commit_msg_extra
             },
         )
         if not response:
             raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
+        pr_info = response['html_url']
 
-        # Merge the created PR
-        print("About to merge created PR")
-        response = github.post(
-            f"repos/{repo_detail}/merges",
-            data={
-                "head": branch,
-                "base": "master",
-                "commit_message": commit_msg
-            },
-        )
-        if not response:
-            raise Exception(f"Unable to merge PR from branch {branch} in {repo_detail}")
+        # Do not merge if this file was stale
+        if new_file_sha != file_sha:
+            print("PR created and must be merged manually as repo file had changed")
+            return(
+                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>.' }), 400
+                )
+        else:
+            # Merge the created PR
+            print("About to merge created PR")
+            response = github.post(
+                f"repos/{repo_detail}/merges",
+                data={
+                    "head": branch,
+                    "base": "master",
+                    "commit_message": commit_msg
+                },
+            )
+            if not response:
+                raise Exception(f"Unable to merge PR from branch {branch} in {repo_detail}")
 
-
-        # Delete the branch again
-        print ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
-        response = github.delete(
-            f"repos/{repo_detail}/git/refs/heads/{branch}")
-        if not response:
-            raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
+            # Delete the branch again
+            print ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
+            response = github.delete(
+                f"repos/{repo_detail}/git/refs/heads/{branch}")
+            if not response:
+                raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
         print ("Save succeeded")
         # TODO Figure out responses and send message. Options are Success / Save failure / Merge failure
@@ -388,7 +401,7 @@ def save():
         print(err)
         traceback.print_exc()
         return (
-            JSON.dumps({"Error":format(err)}),
+            json.dumps({"Error":format(err)}),
             400,
         )
 

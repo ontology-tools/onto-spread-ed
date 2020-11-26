@@ -11,7 +11,7 @@
         <h2> Editing {{spreadsheet_name}} </h2>
     </div>
 </div>
-
+File sha: {{file_sha}}
 <div class="row mb-3">
     <div class="col-md-9">
         <button id=add-row class="btn btn-outline-secondary btn-sm"><i class="fas fa-plus"></i> Add Row</button>
@@ -607,7 +607,9 @@
                                 '&folder=' + folder +
                                 '&spreadsheet=' + spreadsheet +
                                 '&rowData=' + rowData +
-                                '&commit_msg=' + commit_msg);
+                                '&commit_msg=' + commit_msg +
+                                '&commit_msg_extra='+ msgBody +
+                                '&file_sha= {{file_sha}} ' );
                     $("*").css("cursor", "progress");
             }
             }
