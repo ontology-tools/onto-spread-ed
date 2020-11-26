@@ -267,15 +267,20 @@ def save():
 
     try:
         row_data_parsed = json.loads(row_data)
+        # Get the data, skip the first 'id' column
+        first_row = row_data_parsed[0]
+        header = [k for k in first_row.keys()]
+        del header[0]
+        del row_data_parsed[0] # Remove header row
+        # Sort based on label
+        row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
+
         #print(row_data_parsed)
 
         wb = openpyxl.Workbook()
         sheet = wb.active
         #sheet.title="Definitions" # This creates a new sheet, no good
-        # Get the data, skip the first 'id' column
-        first_row = row_data_parsed[0]
-        header = [k for k in first_row.keys()]
-        del header[0]
+
         for c in range(len(header)):
             sheet.cell(row=1, column=c+1).value=header[c]
             sheet.cell(row=1, column=c+1).font = Font(size=12,bold=True)
