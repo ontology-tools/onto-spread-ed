@@ -14,20 +14,22 @@
 
 <div class="row mb-3">
     <div class="col-md-9">
-        <button id=add-row class="btn btn-outline-secondary"><i class="fas fa-plus"></i> Add Row</button>
-        <button id=delete-row class="btn btn-outline-secondary"><i class="fas fa-trash-alt"></i> Delete Row</button>
-        <button id=highlight-user class="btn btn-outline-secondary"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
-        <button id=remove-formatting class="btn btn-outline-secondary"><i class="fas fa-remove-format"></i> Remove all Filters</button>
-        <button id=ask-for-review class="btn btn-outline-secondary"><i class="fas fa-clipboard"></i> Ask for review</button>
-        <button id=reviewed class="btn btn-outline-secondary"><i class="fas fa-clipboard-check"></i> Reviewed</button>
-
+        <div class="text-left"> 
+            <button id=add-row class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add Row</button>
+            <button id=delete-rows class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Delete Rows</button>
+            <button id=highlight-user class="btn btn-outline-warning btn-sm"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
+            <button id=remove-formatting class="btn btn-outline-dark btn-sm"><i class="fas fa-remove-format"></i> Remove all Filters</button>
+            <button id=ask-for-review class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard"></i> Ask for review</button>
+            <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i> Reviewed</button>
+        </div> 
     </div>
 
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
+        <button id="save-btn" class="btn btn-outline-success btn-lg" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
         </button>
     </div>
 </div>
+
 <div class="row">
     <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-hover table-sm" style="font-size: 0.8em;">
@@ -53,16 +55,16 @@
 </div>
 
 
-{% endblock %}
+{% endblock %}finish this dropdown and add button functionality
 
 {% block javascriptblock %}
 <!-- //tabulator: -->
 <!-- always up-to-date tabulator CDN? -->
-<!-- <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script> -->
+<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
 
-<link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script>
+<!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script> -->
 
 <!-- <link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/tabulator_simple.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.1/dist/js/tabulator.min.js"></script> -->
@@ -450,16 +452,22 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     });
 
     //delete row button click handler:
-    //todo: additional functionality needed:
-    // 1. if more than one row to be deleted, dialog says "Do you really want to delete these " + numberOfRowsSelected + "rows"
-    // 2. if no rows selected, dialog says "No rows selected" and returns
-    $("#delete-row").click(function(){
+    $("#delete-rows").click(function(){
         var selectedRows = table.getSelectedRows();
-        if (confirm("Do you really want to delete this row?")) {
-            table.deleteRow(selectedRows);
-        } else {
-
-            //nothing
+        if(selectedRows.length > 1){
+            if (confirm("Do you really want to delete these rows?")) {
+                table.deleteRow(selectedRows);
+            } else {
+                //deselect rows here?
+            }
+        } else if(selectedRows.length == 1){
+            if (confirm("Do you really want to delete this row?")) {
+                table.deleteRow(selectedRows);
+            } else{
+                //deselect rows here?
+            }
+        } else{
+            alert("No rows selected");
         }
     });
 
@@ -479,14 +487,55 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         clearFormatting();
     });
 
+    
     $("#ask-for-review").click(function(){
         console.log("ask for review");
-        
+        var inputArray = [];
+        for (var i = 0; i < allInitials.length; i++) {
+            inputArray.push({text: allInitials[i], value: allInitials[i]});
+        }
+        bootbox.prompt({
+        title: "Choose reviewers",
+        inputType: 'checkbox',
+        inputOptions: $(inputArray),
+        callback: function (result) {
+            console.log(result);
+            var selectedRows = table.getSelectedRows(); //todo: move this up to button clicked - with alert
+            console.log(selectedRows);
+            if(selectedRows == ""){
+                alert("No rows selected");
+            }
+            selectedRows.forEach(function (row) {
+                //todo: implement logic. 
+                //1. Don't repeat initials already present
+                //2. add selected initials (in dropdown) to cell
+                //3. join with "; " except the first one (if cellValue !== null)
+
+                // var noCommas = data[to_be_reviewed_by].join("; ");
+                // data[to_be_reviewed_by] = noCommas; 
+                //old, one joins with commas only:
+                var cell = row.getCell(to_be_reviewed_by);
+                var cellValue = cell.getValue();
+                var reviewedCell = "";
+
+                if (cellValue !== null) {
+                reviewedCell = cellValue + "; " + result;
+                } else{
+                reviewedCell = result;
+                }
+                row.update({"To be reviewed by":reviewedCell}); 
+                row.deselect();
+                });
+            }
+        });
     });
 
     $("#reviewed").click(function(){
         var selectedRows = table.getSelectedRows(); 
-        
+        console.log(selectedRows);
+        if(selectedRows == ""){
+            alert("No rows selected");
+        }
         selectedRows.forEach(function (row) {
             var cell = row.getCell(to_be_reviewed_by);
             var cellValue = cell.getValue();
