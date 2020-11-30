@@ -490,44 +490,43 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     
     $("#ask-for-review").click(function(){
         console.log("ask for review");
-        var inputArray = [];
-        for (var i = 0; i < allInitials.length; i++) {
-            inputArray.push({text: allInitials[i], value: allInitials[i]});
-        }
-        bootbox.prompt({
-        title: "Choose reviewers",
-        inputType: 'checkbox',
-        inputOptions: $(inputArray),
-        callback: function (result) {
-            console.log(result);
-            var selectedRows = table.getSelectedRows(); //todo: move this up to button clicked - with alert
+        var selectedRows = table.getSelectedRows(); 
             console.log(selectedRows);
             if(selectedRows == ""){
                 alert("No rows selected");
-            }
-            selectedRows.forEach(function (row) {
-                //todo: implement logic. 
-                //1. Don't repeat initials already present
-                //2. add selected initials (in dropdown) to cell
-                //3. join with "; " except the first one (if cellValue !== null)
-
-                // var noCommas = data[to_be_reviewed_by].join("; ");
-                // data[to_be_reviewed_by] = noCommas; 
-                //old, one joins with commas only:
-                var cell = row.getCell(to_be_reviewed_by);
-                var cellValue = cell.getValue();
-                var reviewedCell = "";
-
-                if (cellValue !== null) {
-                reviewedCell = cellValue + "; " + result;
-                } else{
-                reviewedCell = result;
+            } else{
+                var inputArray = [];
+                for (var i = 0; i < allInitials.length; i++) {
+                    inputArray.push({text: allInitials[i], value: allInitials[i]});
                 }
-                row.update({"To be reviewed by":reviewedCell}); 
-                row.deselect();
+                bootbox.prompt({
+                title: "Choose reviewers",
+                inputType: 'checkbox',
+                inputOptions: $(inputArray),
+                callback: function (result) {
+                    console.log(result);
+                    
+                    selectedRows.forEach(function (row) {
+                        //todo: implement logic. 
+                        //1. Don't repeat initials already present
+                        //2. add selected initials (in dropdown) to cell
+                        //3. join with "; " except the first one (if cellValue !== null)
+
+                        var cell = row.getCell(to_be_reviewed_by);
+                        var cellValue = cell.getValue();
+                        var reviewedCell = "";
+                        var addData = result.join("; ");
+                        if (cellValue !== null) {
+                            reviewedCell = cellValue + "; " + addData;
+                        } else{
+                            reviewedCell = addData;
+                        }
+                        row.update({"To be reviewed by":reviewedCell}); 
+                        row.deselect();
+                        });
+                    }
                 });
-            }
-        });
+        }
     });
 
     $("#reviewed").click(function(){
