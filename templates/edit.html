@@ -92,6 +92,8 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     var to_be_reviewed_by = "To be reviewed by";
     //Column name for Curator
     var curator = "Curator";
+    //label:
+    var label = "Label";
 
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
@@ -204,6 +206,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         // tooltips:true, //example option (enable tooltips on all cells)
         groupToggleElement:"header",
         height:600,
+        //height:"calc(100% - 250px)",
         //height:"100%", //this makes the header not stay on the top..
         layout:"fitColumns",
         //layout:window.innerWidth > 800 ? "fitColumns" : "fitData",
@@ -294,21 +297,26 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
             rowValue = row.getPosition(true);//save position
             //update highlighting:
-            if (data[curation_status] !== null) {
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
-                }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
-                }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'white'; //apply css change to row element
-                }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
-                row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
-                }
-                if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+            //todo: fix error if curation_status not present in OTHER SPREADSHEETS
+            if(data[curation_status] === undefined){
+                console.log("undefined undefined errrrrrr");
+            } else{
+                if (data[curation_status] !== null) {
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
+                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+                    }
                 }
             }
 
@@ -323,54 +331,63 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
-            if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1){
-                if(cell.getValue() !== ""){ //stop saving curator when cell is empty - still saves if there are spaces... not an issue?
-                    if(data[curator] !== null && data[curator] !== ""){
-                            var prevCurator = data[curator];
-                            var nameCheck = prevCurator.indexOf(loginInitials);
-                            if(nameCheck > -1) {
-                                //name exists, don't update
-                            } else {
-                                data[curator] = prevCurator + "; " + loginInitials;
-                            }
-                        } else{
-                            data[curator] = loginInitials;
-                        }
+            //todo: fix error if curator not present in OTHER SPREADSHEETS
+            if(data[curator] === undefined){ //curator column not present in table
 
-                        //text must be coloured if highlighting login set though..
-                        if(highlightLogin){
-                            if(data[curator] !== null){ 
-                                var curatorA = data[curator];
-                                if(curatorA !== null){
-                                    var nameCheckA = curatorA.indexOf(loginInitials);
-                                    if(nameCheckA > -1) {
-                                        row.getElement().style.color = 'red';
+            } else{
+                if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1){
+                    if(cell.getValue() !== ""){ //stop saving curator when cell is empty - still saves if there are spaces... not an issue?
+                        if(data[curator] !== null && data[curator] !== ""){
+                                var prevCurator = data[curator];
+                                var nameCheck = prevCurator.indexOf(loginInitials);
+                                if(nameCheck > -1) {
+                                    //name exists, don't update
+                                } else {
+                                    data[curator] = prevCurator + "; " + loginInitials;
+                                }
+                            } else{
+                                data[curator] = loginInitials;
+                            }
+
+                            //text must be coloured if highlighting login set though..
+                            if(highlightLogin){
+                                if(data[curator] !== null){ 
+                                    var curatorA = data[curator];
+                                    if(curatorA !== null){
+                                        var nameCheckA = curatorA.indexOf(loginInitials);
+                                        if(nameCheckA > -1) {
+                                            row.getElement().style.color = 'red';
+                                        }
                                     }
                                 }
                             }
-                        }
-                }
-            } else{ //if editing "Curator" column, text must be coloured if highlighting login set
-                if(highlightLogin){
-                    if(data[curator] !== null && data[curator] !== ""){
-                        var curatorB = data[curator];
-                        if(curatorB !== null){
-                            var nameCheckB = curatorB.indexOf(loginInitials);
-                            if(nameCheckB > -1) {
-                                row.getElement().style.color = 'red';
+                    }
+                } else{ //if editing "Curator" column, text must be coloured if highlighting login set
+                    if(highlightLogin){
+                        if(data[curator] !== null && data[curator] !== ""){
+                            var curatorB = data[curator];
+                            if(curatorB !== null){
+                                var nameCheckB = curatorB.indexOf(loginInitials);
+                                if(nameCheckB > -1) {
+                                    row.getElement().style.color = 'red';
+                                }
                             }
+                        } else{
+                            row.getElement().style.color = 'black'; //change back to black
                         }
-                    } else{
-                        row.getElement().style.color = 'black'; //change back to black
                     }
                 }
             }
             
             //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true 
-            if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
-                if(cell.getValue() !== ""){
-                    if (data[whyFuzzy] !== null && data[whyFuzzy] !== "") { 
-                        data["Fuzzy set"] = 1;
+            if(data[whyFuzzy] === undefined){ //whyFuzzy column not present
+
+            } else{
+                if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
+                    if(cell.getValue() !== ""){
+                        if (data[whyFuzzy] !== null && data[whyFuzzy] !== "") { 
+                            data["Fuzzy set"] = 1;
+                        }
                     }
                 }
             }
@@ -389,7 +406,10 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
-                //todo: this is obviously duplicate code, how to refactor?
+            //todo: this is obviously duplicate code, how to refactor?
+            if(data[curation_status] === undefined){
+                console.log("undefined undefined errrrrrr");
+            } else{
                 if (data[curation_status] !== null) {
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
@@ -407,13 +427,18 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                         row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                     }
                 }
+            }
 
             if(highlightLogin){
-                if(data[curator] !== null){
-                    var curatorA = data[curator];
-                    var nameCheckA = curatorA.indexOf(loginInitials);
-                    if(nameCheckA > -1) {
-                        row.getElement().style.color = 'red';
+                if(data[curator] === undefined){
+
+                } else{
+                    if(data[curator] !== null){
+                        var curatorA = data[curator];
+                        var nameCheckA = curatorA.indexOf(loginInitials);
+                        if(nameCheckA > -1) {
+                            row.getElement().style.color = 'red';
+                        }
                     }
                 }
             } else{
@@ -422,16 +447,25 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         },
 
         rowAdded:function(row){
+            var rowZero = table.getRow(0); //will fail on empty spreadsheet, but row not working for new row..
+            var data = rowZero.getData();
+             
             table.scrollToRow(row, "bottom", false)
             .then(function(){
-                var cell = row.getCell("Label");
-                //console.log(cell);
-                cell.getElement().focus();
+                if(data[label] === undefined){ //label column not present
+
+                } else{
+                //todo: change to use absolute value here - row.getCell(1)? 
+                    var cell = row.getCell("Label");
+                    //console.log(cell);
+                    cell.getElement().focus(); //no focus for spreadsheets without "Label" column
+                } 
+                
             })
             .catch(function(error){
                 //handle error scrolling to row
             });    
-            rowValue = row.getPosition(true);            
+            rowValue = row.getPosition(true);           
         },
 
         // rowUpdated:function(row){
@@ -446,9 +480,14 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     //new row button click handler:
     $("#add-row").click(function(){
         var newRowData = {};
-        newRowData[curation_status] = "Proposed";
-        //If newRowData[curator] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
-        newRowData[curator] = loginInitials;  // if we don't want this, maybe use " " instead?
+        var row = table.getRow(0); //todo: this will fail on empty spreadsheet - do we support those?
+        if(row.getCell(curation_status) === undefined){ //curation status column not present
+
+        } else{
+            newRowData[curation_status] = "Proposed";
+            //If newRowData[curator] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
+            newRowData[curator] = loginInitials;  // if we don't want this, maybe use " " instead?
+        }
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen
         table.addRow(newRowData);
         //rowAdded triggered here
@@ -490,7 +529,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         clearFormatting();
     });
 
-    
+    //todo: should we just hide this button in non-reviewable spreadsheets?
     $("#ask-for-review").click(function(){
         console.log("ask for review");
         var selectedRows = table.getSelectedRows(); 
@@ -508,7 +547,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                 inputOptions: $(inputArray),
                 callback: function (result) {                    
                     selectedRows.forEach(function (row) {
-                        //todo: implement logic. 
+                        //logic:
                         //1. Don't repeat initials already present
                         //2. add selected initials (in dropdown) to cell
                         //3. join with "; " except the first one (if cellValue !== null)
@@ -536,24 +575,28 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         if(selectedRows == ""){
             alert("No rows selected");
         }
+        
         selectedRows.forEach(function (row) {
-            var cell = row.getCell(to_be_reviewed_by);
-            var cellValue = cell.getValue();
-            var reviewedCell = "";
-            //three options to replace (eg if loginInitials are "to"):
-            // ; to | to; | to 
-            var semiFirst = "; " + loginInitials;
-            var semiAfter = loginInitials + "; ";
+            if(row.getCell(to_be_reviewed_by) === undefined){
 
-            if (cellValue !== null) {
-                reviewedCell = cellValue.replace(semiFirst, '');
-                reviewedCell = reviewedCell.replace(semiAfter, '');
-                reviewedCell = reviewedCell.replace(loginInitials, '');
-            } 
-            row.update({"To be reviewed by":reviewedCell}); 
-            row.deselect();
+            } else{
+                var cell = row.getCell(to_be_reviewed_by);
+                var cellValue = cell.getValue();
+                var reviewedCell = "";
+                //three options to replace (eg if loginInitials are "to"):
+                // ; to | to; | to 
+                var semiFirst = "; " + loginInitials;
+                var semiAfter = loginInitials + "; ";
+
+                if (cellValue !== null) {
+                    reviewedCell = cellValue.replace(semiFirst, '');
+                    reviewedCell = reviewedCell.replace(semiAfter, '');
+                    reviewedCell = reviewedCell.replace(loginInitials, '');
+                } 
+                row.update({"To be reviewed by":reviewedCell}); 
+                row.deselect();
+            }
         });
-        //now deselect rows
 
     });
 
