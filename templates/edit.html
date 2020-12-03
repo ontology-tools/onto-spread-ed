@@ -120,7 +120,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     for (var k=0; k<headerLength; k++) {
     //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
     //var fieldsField = headers[k].replace(/\s+/g, '');
-    var fieldsField = headers[k]; //it's the same as headers[] here... 
+    var fieldsField = headers[k]; //it's the same as headers[] here... todo: remove fields[] array again use headers[] again
     //console.log ("field :" + k + " " + fieldsField);
         fields.push(fieldsField);
     }
@@ -297,9 +297,8 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
 
             rowValue = row.getPosition(true);//save position
             //update highlighting:
-            //todo: fix error if curation_status not present in OTHER SPREADSHEETS
             if(data[curation_status] === undefined){
-                console.log("undefined undefined errrrrrr");
+                
             } else{
                 if (data[curation_status] !== null) {
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
@@ -331,7 +330,6 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
-            //todo: fix error if curator not present in OTHER SPREADSHEETS
             if(data[curator] === undefined){ //curator column not present in table
 
             } else{
@@ -356,8 +354,8 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                                     if(curatorA !== null){
                                         var nameCheckA = curatorA.indexOf(loginInitials);
                                         if(nameCheckA > -1) {
-                                            row.getElement().style.color = 'red';
-                                        }
+                                            row.getElement().style.color = 'black';
+                                            row.getElement().style.fontWeight = 'bold';                                        }
                                     }
                                 }
                             }
@@ -369,11 +367,12 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                             if(curatorB !== null){
                                 var nameCheckB = curatorB.indexOf(loginInitials);
                                 if(nameCheckB > -1) {
-                                    row.getElement().style.color = 'red';
-                                }
+                                    row.getElement().style.color = 'black';
+                                    row.getElement().style.fontWeight = 'bold';                                }
                             }
                         } else{
                             row.getElement().style.color = 'black'; //change back to black
+                            row.getElement().style.fontWeight = 'normal';
                         }
                     }
                 }
@@ -406,7 +405,6 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
-            //todo: this is obviously duplicate code, how to refactor?
             if(data[curation_status] === undefined){
                 console.log("undefined undefined errrrrrr");
                 //hide non-important buttons here:
@@ -441,12 +439,14 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                         var curatorA = data[curator];
                         var nameCheckA = curatorA.indexOf(loginInitials);
                         if(nameCheckA > -1) {
-                            row.getElement().style.color = 'red';
+                            row.getElement().style.color = 'black';
+                            row.getElement().style.fontWeight = 'bold';
                         }
                     }
                 }
             } else{
                     row.getElement().style.color = 'black';
+                    row.getElement().style.fontWeight = 'normal';
                 }
         },
 
@@ -459,12 +459,9 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                 if(data[label] === undefined){ //label column not present
 
                 } else{
-                //todo: change to use absolute value here - row.getCell(1)? 
                     var cell = row.getCell("Label");
-                    //console.log(cell);
                     cell.getElement().focus(); //no focus for spreadsheets without "Label" column
                 } 
-                
             })
             .catch(function(error){
                 //handle error scrolling to row
@@ -517,13 +514,12 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         }
     });
 
-//todo: hide in OTHER SPREADSHEETS
     $("#highlight-user").click(function(){
         highlightLogin = !highlightLogin;
         if(highlightLogin){
-            this.children[0].style.color = "#FF0000"; //colour of marker
+            this.children[0].style.color = "#333300"; //colour of marker
         } else{
-            this.children[0].style.color = "#333300";
+            this.children[0].style.color = null;
         }
         table.redraw(true); 
         //renderComplete triggered here
@@ -534,7 +530,6 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         clearFormatting();
     });
 
-    //todo: hide in OTHER SPREADSHEETS
     $("#ask-for-review").click(function(){
         console.log("ask for review");
         var selectedRows = table.getSelectedRows(); 
@@ -574,7 +569,6 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         }
     });
 
-//todo: hide in OTHER SPREADSHEETS
     $("#reviewed").click(function(){
         var selectedRows = table.getSelectedRows(); 
         console.log(selectedRows);
