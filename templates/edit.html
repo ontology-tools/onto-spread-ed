@@ -409,6 +409,10 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
             //todo: this is obviously duplicate code, how to refactor?
             if(data[curation_status] === undefined){
                 console.log("undefined undefined errrrrrr");
+                //hide non-important buttons here:
+                $('#highlight-user').hide();
+                $('#ask-for-review').hide();
+                $('#reviewed').hide();
             } else{
                 if (data[curation_status] !== null) {
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
@@ -513,6 +517,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         }
     });
 
+//todo: hide in OTHER SPREADSHEETS
     $("#highlight-user").click(function(){
         highlightLogin = !highlightLogin;
         if(highlightLogin){
@@ -529,7 +534,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         clearFormatting();
     });
 
-    //todo: should we just hide this button in non-reviewable spreadsheets?
+    //todo: hide in OTHER SPREADSHEETS
     $("#ask-for-review").click(function(){
         console.log("ask for review");
         var selectedRows = table.getSelectedRows(); 
@@ -569,6 +574,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
         }
     });
 
+//todo: hide in OTHER SPREADSHEETS
     $("#reviewed").click(function(){
         var selectedRows = table.getSelectedRows(); 
         console.log(selectedRows);
