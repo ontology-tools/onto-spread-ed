@@ -99,6 +99,7 @@
     var published = "Published";
 
     //whyFuzzy
+    var why_Fuzzy = "Why fuzzy";//column name
     var whyFuzzy = "Whyfuzzy";
     
     //for to be reviewed by
@@ -398,12 +399,12 @@
             }
             
             //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true 
-            if(data[whyFuzzy] === undefined){ //whyFuzzy column not present
-
+            if(data[why_Fuzzy] === undefined){ //whyFuzzy column not present
+                console.log("whyFuzzy undefined");
             } else{
                 if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
                     if(cell.getValue() !== ""){
-                        if (data[whyFuzzy] !== null && data[whyFuzzy] !== "") { 
+                        if (data[why_Fuzzy] !== null && data[why_Fuzzy] !== "") { 
                             data["Fuzzy set"] = 1;
                         }
                     }
