@@ -29,7 +29,16 @@
         </button>
     </div>
 </div>
-
+<div class="row">
+    <div class="col-md-12">
+      <div id="saveAlert" class="alert alert-success collapse" role="alert">
+        <button id="closeSaveMsgBtn" type="button" class="close" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+        <div id="saveMessage"> </div>
+      </div>
+    </div>
+</div>
 <div class="row">
     <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-hover table-sm" style="font-size: 0.8em;">
@@ -73,7 +82,7 @@
 <!-- bootstrap 4 theme -->
 <!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
 <!-- link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
-link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+<link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
     //hide save button:
@@ -353,6 +362,9 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                             } else{
                                 data[curator] = loginInitials;
                             }
+                        } else{
+                            data[curator] = loginInitials;
+                        }
 
                             //text must be coloured if highlighting login set though..
                             if(highlightLogin){
@@ -607,6 +619,7 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                 row.deselect();
             }
         });
+        //now deselect rows
 
     });
 
@@ -676,16 +689,19 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                             alert("Problem communicating with server");
                         }
                         else if (request.status === 200) {
-                          //var response = JSON.parse(request.responseText);
-                          //var prInfo = response['pr_info'];
-                          //alert('Update submitted successfully. The changes will be ' +
-                          //    'reviewed by a moderator before being added to the repository. Click ' +
-                          //    '<a href="' + prInfo['html_url'] + '" target="__blank">here</a> to view your ' +
-                          //    'pull request on GitHub.');
-                            alert("Updated submitted successfully");
-                            $('#save-btn').hide(); //hide save button once changes submitted successfully 
+                          $('#saveAlert').removeClass('alert-danger');
+                          $('#saveAlert').addClass('alert-success');
+                          $("#saveMessage").text('Changes were saved successfully to the repository. ');
+                          $("#saveAlert").dismissed = false;
+                          $("#saveAlert").show();
                         } else {
-                            alert("Submission of update failed.");
+                          var response = JSON.parse(request.responseText);
+                          var errInfo = response['Error'];
+                          $('#saveAlert').removeClass('alert-success');
+                          $('#saveAlert').addClass('alert-danger');
+                          $("#saveMessage").text('There was a problem saving changes: '+errInfo);
+                          $(".alert").alert()
+                          $("#saveAlert").show();
                         }
                     }
                     }
@@ -696,7 +712,9 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
                                 '&folder=' + folder +
                                 '&spreadsheet=' + spreadsheet +
                                 '&rowData=' + rowData +
-                                '&commit_msg=' + commit_msg);
+                                '&commit_msg=' + commit_msg +
+                                '&commit_msg_extra='+ msgBody +
+                                '&file_sha= {{file_sha}} ' );
                     $("*").css("cursor", "progress");
             }
             }
@@ -710,6 +728,11 @@ link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_boots
     };
 
 
+    /** Hide save results message */
+    $("#closeSaveMsgBtn").click(function() {
+        $("#saveMessage").text('');
+        $(this).parent().hide();
+    });
 
 </script>
 
