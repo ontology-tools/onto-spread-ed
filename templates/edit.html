@@ -21,6 +21,8 @@
             <button id=remove-formatting class="btn btn-outline-dark btn-sm"><i class="fas fa-remove-format"></i> Remove all Filters</button>
             <button id=ask-for-review class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard"></i> Ask for review</button>
             <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i> Reviewed</button>
+            <button id=minus class="btn btn-sm"><i class="fas fa-minus-square"></i></button>
+            <button id=plus class="btn btn-sm"><i class="fas fa-plus-square"></i></button>
         </div> 
     </div>
 
@@ -87,6 +89,16 @@
 <script type="text/javascript">
     //hide save button:
     $('#save-btn').hide();
+
+    //table resize - load/save in local storage
+    var heightOfTable = 600;
+    if (localStorage.getItem("height")) {
+         heightOfTable = parseInt(localStorage.getItem("height"));
+    } else {
+        heightOfTable = 600; 
+        localStorage.setItem("height", JSON.stringify(heightOfTable))
+    }
+
     // Column name for curation status
     var curation_status = "Curation status"
 
@@ -219,7 +231,7 @@
     var table = new Tabulator("#contentTable", {
         // tooltips:true, //example option (enable tooltips on all cells)
         groupToggleElement:"header",
-        height:600,
+        height:heightOfTable,
         //height:"calc(100% - 250px)",
         //height:"100%", //this makes the header not stay on the top..
         layout:"fitColumns",
@@ -257,7 +269,7 @@
 
         
         dataSorting:function(sorters){
-            console.log("sorted");
+            //console.log("sorted");
             //sorters - an array of the sorters currently applied
         },
         //called when table rendered or re-drawn:
@@ -266,15 +278,15 @@
         renderComplete:function(){
             try{
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
-                console.log("rowValue is: " + rowValue);
+                //console.log("rowValue is: " + rowValue);
             } catch{
-                console.log("caught"); //this happens on initial load, table loaded twice?
+                //console.log("caught"); //this happens on initial load, table loaded twice?
             }
             //table.setColumns(columnData);
         },
 
         columnResized:function(column){
-            console.log("resized"); //not triggering on hide, show column dropdown
+            //console.log("resized"); //not triggering on hide, show column dropdown
         },
 
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
@@ -399,8 +411,8 @@
             }
             
             //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true 
-            if(data[why_Fuzzy] === undefined){ //whyFuzzy column not present
-                console.log("whyFuzzy undefined");
+            if(data[why_Fuzzy] === undefined){ //why Fuzzy column not present
+                
             } else{
                 if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
                     if(cell.getValue() !== ""){
@@ -426,7 +438,7 @@
         rowFormatter:function(row){
             var data = row.getData();
             if(data[curation_status] === undefined){
-                console.log("undefined undefined errrrrrr");
+                //console.log("undefined undefined errrrrrr");
                 //hide non-important buttons here:
                 $('#highlight-user').hide();
                 $('#ask-for-review').hide();
@@ -550,13 +562,13 @@
 
     //todo: button icon highlighted if a filter is active?
     $("#remove-formatting").click(function(){
-        clearFormatting();
+        clearFormatting(); //todo: this should also switch all up/down arrow filters back..
     });
 
     $("#ask-for-review").click(function(){
-        console.log("ask for review");
+        //console.log("ask for review");
         var selectedRows = table.getSelectedRows(); 
-            console.log(selectedRows);
+            //console.log(selectedRows);
             if(selectedRows == ""){
                 alert("No rows selected");
             } else{
@@ -594,7 +606,7 @@
 
     $("#reviewed").click(function(){
         var selectedRows = table.getSelectedRows(); 
-        console.log(selectedRows);
+        //console.log(selectedRows);
         if(selectedRows == ""){
             alert("No rows selected");
         }
@@ -624,6 +636,27 @@
 
     });
 
+    //make table smaller
+    $("#minus").click(function(){
+        heightOfTable -= 50;
+        if(heightOfTable < 200){
+            heightOfTable = 200;
+        }
+        localStorage.setItem("height", JSON.stringify(heightOfTable)); 
+        location.reload(); //reload web page
+    });
+
+    //make table bigger
+    $("#plus").click(function(){
+        console.log("plus: " + heightOfTable);
+        heightOfTable = heightOfTable + 50;
+        if(heightOfTable > 2000){
+            heightOfTable = 2000;
+        }
+        localStorage.setItem("height", JSON.stringify(heightOfTable)); 
+        location.reload(); //reload web page!
+    });
+
     $('#contentTable').ready(function() {
         //warn user if unsaved changes:
         window.onbeforeunload = function(e) {
@@ -638,6 +671,7 @@
 
     });
 
+    //todo: this should also change all up/down filter arrows back
     function clearFormatting(){
         var filteredColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
         for(var i = 1; i < filteredColumns.length; i++){ //filteredColumns array starts at 1? Urrrgh!
