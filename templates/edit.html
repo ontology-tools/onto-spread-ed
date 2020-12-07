@@ -87,7 +87,7 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
-    //hide save button:
+    //hide save button on load
     $('#save-btn').hide();
 
     //table resize - load/save in local storage
@@ -636,17 +636,25 @@
 
     });
 
-    //make table smaller
+    //make table smaller 
     $("#minus").click(function(){
         heightOfTable -= 50;
         if(heightOfTable < 200){
             heightOfTable = 200;
         }
         localStorage.setItem("height", JSON.stringify(heightOfTable)); 
-        location.reload(); //reload web page
+        if(tableEdited){
+            if (confirm("All changes to the table will be lost, continue?")) {
+                    location.reload(); //reload web page
+                } else {
+                    alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
+                }
+        } else{
+            location.reload(); //reload web page
+        }    
     });
 
-    //make table bigger
+    //make table bigger 
     $("#plus").click(function(){
         console.log("plus: " + heightOfTable);
         heightOfTable = heightOfTable + 50;
@@ -654,7 +662,15 @@
             heightOfTable = 2000;
         }
         localStorage.setItem("height", JSON.stringify(heightOfTable)); 
-        location.reload(); //reload web page!
+        if(tableEdited){
+            if (confirm("All changes to the table will be lost, continue?")) {
+                    location.reload(); //reload web page
+                } else {
+                    alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
+                }
+        } else{
+            location.reload(); //reload web page
+        }    
     });
 
     $('#contentTable').ready(function() {
@@ -695,9 +711,6 @@
             label: 'Submit',
             className: 'btn-danger',
             callback: function() {
-                if(tableEdited){
-                    tableEdited = false;
-                }
                 var aForm = modal.find(".form");
                 var formData = aForm.serializeArray(),
                     dataObj = {};
@@ -728,7 +741,24 @@
                           $('#saveAlert').addClass('alert-success');
                           $("#saveMessage").text('Changes were saved successfully to the repository. ');
                           $("#saveAlert").dismissed = false;
-                          $("#saveAlert").show();
+                          $("#saveAlert").show(); //todo: make it clear that this will re-load the page and changes will be lost
+                          $('#save-btn').hide(); //saved successfully, hide save button
+                          //remove cell.getElement().style.color = "#003399"; 
+                          //todo: can I just re-load the table here? 
+                          var rows = table.getRows();
+                          for (i = 0; i < rows.length; i++) {
+                            var cells = rows[i].getCells();
+                            for(j = 0; j < cells.length; j++){
+                                cells[j].getElement().style.color = 'black'; //do we want to change all to black?
+                            }
+                          } 
+                          
+                          if(tableEdited){
+                            tableEdited = false;
+                          }
+                          
+                          
+
                         } else {
                           var response = JSON.parse(request.responseText);
                           var errInfo = response['Error'];
