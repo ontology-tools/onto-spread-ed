@@ -306,6 +306,8 @@ def save():
                     sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
                 elif row[header.index("Curation status")]=="Ready":
                     sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
+                elif row[header.index("Curation status")]=="Published":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7FFFD4", fill_type = "solid")
 
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
@@ -395,13 +397,23 @@ def save():
 
         print ("Save succeeded")
         # TODO Figure out responses and send message. Options are Success / Save failure / Merge failure
-        return ( "Success", 200 )
+        # Get the sha AGAIN for the file
+        response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        if not response or "sha" not in response:
+            raise Exception(
+                f"Unable to get the newly updated SHA value for {spreadsheet} in {repo_detail}/{folder}"
+                )
+        new_file_sha = response['sha']
+
+        return ( json.dumps({"message":"Success",
+                             "file_sha": new_file_sha}), 200 )
 
     except Exception as err:
         print(err)
         traceback.print_exc()
         return (
-            json.dumps({"Error":format(err)}),
+            json.dumps({"message": "Failed",
+                        "Error":format(err)}),
             400,
         )
 
