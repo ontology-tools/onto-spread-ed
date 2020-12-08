@@ -799,6 +799,20 @@
         $(this).parent().hide();
     });
 
+    //override ctrl-s save:
+    jQuery(document).keydown(function(event) {
+        // If Control or Command key is pressed and the S key is pressed
+        // run save function. 83 is the key code for S.
+        if((event.ctrlKey || event.metaKey) && event.which == 83) {
+            // Save Function
+            event.preventDefault();
+            console.log("Save!");
+            if(tableEdited){
+                $('#save-btn').trigger('click');
+            }
+            return false;
+        }
+    });
 </script>
 
 {% endblock %}
