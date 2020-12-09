@@ -213,13 +213,13 @@
             columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } 
         else if(headers[i] == "To be reviewed by"){ 
-            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } 
         // else if(headers[i] == "To be reviewed by"){ 
         //     columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         // } 
         else{
-            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:fields[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
