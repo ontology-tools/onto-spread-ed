@@ -291,16 +291,35 @@
 
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
+            var data = row.getData();
+            //show buttons concerning rows:
+            if(data[curation_status] === undefined){ //for tables without curation_status 
+                //don't show some buttons if in a table where they are not needed
+            } else{
+                //show buttons to do with rows
+                $('#highlight-user').show();
+                $('#ask-for-review').show();
+                $('#reviewed').show();
+            }
             row.getElement().style.backgroundColor = 'grey';
             rowValue = row.getPosition(true);
         },
-        rowDeselected:function(row){
+        rowDeselected:function(row){ 
+            var data = row.getData();
+            var selectedRows = table.getSelectedRows();
+            if(selectedRows.length > 0){
+                //some rows still selected, do nothing
+            } else{
+                //no rows still selected, hide buttons to do with rows
+                $('#highlight-user').hide();
+                $('#ask-for-review').hide();
+                $('#reviewed').hide();
+            }
+            
             row.getElement().style.backgroundColor = 'white';
             rowValue = row.getPosition(true);
         },
-        // rowClick:function(e, row){ //trigger an alert message when the row is clicked
-        // 	alert("Row " + row.getData().id + " Clicked!!!!");
-        // }, //this doesn't work now with ceckbox selection
+        
 
         cellClick:function(e, cell){
             var row = cell.getRow();
@@ -437,12 +456,12 @@
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
-            if(data[curation_status] === undefined){
-                //console.log("undefined undefined errrrrrr");
-                //hide non-important buttons here:
-                $('#highlight-user').hide();
-                $('#ask-for-review').hide();
-                $('#reviewed').hide();
+            //hide unimportant buttons until rows selected: 
+            $('#highlight-user').hide();
+            $('#ask-for-review').hide();
+            $('#reviewed').hide();
+            if(data[curation_status] === undefined){ //for tables without curation_status 
+                //don't try to look for columns below eg: discussed, ready, etc
             } else{
                 if (data[curation_status] !== null) {
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
