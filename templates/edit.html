@@ -116,10 +116,39 @@
     
     //for to be reviewed by
     var to_be_reviewed_by = "To be reviewed by";
-    //Column name for Curator
+    //Column name for Curator   
     var curator = "Curator";
     //label:
     var label = "Label";
+
+    // array to save changes in backupChanges
+    var changes = [];
+
+    //boolean conflict check
+    var unsavedChanges = false; //should be false
+
+    // var changesArray = [];
+    // //check saved changes array
+    //  if(window.localStorage.getItem("savedChanges") !== null){ //this line does not work..?
+    //     var previousChangeData = window.localStorage.getItem("savedChanges");
+    //     console.log("previousChangeData is: " + previousChangeData); //just checking.
+    //     changesArray = JSON.parse(previousChangeData);
+    //     if(changesArray.length < 3){ //savedChanges not correct
+    //         window.localStorage.removeItem("savedChanges");
+    //         unsavedChanges = false;
+    //     }
+    //     unsavedChanges = true;
+    // } else{
+    //     console.log("savedChanges missing");
+    //     unsavedChanges = false;
+    // }
+
+    
+    // var changesLength = changesArray.length/3;
+    // var changeWorkingOn = 0; 
+    
+
+    
 
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
@@ -128,37 +157,98 @@
     var headers = {{ header | safe }};
     var headerLength = headers.length;
 
+    
     //Build the table row data with field names
     var tableData = [];
+    var testTableData = [];
+
+    //get saved table data, compare to current table: 
     for (var i=0; i<rowLength; i++) {
-        var rowObj = {id:i}
-        for (var j=0; j<headerLength; j++) {
-            rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+            var rowObj = {id:i}
+            for (var j=0; j<headerLength; j++) {
+                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+            }
+            testTableData.push(rowObj);
         }
-        tableData.push(rowObj);
 
-
-    }
-
-    // array to save changes
-    var changes = [];
-
-    //todo: check savedTableData from previous session is the same as tableData here: 
-    //get saved data: 
     var previousTableData = localStorage.getItem("savedTableData");
-    if(JSON.stringify(tableData) === previousTableData){
+    if(JSON.stringify(testTableData) === previousTableData){
         console.log("SAME SAME");
     } else {
+        unsavedChanges = true;
         console.log("NOT SAME WHY?");
-        alert("You have previously unsaved changes"); //todo: now deal with the changes
+        var changesArray = [];
+        //check saved changes array
+        if(window.localStorage.getItem("savedChanges") !== null){ 
+            var previousChangeData = window.localStorage.getItem("savedChanges");
+            console.log("previousChangeData is: " + previousChangeData); //just checking.
+            changesArray = JSON.parse(previousChangeData);
+            unsavedChanges = true;
+            if(changesArray.length < 3){ //savedChanges not correct format or empty
+                window.localStorage.removeItem("savedChanges");
+                unsavedChanges = false;
+            }
+        } else{ //no saved changes, don't look for them later
+            console.log("savedChanges missing");
+            unsavedChanges = false;
+        }
+        var changesLength = changesArray.length/3;
+        var changeWorkingOn = 0; 
+        
+        
+        //todo: show save button on accepting changes
+        // alert("You have previously unsaved changes" + previousChangeData); //todo: now deal with the changes
+        //options: update changes, discard changes
     }
 
-    //check saved changes array
-    var previousChangeData = localStorage.getItem("savedChanges");
-    console.log(previousChangeData); //just checking..
+   
+    //restore unsaved changes if needed: 
+    if(unsavedChanges){ //todo: should be unsavedChanges here, testing invalid row construction
+        //todo: show save button here
+        $('#save-btn').show();
+        alert("You have previously unsaved changes \n Please save changes to repository or they will be lost \n" + previousChangeData); //todo: now deal with the changes
+        //console.log("here");
+        for (var i=0; i<rowLength; i++) {
+            var rowObj = {id:i}
+            for (var j=0; j<headerLength; j++) {                
+                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                //insert restored data:
+                if(i == changesArray[changeWorkingOn+1]){ //match row number
+                    // console.log(i + ": " + rowData[i]);
+                    if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
+                            console.log(j + ": " + rowData[i][headers[j]] + " change to: " + changesArray[changeWorkingOn]);
+                            rowObj[ headers[j] ] = changesArray[changeWorkingOn]; //correct data
+                            changeWorkingOn += 3;
+                            if(changeWorkingOn/3 == changesLength){
+                                //unsavedChanges = false;
+                                //console.log("done making changes");
+                                //todo: delete localStorage saved changes here
+                                window.localStorage.removeItem("savedChanges"); 
+                            }
+                    } else{
+                        rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                    }
+                }
+
+            }
+            tableData.push(rowObj);
+        }
+    } else{
+        for (var i=0; i<rowLength; i++) {
+            var rowObj = {id:i}
+            for (var j=0; j<headerLength; j++) {
+                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+            }
+            tableData.push(rowObj);
+        }
+    }
+    
+
+       
 
 //todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
 //toLowerCase() messed things up, but addressing by fields is working with UPPERCASE so using below:
+/*
     var fields = [];
     for (var k=0; k<headerLength; k++) {
     //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
@@ -168,7 +258,7 @@
         fields.push(fieldsField);
     }
 
-
+*/
     //login
     var loginInitials = "{{user_initials}}"; //todo: remove all '' and ; so I can use this?
     var highlightLogin = false; //highlight user edited tables
@@ -182,6 +272,8 @@
 
     //row value, keep track of where we are:
     var rowValue = 0;
+    var columnValue = 0; //why doesn't tabulator have this?
+
     //header menu:
     //define row context menu
     //todo: resize to header text or initial value per header?
@@ -224,20 +316,20 @@
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
-            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } 
         else if(headers[i] == "To be reviewed by"){ 
-            columnData.push({title:headers[i], field:fields[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } 
         // else if(headers[i] == "To be reviewed by"){ 
-        //     columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        //     columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         // } 
         else{
-            columnData.push({title:headers[i], field:fields[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
@@ -293,9 +385,21 @@
         //called when table rendered or re-drawn:
         //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out. 
         //do we need a clear cookies button? 
+        tableBuilt:function(){
+            
+        },
+        renderStarted:function(){
+            
+        },
         renderComplete:function(){
             try{
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
+                //console.log(table);
+                var row = table.getRowFromPosition(0, true); 
+                var cell = row.getCell("parent");
+                cell.setValue("replaced");
+                console.log("hello");
+                console.log("cell is: " + cell);
                 //console.log("rowValue is: " + rowValue);
             } catch{
                 //console.log("caught"); //this happens on initial load, table loaded twice?
@@ -359,8 +463,16 @@
             var column = cell.getColumn();
 
             //save changed cell data: 
+            //{value, row, columnName}
+            if(cell.getValue() !== "" && cell.getValue() !== null){
             changes.push(cell.getValue());
-            rowValue = row.getPosition(true);//save position
+            rowValue = row.getPosition(true);//save row position
+            changes.push(rowValue);
+            columnValue = cell.getField(); //column name
+            changes.push(columnValue);
+            console.log("rowValue is: " + rowValue);
+            console.log("column is: " + columnValue); //where is the column number? 
+        }
             //update highlighting:
             if(data[curation_status] === undefined){
                 
@@ -442,8 +554,7 @@
                                     row.getElement().style.fontWeight = 'bold';                                }
                             }
                         } else{
-                            row.getElement().style.color = 'black'; //change back to black
-                            row.getElement().style.fontWeight = 'normal';
+                            row.getElement().style.color = 'black'; //change back to
                         }
                     }
                 }
@@ -477,6 +588,7 @@
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
+            
             //hide unimportant buttons until rows selected: 
             $('#highlight-user').hide();
             $('#ask-for-review').hide();
@@ -552,7 +664,7 @@
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
     table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
-
+    backupChanges(); //todo:is this necessary?
     //new row button click handler:
     $("#add-row").click(function(){
         var newRowData = {};
@@ -702,7 +814,7 @@
     //make table bigger 
     $("#plus").click(function(){
         //todo: test save array - remove when feature is complete:
-        //backupChanges();
+        backupChanges();
         // var tableArray = table.getData();
         // var jsonArray = JSON.stringify(tableArray); //todo: do we need this?
         // localStorage.setItem("savedTableData", jsonArray);
@@ -744,8 +856,10 @@
         var jsonArray = JSON.stringify(tableArray); 
         localStorage.setItem("savedTableData", jsonArray);
         //changed cells: 
-        var cellArray = JSON.stringify(changes);
-        localStorage.setItem("savedChanges", cellArray);
+        if(changes.length > 0){
+            var cellArray = JSON.stringify(changes);
+            localStorage.setItem("savedChanges", cellArray);
+        }
     }
 
     //todo: this should also change all up/down filter arrows back
@@ -812,13 +926,12 @@
                                 cells[j].getElement().style.color = 'black'; //do we want to change all to black?
                             }
                           } 
-                          
                           if(tableEdited){
                             tableEdited = false;
                           }
-                          
-                          
-
+                          window.localStorage.removeItem("savedChanges");  //remove saved changes from localStorage        
+                          changes = []; //no changes anymore to save
+                          backupChanges();
                         } else {
                           var response = JSON.parse(request.responseText);
                           var errInfo = response['Error'];
