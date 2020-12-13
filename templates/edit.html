@@ -430,16 +430,30 @@
 
             //save changed cell data: 
             //{value, row, columnName}
+            
             //todo: consecutive changes to the same cell are lost. need check for same row/column and overwrite here!
             if(cell.getValue() !== "" && cell.getValue() !== null){
-            changes.push(cell.getValue());
-            rowValue = row.getPosition(true);//save row position
-            changes.push(rowValue);
-            columnValue = cell.getField(); //column name
-            changes.push(columnValue);
-            console.log("rowValue is: " + rowValue);
-            console.log("column is: " + columnValue); //where is the column number? 
-        }
+                rowValue = row.getPosition(true);//save row position
+                columnValue = cell.getField(); //column name
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for(var i = 0; i < changes.length; i++){
+                    if(rowValue == changes[i]){ //matches row number
+                        if(columnValue == changes[i+1]){ //matches column name as well
+                            console.log("already edited this field");
+                            //todo: splice in changes here... did it work?
+                            changes.splice(i-1, 3, cell.getValue(), rowValue, columnValue);
+                            alreadyChanged = true;
+                        }
+                    } 
+                }
+                if(!alreadyChanged){
+                    changes.push(cell.getValue());
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                }
+            }
+        
             //update highlighting:
             if(data[curation_status] === undefined){
                 
