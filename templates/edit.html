@@ -125,30 +125,7 @@
     var changes = [];
 
     //boolean conflict check
-    var unsavedChanges = false; //should be false
-
-    // var changesArray = [];
-    // //check saved changes array
-    //  if(window.localStorage.getItem("savedChanges") !== null){ //this line does not work..?
-    //     var previousChangeData = window.localStorage.getItem("savedChanges");
-    //     console.log("previousChangeData is: " + previousChangeData); //just checking.
-    //     changesArray = JSON.parse(previousChangeData);
-    //     if(changesArray.length < 3){ //savedChanges not correct
-    //         window.localStorage.removeItem("savedChanges");
-    //         unsavedChanges = false;
-    //     }
-    //     unsavedChanges = true;
-    // } else{
-    //     console.log("savedChanges missing");
-    //     unsavedChanges = false;
-    // }
-
-    
-    // var changesLength = changesArray.length/3;
-    // var changeWorkingOn = 0; 
-    
-
-    
+    var unsavedChanges = false;    
 
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
@@ -176,7 +153,7 @@
         console.log("SAME SAME");
     } else {
         unsavedChanges = true;
-        console.log("NOT SAME WHY?");
+        console.log("NOT SAME WHY?"); // todo: this message is showing because the top row is removed from the refreshed table. Waiting for confirmation on fix
         var changesArray = [];
         //check saved changes array
         if(window.localStorage.getItem("savedChanges") !== null){ 
@@ -194,46 +171,51 @@
         }
         var changesLength = changesArray.length/3;
         var changeWorkingOn = 0; 
-        
-        
-        //todo: show save button on accepting changes
-        // alert("You have previously unsaved changes" + previousChangeData); //todo: now deal with the changes
-        //options: update changes, discard changes
     }
 
    
     //restore unsaved changes if needed: 
-    if(unsavedChanges){ //todo: should be unsavedChanges here, testing invalid row construction
-        //todo: show save button here
-        $('#save-btn').show();
-        alert("You have previously unsaved changes \n Please save changes to repository or they will be lost \n" + previousChangeData); //todo: now deal with the changes
-        //console.log("here");
-        for (var i=0; i<rowLength; i++) {
-            var rowObj = {id:i}
-            for (var j=0; j<headerLength; j++) {                
-                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-                //insert restored data:
-                if(i == changesArray[changeWorkingOn+1]){ //match row number
-                    // console.log(i + ": " + rowData[i]);
-                    if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
-                            console.log(j + ": " + rowData[i][headers[j]] + " change to: " + changesArray[changeWorkingOn]);
-                            rowObj[ headers[j] ] = changesArray[changeWorkingOn]; //correct data
-                            changeWorkingOn += 3;
-                            if(changeWorkingOn/3 == changesLength){
-                                //unsavedChanges = false;
-                                //console.log("done making changes");
-                                //todo: delete localStorage saved changes here
-                                window.localStorage.removeItem("savedChanges"); 
+    if(unsavedChanges){ 
+        //todo: format unsaved changes to be human readable here - and show diff to user
+        //todo: create new table in popup with save/not save changes per item?
+        if (confirm("You have previously unsaved changes \n Would you like to keep them? \n" + previousChangeData)) {
+                //unsavedChanges code here, plus save at end
+                for (var i=0; i<rowLength; i++) {
+                    var rowObj = {id:i}
+                    for (var j=0; j<headerLength; j++) {                
+                        rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                        //insert restored data:
+                        if(i == changesArray[changeWorkingOn+1]){ //match row number
+                            // console.log(i + ": " + rowData[i]);
+                            if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
+                                    console.log(j + ": " + rowData[i][headers[j]] + " change to: " + changesArray[changeWorkingOn]);
+                                    rowObj[ headers[j] ] = changesArray[changeWorkingOn]; //correct data
+                                    changeWorkingOn += 3;
+                                    if(changeWorkingOn/3 == changesLength){
+                                        window.localStorage.removeItem("savedChanges"); 
+                                    }
+                            } else{
+                                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
                             }
-                    } else{
+                        }
+                    }
+                    tableData.push(rowObj);
+                }
+                alert("Save changes to repository to avoid losing them");
+                //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
+            } else {
+                //discard changes
+                for (var i=0; i<rowLength; i++) {
+                    var rowObj = {id:i}
+                    for (var j=0; j<headerLength; j++) {
                         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
                     }
+                    tableData.push(rowObj);
                 }
-
             }
-            tableData.push(rowObj);
-        }
+        $('#save-btn').show();
     } else{
+        //no changes
         for (var i=0; i<rowLength; i++) {
             var rowObj = {id:i}
             for (var j=0; j<headerLength; j++) {
@@ -243,22 +225,6 @@
         }
     }
     
-
-       
-
-//todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
-//toLowerCase() messed things up, but addressing by fields is working with UPPERCASE so using below:
-/*
-    var fields = [];
-    for (var k=0; k<headerLength; k++) {
-    //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
-    //var fieldsField = headers[k].replace(/\s+/g, '');
-    var fieldsField = headers[k]; //it's the same as headers[] here... todo: remove fields[] array again use headers[] again
-    //console.log ("field :" + k + " " + fieldsField);
-        fields.push(fieldsField);
-    }
-
-*/
     //login
     var loginInitials = "{{user_initials}}"; //todo: remove all '' and ; so I can use this?
     var highlightLogin = false; //highlight user edited tables
@@ -419,7 +385,7 @@
                 //don't show some buttons if in a table where they are not needed
             } else{
                 //show buttons to do with rows
-                $('#highlight-user').show();
+                $('#delete-rows').show();
                 $('#ask-for-review').show();
                 $('#reviewed').show();
             }
@@ -433,7 +399,7 @@
                 //some rows still selected, do nothing
             } else{
                 //no rows still selected, hide buttons to do with rows
-                $('#highlight-user').hide();
+                $('#delete-rows').hide();
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
             }
@@ -464,6 +430,7 @@
 
             //save changed cell data: 
             //{value, row, columnName}
+            //todo: consecutive changes to the same cell are lost. need check for same row/column and overwrite here!
             if(cell.getValue() !== "" && cell.getValue() !== null){
             changes.push(cell.getValue());
             rowValue = row.getPosition(true);//save row position
@@ -590,7 +557,7 @@
             var data = row.getData();
             
             //hide unimportant buttons until rows selected: 
-            $('#highlight-user').hide();
+            $('#delete-rows').hide();
             $('#ask-for-review').hide();
             $('#reviewed').hide();
             if(data[curation_status] === undefined){ //for tables without curation_status 
@@ -855,7 +822,7 @@
         //whole table:
         var jsonArray = JSON.stringify(tableArray); 
         localStorage.setItem("savedTableData", jsonArray);
-        //changed cells: 
+        //changed cells:         
         if(changes.length > 0){
             var cellArray = JSON.stringify(changes);
             localStorage.setItem("savedChanges", cellArray);
