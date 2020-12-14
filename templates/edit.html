@@ -89,7 +89,7 @@
 <script type="text/javascript">
     var file_sha = '{{file_sha}}';
 
-    //hide save button:
+    //hide save button on load
     $('#save-btn').hide();
 
     //table resize - load/save in local storage
@@ -123,6 +123,12 @@
     //label:
     var label = "Label";
 
+    // array to save changes in backupChanges
+    var changes = [];
+
+    //boolean conflict check
+    var unsavedChanges = false;
+
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
     var rowLength = rowData.length;
@@ -130,27 +136,95 @@
     var headers = {{ header | safe }};
     var headerLength = headers.length;
 
+
     //Build the table row data with field names
     var tableData = [];
+    var testTableData = [];
+
+    //get saved table data, compare to current table:
     for (var i=0; i<rowLength; i++) {
-        var rowObj = {id:i}
-        for (var j=0; j<headerLength; j++) {
-            rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+            var rowObj = {id:i}
+            for (var j=0; j<headerLength; j++) {
+                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+            }
+            testTableData.push(rowObj);
         }
-        tableData.push(rowObj);
 
-
+    var previousTableData = localStorage.getItem("savedTableData");
+    if(JSON.stringify(testTableData) === previousTableData){
+        console.log("SAME SAME");
+    } else {
+        unsavedChanges = true;
+        console.log("NOT SAME WHY?"); // todo: this message is showing because the top row is removed from the refreshed table. Waiting for confirmation on fix
+        var changesArray = [];
+        //check saved changes array
+        if(window.localStorage.getItem("savedChanges") !== null){
+            var previousChangeData = window.localStorage.getItem("savedChanges");
+            console.log("previousChangeData is: " + previousChangeData); //just checking.
+            changesArray = JSON.parse(previousChangeData);
+            unsavedChanges = true;
+            if(changesArray.length < 3){ //savedChanges not correct format or empty
+                window.localStorage.removeItem("savedChanges");
+                unsavedChanges = false;
+            }
+        } else{ //no saved changes, don't look for them later
+            console.log("savedChanges missing");
+            unsavedChanges = false;
+        }
+        var changesLength = changesArray.length/3;
+        var changeWorkingOn = 0;
     }
 
-//todo: do we need to build fields array - I read that fields need to be lowercase without spaces for parts of Tabulator to work
-//toLowerCase() messed things up, but addressing by fields is working with UPPERCASE so using below:
-    var fields = [];
-    for (var k=0; k<headerLength; k++) {
-    //    fields.push(headers[k].toLowerCase().replace(/\s+/g, ''));
-    //var fieldsField = headers[k].replace(/\s+/g, '');
-    var fieldsField = headers[k]; //it's the same as headers[] here... todo: remove fields[] array again use headers[] again
-    //console.log ("field :" + k + " " + fieldsField);
-        fields.push(fieldsField);
+
+    //restore unsaved changes if needed:
+    if(unsavedChanges){
+        //todo: format unsaved changes to be human readable here - and show diff to user
+        //todo: create new table in popup with save/not save changes per item?
+        if (confirm("You have previously unsaved changes \n Would you like to keep them? \n" + previousChangeData)) {
+                //unsavedChanges code here, plus save at end
+                for (var i=0; i<rowLength; i++) {
+                    var rowObj = {id:i}
+                    for (var j=0; j<headerLength; j++) {
+                        rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                        //insert restored data:
+                        if(i == changesArray[changeWorkingOn+1]){ //match row number
+                            // console.log(i + ": " + rowData[i]);
+                            if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
+                                    console.log(j + ": " + rowData[i][headers[j]] + " change to: " + changesArray[changeWorkingOn]);
+                                    rowObj[ headers[j] ] = changesArray[changeWorkingOn]; //correct data
+                                    changeWorkingOn += 3;
+                                    if(changeWorkingOn/3 == changesLength){
+                                        window.localStorage.removeItem("savedChanges");
+                                    }
+                            } else{
+                                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                            }
+                        }
+                    }
+                    tableData.push(rowObj);
+                }
+                alert("Save changes to repository to avoid losing them");
+                //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
+            } else {
+                //discard changes
+                for (var i=0; i<rowLength; i++) {
+                    var rowObj = {id:i}
+                    for (var j=0; j<headerLength; j++) {
+                        rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                    }
+                    tableData.push(rowObj);
+                }
+            }
+        $('#save-btn').show();
+    } else{
+        //no changes
+        for (var i=0; i<rowLength; i++) {
+            var rowObj = {id:i}
+            for (var j=0; j<headerLength; j++) {
+                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+            }
+            tableData.push(rowObj);
+        }
     }
 
     //login
@@ -166,6 +240,8 @@
 
     //row value, keep track of where we are:
     var rowValue = 0;
+    var columnValue = 0; //why doesn't tabulator have this?
+
     //header menu:
     //define row context menu
     //todo: resize to header text or initial value per header?
@@ -208,10 +284,11 @@
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
+<<<<<<< HEAD
             columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }
         else if(headers[i] == "To be reviewed by"){
@@ -220,8 +297,18 @@
         // else if(headers[i] == "To be reviewed by"){
         //     columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         // }
+=======
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+        }
+        else if(headers[i] == "To be reviewed by"){
+            columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        }
+        // else if(headers[i] == "To be reviewed by"){
+        //     columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        // }
+>>>>>>> development
         else{
-            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
     }
 
@@ -277,9 +364,21 @@
         //called when table rendered or re-drawn:
         //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out.
         //do we need a clear cookies button?
+        tableBuilt:function(){
+
+        },
+        renderStarted:function(){
+
+        },
         renderComplete:function(){
             try{
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
+                //console.log(table);
+                var row = table.getRowFromPosition(0, true);
+                var cell = row.getCell("parent");
+                cell.setValue("replaced");
+                console.log("hello");
+                console.log("cell is: " + cell);
                 //console.log("rowValue is: " + rowValue);
             } catch{
                 //console.log("caught"); //this happens on initial load, table loaded twice?
@@ -293,16 +392,35 @@
 
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected:function(row){
+            var data = row.getData();
+            //show buttons concerning rows:
+            if(data[curation_status] === undefined){ //for tables without curation_status
+                //don't show some buttons if in a table where they are not needed
+            } else{
+                //show buttons to do with rows
+                $('#delete-rows').show();
+                $('#ask-for-review').show();
+                $('#reviewed').show();
+            }
             row.getElement().style.backgroundColor = 'grey';
             rowValue = row.getPosition(true);
         },
         rowDeselected:function(row){
+            var data = row.getData();
+            var selectedRows = table.getSelectedRows();
+            if(selectedRows.length > 0){
+                //some rows still selected, do nothing
+            } else{
+                //no rows still selected, hide buttons to do with rows
+                $('#delete-rows').hide();
+                $('#ask-for-review').hide();
+                $('#reviewed').hide();
+            }
+
             row.getElement().style.backgroundColor = 'white';
             rowValue = row.getPosition(true);
         },
-        // rowClick:function(e, row){ //trigger an alert message when the row is clicked
-        // 	alert("Row " + row.getData().id + " Clicked!!!!");
-        // }, //this doesn't work now with ceckbox selection
+
 
         cellClick:function(e, cell){
             var row = cell.getRow();
@@ -323,7 +441,32 @@
             var data = row.getData();
             var column = cell.getColumn();
 
-            rowValue = row.getPosition(true);//save position
+            //save changed cell data:
+            //{value, row, columnName}
+
+            //todo: consecutive changes to the same cell are lost. need check for same row/column and overwrite here!
+            if(cell.getValue() !== "" && cell.getValue() !== null){
+                rowValue = row.getPosition(true);//save row position
+                columnValue = cell.getField(); //column name
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for(var i = 0; i < changes.length; i++){
+                    if(rowValue == changes[i]){ //matches row number
+                        if(columnValue == changes[i+1]){ //matches column name as well
+                            console.log("already edited this field");
+                            //todo: splice in changes here... did it work?
+                            changes.splice(i-1, 3, cell.getValue(), rowValue, columnValue);
+                            alreadyChanged = true;
+                        }
+                    }
+                }
+                if(!alreadyChanged){
+                    changes.push(cell.getValue());
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                }
+            }
+
             //update highlighting:
             if(data[curation_status] === undefined){
 
@@ -405,8 +548,7 @@
                                     row.getElement().style.fontWeight = 'bold';                                }
                             }
                         } else{
-                            row.getElement().style.color = 'black'; //change back to black
-                            row.getElement().style.fontWeight = 'normal';
+                            row.getElement().style.color = 'black'; //change back to
                         }
                     }
                 }
@@ -424,6 +566,7 @@
                     }
                 }
             }
+            backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
         },
 
         cellEditCancelled:function(cell){
@@ -439,12 +582,13 @@
         //highlight on load table:
         rowFormatter:function(row){
             var data = row.getData();
-            if(data[curation_status] === undefined){
-                //console.log("undefined undefined errrrrrr");
-                //hide non-important buttons here:
-                $('#highlight-user').hide();
-                $('#ask-for-review').hide();
-                $('#reviewed').hide();
+
+            //hide unimportant buttons until rows selected:
+            $('#delete-rows').hide();
+            $('#ask-for-review').hide();
+            $('#reviewed').hide();
+            if(data[curation_status] === undefined){ //for tables without curation_status
+                //don't try to look for columns below eg: discussed, ready, etc
             } else{
                 if (data[curation_status] !== null) {
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
@@ -514,7 +658,7 @@
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
     table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
-
+    backupChanges(); //todo:is this necessary?
     //new row button click handler:
     $("#add-row").click(function(){
         var newRowData = {};
@@ -559,7 +703,7 @@
             this.children[0].style.color = null;
         }
         table.redraw(true);
-        //renderComplete triggered here
+        //renderComplete triggered here console.log("plus: " + heightOfTable);
     });
 
     //todo: button icon highlighted if a filter is active?
@@ -640,23 +784,49 @@
 
     //make table smaller
     $("#minus").click(function(){
+        if(JSON.stringify(table.getData()) === previousTableData){ //ok this works
+            console.log("SAME SAME");
+        } else {
+            console.log("NOT SAME WHY?");
+    }
         heightOfTable -= 50;
         if(heightOfTable < 200){
             heightOfTable = 200;
         }
         localStorage.setItem("height", JSON.stringify(heightOfTable));
-        location.reload(); //reload web page
+        if(tableEdited){
+            if (confirm("All changes to the table will be lost, continue?")) {
+                    location.reload(); //reload web page
+                } else {
+                    alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
+                }
+        } else{
+            location.reload(); //reload web page
+        }
     });
 
     //make table bigger
     $("#plus").click(function(){
-        console.log("plus: " + heightOfTable);
+        //todo: test save array - remove when feature is complete:
+        backupChanges();
+        // var tableArray = table.getData();
+        // var jsonArray = JSON.stringify(tableArray); //todo: do we need this?
+        // localStorage.setItem("savedTableData", jsonArray);
+
         heightOfTable = heightOfTable + 50;
         if(heightOfTable > 2000){
             heightOfTable = 2000;
         }
         localStorage.setItem("height", JSON.stringify(heightOfTable));
-        location.reload(); //reload web page!
+        if(tableEdited){
+            if (confirm("All changes to the table will be lost, continue?")) {
+                    location.reload(); //reload web page
+                } else {
+                    alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
+                }
+        } else{
+            location.reload(); //reload web page
+        }
     });
 
     $('#contentTable').ready(function() {
@@ -673,6 +843,19 @@
 
     });
 
+
+    function backupChanges(){
+        var tableArray = table.getData();
+        //whole table:
+        var jsonArray = JSON.stringify(tableArray);
+        localStorage.setItem("savedTableData", jsonArray);
+        //changed cells:
+        if(changes.length > 0){
+            var cellArray = JSON.stringify(changes);
+            localStorage.setItem("savedChanges", cellArray);
+        }
+    }
+
     //todo: this should also change all up/down filter arrows back
     function clearFormatting(){
         var filteredColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
@@ -680,7 +863,6 @@
             table.getColumn(filteredColumns[i]).setHeaderFilterValue("");
         }
     }
-
 
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
@@ -697,9 +879,6 @@
             label: 'Submit',
             className: 'btn-danger',
             callback: function() {
-                if(tableEdited){
-                    tableEdited = false;
-                }
                 var aForm = modal.find(".form");
                 var formData = aForm.serializeArray(),
                     dataObj = {};
@@ -733,7 +912,23 @@
                           $('#saveAlert').addClass('alert-success');
                           $("#saveMessage").text('Changes were saved successfully to the repository. ');
                           $("#saveAlert").dismissed = false;
-                          $("#saveAlert").show();
+                          $("#saveAlert").show(); //todo: make it clear that this will re-load the page and changes will be lost
+                          $('#save-btn').hide(); //saved successfully, hide save button
+                          //remove cell.getElement().style.color = "#003399";
+                          //todo: can I just re-load the table here?
+                          var rows = table.getRows();
+                          for (i = 0; i < rows.length; i++) {
+                            var cells = rows[i].getCells();
+                            for(j = 0; j < cells.length; j++){
+                                cells[j].getElement().style.color = 'black'; //do we want to change all to black?
+                            }
+                          }
+                          if(tableEdited){
+                            tableEdited = false;
+                          }
+                          window.localStorage.removeItem("savedChanges");  //remove saved changes from localStorage
+                          changes = []; //no changes anymore to save
+                          backupChanges();
                         } else {
                           var response = JSON.parse(request.responseText);
                           var errInfo = response['Error'];
@@ -774,6 +969,20 @@
         $(this).parent().hide();
     });
 
+    //override ctrl-s save:
+    jQuery(document).keydown(function(event) {
+        // If Control or Command key is pressed and the S key is pressed
+        // run save function. 83 is the key code for S.
+        if((event.ctrlKey || event.metaKey) && event.which == 83) {
+            // Save Function
+            event.preventDefault();
+            console.log("Save!");
+            if(tableEdited){
+                $('#save-btn').trigger('click');
+            }
+            return false;
+        }
+    });
 </script>
 
 {% endblock %}
