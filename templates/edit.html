@@ -27,7 +27,7 @@
     </div>
 
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success btn-lg" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
+        <button id="save-btn" class="btn btn-outline-success btn-sm" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
         </button>
     </div>
 </div>
@@ -288,16 +288,6 @@
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
-<<<<<<< HEAD
-            columnData.push({title:headers[i], field:fields[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
-        }
-        else if(headers[i] == "To be reviewed by"){
-            columnData.push({title:headers[i], field:fields[i], editor: "input", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        }
-        // else if(headers[i] == "To be reviewed by"){
-        //     columnData.push({title:headers[i], field:fields[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        // }
-=======
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
         }
         else if(headers[i] == "To be reviewed by"){
@@ -306,7 +296,6 @@
         // else if(headers[i] == "To be reviewed by"){
         //     columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         // }
->>>>>>> development
         else{
             columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         }
@@ -932,9 +921,10 @@
                         } else {
                           var response = JSON.parse(request.responseText);
                           var errInfo = response['Error'];
+                          var mergeInfo = response['merge_diff'];
                           $('#saveAlert').removeClass('alert-success');
                           $('#saveAlert').addClass('alert-danger');
-                          $("#saveMessage").text('There was a problem saving changes: '+errInfo);
+                          $("#saveMessage").text('There was a problem saving changes: '+errInfo+"--->"+mergeInfo);
                           $(".alert").alert()
                           $("#saveAlert").show();
                         }

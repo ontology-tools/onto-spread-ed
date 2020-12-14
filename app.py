@@ -22,6 +22,7 @@ from openpyxl.styles import PatternFill
 import base64
 import json
 import traceback
+import daff
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import render_template_string, jsonify, Response
@@ -219,23 +220,7 @@ def repo(repo_key, folder_path=""):
 def edit(repo_key, folder, spreadsheet):
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
-    spreadsheet_file = github.get(
-        f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
-    )
-    file_sha = spreadsheet_file['sha']
-    base64_bytes = spreadsheet_file['content'].encode('utf-8')
-    decoded_data = base64.decodebytes(base64_bytes)
-    wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
-    sheet = wb.active
-
-    header = [cell.value for cell in sheet[1] if cell.value]
-    rows = []
-    for row in sheet[2:sheet.max_row]:
-        values = {}
-        for key, cell in zip(header, row):
-            values[key] = cell.value
-        if any(values.values()):
-            rows.append(values)
+    (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
     if g.user.github_login in USERS_METADATA:
         user_initials = USERS_METADATA[g.user.github_login]
     else:
@@ -266,7 +251,6 @@ def save():
     commit_msg = request.form.get("commit_msg")
     commit_msg_extra = request.form.get("commit_msg_extra")
 
-
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
 
@@ -276,7 +260,6 @@ def save():
         first_row = row_data_parsed[0]
         header = [k for k in first_row.keys()]
         del header[0]
-        del row_data_parsed[0] # Remove header row
         # Sort based on label
         row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
 
@@ -297,7 +280,7 @@ def save():
                 sheet.cell(row=r+2, column=c+1).value=row[c]
                 # Set row background colours according to 'Curation status'
                 # These should be kept in sync with those used in edit screen
-                # TODO add to config maybe?
+                # TODO add to config
                 if row[header.index("Curation status")]=="Discussed":
                     sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="FFE4B5", fill_type = "solid")
                 elif row[header.index("Curation status")]=="In Discussion":
@@ -330,16 +313,11 @@ def save():
         if not response:
             raise Exception(f"Unable to create new branch {branch} in {repo_detail}")
 
-        print("About to get SHA for the spreadsheet file",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        print("About to get latest version of the spreadsheet file",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         # Get the sha for the file
-        response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
-        if not response or "sha" not in response:
-            raise Exception(
-                f"Unable to get the current SHA value for {spreadsheet} in {repo_detail}/{folder}"
-                )
-        new_file_sha = response['sha']
+        (new_file_sha, new_rows, new_header) = get_spreadsheet(repo_detail,folder, spreadsheet)
 
-       # Commit changes to branch (replace code with sheet)
+        # Commit changes to branch (replace code with sheet)
         data = {
             "message": commit_msg,
             "content": base64_string,
@@ -368,11 +346,15 @@ def save():
             raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
         pr_info = response['html_url']
 
-        # Do not merge if this file was stale
+        # Do not merge automatically if this file was stale as that will overwrite the other changes
         if new_file_sha != file_sha:
             print("PR created and must be merged manually as repo file had changed")
+
+            # Get the changes between the new file and this one:
+            merge_diff = getDiff(row_data_parsed,new_rows)
+
             return(
-                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>.' }), 400
+                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>.', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
                 )
         else:
             # Merge the created PR
@@ -416,6 +398,66 @@ def save():
                         "Error":format(err)}),
             400,
         )
+
+
+def get_spreadsheet(repo_detail,folder,spreadsheet):
+    spreadsheet_file = github.get(
+        f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
+    )
+    file_sha = spreadsheet_file['sha']
+    base64_bytes = spreadsheet_file['content'].encode('utf-8')
+    decoded_data = base64.decodebytes(base64_bytes)
+    wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
+    sheet = wb.active
+
+    header = [cell.value for cell in sheet[1] if cell.value]
+    rows = []
+    for row in sheet[2:sheet.max_row]:
+        values = {}
+        for key, cell in zip(header, row):
+            values[key] = cell.value
+        if any(values.values()):
+            rows.append(values)
+    return ( (file_sha, rows, header) )
+
+
+def getDiff(row_data_1, row_data_2):
+
+#data1 = [
+#  ['Country','Capital'],
+#  ['Ireland','Dublin'],
+#  ['France','Paris'],
+#  ['Spain','Barcelona']
+#  ]
+
+#data2 = [
+#  ['Country','Code','Capital'],
+#  ['Ireland','ie','Dublin'],
+#  ['France','fr','Paris'],
+#  ['Spain','es','Madrid'],
+#  ['Germany','de','Berlin']
+#  ]
+
+    table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
+    table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
+
+    alignment = daff.Coopy.compareTables(table1,table2).align()
+
+    data_diff = []
+    table_diff = daff.PythonTableView(data_diff)
+
+    flags = daff.CompareFlags()
+    highlighter = daff.TableDiff(alignment,flags)
+    highlighter.hilite(table_diff)
+
+    diff2html = daff.DiffRender()
+    diff2html.usePrettyArrows(False)
+    diff2html.render(table_diff)
+    table_diff_html = diff2html.html()
+
+    print(table_diff_html)
+
+    return (table_diff_html)
 
 
 
