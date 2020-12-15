@@ -433,9 +433,8 @@
             //save changed cell data:
             //{value, row, columnName}
 
-            //todo: consecutive changes to the same cell are lost. need check for same row/column and overwrite here!
             if(cell.getValue() !== "" && cell.getValue() !== null){
-                rowValue = row.getPosition(true);//save row position
+                rowValue = row.getPosition();//save absolute row position
                 columnValue = cell.getField(); //column name
                 var alreadyChanged = false;
                 //check for previously edited cell, and overwrite if already changed before
@@ -621,7 +620,7 @@
         },
 
         rowAdded:function(row){
-            var rowZero = table.getRow(0); //will fail on empty spreadsheet, but row not working for new row..
+            var rowZero = table.getRow(0); //will fail on empty spreadsheet, but "row" not working for new row..
             var data = rowZero.getData();
 
             table.scrollToRow(row, "bottom", false)
