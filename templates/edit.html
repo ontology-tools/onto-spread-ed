@@ -191,11 +191,29 @@
 
     //restore unsaved changes if needed:
     if(unsavedChanges){
-        //todo: format unsaved changes to be human readable here - and show diff to user
-        //todo: create new table in popup with save/not save changes per item?
-        //todo: present user with data which will be overwritten next to previousChangeData
-        if (confirm("You have previously unsaved changes \n Would you like to keep them? \n" + previousChangeData)) {
+        //build array of data which will be replaced: 
+        var tableChangedArray = [];
+        for (var i=0; i<rowLength; i++) {
+                    var rowObj = {id:i}
+                    for (var j=0; j<headerLength; j++) {
+                        if(i == changesArray[changeWorkingOn+1]){ //match row number
+                            if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
+                                    var columnOfChange = changesArray[changeWorkingOn+2];
+                                    tableChangedArray.push(JSON.stringify(testTableData[i*j][columnOfChange]));
+                                    changeWorkingOn += 3;
+                            } 
+                        }
+                    }
+                }
+        // alert(tableChangedArray);
+        var changedMessage = "";
+        for( var i = 0; i < changesArray.length; i+=3){
+            changedMessage += changesArray[i+2] + ", Row " + changesArray[i+1] + " " + tableChangedArray[i/3] + "=>" + JSON.stringify(changesArray[i]) + "\n";
+        }
+        
+        if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
+                changeWorkingOn = 0;
                 for (var i=0; i<rowLength; i++) {
                     var rowObj = {id:i}
                     for (var j=0; j<headerLength; j++) {
@@ -217,7 +235,7 @@
                     }
                     tableData.push(rowObj);
                 }
-                alert("Save changes to repository to avoid losing them");
+                alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
                 //discard changes
