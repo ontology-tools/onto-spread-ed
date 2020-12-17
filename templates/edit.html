@@ -8,7 +8,7 @@
 
 <div class="row mb-3">
     <div class="col-md-12">
-        <h2> Editing {{spreadsheet_name}} </h2>
+        <h2 id="s-name"> Editing {{spreadsheet_name}} </h2>
     </div>
 </div>
 
@@ -87,6 +87,9 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
+    allCookies = document.cookie;
+    console.log("allCookies: " + allCookies);
+
     var file_sha = '{{file_sha}}';
 
     //hide save button on load
@@ -137,6 +140,15 @@
     var headerLength = headers.length;
 
 
+    //current spreadsheet name
+    //todo: thisSheet is undefined? Why? 
+    //var thisSheet = {{spreadsheet_name}}; //todo: need | safe ?
+    //todo: below is a hack. Fix this!!
+    var thisSheetHeader = $('#s-name').text().split(" "); 
+    var thisSheet = thisSheetHeader[2];
+    console.log("thisSheet is: " + thisSheet);
+   
+    
     //Build the table row data with field names
     var tableData = [];
     var testTableData = [];
@@ -150,21 +162,22 @@
             testTableData.push(rowObj);
         }
 
-    var previousTableData = localStorage.getItem("savedTableData");
+    //todo: save login name as well as sheet name?.
+    var previousTableData = localStorage.getItem("savedTableData" + thisSheet);
     if(JSON.stringify(testTableData) === previousTableData){
         console.log("SAME SAME");
     } else {
         unsavedChanges = true;
-        console.log("NOT SAME WHY?"); // todo: this message is showing because the top row is removed from the refreshed table. Waiting for confirmation on fix
+        console.log("NOT SAME WHY?"); 
         var changesArray = [];
         //check saved changes array
-        if(window.localStorage.getItem("savedChanges") !== null){
-            var previousChangeData = window.localStorage.getItem("savedChanges");
-            console.log("previousChangeData is: " + previousChangeData); //just checking.
+        if(window.localStorage.getItem("savedChanges" + thisSheet) !== null){
+            var previousChangeData = window.localStorage.getItem("savedChanges" + thisSheet);
+            // console.log("previousChangeData is: " + previousChangeData); //just checking.
             changesArray = JSON.parse(previousChangeData);
             unsavedChanges = true;
             if(changesArray.length < 3){ //savedChanges not correct format or empty
-                window.localStorage.removeItem("savedChanges");
+                window.localStorage.removeItem("savedChanges" + thisSheet);
                 unsavedChanges = false;
             }
         } else{ //no saved changes, don't look for them later
@@ -180,6 +193,7 @@
     if(unsavedChanges){
         //todo: format unsaved changes to be human readable here - and show diff to user
         //todo: create new table in popup with save/not save changes per item?
+        //todo: present user with data which will be overwritten next to previousChangeData
         if (confirm("You have previously unsaved changes \n Would you like to keep them? \n" + previousChangeData)) {
                 //unsavedChanges code here, plus save at end
                 for (var i=0; i<rowLength; i++) {
@@ -190,11 +204,11 @@
                         if(i == changesArray[changeWorkingOn+1]){ //match row number
                             // console.log(i + ": " + rowData[i]);
                             if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
-                                    console.log(j + ": " + rowData[i][headers[j]] + " change to: " + changesArray[changeWorkingOn]);
+                                    // console.log(j + ": " + rowData[i][headers[j]] + " change to: " + changesArray[changeWorkingOn]);
                                     rowObj[ headers[j] ] = changesArray[changeWorkingOn]; //correct data
                                     changeWorkingOn += 3;
                                     if(changeWorkingOn/3 == changesLength){
-                                        window.localStorage.removeItem("savedChanges");
+                                        window.localStorage.removeItem("savedChanges" + thisSheet);
                                     }
                             } else{
                                 rowObj[ headers[j] ] = rowData[i][ headers[j] ];
@@ -240,7 +254,7 @@
 
     //row value, keep track of where we are:
     var rowValue = 0;
-    var columnValue = 0; //why doesn't tabulator have this?
+    var columnValue = 0; //why doesn't tabulator have this
 
     //header menu:
     //define row context menu
@@ -366,8 +380,8 @@
                 var row = table.getRowFromPosition(0, true);
                 var cell = row.getCell("parent");
                 cell.setValue("replaced");
-                console.log("hello");
-                console.log("cell is: " + cell);
+                // console.log("hello");
+                // console.log("cell is: " + cell);
                 //console.log("rowValue is: " + rowValue);
             } catch{
                 //console.log("caught"); //this happens on initial load, table loaded twice?
@@ -836,11 +850,11 @@
         var tableArray = table.getData();
         //whole table:
         var jsonArray = JSON.stringify(tableArray);
-        localStorage.setItem("savedTableData", jsonArray);
+        localStorage.setItem("savedTableData" + thisSheet, jsonArray);
         //changed cells:
         if(changes.length > 0){
             var cellArray = JSON.stringify(changes);
-            localStorage.setItem("savedChanges", cellArray);
+            localStorage.setItem("savedChanges" + thisSheet, cellArray);
         }
     }
 
@@ -914,7 +928,7 @@
                           if(tableEdited){
                             tableEdited = false;
                           }
-                          window.localStorage.removeItem("savedChanges");  //remove saved changes from localStorage
+                          window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
                           changes = []; //no changes anymore to save
                           backupChanges();
                         } else {
