@@ -119,6 +119,9 @@
     var why_Fuzzy = "Why fuzzy";//column name
     var whyFuzzy = "Whyfuzzy";
 
+    //Fuzzy Set
+    var fuzzy_Set = "Fuzzy set"; //column name
+
     //for to be reviewed by
     var to_be_reviewed_by = "To be reviewed by";
     //Column name for Curator
@@ -188,54 +191,58 @@
         var changeWorkingOn = 0;
     }
 
+    //todo: fix all errors in restoring changes and then remove this: 
+    unsavedChanges = false; //disabling this for now - too many problems. 
 
     //restore unsaved changes if needed:
     if(unsavedChanges){
         //build array of data which will be replaced: 
         var tableChangedArray = [];
         for (var i=0; i<rowLength; i++) {
-                    var rowObj = {id:i}
-                    for (var j=0; j<headerLength; j++) {
-                        if(i == changesArray[changeWorkingOn+1]){ //match row number
-                            if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
-                                    var columnOfChange = changesArray[changeWorkingOn+2];
-                                    tableChangedArray.push(JSON.stringify(testTableData[i*j][columnOfChange]));
-                                    changeWorkingOn += 3;
-                            } 
+            var rowObj = {id:i}
+            for (var j=0; j<headerLength; j++) {
+                for(var a = 0; a < changesArray.length; a++){
+                    if(i == changesArray[a+1]){ //row
+                        if(headers[j] == changesArray[a+2]){ //column
+                            tableChangedArray.push(JSON.stringify(testTableData[i*j][changesArray[a+2]]));
                         }
                     }
                 }
+            }
+        }
         // alert(tableChangedArray);
         var changedMessage = "";
         for( var i = 0; i < changesArray.length; i+=3){
-            changedMessage += changesArray[i+2] + ", Row " + changesArray[i+1] + " " + tableChangedArray[i/3] + "=>" + JSON.stringify(changesArray[i]) + "\n";
+            if(tableChangedArray[i] == "null" || tableChangedArray[i] == undefined){
+                changedMessage += "Row " + changesArray[i+1] + ", " + changesArray[i+2] + ": " + "\"\""  + "=>" + JSON.stringify(changesArray[i]) + "\n";
+            } else{
+                changedMessage += "Row " + changesArray[i+1] + ", " + changesArray[i+2] + ": " + tableChangedArray[i] + "=>" + JSON.stringify(changesArray[i]) + "\n";
+            }
         }
         
         if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
-                changeWorkingOn = 0;
+                console.log("confirmed");
                 for (var i=0; i<rowLength; i++) {
                     var rowObj = {id:i}
                     for (var j=0; j<headerLength; j++) {
                         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-                        //insert restored data:
-                        if(i == changesArray[changeWorkingOn+1]){ //match row number
-                            // console.log(i + ": " + rowData[i]);
-                            if(headers[j] == changesArray[changeWorkingOn+2]){ //correct column
-                                    // console.log(j + ": " + rowData[i][headers[j]] + " change to: " + changesArray[changeWorkingOn]);
-                                    rowObj[ headers[j] ] = changesArray[changeWorkingOn]; //correct data
-                                    changeWorkingOn += 3;
-                                    if(changeWorkingOn/3 == changesLength){
-                                        window.localStorage.removeItem("savedChanges" + thisSheet);
-                                    }
-                            } else{
-                                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                        //check all data for same values here: 
+                        for(var a = 0; a < changesArray.length; a++){
+                            //console.log(a);
+                            if(i == changesArray[a+1]){ //row
+                                console.log("row same: " + i);
+                                if(headers[j] == changesArray[a+2]){ //column
+                                    console.log(changesArray[a]);
+                                    rowObj[ headers[j] ] = changesArray[a]
+                                }
                             }
                         }
                     }
                     tableData.push(rowObj);
                 }
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
+                window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
                 //discard changes
@@ -246,6 +253,7 @@
                     }
                     tableData.push(rowObj);
                 }
+                window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
         $('#save-btn').show();
     } else{
@@ -313,14 +321,15 @@
     //checkbox row selector on the side:
     columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", width:"50", hozAlign:"center", headerSort:false, frozen:true});
     for (var i=0; i<headerLength; i++) {
+        // console.log(i + " " + headers[i]);
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
             columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"140", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"50", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"140", headerMenu:headerMenu});
         }
         else if(headers[i] == "To be reviewed by"){
             columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
@@ -598,13 +607,37 @@
             }
 
             //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true
+            //todo: do we need to remove checkbox if user deletes their 'Why fuzzy' comment?
             if(data[why_Fuzzy] === undefined){ //why Fuzzy column not present
                 
             } else{
                 if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
                     if(cell.getValue() !== ""){
                         if (data[why_Fuzzy] !== null && data[why_Fuzzy] !== "") {
-                            data["Fuzzy set"] = 1;
+                            data[fuzzy_Set] = 1;
+                            //save Fuzzy set column to local storage for backup here
+                            //{value, row, columnName}
+                            //data[curator], row.getPosition(), "Curator"
+                            // if(data["Fuzzy set"] !== "" && data["Fuzzy set"] !== null){
+                                rowValue = row.getPosition();//save absolute row position
+                                columnValue = fuzzy_Set; //column name
+                                var alreadyChanged = false;
+                                //check for previously edited cell, and overwrite if already changed before
+                                for(var i = 0; i < changes.length; i++){
+                                    if(rowValue == changes[i]){ //matches row number
+                                        if(fuzzy_Set == changes[i+1]){ //matches column name as well
+                                            console.log("already edited this field");
+                                            changes.splice(i-1, 3, 1, rowValue, fuzzy_Set);
+                                            alreadyChanged = true;
+                                        }
+                                    }
+                                }
+                                if(!alreadyChanged){
+                                    changes.push(1);
+                                    changes.push(rowValue);
+                                    changes.push(fuzzy_Set);
+                                }
+                            // }
                         }
                     }
                 }
