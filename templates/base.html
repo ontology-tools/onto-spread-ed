@@ -30,7 +30,16 @@
                 <div class="row">
                     {% if login %}
                     <div class="col-8"> You are currently logged in as {{login}}. </div>
-                    <div class="col-4"><span class="float-right"> <a href="/home">Go home</a> | <a href="/logout">Log out</a></span></div>
+                    <div class="col-4">
+                      <span class="float-right">
+                      {% if folder and spreadsheet_name %}
+                        <a href="/repo/{{repo_name}}/{{folder}}">Back to {{folder}}</a> |
+                      {% elif repo_name and folder_path %}
+                        <a href="/repo/{{repo_name}}">Back to {{repo_name}}</a> |
+                      {% endif %}
+                      <a href="/home">Go home</a> | <a href="/logout">Log out</a>
+                      </span>
+                      </div>
                     {% endif %}
                 </div>
             </div>
