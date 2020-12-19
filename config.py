@@ -11,7 +11,10 @@ if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
     GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
+    REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology"}
 else:
+    REPOSITORIES = {"AddictO": "addiction-ssa/addiction-ontology"}
+
     # Import the Secret Manager client library.
     from google.cloud import secretmanager
     # Create the Secret Manager client.
@@ -40,7 +43,7 @@ else:
     SECRET_KEY = response.payload.data.decode("UTF-8")
 
 
-REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology"}
+
 USERS_METADATA = {"jannahastings": "JH", "robertjwest":"RW", "sharoncox":"SC",
                   "ksoar":"KS", "CaitlinNotley702": "CN", "CaitlinNotley": "CN"}
 ALL_USERS_INITIALS = [v for v in USERS_METADATA.values()]
