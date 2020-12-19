@@ -114,6 +114,7 @@
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
     var published = "Published";
+    var obsolete = "Obsolete";
 
     //whyFuzzy
     var why_Fuzzy = "Why fuzzy";//column name
@@ -325,7 +326,7 @@
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published", "Obsolete"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
             columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"140", headerMenu:headerMenu});
         } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
@@ -435,6 +436,8 @@
             row.getElement().style.backgroundColor = 'grey';
             rowValue = row.getPosition(true);
         },
+
+        //todo: rowDeselected re-do css row colours
         rowDeselected:function(row){
             var data = row.getData();
             var selectedRows = table.getSelectedRows();
@@ -448,6 +451,30 @@
             }
 
             row.getElement().style.backgroundColor = 'white';
+            //re-do styling - todo: please re-factor this bit of code into a function!!!
+            if (data[curation_status] !== null) {
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
+                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
+                    }
+                }
             rowValue = row.getPosition(true);
         },
 
@@ -516,6 +543,9 @@
                     }
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
                     }
                 }
             }
@@ -684,6 +714,9 @@
                     }
                     if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1){
                         row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+                    }
+                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1){
+                        row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
                     }
                 }
             }
