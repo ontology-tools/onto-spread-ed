@@ -123,6 +123,9 @@
     //Fuzzy Set
     var fuzzy_Set = "Fuzzy set"; //column name
 
+    //E-Cig0
+    
+
     //for to be reviewed by
     var to_be_reviewed_by = "To be reviewed by";
     //Column name for Curator
@@ -193,7 +196,7 @@
     }
 
     //todo: fix all errors in restoring changes and then remove this: 
-    unsavedChanges = false; //disabling this for now - too many problems. 
+    //unsavedChanges = false; //disabling this for now - too many problems. 
 
     //restore unsaved changes if needed:
     if(unsavedChanges){
@@ -224,24 +227,36 @@
         if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
-                for (var i=0; i<rowLength; i++) {
-                    var rowObj = {id:i}
-                    for (var j=0; j<headerLength; j++) {
-                        rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-                        //check all data for same values here: 
-                        for(var a = 0; a < changesArray.length; a++){
-                            //console.log(a);
-                            if(i == changesArray[a+1]){ //row
-                                console.log("row same: " + i);
-                                if(headers[j] == changesArray[a+2]){ //column
-                                    console.log(changesArray[a]);
-                                    rowObj[ headers[j] ] = changesArray[a]
-                                }
-                            }
-                        }
-                    }
-                    tableData.push(rowObj);
-                }
+                //new method: restoring entire array:
+                var newRowLength = previousTableData.length/headerLength;
+                console.log(newRowLength);
+                tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
+                // for (var i=0; i<newRowLength; i++) {
+                //     var rowObj = {id:i}
+                //     for (var j=0; j<headerLength; j++) {
+                //         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                //     }
+                //     tableData.push(rowObj);
+                // }
+                //old method, building array from changes
+                // for (var i=0; i<rowLength; i++) {
+                //     var rowObj = {id:i}
+                //     for (var j=0; j<headerLength; j++) {
+                //         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                //         //check all data for same values here: 
+                //         for(var a = 0; a < changesArray.length; a++){
+                //             //console.log(a);
+                //             if(i == changesArray[a+1]){ //row
+                //                 console.log("row same: " + i);
+                //                 if(headers[j] == changesArray[a+2]){ //column
+                //                     console.log(changesArray[a]);
+                //                     rowObj[ headers[j] ] = changesArray[a]
+                //                 }
+                //             }
+                //         }
+                //     }
+                //     tableData.push(rowObj);
+                // }
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
@@ -263,6 +278,12 @@
             var rowObj = {id:i}
             for (var j=0; j<headerLength; j++) {
                 rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                //trying to set null values to 0 in checkbox columns here:
+                if(headers[j] == fuzzy_Set || headers[j] == "E-CigO"){ //column
+                    if(rowObj[ headers[j] ] == null){
+                        rowObj[ headers[j] ] = 0;
+                    }                    
+                }
             }
             tableData.push(rowObj);
         }
@@ -482,7 +503,7 @@
         cellClick:function(e, cell){
             var row = cell.getRow();
             rowValue = row.getPosition(true);
-            // console.log(cell.getValue()); //this works
+            console.log(cell.getValue()); //this works
             //e - the click event object
             //cell - cell component
         },
