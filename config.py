@@ -13,7 +13,7 @@ if os.environ.get("FLASK_ENV")=='development':
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
     REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology"}
 else:
-    REPOSITORIES = {"AddictO": "addiction-ssa/addiction-ontology"}
+    REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology"}
 
     # Import the Secret Manager client library.
     from google.cloud import secretmanager
