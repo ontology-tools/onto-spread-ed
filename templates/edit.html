@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ config['APP_TITLE'] }}{% endblock %}
 {% block head %}
-  {{ super() }}
+{{ super() }}
 
 {% endblock %}
 {% block content %}
@@ -16,53 +16,60 @@
     <div class="col-md-9">
         <div class="text-left">
             <button id=add-row class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add Row</button>
-            <button id=delete-rows class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Delete Rows</button>
-            <button id=highlight-user class="btn btn-outline-warning btn-sm"><i class="fas fa-highlighter"></i> Highlight Your Rows</button>
-            <button id=remove-formatting class="btn btn-outline-dark btn-sm"><i class="fas fa-remove-format"></i> Remove all Filters</button>
-            <button id=ask-for-review class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard"></i> Ask for review</button>
-            <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i> Reviewed</button>
+            <button id=delete-rows class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Delete
+                Rows</button>
+            <button id=highlight-user class="btn btn-outline-warning btn-sm"><i class="fas fa-highlighter"></i>
+                Highlight Your Rows</button>
+            <button id=remove-formatting class="btn btn-outline-dark btn-sm"><i class="fas fa-remove-format"></i> Remove
+                all Filters</button>
+            <button id=ask-for-review class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard"></i> Ask for
+                review</button>
+            <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i>
+                Reviewed</button>
             <button id=minus class="btn btn-sm"><i class="fas fa-minus-square"></i></button>
             <button id=plus class="btn btn-sm"><i class="fas fa-plus-square"></i></button>
         </div>
     </div>
 
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success btn-sm" onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> Save changes to repository
+        <button id="save-btn" class="btn btn-outline-success btn-sm"
+            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) ">
+            Save changes to repository
         </button>
     </div>
 </div>
 <div class="row">
     <div class="col-md-12">
-      <div id="saveAlert" class="alert alert-success collapse" role="alert">
-        <button id="closeSaveMsgBtn" type="button" class="close" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-        </button>
-        <div id="saveMessage"> </div>
-      </div>
+        <div id="saveAlert" class="alert alert-success collapse" role="alert">
+            <button id="closeSaveMsgBtn" type="button" class="close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <div id="saveMessage"> </div>
+        </div>
     </div>
 </div>
 <div class="row">
     <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-hover table-sm" style="font-size: 0.8em;">
-    </div>
+        </div>
     </div>
 </div>
 
 
 <div class="row">
-<!-- The form that gets displayed on the confirmation box, otherwise is hidden -->
-  <div id="message-box" class="form-content" style="display:none;">
-      <form class="form" role="form">
-          <div class="form-group">
-            <label for="commit-msg">Commit message</label>
-            <input type="text" class="form-control" id="commit-msg" name="commit-msg">
-          </div>
-          <div class="form-group">
-            <label for="descr">Detailed description</label>
-            <input type="text" class="form-control" id="descr" name="descr">
-          </div>
-      </form>
-  </div>
+    <!-- The form that gets displayed on the confirmation box, otherwise is hidden -->
+    <div id="message-box" class="form-content" style="display:none;">
+        <form class="form" role="form">
+            <div class="form-group">
+                <label for="commit-msg">Commit message</label>
+                <input type="text" class="form-control" id="commit-msg" name="commit-msg">
+            </div>
+            <div class="form-group">
+                <label for="descr">Detailed description</label>
+                <input type="text" class="form-control" id="descr" name="descr">
+            </div>
+        </form>
+    </div>
 </div>
 
 
@@ -98,7 +105,7 @@
     //table resize - load/save in local storage
     var heightOfTable = 600;
     if (localStorage.getItem("height")) {
-         heightOfTable = parseInt(localStorage.getItem("height"));
+        heightOfTable = parseInt(localStorage.getItem("height"));
     } else {
         heightOfTable = 600;
         localStorage.setItem("height", JSON.stringify(heightOfTable))
@@ -124,7 +131,7 @@
     var fuzzy_Set = "Fuzzy set"; //column name
 
     //E-Cig0
-    
+
 
     //for to be reviewed by
     var to_be_reviewed_by = "To be reviewed by";
@@ -151,84 +158,92 @@
     //todo: thisSheet is undefined? Why? 
     //var thisSheet = {{spreadsheet_name}}; //todo: need | safe ?
     //todo: below is a hack. Fix this!!
-    var thisSheetHeader = $('#s-name').text().split(" "); 
+    var thisSheetHeader = $('#s-name').text().split(" ");
     var thisSheet = thisSheetHeader[2];
     console.log("thisSheet is: " + thisSheet);
-   
-    
+
+
     //Build the table row data with field names
     var tableData = [];
     var testTableData = [];
 
     //get saved table data, compare to current table:
-    for (var i=0; i<rowLength; i++) {
-            var rowObj = {id:i}
-            for (var j=0; j<headerLength; j++) {
-                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-            }
-            testTableData.push(rowObj);
+    for (var i = 0; i < rowLength; i++) {
+        var rowObj = { id: i }
+        for (var j = 0; j < headerLength; j++) {
+            rowObj[headers[j]] = rowData[i][headers[j]];
         }
+        testTableData.push(rowObj);
+    }
 
     //todo: save login name as well as sheet name?.
     var previousTableData = localStorage.getItem("savedTableData" + thisSheet);
-    if(JSON.stringify(testTableData) === previousTableData){
+    if (JSON.stringify(testTableData) === previousTableData) {
         console.log("SAME SAME");
     } else {
-        unsavedChanges = true;
-        console.log("NOT SAME WHY?"); 
-        var changesArray = [];
-        //check saved changes array
-        if(window.localStorage.getItem("savedChanges" + thisSheet) !== null){
-            var previousChangeData = window.localStorage.getItem("savedChanges" + thisSheet);
-            // console.log("previousChangeData is: " + previousChangeData); //just checking.
-            changesArray = JSON.parse(previousChangeData);
+        try {
             unsavedChanges = true;
-            if(changesArray.length < 3){ //savedChanges not correct format or empty
-                window.localStorage.removeItem("savedChanges" + thisSheet);
+            console.log("NOT SAME WHY?");
+            var changesArray = [];
+            //check saved changes array
+            if (window.localStorage.getItem("savedChanges" + thisSheet) !== null) {
+                var previousChangeData = window.localStorage.getItem("savedChanges" + thisSheet);
+                // console.log("previousChangeData is: " + previousChangeData); //just checking.
+                changesArray = JSON.parse(previousChangeData);
+                unsavedChanges = true;
+                if (changesArray.length < 3) { //savedChanges not correct format or empty
+                    window.localStorage.removeItem("savedChanges" + thisSheet);
+                    unsavedChanges = false;
+                }
+            } else { //no saved changes, don't look for them later
+                console.log("savedChanges missing");
                 unsavedChanges = false;
             }
-        } else{ //no saved changes, don't look for them later
-            console.log("savedChanges missing");
-            unsavedChanges = false;
+            var changesLength = changesArray.length / 3;
+            var changeWorkingOn = 0;
+        } catch (err) {
+            alert(err);
+            unsavedChanges = true;
         }
-        var changesLength = changesArray.length/3;
-        var changeWorkingOn = 0;
     }
 
     //todo: fix all errors in restoring changes and then remove this: 
     //unsavedChanges = false; //disabling this for now - too many problems. 
 
     //restore unsaved changes if needed:
-    if(unsavedChanges){
-        //build array of data which will be replaced: 
-        var tableChangedArray = [];
-        for (var i=0; i<rowLength; i++) {
-            var rowObj = {id:i}
-            for (var j=0; j<headerLength; j++) {
-                for(var a = 0; a < changesArray.length; a++){
-                    if(i == changesArray[a+1]){ //row
-                        if(headers[j] == changesArray[a+2]){ //column
-                            tableChangedArray.push(JSON.stringify(testTableData[i*j][changesArray[a+2]]));
+    try {
+        if (unsavedChanges) {
+            //build array of data which will be replaced: 
+            var tableChangedArray = [];
+            for (var i = 0; i < rowLength; i++) {
+                var rowObj = { id: i }
+                for (var j = 0; j < headerLength; j++) {
+                    for (var a = 0; a < changesArray.length; a++) {
+                        if (i == changesArray[a + 1]) { //row
+                            if (headers[j] == changesArray[a + 2]) { //column
+                                tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
+                            }
                         }
                     }
                 }
             }
-        }
-        // alert(tableChangedArray);
-        var changedMessage = "";
-        for( var i = 0; i < changesArray.length; i+=3){
-            if(tableChangedArray[i] == "null" || tableChangedArray[i] == undefined){
-                changedMessage += "Row " + changesArray[i+1] + ", " + changesArray[i+2] + ": " + "\"\""  + "=>" + JSON.stringify(changesArray[i]) + "\n";
-            } else{
-                changedMessage += "Row " + changesArray[i+1] + ", " + changesArray[i+2] + ": " + tableChangedArray[i] + "=>" + JSON.stringify(changesArray[i]) + "\n";
+            // alert(tableChangedArray);
+
+            var changedMessage = "";
+            for (var i = 0; i < changesArray.length; i += 3) {
+                if (tableChangedArray[i] == "null" || tableChangedArray[i] == undefined) {
+                    changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + "\"\"" + "=>" + JSON.stringify(changesArray[i]) + "\n";
+                } else {
+                    changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + tableChangedArray[i] + "=>" + JSON.stringify(changesArray[i]) + "\n";
+                }
             }
-        }
-        
-        if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
+
+
+            if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
                 //new method: restoring entire array:
-                var newRowLength = previousTableData.length/headerLength;
+                var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
                 // for (var i=0; i<newRowLength; i++) {
@@ -262,27 +277,46 @@
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
                 //discard changes
-                for (var i=0; i<rowLength; i++) {
-                    var rowObj = {id:i}
-                    for (var j=0; j<headerLength; j++) {
-                        rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+                for (var i = 0; i < rowLength; i++) {
+                    var rowObj = { id: i }
+                    for (var j = 0; j < headerLength; j++) {
+                        rowObj[headers[j]] = rowData[i][headers[j]];
                     }
                     tableData.push(rowObj);
                 }
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
-        $('#save-btn').show();
-    } else{
-        //no changes
-        for (var i=0; i<rowLength; i++) {
-            var rowObj = {id:i}
-            for (var j=0; j<headerLength; j++) {
-                rowObj[ headers[j] ] = rowData[i][ headers[j] ];
+
+            $('#save-btn').show();
+        } else {
+            //no changes
+            for (var i = 0; i < rowLength; i++) {
+                var rowObj = { id: i }
+                for (var j = 0; j < headerLength; j++) {
+                    rowObj[headers[j]] = rowData[i][headers[j]];
+                    //trying to set null values to 0 in checkbox columns here:
+                    if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
+                        if (rowObj[headers[j]] == null) {
+                            rowObj[headers[j]] = 0;
+                        }
+                    }
+                }
+                tableData.push(rowObj);
+            }
+        }
+    } catch (err) {
+        alert("an error occurred, unable to restore unsaved changes\n" + err);
+        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+        //still build table, but losing changes on error. 
+        for (var i = 0; i < rowLength; i++) {
+            var rowObj = { id: i }
+            for (var j = 0; j < headerLength; j++) {
+                rowObj[headers[j]] = rowData[i][headers[j]];
                 //trying to set null values to 0 in checkbox columns here:
-                if(headers[j] == fuzzy_Set || headers[j] == "E-CigO"){ //column
-                    if(rowObj[ headers[j] ] == null){
-                        rowObj[ headers[j] ] = 0;
-                    }                    
+                if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
+                    if (rowObj[headers[j]] == null) {
+                        rowObj[headers[j]] = 0;
+                    }
                 }
             }
             tableData.push(rowObj);
@@ -294,7 +328,7 @@
     var highlightLogin = false; //highlight user edited tables
 
     //all_initials
-    var allInitials =  {{ all_initials | safe }};
+    var allInitials = {{ all_initials | safe }};
     //console.log("allInitials: " + allInitials);
 
     // save changes
@@ -309,29 +343,29 @@
     //todo: resize to header text or initial value per header?
     var headerMenu = [
         {
-            label:"Hide Column",
-            action:function(e, column){
+            label: "Hide Column",
+            action: function (e, column) {
                 //column.setWidth(40);
                 column.hide();
             }
         },
         {
-            label:"Show Hidden",
-            action:function(e, column){
+            label: "Show Hidden",
+            action: function (e, column) {
                 //column.setWidth(200);
                 var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
-                for(var i = 0; i < allColumns.length; i++){
-                    if(!table.getColumn(allColumns[i]).isVisible()){
+                for (var i = 0; i < allColumns.length; i++) {
+                    if (!table.getColumn(allColumns[i]).isVisible()) {
                         table.getColumn(allColumns[i]).show();
                     }
                 }
             }
         },
         {
-            label:"Reset All Column Widths",
-            action:function(e, column){
+            label: "Reset All Column Widths",
+            action: function (e, column) {
                 var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
-                for(var i = 0; i < allColumns.length; i++){
+                for (var i = 0; i < allColumns.length; i++) {
                     table.getColumn(allColumns[i]).setWidth(200);
                 }
             }
@@ -341,48 +375,48 @@
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
-    columnData.push({formatter:"rowSelection", titleFormatter:"rowSelection", width:"50", hozAlign:"center", headerSort:false, frozen:true});
-    for (var i=0; i<headerLength; i++) {
+    columnData.push({ formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
+    for (var i = 0; i < headerLength; i++) {
         // console.log(i + " " + headers[i]);
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
-        if(headers[i] == "Curation status"){
-            columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published", "Obsolete"]}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        } else if(headers[i] == "E-CigO"){ //todo: headerFilter can't select by unchecked?
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"140", headerMenu:headerMenu});
-        } else if(headers[i] == "Fuzzy set"){ //todo: checkbox change not affecting highlight your rows if there is another curator listed
-            columnData.push({title:headers[i], field:headers[i], hozAlign:"center", editor:true, formatter:"tickCross", headerFilter:true, width:"140", headerMenu:headerMenu});
+        if (headers[i] == "Curation status") {
+            columnData.push({ title: headers[i], field: headers[i], editor: "select", editable: true, editorParams: { values: ["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        } else if (headers[i] == "E-CigO") { //todo: headerFilter can't select by unchecked?
+            columnData.push({ title: headers[i], field: headers[i], hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
+        } else if (headers[i] == "Fuzzy set") { //todo: checkbox change not affecting highlight your rows if there is another curator listed
+            columnData.push({ title: headers[i], field: headers[i], hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         }
-        else if(headers[i] == "To be reviewed by"){
-            columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        else if (headers[i] == "To be reviewed by") {
+            columnData.push({ title: headers[i], field: headers[i], editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
         // else if(headers[i] == "To be reviewed by"){
         //     columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
         // }
-        else{
-            columnData.push({title:headers[i], field:headers[i], editor: "textarea", editable:true, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
+        else {
+            columnData.push({ title: headers[i], field: headers[i], editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
     }
 
 
-    function getDropdown(cell){
-            return(allInitials);
-        }
+    function getDropdown(cell) {
+        return (allInitials);
+    }
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
         // tooltips:true, //example option (enable tooltips on all cells)
-        groupToggleElement:"header",
-        height:heightOfTable,
+        groupToggleElement: "header",
+        height: heightOfTable,
         //height:"calc(100% - 250px)",
         //height:"100%", //this makes the header not stay on the top..
-        layout:"fitColumns",
+        layout: "fitColumns",
         //layout:window.innerWidth > 800 ? "fitColumns" : "fitData",
         // pagination:"local",
         // paginationSize:"20",
-        movableRows:false,
-        groupBy:"Id",
-        groupStartOpen:true,
-        persistence:true,
+        movableRows: false,
+        groupBy: "Id",
+        groupStartOpen: true,
+        persistence: true,
         /*persistence:{
         sort: true, //persist column sorting
         filter: true, //persist filter sorting
@@ -393,14 +427,14 @@
     },*/ //this doesn't work either for dropdown persistence
         // movableRows:true,
         // responsiveLayout:"hide",
-        keybindings:true,
-        history:true, //records table interaction
+        keybindings: true,
+        history: true, //records table interaction
         // addRowPos:"bottom",
         // virtualDom:false,
         data: tableData,
         columns: columnData,
         //autoColumns: true,
-        reactiveData:true, //enables updating cell contents programmatically
+        reactiveData: true, //enables updating cell contents programmatically
 
         virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
 
@@ -409,21 +443,21 @@
 
 
 
-        dataSorting:function(sorters){
+        dataSorting: function (sorters) {
             //console.log("sorted");
             //sorters - an array of the sorters currently applied
         },
         //called when table rendered or re-drawn:
         //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out.
         //do we need a clear cookies button?
-        tableBuilt:function(){
+        tableBuilt: function () {
 
         },
-        renderStarted:function(){
+        renderStarted: function () {
 
         },
-        renderComplete:function(){
-            try{
+        renderComplete: function () {
+            try {
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
                 //console.log(table);
                 var row = table.getRowFromPosition(0, true);
@@ -432,23 +466,23 @@
                 // console.log("hello");
                 // console.log("cell is: " + cell);
                 //console.log("rowValue is: " + rowValue);
-            } catch{
+            } catch {
                 //console.log("caught"); //this happens on initial load, table loaded twice?
             }
             //table.setColumns(columnData);
         },
 
-        columnResized:function(column){
+        columnResized: function (column) {
             //console.log("resized"); //not triggering on hide, show column dropdown
         },
 
         //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
-        rowSelected:function(row){
+        rowSelected: function (row) {
             var data = row.getData();
             //show buttons concerning rows:
-            if(data[curation_status] === undefined){ //for tables without curation_status
+            if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
-            } else{
+            } else {
                 //show buttons to do with rows
                 $('#delete-rows').show();
                 $('#ask-for-review').show();
@@ -459,12 +493,12 @@
         },
 
         //todo: rowDeselected re-do css row colours
-        rowDeselected:function(row){
+        rowDeselected: function (row) {
             var data = row.getData();
             var selectedRows = table.getSelectedRows();
-            if(selectedRows.length > 0){
+            if (selectedRows.length > 0) {
                 //some rows still selected, do nothing
-            } else{
+            } else {
                 //no rows still selected, hide buttons to do with rows
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
@@ -474,46 +508,46 @@
             row.getElement().style.backgroundColor = 'white';
             //re-do styling - todo: please re-factor this bit of code into a function!!!
             if (data[curation_status] !== null) {
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
-                        row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
-                    }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
-                        row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
-                    }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
-                        row.getElement().style.backgroundColor = 'white'; //apply css change to row element
-                    }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
-                    }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
-                        row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
-                    }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1){
-                        row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
-                    }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1){
-                        row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
-                    }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
                 }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
+                }
+            }
             rowValue = row.getPosition(true);
         },
 
 
-        cellClick:function(e, cell){
+        cellClick: function (e, cell) {
             var row = cell.getRow();
             rowValue = row.getPosition(true);
             console.log(cell.getValue()); //this works
             //e - the click event object
             //cell - cell component
         },
-        cellEditing:function(cell){
+        cellEditing: function (cell) {
             var row = cell.getRow();
             rowValue = row.getPosition(true);
         },
 
 
-        cellEdited:function(cell){
+        cellEdited: function (cell) {
             cell.getElement().style.color = "#003399"; //change text colour on edited
             var row = cell.getRow();
             var data = row.getData();
@@ -521,21 +555,21 @@
 
             //save changed cell data:
             //{value, row, columnName}
-            if(cell.getValue() !== "" && cell.getValue() !== null){
+            if (cell.getValue() !== "" && cell.getValue() !== null) {
                 rowValue = row.getPosition();//save absolute row position
                 columnValue = cell.getField(); //column name
                 var alreadyChanged = false;
                 //check for previously edited cell, and overwrite if already changed before
-                for(var i = 0; i < changes.length; i++){
-                    if(rowValue == changes[i]){ //matches row number
-                        if(columnValue == changes[i+1]){ //matches column name as well
+                for (var i = 0; i < changes.length; i++) {
+                    if (rowValue == changes[i]) { //matches row number
+                        if (columnValue == changes[i + 1]) { //matches column name as well
                             console.log("already edited this field");
-                            changes.splice(i-1, 3, cell.getValue(), rowValue, columnValue);
+                            changes.splice(i - 1, 3, cell.getValue(), rowValue, columnValue);
                             alreadyChanged = true;
                         }
                     }
                 }
-                if(!alreadyChanged){
+                if (!alreadyChanged) {
                     changes.push(cell.getValue());
                     changes.push(rowValue);
                     changes.push(columnValue);
@@ -543,29 +577,29 @@
             }
 
             //update highlighting:
-            if(data[curation_status] === undefined){
+            if (data[curation_status] === undefined) {
 
-            } else{
+            } else {
                 if (data[curation_status] !== null) {
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'white'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
+                        row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
                     }
                 }
@@ -584,73 +618,74 @@
 
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
-            if(data[curator] === undefined){ //curator column not present in table
+            if (data[curator] === undefined) { //curator column not present in table
 
-            } else{
-                if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1){
-                    if(cell.getValue() !== ""){ //stop saving curator when cell is empty - still saves if there are spaces... not an issue?
-                        if(data[curator] !== null && data[curator] !== ""){
-                                var prevCurator = data[curator];
-                                var nameCheck = prevCurator.indexOf(loginInitials);
-                                if(nameCheck > -1) {
-                                    //name exists, don't update
-                                } else {
-                                    data[curator] = prevCurator + "; " + loginInitials;
-                                }
-                            } else{
-                                data[curator] = loginInitials;
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1) {
+                    if (cell.getValue() !== "") { //stop saving curator when cell is empty - still saves if there are spaces... not an issue?
+                        if (data[curator] !== null && data[curator] !== "") {
+                            var prevCurator = data[curator];
+                            var nameCheck = prevCurator.indexOf(loginInitials);
+                            if (nameCheck > -1) {
+                                //name exists, don't update
+                            } else {
+                                data[curator] = prevCurator + "; " + loginInitials;
                             }
-                        } else{
+                        } else {
                             data[curator] = loginInitials;
                         }
-                            //save curator column to local storage for backup here
-                            //{value, row, columnName}
-                            //data[curator], row.getPosition(), "Curator"
-                            if(data[curator] !== "" && data[curator] !== null){
-                                rowValue = row.getPosition();//save absolute row position
-                                columnValue = "Curator"; //column name
-                                var alreadyChanged = false;
-                                //check for previously edited cell, and overwrite if already changed before
-                                for(var i = 0; i < changes.length; i++){
-                                    if(rowValue == changes[i]){ //matches row number
-                                        if(columnValue == changes[i+1]){ //matches column name as well
-                                            console.log("already edited this field");
-                                            changes.splice(i-1, 3, data[curator], rowValue, columnValue);
-                                            alreadyChanged = true;
-                                        }
-                                    }
-                                }
-                                if(!alreadyChanged){
-                                    changes.push(data[curator]);
-                                    changes.push(rowValue);
-                                    changes.push(columnValue);
-                                }
-                            }
-
-                            //text must be coloured if highlighting login set though..
-                            if(highlightLogin){
-                                if(data[curator] !== null){
-                                    var curatorA = data[curator];
-                                    if(curatorA !== null){
-                                        var nameCheckA = curatorA.indexOf(loginInitials);
-                                        if(nameCheckA > -1) {
-                                            row.getElement().style.color = 'black';
-                                            row.getElement().style.fontWeight = 'bold';
-                                    }
-                                }
-                            }
+                    } else {
+                        data[curator] = loginInitials;
                     }
-                } else{ //if editing "Curator" column, text must be coloured if highlighting login set
-                    if(highlightLogin){
-                        if(data[curator] !== null && data[curator] !== ""){
-                            var curatorB = data[curator];
-                            if(curatorB !== null){
-                                var nameCheckB = curatorB.indexOf(loginInitials);
-                                if(nameCheckB > -1) {
-                                    row.getElement().style.color = 'black';
-                                    row.getElement().style.fontWeight = 'bold';                                }
+                    //save curator column to local storage for backup here
+                    //{value, row, columnName}
+                    //data[curator], row.getPosition(), "Curator"
+                    if (data[curator] !== "" && data[curator] !== null) {
+                        rowValue = row.getPosition();//save absolute row position
+                        columnValue = "Curator"; //column name
+                        var alreadyChanged = false;
+                        //check for previously edited cell, and overwrite if already changed before
+                        for (var i = 0; i < changes.length; i++) {
+                            if (rowValue == changes[i]) { //matches row number
+                                if (columnValue == changes[i + 1]) { //matches column name as well
+                                    console.log("already edited this field");
+                                    changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                                    alreadyChanged = true;
+                                }
                             }
-                        } else{
+                        }
+                        if (!alreadyChanged) {
+                            changes.push(data[curator]);
+                            changes.push(rowValue);
+                            changes.push(columnValue);
+                        }
+                    }
+
+                    //text must be coloured if highlighting login set though..
+                    if (highlightLogin) {
+                        if (data[curator] !== null) {
+                            var curatorA = data[curator];
+                            if (curatorA !== null) {
+                                var nameCheckA = curatorA.indexOf(loginInitials);
+                                if (nameCheckA > -1) {
+                                    row.getElement().style.color = 'black';
+                                    row.getElement().style.fontWeight = 'bold';
+                                }
+                            }
+                        }
+                    }
+                } else { //if editing "Curator" column, text must be coloured if highlighting login set
+                    if (highlightLogin) {
+                        if (data[curator] !== null && data[curator] !== "") {
+                            var curatorB = data[curator];
+                            if (curatorB !== null) {
+                                var nameCheckB = curatorB.indexOf(loginInitials);
+                                if (nameCheckB > -1) {
+                                    row.getElement().style.color = 'black';
+                                    row.getElement().style.fontWeight = 'bold';
+                                }
+                            }
+                        } else {
                             row.getElement().style.color = 'black'; //change back to
                         }
                     }
@@ -659,35 +694,35 @@
 
             //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true
             //todo: do we need to remove checkbox if user deletes their 'Why fuzzy' comment?
-            if(data[why_Fuzzy] === undefined){ //why Fuzzy column not present
-                
-            } else{
-                if(column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1){
-                    if(cell.getValue() !== ""){
+            if (data[why_Fuzzy] === undefined) { //why Fuzzy column not present
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1) {
+                    if (cell.getValue() !== "") {
                         if (data[why_Fuzzy] !== null && data[why_Fuzzy] !== "") {
                             data[fuzzy_Set] = 1;
                             //save Fuzzy set column to local storage for backup here
                             //{value, row, columnName}
                             //data[curator], row.getPosition(), "Curator"
                             // if(data["Fuzzy set"] !== "" && data["Fuzzy set"] !== null){
-                                rowValue = row.getPosition();//save absolute row position
-                                columnValue = fuzzy_Set; //column name
-                                var alreadyChanged = false;
-                                //check for previously edited cell, and overwrite if already changed before
-                                for(var i = 0; i < changes.length; i++){
-                                    if(rowValue == changes[i]){ //matches row number
-                                        if(fuzzy_Set == changes[i+1]){ //matches column name as well
-                                            console.log("already edited this field");
-                                            changes.splice(i-1, 3, 1, rowValue, fuzzy_Set);
-                                            alreadyChanged = true;
-                                        }
+                            rowValue = row.getPosition();//save absolute row position
+                            columnValue = fuzzy_Set; //column name
+                            var alreadyChanged = false;
+                            //check for previously edited cell, and overwrite if already changed before
+                            for (var i = 0; i < changes.length; i++) {
+                                if (rowValue == changes[i]) { //matches row number
+                                    if (fuzzy_Set == changes[i + 1]) { //matches column name as well
+                                        console.log("already edited this field");
+                                        changes.splice(i - 1, 3, 1, rowValue, fuzzy_Set);
+                                        alreadyChanged = true;
                                     }
                                 }
-                                if(!alreadyChanged){
-                                    changes.push(1);
-                                    changes.push(rowValue);
-                                    changes.push(fuzzy_Set);
-                                }
+                            }
+                            if (!alreadyChanged) {
+                                changes.push(1);
+                                changes.push(rowValue);
+                                changes.push(fuzzy_Set);
+                            }
                             // }
                         }
                     }
@@ -696,88 +731,89 @@
             backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
         },
 
-        cellEditCancelled:function(cell){
+        cellEditCancelled: function (cell) {
 
         },
 
-        dataChanged:function(data){
+        dataChanged: function (data) {
             tableEdited = true;
             $('#save-btn').show();
             //alert("don't forget to save!");
         },
 
         //highlight on load table:
-        rowFormatter:function(row){
+        rowFormatter: function (row) {
             var data = row.getData();
 
             //hide unimportant buttons until rows selected:
             $('#delete-rows').hide();
             $('#ask-for-review').hide();
             $('#reviewed').hide();
-            if(data[curation_status] === undefined){ //for tables without curation_status
+            if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't try to look for columns below eg: discussed, ready, etc
-            } else{
+            } else {
                 if (data[curation_status] !== null) {
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'white'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1){
-                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
+                        row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
                     }
-                    if(data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1){
+                    if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
                         row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
                     }
                 }
             }
 
-            if(highlightLogin){
-                if(data[curator] === undefined){
+            if (highlightLogin) {
+                if (data[curator] === undefined) {
 
-                } else{
-                    if(data[curator] !== null){
+                } else {
+                    if (data[curator] !== null) {
                         var curatorA = data[curator];
                         var nameCheckA = curatorA.indexOf(loginInitials);
-                        if(nameCheckA > -1) {
+                        if (nameCheckA > -1) {
                             row.getElement().style.color = 'black';
                             row.getElement().style.fontWeight = 'bold';
                         }
                     }
                 }
-            } else{
-                    row.getElement().style.color = 'black';
-                    row.getElement().style.fontWeight = 'normal';
-                }
+            } else {
+                row.getElement().style.color = 'black';
+                row.getElement().style.fontWeight = 'normal';
+            }
         },
 
-        rowAdded:function(row){
+        rowAdded: function (row) {
             var rowZero = table.getRow(0); //will fail on empty spreadsheet, but "row" not working for new row..
             var data = rowZero.getData();
 
             table.scrollToRow(row, "bottom", false)
-            .then(function(){
-                if(data[label] === undefined){ //label column not present
+                .then(function () {
+                    if (data[label] === undefined) { //label column not present
 
-                } else{
-                    var cell = row.getCell("Label");
-                    cell.getElement().focus(); //no focus for spreadsheets without "Label" column
-                }
-            })
-            .catch(function(error){
-                //handle error scrolling to row
-            });
+                    } else {
+                        var cell = row.getCell("Label");
+                        cell.getElement().focus(); //no focus for spreadsheets without "Label" column
+                    }
+                })
+                .catch(function (error) {
+                    //handle error scrolling to row
+                });
             rowValue = row.getPosition(true);
+            backupChanges();
         },
 
         // rowUpdated:function(row){
@@ -790,12 +826,12 @@
     table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
     backupChanges(); //todo:is this necessary?
     //new row button click handler:
-    $("#add-row").click(function(){
+    $("#add-row").click(function () {
         var newRowData = {};
         var row = table.getRow(0); //todo: this will fail on empty spreadsheet - do we support those?
-        if(row.getCell(curation_status) === undefined){ //curation status column not present
+        if (row.getCell(curation_status) === undefined) { //curation status column not present
 
-        } else{
+        } else {
             newRowData[curation_status] = "Proposed";
             //If newRowData[curator] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
             newRowData[curator] = loginInitials;  // if we don't want this, maybe use " " instead?
@@ -806,30 +842,32 @@
     });
 
     //delete row button click handler:
-    $("#delete-rows").click(function(){
+    $("#delete-rows").click(function () {
         var selectedRows = table.getSelectedRows();
-        if(selectedRows.length > 1){
+        if (selectedRows.length > 1) {
             if (confirm("Do you really want to delete these rows?")) {
                 table.deleteRow(selectedRows);
+                backupChanges(); //has no effect
             } else {
                 //deselect rows here?
             }
-        } else if(selectedRows.length == 1){
+        } else if (selectedRows.length == 1) {
             if (confirm("Do you really want to delete this row?")) {
                 table.deleteRow(selectedRows);
-            } else{
+                backupChanges();
+            } else {
                 //deselect rows here?
             }
-        } else{
+        } else {
             alert("No rows selected");
         }
     });
 
-    $("#highlight-user").click(function(){
+    $("#highlight-user").click(function () {
         highlightLogin = !highlightLogin;
-        if(highlightLogin){
+        if (highlightLogin) {
             this.children[0].style.color = "#333300"; //colour of marker
-        } else{
+        } else {
             this.children[0].style.color = null;
         }
         table.redraw(true);
@@ -837,22 +875,22 @@
     });
 
     //todo: button icon highlighted if a filter is active?
-    $("#remove-formatting").click(function(){
+    $("#remove-formatting").click(function () {
         clearFormatting(); //todo: this should also switch all up/down arrow filters back..
     });
 
-    $("#ask-for-review").click(function(){
+    $("#ask-for-review").click(function () {
         //console.log("ask for review");
         var selectedRows = table.getSelectedRows();
-            //console.log(selectedRows);
-            if(selectedRows == ""){
-                alert("No rows selected");
-            } else{
-                var inputArray = [];
-                for (var i = 0; i < allInitials.length; i++) {
-                    inputArray.push({text: allInitials[i], value: allInitials[i]});
-                }
-                bootbox.prompt({
+        //console.log(selectedRows);
+        if (selectedRows == "") {
+            alert("No rows selected");
+        } else {
+            var inputArray = [];
+            for (var i = 0; i < allInitials.length; i++) {
+                inputArray.push({ text: allInitials[i], value: allInitials[i] });
+            }
+            bootbox.prompt({
                 title: "Choose reviewers",
                 inputType: 'checkbox',
                 inputOptions: $(inputArray),
@@ -869,28 +907,28 @@
                         var addData = result.join("; ");
                         if (cellValue !== null && cellValue !== "") {
                             reviewedCell = cellValue + "; " + addData;
-                        } else{
+                        } else {
                             reviewedCell = addData;
                         }
-                        row.update({"To be reviewed by":reviewedCell});
+                        row.update({ "To be reviewed by": reviewedCell });
                         row.deselect();
-                        });
-                    }
-                });
+                    });
+                }
+            });
         }
     });
 
-    $("#reviewed").click(function(){
+    $("#reviewed").click(function () {
         var selectedRows = table.getSelectedRows();
         //console.log(selectedRows);
-        if(selectedRows == ""){
+        if (selectedRows == "") {
             alert("No rows selected");
         }
 
         selectedRows.forEach(function (row) {
-            if(row.getCell(to_be_reviewed_by) === undefined){
+            if (row.getCell(to_be_reviewed_by) === undefined) {
 
-            } else{
+            } else {
                 var cell = row.getCell(to_be_reviewed_by);
                 var cellValue = cell.getValue();
                 var reviewedCell = "";
@@ -904,7 +942,7 @@
                     reviewedCell = reviewedCell.replace(semiAfter, '');
                     reviewedCell = reviewedCell.replace(loginInitials, '');
                 }
-                row.update({"To be reviewed by":reviewedCell});
+                row.update({ "To be reviewed by": reviewedCell });
                 row.deselect();
             }
         });
@@ -913,30 +951,30 @@
     });
 
     //make table smaller
-    $("#minus").click(function(){
-        if(JSON.stringify(table.getData()) === previousTableData){ //ok this works
+    $("#minus").click(function () {
+        if (JSON.stringify(table.getData()) === previousTableData) { //ok this works
             console.log("SAME SAME");
         } else {
             console.log("NOT SAME WHY?");
-    }
+        }
         heightOfTable -= 50;
-        if(heightOfTable < 200){
+        if (heightOfTable < 200) {
             heightOfTable = 200;
         }
         localStorage.setItem("height", JSON.stringify(heightOfTable));
-        if(tableEdited){
+        if (tableEdited) {
             if (confirm("All changes to the table will be lost, continue?")) {
-                    location.reload(); //reload web page
-                } else {
-                    alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
-                }
-        } else{
+                location.reload(); //reload web page
+            } else {
+                alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
+            }
+        } else {
             location.reload(); //reload web page
         }
     });
 
     //make table bigger
-    $("#plus").click(function(){
+    $("#plus").click(function () {
         //todo: test save array - remove when feature is complete:
         backupChanges();
         // var tableArray = table.getData();
@@ -944,26 +982,26 @@
         // localStorage.setItem("savedTableData", jsonArray);
 
         heightOfTable = heightOfTable + 50;
-        if(heightOfTable > 2000){
+        if (heightOfTable > 2000) {
             heightOfTable = 2000;
         }
         localStorage.setItem("height", JSON.stringify(heightOfTable));
-        if(tableEdited){
+        if (tableEdited) {
             if (confirm("All changes to the table will be lost, continue?")) {
-                    location.reload(); //reload web page
-                } else {
-                    alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
-                }
-        } else{
+                location.reload(); //reload web page
+            } else {
+                alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
+            }
+        } else {
             location.reload(); //reload web page
         }
     });
 
-    $('#contentTable').ready(function() {
+    $('#contentTable').ready(function () {
         //warn user if unsaved changes:
-        window.onbeforeunload = function(e) {
-            if(tableEdited){
-                if(e){
+        window.onbeforeunload = function (e) {
+            if (tableEdited) {
+                if (e) {
                     var message = "You have not saved your changes.";
                     e.returnValue = message;
                 }
@@ -974,22 +1012,23 @@
     });
 
 
-    function backupChanges(){
+    function backupChanges() {
         var tableArray = table.getData();
         //whole table:
         var jsonArray = JSON.stringify(tableArray);
         localStorage.setItem("savedTableData" + thisSheet, jsonArray);
         //changed cells:
-        if(changes.length > 0){
+        if (changes.length > 0) {
             var cellArray = JSON.stringify(changes);
             localStorage.setItem("savedChanges" + thisSheet, cellArray);
         }
+        console.log("changes backed up");
     }
 
     //todo: this should also change all up/down filter arrows back
-    function clearFormatting(){
+    function clearFormatting() {
         var filteredColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
-        for(var i = 1; i < filteredColumns.length; i++){ //filteredColumns array starts at 1? Urrrgh!
+        for (var i = 1; i < filteredColumns.length; i++) { //filteredColumns array starts at 1? Urrrgh!
             table.getColumn(filteredColumns[i]).setHeaderFilterValue("");
         }
     }
@@ -997,118 +1036,119 @@
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
     */
-    var save_changes = function(repo_key, folder, spreadsheet, rowData) {
-    $("#commit-msg").attr('value','Updating ' + spreadsheet);
+    var save_changes = function (repo_key, folder, spreadsheet, rowData) {
+        $("#commit-msg").attr('value', 'Updating ' + spreadsheet);
 
-    // Get a confirmation from the user:
-    var modal = bootbox.dialog({
-        title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
-        message: $("#message-box").html(),
-        buttons: {
-        confirm: {
-            label: 'Submit',
-            className: 'btn-danger',
-            callback: function() {
-                var aForm = modal.find(".form");
-                var formData = aForm.serializeArray(),
-                    dataObj = {};
-                $(formData).each(function(i, field){
-                dataObj[field.name] = field.value;
-                });
-                var commit_msg = dataObj["commit-msg"];
-                var msgBody = dataObj["descr"];
-                if (commit_msg !== null && commit_msg !== undefined) {
-                    if (!commit_msg || commit_msg.trim() === "") {
-                    bootbox.alert({
-                        closeButton: false,
-                        message: "Commit message cannot be empty. Your change has not been submitted."});
-                    return;
-                    }
-
-                    // Embed the code into a request.
-                    var request = new XMLHttpRequest();
-                    // Define a function to handle a state change of the request:
-                    request.onreadystatechange = function() {
-                    $("*").css("cursor", "default");
-                    if (request.readyState === 4) {
-                        if (!request.status) {
-                            alert("Problem communicating with server");
-                        }
-                        else if (request.status === 200) {
-                          var response = JSON.parse(request.responseText);
-                          var new_file_sha = response['file_sha'];
-                          file_sha = new_file_sha;
-                          $('#saveAlert').removeClass('alert-danger');
-                          $('#saveAlert').addClass('alert-success');
-                          $("#saveMessage").text('Changes were saved successfully to the repository. ');
-                          $("#saveAlert").dismissed = false;
-                          $("#saveAlert").show(); //todo: make it clear that this will re-load the page and changes will be lost
-                          $('#save-btn').hide(); //saved successfully, hide save button
-                          //remove cell.getElement().style.color = "#003399";
-                          //todo: can I just re-load the table here?
-                          var rows = table.getRows();
-                          for (i = 0; i < rows.length; i++) {
-                            var cells = rows[i].getCells();
-                            for(j = 0; j < cells.length; j++){
-                                cells[j].getElement().style.color = 'black'; //do we want to change all to black?
+        // Get a confirmation from the user:
+        var modal = bootbox.dialog({
+            title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
+            message: $("#message-box").html(),
+            buttons: {
+                confirm: {
+                    label: 'Submit',
+                    className: 'btn-danger',
+                    callback: function () {
+                        var aForm = modal.find(".form");
+                        var formData = aForm.serializeArray(),
+                            dataObj = {};
+                        $(formData).each(function (i, field) {
+                            dataObj[field.name] = field.value;
+                        });
+                        var commit_msg = dataObj["commit-msg"];
+                        var msgBody = dataObj["descr"];
+                        if (commit_msg !== null && commit_msg !== undefined) {
+                            if (!commit_msg || commit_msg.trim() === "") {
+                                bootbox.alert({
+                                    closeButton: false,
+                                    message: "Commit message cannot be empty. Your change has not been submitted."
+                                });
+                                return;
                             }
-                          }
-                          if(tableEdited){
-                            tableEdited = false;
-                          }
-                          window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-                          changes = []; //no changes anymore to save
-                          backupChanges();
-                        } else {
-                          var response = JSON.parse(request.responseText);
-                          var errInfo = response['Error'];
-                          var mergeInfo = response['merge_diff'];
-                          $('#saveAlert').removeClass('alert-success');
-                          $('#saveAlert').addClass('alert-danger');
-                          $("#saveMessage").text('There was a problem saving changes: '+errInfo+"--->"+mergeInfo);
-                          $(".alert").alert()
-                          $("#saveAlert").show();
-                        }
-                    }
-                    }
-                    // Post the request to the server.
-                    request.open('POST', '/save', true);
-                    request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-                    request.send('repo_key=' + repo_key +
+
+                            // Embed the code into a request.
+                            var request = new XMLHttpRequest();
+                            // Define a function to handle a state change of the request:
+                            request.onreadystatechange = function () {
+                                $("*").css("cursor", "default");
+                                if (request.readyState === 4) {
+                                    if (!request.status) {
+                                        alert("Problem communicating with server");
+                                    }
+                                    else if (request.status === 200) {
+                                        var response = JSON.parse(request.responseText);
+                                        var new_file_sha = response['file_sha'];
+                                        file_sha = new_file_sha;
+                                        $('#saveAlert').removeClass('alert-danger');
+                                        $('#saveAlert').addClass('alert-success');
+                                        $("#saveMessage").text('Changes were saved successfully to the repository. ');
+                                        $("#saveAlert").dismissed = false;
+                                        $("#saveAlert").show(); //todo: make it clear that this will re-load the page and changes will be lost
+                                        $('#save-btn').hide(); //saved successfully, hide save button
+                                        //remove cell.getElement().style.color = "#003399";
+                                        //todo: can I just re-load the table here?
+                                        var rows = table.getRows();
+                                        for (i = 0; i < rows.length; i++) {
+                                            var cells = rows[i].getCells();
+                                            for (j = 0; j < cells.length; j++) {
+                                                cells[j].getElement().style.color = 'black'; //do we want to change all to black?
+                                            }
+                                        }
+                                        if (tableEdited) {
+                                            tableEdited = false;
+                                        }
+                                        window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                        changes = []; //no changes anymore to save
+                                        backupChanges();
+                                    } else {
+                                        var response = JSON.parse(request.responseText);
+                                        var errInfo = response['Error'];
+                                        var mergeInfo = response['merge_diff'];
+                                        $('#saveAlert').removeClass('alert-success');
+                                        $('#saveAlert').addClass('alert-danger');
+                                        $("#saveMessage").text('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);
+                                        $(".alert").alert()
+                                        $("#saveAlert").show();
+                                    }
+                                }
+                            }
+                            // Post the request to the server.
+                            request.open('POST', '/save', true);
+                            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                            request.send('repo_key=' + repo_key +
                                 '&folder=' + folder +
                                 '&spreadsheet=' + spreadsheet +
                                 '&rowData=' + rowData +
                                 '&commit_msg=' + commit_msg +
-                                '&commit_msg_extra='+ msgBody +
-                                '&file_sha= '+file_sha );
-                    $("*").css("cursor", "progress");
+                                '&commit_msg_extra=' + msgBody +
+                                '&file_sha= ' + file_sha);
+                            $("*").css("cursor", "progress");
+                        }
+                    }
+                },
+                cancel: {
+                    label: 'Cancel',
+                    className: 'btn-primary'
+                }
             }
-            }
-        },
-        cancel: {
-            label: 'Cancel',
-            className: 'btn-primary'
-        }
-        }
-    });
+        });
     };
 
 
     /** Hide save results message */
-    $("#closeSaveMsgBtn").click(function() {
+    $("#closeSaveMsgBtn").click(function () {
         $("#saveMessage").text('');
         $(this).parent().hide();
     });
 
     //override ctrl-s save:
-    jQuery(document).keydown(function(event) {
+    jQuery(document).keydown(function (event) {
         // If Control or Command key is pressed and the S key is pressed
         // run save function. 83 is the key code for S.
-        if((event.ctrlKey || event.metaKey) && event.which == 83) {
+        if ((event.ctrlKey || event.metaKey) && event.which == 83) {
             // Save Function
             event.preventDefault();
             console.log("Save!");
-            if(tableEdited){
+            if (tableEdited) {
                 $('#save-btn').trigger('click');
             }
             return false;
