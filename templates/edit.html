@@ -198,6 +198,8 @@
             } else { //no saved changes, don't look for them later
                 console.log("savedChanges missing");
                 unsavedChanges = false;
+                //remove previous table array
+                window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
             }
             var changesLength = changesArray.length / 3;
             var changeWorkingOn = 0;
@@ -221,7 +223,11 @@
                     for (var a = 0; a < changesArray.length; a++) {
                         if (i == changesArray[a + 1]) { //row
                             if (headers[j] == changesArray[a + 2]) { //column
-                                tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
+                                if(testTableData[i * j] == undefined || testTableData[i * j] == null){
+                                    tableChangedArray.push("");
+                                } else{
+                                    tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
+                                }                                
                             }
                         }
                     }
