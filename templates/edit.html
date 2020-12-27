@@ -828,6 +828,9 @@
                 });
             rowValue = row.getPosition(true);
             backupChanges();
+            // console.log(row.getData());
+            var pos = row.getPosition();
+            console.log(pos);
         },
 
         // rowUpdated:function(row){
@@ -840,6 +843,8 @@
     table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
     backupChanges(); //todo:is this necessary?
     //new row button click handler:
+
+    //todo: fix list index out of range on save
     $("#add-row").click(function () {
         var newRowData = {};
         var row = table.getRow(0); //todo: this will fail on empty spreadsheet - do we support those?
@@ -851,7 +856,7 @@
             newRowData[curator] = loginInitials;  // if we don't want this, maybe use " " instead?
         }
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen
-        table.addRow(newRowData);
+        table.addRow(Object.assign({}, newRowData));
         //rowAdded triggered here
     });
 
@@ -1100,10 +1105,10 @@
                                         $('#saveAlert').addClass('alert-success');
                                         $("#saveMessage").text('Changes were saved successfully to the repository. ');
                                         $("#saveAlert").dismissed = false;
-                                        $("#saveAlert").show(); //todo: make it clear that this will re-load the page and changes will be lost
+                                        $("#saveAlert").show(); 
                                         $('#save-btn').hide(); //saved successfully, hide save button
                                         //remove cell.getElement().style.color = "#003399";
-                                        //todo: can I just re-load the table here?
+                                        
                                         var rows = table.getRows();
                                         for (i = 0; i < rows.length; i++) {
                                             var cells = rows[i].getCells();
