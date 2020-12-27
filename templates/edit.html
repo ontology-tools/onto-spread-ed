@@ -210,7 +210,7 @@
     }
 
     //todo: fix all errors in restoring changes and then remove this: 
-    //unsavedChanges = false; //disabling this for now - too many problems. 
+    unsavedChanges = false; //disabling this for now - too many problems. 
 
     //restore unsaved changes if needed:
     try {
@@ -372,7 +372,7 @@
             action: function (e, column) {
                 var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
                 for (var i = 0; i < allColumns.length; i++) {
-                    table.getColumn(allColumns[i]).setWidth(200);
+                    table.getColumn(allColumns[i]).setWidth(200); //todo: make checkbox columns smaller here
                 }
             }
         },
@@ -411,10 +411,13 @@
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
         // tooltips:true, //example option (enable tooltips on all cells)
+        // resizableRows:true,
+        // footerElement:"<button>Custom Button</button>", 
         groupToggleElement: "header",
-        height: heightOfTable,
+        // height: heightOfTable,
         //height:"calc(100% - 250px)",
-        //height:"100%", //this makes the header not stay on the top..
+        // height:"100%", //this makes the header not stay on the top..
+        height:window.innerHeight/3*2,
         layout: "fitColumns",
         //layout:window.innerWidth > 800 ? "fitColumns" : "fitData",
         // pagination:"local",
@@ -464,6 +467,8 @@
         },
         renderComplete: function () {
             try {
+                $('#plus').hide(); //this because of new height height:window.innerHeight/3*2, not using heightOfTable because of dropdown not showing bug
+                $('#minus').hide();
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
                 //console.log(table);
                 var row = table.getRowFromPosition(0, true);
@@ -472,6 +477,7 @@
                 // console.log("hello");
                 // console.log("cell is: " + cell);
                 //console.log("rowValue is: " + rowValue);
+
             } catch {
                 //console.log("caught"); //this happens on initial load, table loaded twice?
             }
