@@ -846,6 +846,7 @@
 
     //todo: fix list index out of range on save
     $("#add-row").click(function () {
+        /*
         var newRowData = {};
         var row = table.getRow(0); //todo: this will fail on empty spreadsheet - do we support those?
         if (row.getCell(curation_status) === undefined) { //curation status column not present
@@ -857,6 +858,22 @@
         }
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen
         table.addRow(Object.assign({}, newRowData));
+        //rowAdded triggered here
+        */
+        for (var j = 0; j < headerLength; j++) {
+            rowObj[headers[j]] = "";
+            if (headers[j] == curation_status) { //column
+                rowObj[headers[j]] = "Proposed";
+            }
+            //set null values to 0 in checkbox columns here:
+            if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
+                if (rowObj[headers[j]] == null) {
+                    rowObj[headers[j]] = 0;
+                }
+            }
+        }
+        clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
+        table.addRow(rowObj);
         //rowAdded triggered here
     });
 
@@ -914,28 +931,28 @@
                 inputType: 'checkbox',
                 inputOptions: $(inputArray),
                 callback: function (result) {
-                  if (result === null) {
-                    // row.deselect(); //todo: should we? 
-                  } else {
-                    selectedRows.forEach(function (row) {
-                        //logic:
-                        //1. Don't repeat initials already present
-                        //2. add selected initials (in dropdown) to cell
-                        //3. join with "; " except the first one (if cellValue !== null)
+                    if (result === null) {
+                        // row.deselect(); //todo: should we? 
+                    } else {
+                        selectedRows.forEach(function (row) {
+                            //logic:
+                            //1. Don't repeat initials already present
+                            //2. add selected initials (in dropdown) to cell
+                            //3. join with "; " except the first one (if cellValue !== null)
 
-                        var cell = row.getCell(to_be_reviewed_by);
-                        var cellValue = cell.getValue();
-                        var reviewedCell = "";
-                        var addData = result.join("; ");
-                        if (cellValue !== null && cellValue !== "") {
-                            reviewedCell = cellValue + "; " + addData;
-                        } else {
-                            reviewedCell = addData;
-                        }
-                        row.update({ "To be reviewed by": reviewedCell });
-                        row.deselect();
-                    });
-                  }
+                            var cell = row.getCell(to_be_reviewed_by);
+                            var cellValue = cell.getValue();
+                            var reviewedCell = "";
+                            var addData = result.join("; ");
+                            if (cellValue !== null && cellValue !== "") {
+                                reviewedCell = cellValue + "; " + addData;
+                            } else {
+                                reviewedCell = addData;
+                            }
+                            row.update({ "To be reviewed by": reviewedCell });
+                            row.deselect();
+                        });
+                    }
                 }
             });
         }
@@ -1105,10 +1122,10 @@
                                         $('#saveAlert').addClass('alert-success');
                                         $("#saveMessage").text('Changes were saved successfully to the repository. ');
                                         $("#saveAlert").dismissed = false;
-                                        $("#saveAlert").show(); 
+                                        $("#saveAlert").show();
                                         $('#save-btn').hide(); //saved successfully, hide save button
                                         //remove cell.getElement().style.color = "#003399";
-                                        
+
                                         var rows = table.getRows();
                                         for (i = 0; i < rows.length; i++) {
                                             var cells = rows[i].getCells();
