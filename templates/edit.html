@@ -383,7 +383,6 @@
     //checkbox row selector on the side:
     columnData.push({ formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
     for (var i = 0; i < headerLength; i++) {
-        // console.log(i + " " + headers[i]);
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if (headers[i] == "Curation status") {
@@ -396,9 +395,6 @@
         else if (headers[i] == "To be reviewed by") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
-        // else if(headers[i] == "To be reviewed by"){
-        //     columnData.push({title:headers[i], field:headers[i], editor: "select", editable:true, editorParams:{values:getDropdown, multiselect:true,}, headerFilter:"input", width:"200", formatter:"textarea", headerMenu:headerMenu});
-        // }
         else {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
@@ -457,8 +453,6 @@
             //sorters - an array of the sorters currently applied
         },
         //called when table rendered or re-drawn:
-        //todo: had an intermittent problem with focus skipping halfway down the table. Clear cookies sorted it out.
-        //do we need a clear cookies button?
         tableBuilt: function () {
 
         },
@@ -468,20 +462,14 @@
         renderComplete: function () {
             try {
                 $('#plus').hide(); //this because of new height height:window.innerHeight/3*2, not using heightOfTable because of dropdown not showing bug
-                $('#minus').hide();
+                $('#minus').hide(); //todo: do we need plus and minus buttons now? 
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
-                //console.log(table);
                 var row = table.getRowFromPosition(0, true);
                 var cell = row.getCell("parent");
                 cell.setValue("replaced");
-                // console.log("hello");
-                // console.log("cell is: " + cell);
-                //console.log("rowValue is: " + rowValue);
-
             } catch {
                 //console.log("caught"); //this happens on initial load, table loaded twice?
             }
-            //table.setColumns(columnData);
         },
 
         columnResized: function (column) {
@@ -713,7 +701,6 @@
         dataChanged: function (data) {
             tableEdited = true;
             $('#save-btn').show();
-            //alert("don't forget to save!");
         },
 
         //highlight on load table:
@@ -811,20 +798,6 @@
 
     //todo: fix list index out of range on save
     $("#add-row").click(function () {
-        /*
-        var newRowData = {};
-        var row = table.getRow(0); //todo: this will fail on empty spreadsheet - do we support those?
-        if (row.getCell(curation_status) === undefined) { //curation status column not present
-
-        } else {
-            newRowData[curation_status] = "Proposed";
-            //If newRowData[curator] isn't defined here there is a bug. Uncaught typerror Cannot read property 'indexOf' of undefined
-            newRowData[curator] = loginInitials;  // if we don't want this, maybe use " " instead?
-        }
-        clearFormatting(); //needs to be here, not after table.addRow or bad things happen
-        table.addRow(Object.assign({}, newRowData));
-        //rowAdded triggered here
-        */
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
@@ -857,13 +830,14 @@
                 table.deleteRow(selectedRows);
                 backupChanges();
             } else {
-                //deselect rows here?
+                //todo: deselect rows here?
             }
         } else {
             alert("No rows selected");
         }
     });
 
+    // Hightlight your rows
     $("#highlight-user").click(function () {
         highlightLogin = !highlightLogin;
         if (highlightLogin) {
@@ -948,11 +922,10 @@
                     reviewedCell = reviewedCell.replace(loginInitials, '');
                 }
                 row.update({ "To be reviewed by": reviewedCell });
-                row.deselect();
+                row.deselect(); //triggers rowDeselected()
             }
         });
-        //now deselect rows
-
+       
     });
 
     //make table smaller
@@ -1089,7 +1062,7 @@
                                         $("#saveAlert").dismissed = false;
                                         $("#saveAlert").show();
                                         $('#save-btn').hide(); //saved successfully, hide save button
-                                        //remove cell.getElement().style.color = "#003399";
+                                        //todo: remove cell.getElement().style.color = "#003399";
 
                                         var rows = table.getRows();
                                         for (i = 0; i < rows.length; i++) {
