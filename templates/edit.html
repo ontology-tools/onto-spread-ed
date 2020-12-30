@@ -460,27 +460,29 @@
 
         },
         renderComplete: function () {
-            //test find rows selected:
-            try {
-                var selectedRows = table.getSelectedRows();
-                for (i = 0; i < selectedRows.length; i++) {
-                    var row = table.getRow(i);
-                    var data = row.getData();
-                    //show buttons concerning rows:
-                    if (data[curation_status] === undefined) { //for tables without curation_status
-                        //don't show some buttons if in a table where they are not needed
-                    } else {
-                        //show buttons to do with rows
-                        $('#delete-rows').show();
-                        $('#ask-for-review').show();
-                        $('#reviewed').show();
-                    }
-                    row.getElement().style.backgroundColor = 'grey';
-                }
-                console.log("selectedRows: " + selectedRows);
-            } catch {
-                console.log("no rows selected");
-            }
+            // test find rows selected and highlight:
+            // below is inconsistent, tabulator does not find selected rows if some have been deleted beforehand (why?)
+            //going to deselect instead in the affected "highlight your rows" button function for now
+            // try {
+            //     var selectedRows = table.getSelectedRows();
+            //     for (i = 0; i < selectedRows.length; i++) {
+            //         var row = table.getRow(i);
+            //         var data = row.getData();
+            //         //show buttons concerning rows:
+            //         if (data[curation_status] === undefined) { //for tables without curation_status
+            //             //don't show some buttons if in a table where they are not needed
+            //         } else {
+            //             //show buttons to do with rows
+            //             $('#delete-rows').show();
+            //             $('#ask-for-review').show();
+            //             $('#reviewed').show();
+            //         }
+            //         row.getElement().style.backgroundColor = 'grey';
+            //     }
+            //     console.log("selectedRows: " + selectedRows);
+            // } catch {
+            //     console.log("no rows selected");
+            // }
 
             try {
                 $('#plus').hide(); //this because of new height height:window.innerHeight/3*2, not using heightOfTable because of dropdown not showing bug
@@ -866,6 +868,16 @@
             this.children[0].style.color = "#333300"; //colour of marker
         } else {
             this.children[0].style.color = null;
+        }
+        //deselect any selected rows as this was causing a inconsistent update problem in renderComplete: 
+        var selectedRows = table.getSelectedRows();
+        //console.log(selectedRows);
+        if (selectedRows == "") {
+            
+        } else {
+            selectedRows.forEach(function (row) {
+                row.deselect(); 
+            });
         }
         table.redraw(true);
         //renderComplete triggered here console.log("plus: " + heightOfTable);
