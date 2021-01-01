@@ -100,7 +100,7 @@
     //hide save button on load
     $('#save-btn').hide();
 
-    
+
 
     // Column name for curation status
     var curation_status = "Curation status"
@@ -201,7 +201,7 @@
     }
 
     //todo: fix all errors in restoring changes and then remove this: 
-    unsavedChanges = false; //disabling this for now - too many problems. 
+    // unsavedChanges = false; //disabling this for now - too many problems. 
 
     //restore unsaved changes if needed:
     try {
@@ -302,7 +302,7 @@
             }
         }
     } catch (err) {
-        alert("an error occurred, unable to restore unsaved changes\n" + err);
+        // alert("an error occurred, unable to restore unsaved changes\n" + err);
         window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
         //still build table, but losing changes on error. 
         for (var i = 0; i < rowLength; i++) {
@@ -578,16 +578,6 @@
                 }
             }
 
-            //"to be reviewed by" changed: need to change commas to semi-colons
-            //now the drop-down is not populated..
-            // if (data[to_be_reviewed_by] !== null) {
-            //         var noCommas = data[to_be_reviewed_by].join("; ");
-            //         data[to_be_reviewed_by] = noCommas;
-            // }
-
-            //todo: when clicking on a checkbox once it saves curator even if there is no change
-            //ok so this is because the field is null and clicking changes to true/false. 
-            //need to fill all null fields with "False"
 
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
@@ -824,6 +814,7 @@
         }
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
         table.addRow(rowObj);
+        backupChanges();
         //rowAdded triggered here
     });
 
@@ -861,10 +852,10 @@
         var selectedRows = table.getSelectedRows();
         //console.log(selectedRows);
         if (selectedRows == "") {
-            
+
         } else {
             selectedRows.forEach(function (row) {
-                row.deselect(); 
+                row.deselect();
             });
         }
         table.redraw(true);
@@ -900,8 +891,10 @@
                             //1. Don't repeat initials already present
                             //2. add selected initials (in dropdown) to cell
                             //3. join with "; " except the first one (if cellValue !== null)
-
+                            var data = row.getData();
                             var cell = row.getCell(to_be_reviewed_by);
+                            //save "curator":
+                            saveCurator(row, data);
                             var cellValue = cell.getValue();
                             var reviewedCell = "";
                             var addData = result.join("; ");
@@ -912,6 +905,28 @@
                             }
                             row.update({ "To be reviewed by": reviewedCell });
                             row.deselect();
+                            //backup changes:
+                            if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
+                                rowValue = row.getPosition();//save absolute row position
+                                columnValue = "To be reviewed by"; //column name
+                                var alreadyChanged = false;
+                                //check for previously edited cell, and overwrite if already changed before
+                                for (var i = 0; i < changes.length; i++) {
+                                    if (rowValue == changes[i]) { //matches row number
+                                        if (columnValue == changes[i + 1]) { //matches column name as well
+                                            console.log("already edited this field");
+                                            changes.splice(i - 1, 3, data[to_be_reviewed_by], rowValue, columnValue);
+                                            alreadyChanged = true;
+                                        }
+                                    }
+                                }
+                                if (!alreadyChanged) {
+                                    changes.push(data[to_be_reviewed_by]);
+                                    changes.push(rowValue);
+                                    changes.push(columnValue);
+                                }
+                            }
+                            backupChanges();
                         });
                     }
                 }
@@ -930,7 +945,10 @@
             if (row.getCell(to_be_reviewed_by) === undefined) {
 
             } else {
+                var data = row.getData();
                 var cell = row.getCell(to_be_reviewed_by);
+                //save "curator":
+                saveCurator(row, data);
                 var cellValue = cell.getValue();
                 var reviewedCell = "";
                 //three options to replace (eg if loginInitials are "to"):
@@ -945,6 +963,28 @@
                 }
                 row.update({ "To be reviewed by": reviewedCell });
                 row.deselect(); //triggers rowDeselected()
+                //backup changes
+                if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
+                    rowValue = row.getPosition();//save absolute row position
+                    columnValue = "To be reviewed by"; //column name
+                    var alreadyChanged = false;
+                    //check for previously edited cell, and overwrite if already changed before
+                    for (var i = 0; i < changes.length; i++) {
+                        if (rowValue == changes[i]) { //matches row number
+                            if (columnValue == changes[i + 1]) { //matches column name as well
+                                console.log("already edited this field");
+                                changes.splice(i - 1, 3, data[to_be_reviewed_by], rowValue, columnValue);
+                                alreadyChanged = true;
+                            }
+                        }
+                    }
+                    if (!alreadyChanged) {
+                        changes.push(data[to_be_reviewed_by]);
+                        changes.push(rowValue);
+                        changes.push(columnValue);
+                    }
+                }
+                backupChanges();
             }
         });
 
@@ -964,6 +1004,53 @@
 
     });
 
+
+    function saveCurator(row, data) {
+        //if a field in any column except "Curator" edited
+        //check "Curator" column for loginInitials and auto fill
+
+        if (data[curator] === undefined) { //curator column not present in table
+
+        } else {
+            
+                    if (data[curator] !== null && data[curator] !== "") {
+                        var prevCurator = data[curator];
+                        var nameCheck = prevCurator.indexOf(loginInitials);
+                        if (nameCheck > -1) {
+                            //name exists, don't update
+                        } else {
+                            data[curator] = prevCurator + "; " + loginInitials;
+                        }
+                    } else {
+                        data[curator] = loginInitials;
+                    }
+               
+                //save curator column to local storage for backup here
+                //{value, row, columnName}
+                //data[curator], row.getPosition(), "Curator"
+                if (data[curator] !== "" && data[curator] !== null) {
+                    rowValue = row.getPosition();//save absolute row position
+                    columnValue = "Curator"; //column name
+                    var alreadyChanged = false;
+                    //check for previously edited cell, and overwrite if already changed before
+                    for (var i = 0; i < changes.length; i++) {
+                        if (rowValue == changes[i]) { //matches row number
+                            if (columnValue == changes[i + 1]) { //matches column name as well
+                                console.log("already edited this field");
+                                changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                                alreadyChanged = true;
+                            }
+                        }
+                    }
+                    if (!alreadyChanged) {
+                        changes.push(data[curator]);
+                        changes.push(rowValue);
+                        changes.push(columnValue);
+                    }
+                }
+        }
+
+    }
 
     function backupChanges() {
         var tableArray = table.getData();
