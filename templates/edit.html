@@ -26,8 +26,6 @@
                 review</button>
             <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i>
                 Reviewed</button>
-            <button id=minus class="btn btn-sm"><i class="fas fa-minus-square"></i></button>
-            <button id=plus class="btn btn-sm"><i class="fas fa-plus-square"></i></button>
         </div>
     </div>
 
@@ -102,14 +100,7 @@
     //hide save button on load
     $('#save-btn').hide();
 
-    //table resize - load/save in local storage
-    var heightOfTable = 600;
-    if (localStorage.getItem("height")) {
-        heightOfTable = parseInt(localStorage.getItem("height"));
-    } else {
-        heightOfTable = 600;
-        localStorage.setItem("height", JSON.stringify(heightOfTable))
-    }
+    
 
     // Column name for curation status
     var curation_status = "Curation status"
@@ -410,7 +401,6 @@
         // resizableRows:true,
         // footerElement:"<button>Custom Button</button>", 
         groupToggleElement: "header",
-        // height: heightOfTable,
         //height:"calc(100% - 250px)",
         // height:"100%", //this makes the header not stay on the top..
         height: window.innerHeight / 3 * 2,
@@ -485,8 +475,6 @@
             // }
 
             try {
-                $('#plus').hide(); //this because of new height height:window.innerHeight/3*2, not using heightOfTable because of dropdown not showing bug
-                $('#minus').hide(); //todo: do we need plus and minus buttons now? 
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
                 var row = table.getRowFromPosition(0, true);
                 var cell = row.getCell("parent");
@@ -880,7 +868,7 @@
             });
         }
         table.redraw(true);
-        //renderComplete triggered here console.log("plus: " + heightOfTable);
+        //renderComplete triggered here 
     });
 
     //todo: button icon highlighted if a filter is active?
@@ -960,53 +948,6 @@
             }
         });
 
-    });
-
-    //make table smaller
-    $("#minus").click(function () {
-        if (JSON.stringify(table.getData()) === previousTableData) { //ok this works
-            console.log("SAME SAME");
-        } else {
-            console.log("NOT SAME WHY?");
-        }
-        heightOfTable -= 50;
-        if (heightOfTable < 200) {
-            heightOfTable = 200;
-        }
-        localStorage.setItem("height", JSON.stringify(heightOfTable));
-        if (tableEdited) {
-            if (confirm("All changes to the table will be lost, continue?")) {
-                location.reload(); //reload web page
-            } else {
-                alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
-            }
-        } else {
-            location.reload(); //reload web page
-        }
-    });
-
-    //make table bigger
-    $("#plus").click(function () {
-        //todo: test save array - remove when feature is complete:
-        backupChanges();
-        // var tableArray = table.getData();
-        // var jsonArray = JSON.stringify(tableArray); //todo: do we need this?
-        // localStorage.setItem("savedTableData", jsonArray);
-
-        heightOfTable = heightOfTable + 50;
-        if (heightOfTable > 2000) {
-            heightOfTable = 2000;
-        }
-        localStorage.setItem("height", JSON.stringify(heightOfTable));
-        if (tableEdited) {
-            if (confirm("All changes to the table will be lost, continue?")) {
-                location.reload(); //reload web page
-            } else {
-                alert("The table will be re-sized next time you refresh the web page. \n Remember to save your work.")
-            }
-        } else {
-            location.reload(); //reload web page
-        }
     });
 
     $('#contentTable').ready(function () {
