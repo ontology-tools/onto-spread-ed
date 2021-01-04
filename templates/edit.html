@@ -285,7 +285,7 @@
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
         } else {
-            //no changes
+            //no saved changes
             for (var i = 0; i < rowLength; i++) {
                 var rowObj = { id: i }
                 for (var j = 0; j < headerLength; j++) {
@@ -435,7 +435,7 @@
         scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false,
 
-
+        //headerSortTristate:true, //enable tristate header sort for all columns - up, down and original order
 
         dataSorting: function (sorters) {
             //console.log("sorted");
@@ -503,7 +503,6 @@
             rowValue = row.getPosition(true);
         },
 
-        //todo: rowDeselected re-do css row colours
         rowDeselected: function (row) {
             var data = row.getData();
             var selectedRows = table.getSelectedRows();
@@ -794,10 +793,9 @@
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
     table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
-    backupChanges(); //todo:is this necessary?
+    backupChanges(); //todo:is this necessary here?
+    
     //new row button click handler:
-
-    //todo: fix list index out of range on save
     $("#add-row").click(function () {
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = "";
@@ -1064,12 +1062,9 @@
         console.log("changes backed up");
     }
 
-    //todo: this should also change all up/down filter arrows back
     function clearFormatting() {
-        var filteredColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
-        for (var i = 1; i < filteredColumns.length; i++) { //filteredColumns array starts at 1? Urrrgh!
-            table.getColumn(filteredColumns[i]).setHeaderFilterValue("");
-        }
+        table.clearSort(); //clear sorting as well
+        table.clearFilter(true); //does the same as below        
     }
 
     /**
@@ -1123,7 +1118,7 @@
                                         $("#saveAlert").dismissed = false;
                                         $("#saveAlert").show();
                                         $('#save-btn').hide(); //saved successfully, hide save button
-                                        //todo: remove cell.getElement().style.color = "#003399";
+                                        //todo: remove cell.getElement().style.color = "#003399"; //??? how ???
 
                                         var rows = table.getRows();
                                         for (i = 0; i < rows.length; i++) {
