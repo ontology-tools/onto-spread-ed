@@ -271,6 +271,7 @@
                 // }
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+                $('#save-btn').show();
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
                 //discard changes
@@ -283,8 +284,6 @@
                 }
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
-
-            $('#save-btn').show();
         } else {
             //no changes
             for (var i = 0; i < rowLength; i++) {
