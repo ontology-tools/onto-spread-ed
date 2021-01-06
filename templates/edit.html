@@ -430,10 +430,10 @@
         //autoColumns: true,
         reactiveData: true, //enables updating cell contents programmatically
 
-        virtualDomBuffer: 300, //may be needed to fix bug where up scroll is disappearing rows
+        virtualDomBuffer: 1500, //may be needed to fix bug where up scroll is disappearing rows
 
         scrollToRowPosition: "bottom", //for scrollToRow()
-        scrollToRowIfVisible: false,
+        scrollToRowIfVisible: false, //don't scroll if row already on screen
 
         //headerSortTristate:true, //enable tristate header sort for all columns - up, down and original order
 
@@ -746,20 +746,22 @@
             table.scrollToRow(row, "bottom", false)
                 .then(function () {
                     if (data[label] === undefined) { //label column not present
-
+                        // console.log("undefined label");
                     } else {
                         var cell = row.getCell("Label");
                         cell.getElement().focus(); //no focus for spreadsheets without "Label" column
+                        // console.log("should focus here");
                     }
                 })
                 .catch(function (error) {
+                    console.log("error scrolling");
                     //handle error scrolling to row
                 });
             rowValue = row.getPosition(true);
             // backupChanges(); //not for empty row maybe?
             // console.log(row.getData());
             var pos = row.getPosition();
-            console.log(pos);
+            // console.log(pos);
         },
 
         // rowUpdated:function(row){
@@ -811,6 +813,7 @@
         }
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
         table.addRow(rowObj);
+        
         // backupChanges(); //done in rowAdded!
         //rowAdded triggered here
     });
@@ -1064,7 +1067,7 @@
 
     function clearFormatting() {
         table.clearSort(); //clear sorting as well
-        table.clearFilter(true); //does the same as below        
+        table.clearFilter(true); //clear header filters       
     }
 
     /**
