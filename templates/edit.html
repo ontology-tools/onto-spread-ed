@@ -797,7 +797,7 @@
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
     table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
     backupChanges(); //todo:is this necessary here?
-    
+
     //new row button click handler:
     $("#add-row").click(function () {
         for (var j = 0; j < headerLength; j++) {
@@ -814,7 +814,7 @@
         }
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
         table.addRow(rowObj);
-        
+
         // backupChanges(); //done in rowAdded!
         //rowAdded triggered here
     });
@@ -823,22 +823,29 @@
     $("#delete-rows").click(function () {
         var selectedRows = table.getSelectedRows();
         if (selectedRows.length > 1) {
-            if (confirm("Do you really want to delete these rows?")) {
-                table.deleteRow(selectedRows);
-                backupChanges(); //has no effect
-            } else {
-                //deselect rows here?
-            }
+            if (!confirm("Do you really want to delete these rows?")) { return; }
         } else if (selectedRows.length == 1) {
-            if (confirm("Do you really want to delete this row?")) {
-                table.deleteRow(selectedRows);
-                backupChanges();
-            } else {
-                //todo: deselect rows here?
-            }
+            if (!confirm("Do you really want to delete this row?")) { return; }
         } else {
             alert("No rows selected");
+            return;
         }
+        //if selectedRows ID column is not null and "" then don't delete!
+        selectedRows.forEach(function (row) {
+            if (row.getCell("ID") === undefined) {
+                
+            } else {
+                var data = row.getData();
+                var cell = row.getCell("ID");
+                if (cell.getValue() !== "" && cell.getValue() !== null) {
+                    
+                } else{
+                    table.deleteRow(row);
+                }
+            }
+        });
+        // table.deleteRow(selectedRows);
+        backupChanges(); //has no effect
     });
 
     // Hightlight your rows
@@ -1013,42 +1020,42 @@
         if (data[curator] === undefined) { //curator column not present in table
 
         } else {
-            
-                    if (data[curator] !== null && data[curator] !== "") {
-                        var prevCurator = data[curator];
-                        var nameCheck = prevCurator.indexOf(loginInitials);
-                        if (nameCheck > -1) {
-                            //name exists, don't update
-                        } else {
-                            data[curator] = prevCurator + "; " + loginInitials;
+
+            if (data[curator] !== null && data[curator] !== "") {
+                var prevCurator = data[curator];
+                var nameCheck = prevCurator.indexOf(loginInitials);
+                if (nameCheck > -1) {
+                    //name exists, don't update
+                } else {
+                    data[curator] = prevCurator + "; " + loginInitials;
+                }
+            } else {
+                data[curator] = loginInitials;
+            }
+
+            //save curator column to local storage for backup here
+            //{value, row, columnName}
+            //data[curator], row.getPosition(), "Curator"
+            if (data[curator] !== "" && data[curator] !== null) {
+                rowValue = row.getPosition();//save absolute row position
+                columnValue = "Curator"; //column name
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for (var i = 0; i < changes.length; i++) {
+                    if (rowValue == changes[i]) { //matches row number
+                        if (columnValue == changes[i + 1]) { //matches column name as well
+                            console.log("already edited this field");
+                            changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                            alreadyChanged = true;
                         }
-                    } else {
-                        data[curator] = loginInitials;
-                    }
-               
-                //save curator column to local storage for backup here
-                //{value, row, columnName}
-                //data[curator], row.getPosition(), "Curator"
-                if (data[curator] !== "" && data[curator] !== null) {
-                    rowValue = row.getPosition();//save absolute row position
-                    columnValue = "Curator"; //column name
-                    var alreadyChanged = false;
-                    //check for previously edited cell, and overwrite if already changed before
-                    for (var i = 0; i < changes.length; i++) {
-                        if (rowValue == changes[i]) { //matches row number
-                            if (columnValue == changes[i + 1]) { //matches column name as well
-                                console.log("already edited this field");
-                                changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
-                                alreadyChanged = true;
-                            }
-                        }
-                    }
-                    if (!alreadyChanged) {
-                        changes.push(data[curator]);
-                        changes.push(rowValue);
-                        changes.push(columnValue);
                     }
                 }
+                if (!alreadyChanged) {
+                    changes.push(data[curator]);
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                }
+            }
         }
 
     }
