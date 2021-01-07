@@ -379,7 +379,7 @@
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "Discussed", "To Be Discussed", "In Discussion", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "E-CigO") { //todo: headerFilter can't select by unchecked?
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
-        } else if (headers[i] == "Fuzzy set") { //todo: checkbox change not affecting highlight your rows if there is another curator listed
+        } else if (headers[i] == "Fuzzy set") { //todo: checkbox change notdevelopment affecting highlight your rows if there is another curator listed
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         }
         else if (headers[i] == "To be reviewed by") {
@@ -773,9 +773,9 @@
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
         }
-        //change all "Ready" to "proposed":
+        //change all "Ready" to "Published":
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
-            data[curation_status] = "Proposed";
+            data[curation_status] = "Published";
         }
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'white'; //apply css change to row element
