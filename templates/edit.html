@@ -107,7 +107,7 @@
 
     // For the curation status, the allowed values
     var discussed = "Discussed";
-    var ready = "Ready";
+    var ready = "Ready"; //removing this
     var proposed = "Proposed";
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
@@ -376,7 +376,7 @@
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if (headers[i] == "Curation status") {
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "Discussed", "Ready", "To Be Discussed", "In Discussion", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "Discussed", "To Be Discussed", "In Discussion", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "E-CigO") { //todo: headerFilter can't select by unchecked?
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         } else if (headers[i] == "Fuzzy set") { //todo: checkbox change not affecting highlight your rows if there is another curator listed
@@ -773,8 +773,9 @@
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
         }
+        //change all "Ready" to "proposed":
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'palegreen'; //apply css change to row element
+            data[curation_status] = "Proposed";
         }
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'white'; //apply css change to row element
