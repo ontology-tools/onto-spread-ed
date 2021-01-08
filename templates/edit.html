@@ -104,7 +104,7 @@
 
     // Column name for curation status
     var curation_status = "Curation status"
-
+    var prevCurationStatus = "";
     // For the curation status, the allowed values
     var discussed = "Discussed";
     var ready = "Ready"; //removing this
@@ -526,8 +526,18 @@
 
         cellClick: function (e, cell) {
             var row = cell.getRow();
+            var data = row.getData();
+            var column = cell.getColumn();
             rowValue = row.getPosition(true);
             console.log(cell.getValue()); //this works
+            //save backup curation status if "Curation status" column present: 
+            if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+                    prevCurationStatus = cell.getValue();
+                }
+            }
             //e - the click event object
             //cell - cell component
         },
@@ -691,6 +701,49 @@
                     }
                 }
             }
+
+            // workflow (for "Curation status"): 
+            // 1. Can't change status to 'published' unless status is 'discussed' and that status has been saved
+            //      - if user tries to change status to 'published' but it was not in 'discussed', their change
+            //      should be reverted to whatever status it was before, and user should be shown a message saying that 
+            //      you can't change to 'published' without setting to 'discussed' first and saving that
+            // 2. Once in 'published', can't change status to anything but 'obsolete'. 
+            //      - if user tries to change status out of 'published' to anything else, their change should be 
+            //      reverted and a popup message says "are you sure" as if they are trying to delete it
+            if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+                    console.log(prevCurationStatus + " now changed to " + cell.getValue()); //before and after values
+                    
+                    // 1.
+                    if(cell.getValue() == "Published"){ //todo: check for saved here as well - using tableEdited?
+                        //todo: tableEdited is for whole table, what about this one cell? check saved cells? Not if there is a new row...
+                        
+                        if(prevCurationStatus == "Discussed" && !tableEdited){
+                            console.log("this is fine");
+                            //this is fine, allow it
+                        } else{
+                            console.log("can't change to 'Published' without setting to 'Discussed' first");
+                            alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                            //revert to prevCurationStatus and send a message
+                        }
+                    }
+                    // 2. 
+                    if(prevCurationStatus == "Published"){
+                        if(cell.getValue() !== "Obsolete"){
+                            console.log("not allowed to change 'Published' to anything other than 'Obsolete'");
+                            alert("Not possible to change 'Published' to anything other than 'Obsolete'");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                            //revert to prevCurationStatus and send a message "are you sure?"
+                        } else{
+                            console.log("this is fine");
+                            //this is fine, allow it
+                        }
+                    }                      
+                }
+            }
             backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
         },
 
@@ -770,6 +823,7 @@
     });
 
     function rowColours(row, data) {
+
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
         }
@@ -833,13 +887,13 @@
         //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
             if (row.getCell("ID") === undefined) {
-                
+
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
                 if (cell.getValue() !== "" && cell.getValue() !== null) {
-                    
-                } else{
+
+                } else {
                     table.deleteRow(row);
                 }
             }
