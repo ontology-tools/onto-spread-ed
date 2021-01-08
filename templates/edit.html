@@ -214,7 +214,7 @@
                     for (var a = 0; a < changesArray.length; a++) {
                         if (i == changesArray[a + 1]) { //row
                             if (headers[j] == changesArray[a + 2]) { //column
-                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) {
+                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) { //todo: check if we need to JSON.stringify these?
                                     tableChangedArray.push("");
                                 } else {
                                     tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
@@ -719,8 +719,24 @@
                     // 1.
                     if(cell.getValue() == "Published"){ //todo: check for saved here as well - using tableEdited?
                         //todo: tableEdited is for whole table, what about this one cell? check saved cells? Not if there is a new row...
-                        
-                        if(prevCurationStatus == "Discussed" && !tableEdited){
+                        var savedCellDiscussed = false; //for saved version "Discussed" status
+                        if(!tableEdited){
+                            savedCellDiscussed = true;
+                        } else{
+                            //need to check saved table to see if status for this row was "Discussed" or not: 
+                            console.log("rowValue is: " + rowValue);
+                            console.log("headerLength is: " + headerLength);
+                            var dValue = rowData[rowValue][headers[headerLength-2]];
+
+                            // var dValue = (rowValue*headerLength)-3;
+                            console.log(dValue);//todo: hard coding number here is a hack, change this
+                            console.log("previous saved status for  cell is: " + dValue); 
+                            if(dValue === "Discussed"){
+                                savedCellDiscussed = true;
+                            }
+                            // console.log("previous saved status for  cell is: " + testTableData[dValue]); 
+                        }
+                        if(prevCurationStatus == "Discussed" && savedCellDiscussed){
                             console.log("this is fine");
                             //this is fine, allow it
                         } else{
