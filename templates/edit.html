@@ -756,7 +756,22 @@
                             //need to check saved table to see if status for this row was "Discussed" or not: 
                             console.log("rowValue is: " + rowValue);
                             console.log("headerLength is: " + headerLength);
-                            var dValue = rowData[rowValue][headers[headerLength - 2]]; //todo: hard coding number here is a hack, change this
+                            //trying to get column number programatically: ///////////////////////////////////////////////
+                            // var publishedColumnNumber = headers[headerLength - 2];
+                            var currentColumnNumber = headerLength - 2; //fallback, for now
+                            // console.log("currentColumnNumber is: " + currentColumnNumber);
+                            //the long way: loop through all headers and check which one fits the bill: 
+                            for(var i = 0; i < headerLength; i ++){
+                                if(headers[i] == curation_status){
+                                    currentColumnNumber = i;
+                                }
+                            }
+                            console.log("currentColumnNumber is: " + currentColumnNumber);
+                            console.log("current column name is: " + headers[currentColumnNumber]);
+                            var dValue = rowData[rowValue][headers[currentColumnNumber]];
+                            //////////////////////////////////////////////////////////////////////////////
+
+                            // var dValue = rowData[rowValue][headers[headerLength - 2]]; //old way, hard coding the column number - bad
                             console.log(dValue);
                             console.log("previous saved status for  cell is: " + dValue);
                             if (dValue === "Discussed") {
