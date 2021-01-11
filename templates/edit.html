@@ -200,8 +200,8 @@
         }
     }
 
-    //todo: fix all errors in restoring changes and then remove this: 
-    // unsavedChanges = false; //disabling this for now - too many problems. 
+
+    // unsavedChanges = false; //un-comment this line to disable restoring backup functionality. 
 
     //restore unsaved changes if needed:
     try {
@@ -224,7 +224,6 @@
                     }
                 }
             }
-            // alert(tableChangedArray);
 
             var changedMessage = "";
             for (var i = 0; i < changesArray.length; i += 3) {
@@ -235,7 +234,50 @@
                 }
             }
 
-
+            /*
+            //bootbox dialog - runs callback functions asynchronously, so not waiting for confirmation 
+            //before loading the table. This is bad. todo: how to make bootbox dialog wait?
+            
+                        var dialog = bootbox.dialog({
+                            title: "You have previously unsaved changes \n Press 'Yes' to keep them. \n",
+                            message: changedMessage,
+                            buttons: {
+                                confirm: {
+                                    label: 'Yes',
+                                    className: 'btn-success',
+                                    callback: function () {
+                                        console.log('Custom confirm clicked');
+                                        //unsavedChanges code here, plus save at end
+                                        console.log("confirmed");
+                                        //new method: restoring entire array:
+                                        var newRowLength = previousTableData.length / headerLength;
+                                        console.log(newRowLength);
+                                        tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
+                                        alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
+                                        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+                                        $('#save-btn').show();
+                                        //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
+                                    }
+                                },
+                                cancel: {
+                                    label: 'No',
+                                    className: 'btn-danger',
+                                    callback: function () {
+                                        console.log('Custom cancel clicked');
+                                        //discard changes
+                                        for (var i = 0; i < rowLength; i++) {
+                                            var rowObj = { id: i }
+                                            for (var j = 0; j < headerLength; j++) {
+                                                rowObj[headers[j]] = rowData[i][headers[j]];
+                                            }
+                                            tableData.push(rowObj);
+                                        }
+                                        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+                                    }
+                                }
+                            }
+                        });
+            */
             if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
@@ -243,47 +285,32 @@
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
-                // for (var i=0; i<newRowLength; i++) {
-                //     var rowObj = {id:i}
-                //     for (var j=0; j<headerLength; j++) {
-                //         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-                //     }
-                //     tableData.push(rowObj);
-                // }
-                //old method, building array from changes
-                // for (var i=0; i<rowLength; i++) {
-                //     var rowObj = {id:i}
-                //     for (var j=0; j<headerLength; j++) {
-                //         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-                //         //check all data for same values here: 
-                //         for(var a = 0; a < changesArray.length; a++){
-                //             //console.log(a);
-                //             if(i == changesArray[a+1]){ //row
-                //                 console.log("row same: " + i);
-                //                 if(headers[j] == changesArray[a+2]){ //column
-                //                     console.log(changesArray[a]);
-                //                     rowObj[ headers[j] ] = changesArray[a]
-                //                 }
-                //             }
-                //         }
-                //     }
-                //     tableData.push(rowObj);
-                // }
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 $('#save-btn').show();
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
-                //discard changes
+                //discard changes 
                 for (var i = 0; i < rowLength; i++) {
                     var rowObj = { id: i }
                     for (var j = 0; j < headerLength; j++) {
                         rowObj[headers[j]] = rowData[i][headers[j]];
+                        //trying to set null values to 0 in checkbox columns here:
+                        if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
+                            if (rowObj[headers[j]] == null) {
+                                rowObj[headers[j]] = 0;
+                            }
+                        } else {
+                            if (rowObj[headers[j]] == null) {
+                                rowObj[headers[j]] = ""; //test change all null to ""
+                            }
+                        }
                     }
                     tableData.push(rowObj);
                 }
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
+
         } else {
             //no saved changes
             for (var i = 0; i < rowLength; i++) {
@@ -294,6 +321,10 @@
                     if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
                         if (rowObj[headers[j]] == null) {
                             rowObj[headers[j]] = 0;
+                        }
+                    } else {
+                        if (rowObj[headers[j]] == null) {
+                            rowObj[headers[j]] = ""; //test change all null to ""
                         }
                     }
                 }
@@ -715,31 +746,28 @@
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     console.log(prevCurationStatus + " now changed to " + cell.getValue()); //before and after values
-                    
+
                     // 1.
-                    if(cell.getValue() == "Published"){ //todo: check for saved here as well - using tableEdited?
-                        //todo: tableEdited is for whole table, what about this one cell? check saved cells? Not if there is a new row...
+                    if (cell.getValue() == "Published") {
                         var savedCellDiscussed = false; //for saved version "Discussed" status
-                        if(!tableEdited){
+                        if (!tableEdited) {
                             savedCellDiscussed = true;
-                        } else{
+                        } else {
                             //need to check saved table to see if status for this row was "Discussed" or not: 
                             console.log("rowValue is: " + rowValue);
                             console.log("headerLength is: " + headerLength);
-                            var dValue = rowData[rowValue][headers[headerLength-2]];
-
-                            // var dValue = (rowValue*headerLength)-3;
-                            console.log(dValue);//todo: hard coding number here is a hack, change this
-                            console.log("previous saved status for  cell is: " + dValue); 
-                            if(dValue === "Discussed"){
+                            var dValue = rowData[rowValue][headers[headerLength - 2]]; //todo: hard coding number here is a hack, change this
+                            console.log(dValue);
+                            console.log("previous saved status for  cell is: " + dValue);
+                            if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
                             }
                             // console.log("previous saved status for  cell is: " + testTableData[dValue]); 
                         }
-                        if(prevCurationStatus == "Discussed" && savedCellDiscussed){
+                        if (prevCurationStatus == "Discussed" && savedCellDiscussed) {
                             console.log("this is fine");
                             //this is fine, allow it
-                        } else{
+                        } else {
                             console.log("can't change to 'Published' without setting to 'Discussed' first");
                             alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
                             data[curation_status] = prevCurationStatus; //reverting here
@@ -747,17 +775,17 @@
                         }
                     }
                     // 2. 
-                    if(prevCurationStatus == "Published"){
-                        if(cell.getValue() !== "Obsolete"){
+                    if (prevCurationStatus == "Published") {
+                        if (cell.getValue() !== "Obsolete") {
                             console.log("not allowed to change 'Published' to anything other than 'Obsolete'");
                             alert("Not possible to change 'Published' to anything other than 'Obsolete'");
                             data[curation_status] = prevCurationStatus; //reverting here
                             //revert to prevCurationStatus and send a message "are you sure?"
-                        } else{
+                        } else {
                             console.log("this is fine");
                             //this is fine, allow it
                         }
-                    }                      
+                    }
                 }
             }
             backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
@@ -1247,6 +1275,8 @@
             }
         });
     };
+
+
 
 
     /** Hide save results message */
