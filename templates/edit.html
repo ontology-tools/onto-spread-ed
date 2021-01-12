@@ -195,7 +195,7 @@
             var changesLength = changesArray.length / 3;
             var changeWorkingOn = 0;
         } catch (err) {
-            alert(err);
+            bootbox.alert(err);
             unsavedChanges = true;
         }
     }
@@ -285,6 +285,7 @@
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
+                //todo: below needs to block, but we want a bootbox style?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 $('#save-btn').show();
@@ -771,7 +772,7 @@
                             console.log("this is fine");
                             //this is fine, allow it
                         } else {
-                            alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
+                            bootbox.alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
                             data[curation_status] = prevCurationStatus; //reverting here
                             //revert to prevCurationStatus and send a message
                         }
@@ -779,7 +780,7 @@
                     // 2. 
                     if (prevCurationStatus == "Published") {
                         if (cell.getValue() !== "Obsolete") {
-                            alert("Not possible to change 'Published' to anything other than 'Obsolete'");
+                            bootbox.alert("Not possible to change 'Published' to anything other than 'Obsolete'");
                             data[curation_status] = prevCurationStatus; //reverting here
                             //revert to prevCurationStatus and send a message "are you sure?"
                         } else {
@@ -926,7 +927,7 @@
         } else if (selectedRows.length == 1) {
             if (!confirm("Do you really want to delete this row?")) { return; }
         } else {
-            alert("No rows selected");
+            bootbox.alert("No rows selected");
             return;
         }
         //if selectedRows ID column is not null and "" then don't delete!
@@ -979,7 +980,7 @@
         var selectedRows = table.getSelectedRows();
         //console.log(selectedRows);
         if (selectedRows == "") {
-            alert("No rows selected");
+            bootbox.alert("No rows selected");
         } else {
             var inputArray = [];
             for (var i = 0; i < allInitials.length; i++) {
@@ -1045,7 +1046,7 @@
         var selectedRows = table.getSelectedRows();
         //console.log(selectedRows);
         if (selectedRows == "") {
-            alert("No rows selected");
+            bootbox.alert("No rows selected");
         }
 
         selectedRows.forEach(function (row) {
@@ -1216,7 +1217,7 @@
                                 $("*").css("cursor", "default");
                                 if (request.readyState === 4) {
                                     if (!request.status) {
-                                        alert("Problem communicating with server");
+                                        bootbox.alert("Problem communicating with server");
                                     }
                                     else if (request.status === 200) {
                                         var response = JSON.parse(request.responseText);
