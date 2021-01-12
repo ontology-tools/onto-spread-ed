@@ -104,7 +104,7 @@
 
     // Column name for curation status
     var curation_status = "Curation status"
-
+    var prevCurationStatus = "";
     // For the curation status, the allowed values
     var discussed = "Discussed";
     var ready = "Ready"; //removing this
@@ -195,13 +195,14 @@
             var changesLength = changesArray.length / 3;
             var changeWorkingOn = 0;
         } catch (err) {
-            alert(err);
+            console.log(err);
+            // bootbox.alert(err); //don't bother people with errors, just use old version of table below:
             unsavedChanges = true;
         }
     }
 
-    //todo: fix all errors in restoring changes and then remove this: 
-    // unsavedChanges = false; //disabling this for now - too many problems. 
+
+    // unsavedChanges = false; //un-comment this line to disable restoring backup functionality. 
 
     //restore unsaved changes if needed:
     try {
@@ -214,7 +215,7 @@
                     for (var a = 0; a < changesArray.length; a++) {
                         if (i == changesArray[a + 1]) { //row
                             if (headers[j] == changesArray[a + 2]) { //column
-                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) {
+                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) { //todo: check if we need to JSON.stringify these?
                                     tableChangedArray.push("");
                                 } else {
                                     tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
@@ -224,7 +225,6 @@
                     }
                 }
             }
-            // alert(tableChangedArray);
 
             var changedMessage = "";
             for (var i = 0; i < changesArray.length; i += 3) {
@@ -235,7 +235,50 @@
                 }
             }
 
-
+            /*
+            //bootbox dialog - runs callback functions asynchronously, so not waiting for confirmation 
+            //before loading the table. This is bad. todo: how to make bootbox dialog wait?
+            
+                        var dialog = bootbox.dialog({
+                            title: "You have previously unsaved changes \n Press 'Yes' to keep them. \n",
+                            message: changedMessage,
+                            buttons: {
+                                confirm: {
+                                    label: 'Yes',
+                                    className: 'btn-success',
+                                    callback: function () {
+                                        console.log('Custom confirm clicked');
+                                        //unsavedChanges code here, plus save at end
+                                        console.log("confirmed");
+                                        //new method: restoring entire array:
+                                        var newRowLength = previousTableData.length / headerLength;
+                                        console.log(newRowLength);
+                                        tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
+                                        alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
+                                        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+                                        $('#save-btn').show();
+                                        //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
+                                    }
+                                },
+                                cancel: {
+                                    label: 'No',
+                                    className: 'btn-danger',
+                                    callback: function () {
+                                        console.log('Custom cancel clicked');
+                                        //discard changes
+                                        for (var i = 0; i < rowLength; i++) {
+                                            var rowObj = { id: i }
+                                            for (var j = 0; j < headerLength; j++) {
+                                                rowObj[headers[j]] = rowData[i][headers[j]];
+                                            }
+                                            tableData.push(rowObj);
+                                        }
+                                        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+                                    }
+                                }
+                            }
+                        });
+            */
             if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
@@ -243,47 +286,33 @@
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
-                // for (var i=0; i<newRowLength; i++) {
-                //     var rowObj = {id:i}
-                //     for (var j=0; j<headerLength; j++) {
-                //         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-                //     }
-                //     tableData.push(rowObj);
-                // }
-                //old method, building array from changes
-                // for (var i=0; i<rowLength; i++) {
-                //     var rowObj = {id:i}
-                //     for (var j=0; j<headerLength; j++) {
-                //         rowObj[ headers[j] ] = rowData[i][ headers[j] ];
-                //         //check all data for same values here: 
-                //         for(var a = 0; a < changesArray.length; a++){
-                //             //console.log(a);
-                //             if(i == changesArray[a+1]){ //row
-                //                 console.log("row same: " + i);
-                //                 if(headers[j] == changesArray[a+2]){ //column
-                //                     console.log(changesArray[a]);
-                //                     rowObj[ headers[j] ] = changesArray[a]
-                //                 }
-                //             }
-                //         }
-                //     }
-                //     tableData.push(rowObj);
-                // }
+                //todo: below needs to block, but we want a bootbox style?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 $('#save-btn').show();
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
-                //discard changes
+                //discard changes 
                 for (var i = 0; i < rowLength; i++) {
                     var rowObj = { id: i }
                     for (var j = 0; j < headerLength; j++) {
                         rowObj[headers[j]] = rowData[i][headers[j]];
+                        //trying to set null values to 0 in checkbox columns here:
+                        if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
+                            if (rowObj[headers[j]] == null) {
+                                rowObj[headers[j]] = 0;
+                            }
+                        } else {
+                            if (rowObj[headers[j]] == null) {
+                                rowObj[headers[j]] = ""; //test change all null to ""
+                            }
+                        }
                     }
                     tableData.push(rowObj);
                 }
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
+
         } else {
             //no saved changes
             for (var i = 0; i < rowLength; i++) {
@@ -294,6 +323,10 @@
                     if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
                         if (rowObj[headers[j]] == null) {
                             rowObj[headers[j]] = 0;
+                        }
+                    } else {
+                        if (rowObj[headers[j]] == null) {
+                            rowObj[headers[j]] = ""; //test change all null to ""
                         }
                     }
                 }
@@ -526,8 +559,18 @@
 
         cellClick: function (e, cell) {
             var row = cell.getRow();
+            var data = row.getData();
+            var column = cell.getColumn();
             rowValue = row.getPosition(true);
             console.log(cell.getValue()); //this works
+            //save backup curation status if "Curation status" column present: 
+            if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+                    prevCurationStatus = cell.getValue();
+                }
+            }
             //e - the click event object
             //cell - cell component
         },
@@ -691,6 +734,63 @@
                     }
                 }
             }
+
+            // workflow (for "Curation status"): 
+            // 1. Can't change status to 'published' unless status is 'discussed' and that status has been saved
+            //      - if user tries to change status to 'published' but it was not in 'discussed', their change
+            //      should be reverted to whatever status it was before, and user should be shown a message saying that 
+            //      you can't change to 'published' without setting to 'discussed' first and saving that
+            // 2. Once in 'published', can't change status to anything but 'obsolete'. 
+            //      - if user tries to change status out of 'published' to anything else, their change should be 
+            //      reverted and a popup message says "are you sure" as if they are trying to delete it
+            if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+                    console.log(prevCurationStatus + " now changed to " + cell.getValue()); //before and after values
+
+                    // 1.
+                    if (cell.getValue() == "Published") {
+                        var savedCellDiscussed = false; //for saved version "Discussed" status
+                        if (!tableEdited) {
+                            savedCellDiscussed = true;
+                        } else {
+                            //need to check saved table to see if status for this row was "Discussed" or not: 
+                            //get column number programatically: ///////////////////////////////////////////////
+                            var currentColumnNumber = headerLength - 2; //fallback, for now
+                            for(var i = 0; i < headerLength; i ++){
+                                if(headers[i] == curation_status){
+                                    currentColumnNumber = i;
+                                }
+                            }
+                            var dValue = rowData[rowValue][headers[currentColumnNumber]];
+                            //////////////////////////////////////////////////////////////////////////////
+                            if (dValue === "Discussed") {
+                                savedCellDiscussed = true;
+                            }
+                        }
+                        if (prevCurationStatus == "Discussed" && savedCellDiscussed) {
+                            console.log("this is fine");
+                            //this is fine, allow it
+                        } else {
+                            bootbox.alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                            //revert to prevCurationStatus and send a message
+                        }
+                    }
+                    // 2. 
+                    if (prevCurationStatus == "Published") {
+                        if (cell.getValue() !== "Obsolete") {
+                            bootbox.alert("Not possible to change 'Published' to anything other than 'Obsolete'");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                            //revert to prevCurationStatus and send a message "are you sure?"
+                        } else {
+                            console.log("this is fine");
+                            //this is fine, allow it
+                        }
+                    }
+                }
+            }
             backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
         },
 
@@ -758,7 +858,7 @@
                     //handle error scrolling to row
                 });
             rowValue = row.getPosition(true);
-            // backupChanges(); //not for empty row maybe?
+            backupChanges(); //not for empty row maybe?
             // console.log(row.getData());
             var pos = row.getPosition();
             // console.log(pos);
@@ -770,6 +870,7 @@
     });
 
     function rowColours(row, data) {
+
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
         }
@@ -800,7 +901,9 @@
 
     //new row button click handler:
     $("#add-row").click(function () {
-        for (var j = 0; j < headerLength; j++) {
+        // var rowObj = {};
+        var rowObj = { id: 0 } //todo: what does this actually do? 
+        for (var j = 0; j < headerLength; j++) {            
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
                 rowObj[headers[j]] = "Proposed";
@@ -827,19 +930,19 @@
         } else if (selectedRows.length == 1) {
             if (!confirm("Do you really want to delete this row?")) { return; }
         } else {
-            alert("No rows selected");
+            bootbox.alert("No rows selected");
             return;
         }
         //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
             if (row.getCell("ID") === undefined) {
-                
+
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
                 if (cell.getValue() !== "" && cell.getValue() !== null) {
-                    
-                } else{
+
+                } else {
                     table.deleteRow(row);
                 }
             }
@@ -880,7 +983,7 @@
         var selectedRows = table.getSelectedRows();
         //console.log(selectedRows);
         if (selectedRows == "") {
-            alert("No rows selected");
+            bootbox.alert("No rows selected");
         } else {
             var inputArray = [];
             for (var i = 0; i < allInitials.length; i++) {
@@ -946,7 +1049,7 @@
         var selectedRows = table.getSelectedRows();
         //console.log(selectedRows);
         if (selectedRows == "") {
-            alert("No rows selected");
+            bootbox.alert("No rows selected");
         }
 
         selectedRows.forEach(function (row) {
@@ -1117,7 +1220,7 @@
                                 $("*").css("cursor", "default");
                                 if (request.readyState === 4) {
                                     if (!request.status) {
-                                        alert("Problem communicating with server");
+                                        bootbox.alert("Problem communicating with server");
                                     }
                                     else if (request.status === 200) {
                                         var response = JSON.parse(request.responseText);
@@ -1177,6 +1280,8 @@
             }
         });
     };
+
+
 
 
     /** Hide save results message */
