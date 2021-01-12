@@ -195,7 +195,8 @@
             var changesLength = changesArray.length / 3;
             var changeWorkingOn = 0;
         } catch (err) {
-            bootbox.alert(err);
+            console.log(err);
+            // bootbox.alert(err); //don't bother people with errors, just use old version of table below:
             unsavedChanges = true;
         }
     }
