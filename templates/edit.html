@@ -858,7 +858,7 @@
                     //handle error scrolling to row
                 });
             rowValue = row.getPosition(true);
-            // backupChanges(); //not for empty row maybe?
+            backupChanges(); //not for empty row maybe?
             // console.log(row.getData());
             var pos = row.getPosition();
             // console.log(pos);
@@ -901,8 +901,8 @@
 
     //new row button click handler:
     $("#add-row").click(function () {
-        var rowObj = {};
-        
+        // var rowObj = {};
+        var rowObj = { id: 0 } //todo: what does this actually do? 
         for (var j = 0; j < headerLength; j++) {            
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
