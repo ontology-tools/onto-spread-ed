@@ -902,6 +902,7 @@
     //new row button click handler:
     $("#add-row").click(function () {
         for (var j = 0; j < headerLength; j++) {
+            var rowObj = {};
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
                 rowObj[headers[j]] = "Proposed";
