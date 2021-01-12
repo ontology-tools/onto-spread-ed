@@ -754,36 +754,23 @@
                             savedCellDiscussed = true;
                         } else {
                             //need to check saved table to see if status for this row was "Discussed" or not: 
-                            console.log("rowValue is: " + rowValue);
-                            console.log("headerLength is: " + headerLength);
-                            //trying to get column number programatically: ///////////////////////////////////////////////
-                            // var publishedColumnNumber = headers[headerLength - 2];
+                            //get column number programatically: ///////////////////////////////////////////////
                             var currentColumnNumber = headerLength - 2; //fallback, for now
-                            // console.log("currentColumnNumber is: " + currentColumnNumber);
-                            //the long way: loop through all headers and check which one fits the bill: 
                             for(var i = 0; i < headerLength; i ++){
                                 if(headers[i] == curation_status){
                                     currentColumnNumber = i;
                                 }
                             }
-                            console.log("currentColumnNumber is: " + currentColumnNumber);
-                            console.log("current column name is: " + headers[currentColumnNumber]);
                             var dValue = rowData[rowValue][headers[currentColumnNumber]];
                             //////////////////////////////////////////////////////////////////////////////
-
-                            // var dValue = rowData[rowValue][headers[headerLength - 2]]; //old way, hard coding the column number - bad
-                            console.log(dValue);
-                            console.log("previous saved status for  cell is: " + dValue);
                             if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
                             }
-                            // console.log("previous saved status for  cell is: " + testTableData[dValue]); 
                         }
                         if (prevCurationStatus == "Discussed" && savedCellDiscussed) {
                             console.log("this is fine");
                             //this is fine, allow it
                         } else {
-                            console.log("can't change to 'Published' without setting to 'Discussed' first");
                             alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
                             data[curation_status] = prevCurationStatus; //reverting here
                             //revert to prevCurationStatus and send a message
@@ -792,7 +779,6 @@
                     // 2. 
                     if (prevCurationStatus == "Published") {
                         if (cell.getValue() !== "Obsolete") {
-                            console.log("not allowed to change 'Published' to anything other than 'Obsolete'");
                             alert("Not possible to change 'Published' to anything other than 'Obsolete'");
                             data[curation_status] = prevCurationStatus; //reverting here
                             //revert to prevCurationStatus and send a message "are you sure?"
