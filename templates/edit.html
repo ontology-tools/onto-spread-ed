@@ -129,7 +129,7 @@
     //Column name for Curator
     var curator = "Curator";
     //label:
-    var label = "Label";
+    // var label = "Label"; //todo: conflict with another var? fix!
 
     // array to save changes in backupChanges
     var changes = [];
@@ -569,6 +569,7 @@
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     prevCurationStatus = cell.getValue();
+                    // console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
                 }
             }
             //e - the click event object
@@ -760,10 +761,20 @@
                             var currentColumnNumber = headerLength - 2; //fallback, for now
                             for(var i = 0; i < headerLength; i ++){
                                 if(headers[i] == curation_status){
+                                    console.log("reached correct column" + i);
                                     currentColumnNumber = i;
                                 }
                             }
-                            var dValue = rowData[rowValue][headers[currentColumnNumber]];
+                            var dValue = "Proposed";
+                            //check for new row: 
+                            // if(rowData[rowValue][headers[currentColumnNumber]] == undefined || rowData[rowValue][headers[currentColumnNumber]] == ""){
+                            console.log("rowData.length : " + rowData.length + "and rowValue is: " + rowValue);
+                            if(rowValue >= rowData.length){
+                                console.log("rowData is undefined, must be new row?");
+                            } else{
+                                dValue = rowData[rowValue][headers[currentColumnNumber]];
+                            }
+                             
                             //////////////////////////////////////////////////////////////////////////////
                             if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
@@ -845,7 +856,7 @@
 
             table.scrollToRow(row, "bottom", false)
                 .then(function () {
-                    if (data[label] === undefined) { //label column not present
+                    if (data["Label"] === undefined) { //"Label" column not present
                         // console.log("undefined label");
                     } else {
                         var cell = row.getCell("Label");
