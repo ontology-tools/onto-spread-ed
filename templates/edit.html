@@ -129,7 +129,7 @@
     //Column name for Curator
     var curator = "Curator";
     //label:
-    var label = "Label";
+    // var label = "Label"; //todo: conflict with another var? fix!
 
     // array to save changes in backupChanges
     var changes = [];
@@ -558,7 +558,27 @@
 
 
         cellClick: function (e, cell) {
+            //WARNING: THIS DOES NOT TRIGGER ON FIREFOX!
             var row = cell.getRow();
+            var data = row.getData();
+            // var column = cell.getColumn();
+            // rowValue = row.getPosition(true);
+            // console.log(cell.getValue()); //this works
+            // //save backup curation status if "Curation status" column present: 
+            // if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            // } else {
+            //     if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+            //         prevCurationStatus = cell.getValue();
+            //         console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+            //     }
+            // }
+            //e - the click event object
+            //cell - cell component
+        },
+        cellEditing: function (cell) {
+            var row = cell.getRow();
+            rowValue = row.getPosition(true);
             var data = row.getData();
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
@@ -569,14 +589,9 @@
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     prevCurationStatus = cell.getValue();
+                    console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
                 }
             }
-            //e - the click event object
-            //cell - cell component
-        },
-        cellEditing: function (cell) {
-            var row = cell.getRow();
-            rowValue = row.getPosition(true);
         },
 
 
@@ -760,10 +775,19 @@
                             var currentColumnNumber = headerLength - 2; //fallback, for now
                             for(var i = 0; i < headerLength; i ++){
                                 if(headers[i] == curation_status){
+                                    console.log("reached correct column" + i);
                                     currentColumnNumber = i;
                                 }
                             }
-                            var dValue = rowData[rowValue][headers[currentColumnNumber]];
+                            var dValue = "Proposed";
+                            // console.log("rowData.length : " + rowData.length + "and rowValue is: " + rowValue);
+                            //check for new row:                             
+                            if(rowValue >= rowData.length){
+                                console.log("rowData is undefined, must be new row?");
+                            } else{
+                                dValue = rowData[rowValue][headers[currentColumnNumber]];
+                            }
+                             
                             //////////////////////////////////////////////////////////////////////////////
                             if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
@@ -845,7 +869,7 @@
 
             table.scrollToRow(row, "bottom", false)
                 .then(function () {
-                    if (data[label] === undefined) { //label column not present
+                    if (data["Label"] === undefined) { //"Label" column not present
                         // console.log("undefined label");
                     } else {
                         var cell = row.getCell("Label");
