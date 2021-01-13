@@ -558,7 +558,27 @@
 
 
         cellClick: function (e, cell) {
+            //WARNING: THIS DOES NOT TRIGGER ON FIREFOX!
             var row = cell.getRow();
+            var data = row.getData();
+            // var column = cell.getColumn();
+            // rowValue = row.getPosition(true);
+            // console.log(cell.getValue()); //this works
+            // //save backup curation status if "Curation status" column present: 
+            // if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            // } else {
+            //     if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+            //         prevCurationStatus = cell.getValue();
+            //         console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+            //     }
+            // }
+            //e - the click event object
+            //cell - cell component
+        },
+        cellEditing: function (cell) {
+            var row = cell.getRow();
+            rowValue = row.getPosition(true);
             var data = row.getData();
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
@@ -569,15 +589,9 @@
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     prevCurationStatus = cell.getValue();
-                    // console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+                    console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
                 }
             }
-            //e - the click event object
-            //cell - cell component
-        },
-        cellEditing: function (cell) {
-            var row = cell.getRow();
-            rowValue = row.getPosition(true);
         },
 
 
@@ -766,9 +780,8 @@
                                 }
                             }
                             var dValue = "Proposed";
-                            //check for new row: 
-                            // if(rowData[rowValue][headers[currentColumnNumber]] == undefined || rowData[rowValue][headers[currentColumnNumber]] == ""){
-                            console.log("rowData.length : " + rowData.length + "and rowValue is: " + rowValue);
+                            // console.log("rowData.length : " + rowData.length + "and rowValue is: " + rowValue);
+                            //check for new row:                             
                             if(rowValue >= rowData.length){
                                 console.log("rowData is undefined, must be new row?");
                             } else{
