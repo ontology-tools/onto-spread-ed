@@ -346,6 +346,10 @@
                     if (rowObj[headers[j]] == null) {
                         rowObj[headers[j]] = 0;
                     }
+                } else {
+                    if (rowObj[headers[j]] == null) {
+                        rowObj[headers[j]] = ""; //test change all null to ""
+                    }
                 }
             }
             tableData.push(rowObj);
@@ -773,8 +777,8 @@
                             //need to check saved table to see if status for this row was "Discussed" or not: 
                             //get column number programatically: ///////////////////////////////////////////////
                             var currentColumnNumber = headerLength - 2; //fallback, for now
-                            for(var i = 0; i < headerLength; i ++){
-                                if(headers[i] == curation_status){
+                            for (var i = 0; i < headerLength; i++) {
+                                if (headers[i] == curation_status) {
                                     console.log("reached correct column" + i);
                                     currentColumnNumber = i;
                                 }
@@ -782,12 +786,12 @@
                             var dValue = "Proposed";
                             // console.log("rowData.length : " + rowData.length + "and rowValue is: " + rowValue);
                             //check for new row:                             
-                            if(rowValue >= rowData.length){
+                            if (rowValue >= rowData.length) {
                                 console.log("rowData is undefined, must be new row?");
-                            } else{
+                            } else {
                                 dValue = rowData[rowValue][headers[currentColumnNumber]];
                             }
-                             
+
                             //////////////////////////////////////////////////////////////////////////////
                             if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
@@ -927,7 +931,7 @@
     $("#add-row").click(function () {
         // var rowObj = {};
         var rowObj = { id: 0 } //todo: what does this actually do? 
-        for (var j = 0; j < headerLength; j++) {            
+        for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
                 rowObj[headers[j]] = "Proposed";
