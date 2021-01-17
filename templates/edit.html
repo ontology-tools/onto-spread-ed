@@ -302,6 +302,11 @@
                             if (rowObj[headers[j]] == null) {
                                 rowObj[headers[j]] = 0;
                             }
+                            /////////////////////fix E-CigO removing ticks///////////////////////
+                            if (rowObj[headers[j]] == 1) {
+                                rowObj[headers[j]] = 1;
+                            }
+                            ////////////////////////////////////////////////////////////////////
                         } else {
                             if (rowObj[headers[j]] == null) {
                                 rowObj[headers[j]] = ""; //test change all null to ""
@@ -324,6 +329,11 @@
                         if (rowObj[headers[j]] == null) {
                             rowObj[headers[j]] = 0;
                         }
+                        /////////////////////fix E-CigO removing ticks///////////////////////
+                        if (rowObj[headers[j]] == 1) {
+                            rowObj[headers[j]] = 1;
+                        }
+                        ////////////////////////////////////////////////////////////////////
                     } else {
                         if (rowObj[headers[j]] == null) {
                             rowObj[headers[j]] = ""; //test change all null to ""
@@ -346,6 +356,11 @@
                     if (rowObj[headers[j]] == null) {
                         rowObj[headers[j]] = 0;
                     }
+                    /////////////////////fix E-CigO removing ticks///////////////////////
+                    if (rowObj[headers[j]] == 1) {
+                        rowObj[headers[j]] = 1;
+                    }
+                    ////////////////////////////////////////////////////////////////////
                 } else {
                     if (rowObj[headers[j]] == null) {
                         rowObj[headers[j]] = ""; //test change all null to ""
@@ -586,7 +601,8 @@
             var data = row.getData();
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
-            console.log(cell.getValue()); //this works
+            // console.log(cell.getValue()); //this works
+            // console.log("cellEditing column is: " + column.getDefinition().title)
             //save backup curation status if "Curation status" column present: 
             if (data[curation_status] === undefined) { //Curation status column not present in table
 
@@ -604,6 +620,8 @@
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
+            console.log("cellEdited: " + cell.getValue() + ", " + row.getPosition() + ", " + column.getDefinition().title);
+            // console.log("cellEdited column is: " + column.getDefinition().title);
 
             //save changed cell data:
             //{value, row, columnName}
@@ -766,8 +784,8 @@
 
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
-                    console.log(prevCurationStatus + " now changed to " + cell.getValue()); //before and after values
-
+                    console.log(prevCurationStatus + " is now changed to " + cell.getValue()); //before and after values
+                    console.log("column is: " + column.getDefinition().title);
                     // 1.
                     if (cell.getValue() == "Published") {
                         var savedCellDiscussed = false; //for saved version "Discussed" status
