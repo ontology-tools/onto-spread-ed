@@ -128,8 +128,8 @@
     var to_be_reviewed_by = "To be reviewed by";
     //Column name for Curator
     var curator = "Curator";
-    //label:
-    // var label = "Label"; //todo: conflict with another var? fix!
+
+    var AOsub_ontology = "AO sub-ontology";
 
     // array to save changes in backupChanges
     var changes = [];
@@ -428,7 +428,7 @@
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
         if (headers[i] == "Curation status") {                                                                                        //         “Proposed”-->”To Be Discussed”-->”In Discussion”-->”Discussed”-->”Published”-->”Obsolete”.      
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed",  "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "E-CigO") { //todo: headerFilter can't select by unchecked?
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         } else if (headers[i] == "Fuzzy set") { //todo: checkbox change notdevelopment affecting highlight your rows if there is another curator listed
@@ -948,6 +948,12 @@
     //new row button click handler:
     $("#add-row").click(function () {
         // var rowObj = {};
+        var sheetNamesArray = ["AddictO_Environmental_system_Defs.xlsx", "AddictO_Human-being_Defs.xlsx",
+            "AddictO_Human_behaviour_Defs.xlsx", "AddictO_Human_population_Defs.xlsx", "AddictO_Intervention_Defs.xlsx",
+            "AddictO_Not_yet_classified_Defs.xlsx", "AddictO_Organisation_Defs.xlsx", "AddictO_Product_Defs.xlsx",
+            "AddictO_Research_activity_Defs.xlsx"];
+        var AOsub_ontologyNames = ["Environmental system", "Human being", "Human behaviour", "Human population",
+            "Intervention", "", "Organisation", "Product", "Research activity"];
         var rowObj = { id: 0 } //todo: what does this actually do? 
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = "";
@@ -958,6 +964,14 @@
             if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
                 if (rowObj[headers[j]] == null) {
                     rowObj[headers[j]] = 0;
+                }
+            }
+            //set per-sheet “AO sub-ontology” column: "Product, Intervention, etc"
+            if (headers[j] == AOsub_ontology) { //column
+                for (var a = 0; a < sheetNamesArray.length; a++) {
+                    if (sheetNamesArray[a] == thisSheet) {
+                        rowObj[headers[j]] = AOsub_ontologyNames[a];
+                    }
                 }
             }
         }
