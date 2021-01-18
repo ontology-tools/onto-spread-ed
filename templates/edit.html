@@ -427,8 +427,8 @@
     for (var i = 0; i < headerLength; i++) {
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
-        if (headers[i] == "Curation status") {
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "Discussed", "To Be Discussed", "In Discussion", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        if (headers[i] == "Curation status") {                                                                                        //         “Proposed”-->”To Be Discussed”-->”In Discussion”-->”Discussed”-->”Published”-->”Obsolete”.      
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed",  "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "E-CigO") { //todo: headerFilter can't select by unchecked?
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         } else if (headers[i] == "Fuzzy set") { //todo: checkbox change notdevelopment affecting highlight your rows if there is another curator listed
