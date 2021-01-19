@@ -1124,12 +1124,21 @@
                 var reviewedCell = "";
                 //three options to replace (eg if loginInitials are "to"):
                 // ; to | to; | to
+                //added two new options, ;to|to; - without spaces
+                // todo: how to check for arbitrary number of spaces? 
+                var semiFirstNoSpace = ";" + loginInitials;
+                var semiAfterNoSpace = loginInitials + ";";
+
                 var semiFirst = "; " + loginInitials;
                 var semiAfter = loginInitials + "; ";
 
                 if (cellValue !== null) {
                     reviewedCell = cellValue.replace(semiFirst, '');
                     reviewedCell = reviewedCell.replace(semiAfter, '');
+                    //replace if without spaces:
+                    reviewedCell = cellValue.replace(semiFirstNoSpace, '');
+                    reviewedCell = reviewedCell.replace(semiAfterNoSpace, '');
+
                     reviewedCell = reviewedCell.replace(loginInitials, '');
                 }
                 row.update({ "To be reviewed by": reviewedCell });
