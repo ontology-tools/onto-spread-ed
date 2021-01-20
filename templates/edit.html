@@ -780,9 +780,13 @@
             // 2. Once in 'published', can't change status to anything but 'obsolete'. 
             //      - if user tries to change status out of 'published' to anything else, their change should be 
             //      reverted and a popup message says "are you sure" as if they are trying to delete it
-            // 3. It shouldn't be possible to set curation status to Discussed if there are empty values 
-            // in any of the Label, Definition, and Parent columns. 
-            // These should all be populated before a row can go into Discussed. 
+            // 3a. It shouldn't be possible to set curation status to Discussed if there are empty values 
+            //     in any of the Label, Definition, and Parent columns. 
+            //     These should all be populated before a row can go into Discussed. 
+            // 3b. And then an additional requirement for the Published status is that 
+            //     it's not possible to go to Published status without a value in the ID column. 
+
+
 
             if (data[curation_status] === undefined) { //Curation status column not present in table
 
@@ -820,6 +824,12 @@
                             }
                         }
                         if (prevCurationStatus == "Discussed" && savedCellDiscussed) {
+                            //additional check for empty "ID" column here: 
+                            if (data["ID"] == null || data["ID"] == "") {
+                                bootbox.alert("'ID' needs to be set first");
+                                data[curation_status] = prevCurationStatus; //reverting here
+                                //revert to prevCurationStatus and send a message
+                            }
                             console.log("this is fine");
                             //this is fine, allow it
                         } else {
@@ -841,15 +851,15 @@
                     }
                     //3. 
                     //if setting to "Discussed"
-                    if (cell.getValue() == "Discussed") {
+                    if (cell.getValue() == "Discussed" && prevCurationStatus !== "Discussed") { //prevCurationStatus !== "Discussed" to make sure we aren't just re-setting it somewhere else
                         if (data["Label"] == null || data["Label"] == "" | data["Definition"] == null || data["Definition"] == "" | data["Parent"] == null || data["Parent"] == "") {
                             bootbox.alert("'Label', 'Definition' and 'Parent' columns all need to be set first");
                             data[curation_status] = prevCurationStatus; //reverting here
-                        } else{
+                        } else {
                             console.log("All set. Label, Definition and Parent. Should be Discussed now");
                             //this is fine, allow it
                         }
-                    }   
+                    }
                 }
             }
             backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
