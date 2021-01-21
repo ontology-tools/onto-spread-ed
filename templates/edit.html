@@ -1266,6 +1266,7 @@
         if (changes.length > 0) {
             var cellArray = JSON.stringify(changes);
             localStorage.setItem("savedChanges" + thisSheet, cellArray);
+            console.log("changes.length = " + changes.length);
         }
         console.log("changes backed up");
     }
@@ -1317,6 +1318,9 @@
                                         bootbox.alert("Problem communicating with server");
                                     }
                                     else if (request.status === 200) {
+                                        window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                        changes = []; //no changes anymore to save
+                                        backupChanges();
                                         var response = JSON.parse(request.responseText);
                                         var new_file_sha = response['file_sha'];
                                         file_sha = new_file_sha;
@@ -1338,9 +1342,7 @@
                                         if (tableEdited) {
                                             tableEdited = false;
                                         }
-                                        window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-                                        changes = []; //no changes anymore to save
-                                        backupChanges();
+                                        
                                     } else {
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
