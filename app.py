@@ -282,15 +282,19 @@ def save():
                 # These should be kept in sync with those used in edit screen
                 # TODO add to config
                 if row[header.index("Curation status")]=="Discussed":
-                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="FFE4B5", fill_type = "solid")
-                elif row[header.index("Curation status")]=="In Discussion":
-                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type = "solid")
+                elif row[header.index("Curation status")]=="Ready": #this is depreciated
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
+                elif row[header.index("Curation status")]=="Proposed":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffffff", fill_type = "solid")
                 elif row[header.index("Curation status")]=="To Be Discussed":
                     sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
-                elif row[header.index("Curation status")]=="Ready":
-                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
+                elif row[header.index("Curation status")]=="In Discussion":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")                                
                 elif row[header.index("Curation status")]=="Published":
-                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7FFFD4", fill_type = "solid")
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type = "solid")
+                elif row[header.index("Curation status")]=="Obsolete":
+                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="2f4f4f", fill_type = "solid")
 
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
