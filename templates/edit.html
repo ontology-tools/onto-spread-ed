@@ -543,11 +543,11 @@
         rowSelected: function (row) {
             var data = row.getData();
             //show buttons concerning rows:
+            $('#delete-rows').show();
             if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
             } else {
-                //show buttons to do with rows
-                $('#delete-rows').show();
+                //show buttons to do with rows and curation status
                 $('#ask-for-review').show();
                 $('#reviewed').show();
             }
@@ -1020,8 +1020,11 @@
         }
         //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
-            if (row.getCell("ID") === undefined) {
-
+            var data = row.getData();
+            if(data["ID"] === undefined){
+                table.deleteRow(row);
+            // if (row.getCell("ID") === undefined) {
+                console.log("ID undefined");
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
