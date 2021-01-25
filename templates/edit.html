@@ -79,16 +79,8 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
 
-<!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script> -->
-
-<!-- <link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.1/dist/js/tabulator.min.js"></script> -->
-
 
 <!-- bootstrap 4 theme -->
-<!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
-<!-- link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
@@ -145,14 +137,9 @@
     var headerLength = headers.length;
 
 
-    //current spreadsheet name
-    //todo: thisSheet is undefined? Why? 
-    //var thisSheet = {{spreadsheet_name}}; //todo: need | safe ?
-    //todo: below is a hack. Fix this!!
-    var thisSheetHeader = $('#s-name').text().split(" ");
-    var thisSheet = thisSheetHeader[2];
+    //current spreadsheet name    
+    var thisSheet = '{{spreadsheet_name | safe}}';
     console.log("thisSheet is: " + thisSheet);
-
 
     //Build the table row data with field names
     var tableData = [];
@@ -196,7 +183,6 @@
             var changeWorkingOn = 0;
         } catch (err) {
             console.log(err);
-            // bootbox.alert(err); //don't bother people with errors, just use old version of table below:
             unsavedChanges = true;
         }
     }
@@ -215,7 +201,7 @@
                     for (var a = 0; a < changesArray.length; a++) {
                         if (i == changesArray[a + 1]) { //row
                             if (headers[j] == changesArray[a + 2]) { //column
-                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) { //todo: check if we need to JSON.stringify these?
+                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) {
                                     tableChangedArray.push("");
                                 } else {
                                     tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
@@ -282,11 +268,11 @@
             if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
-                //new method: restoring entire array:
+                //Restoring entire array:
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
-                //todo: below needs to block, but we want a bootbox style?
+                //todo: below needs to block, but we want a bootbox style which is asynchronous?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 $('#save-btn').show();
@@ -309,7 +295,7 @@
                             ////////////////////////////////////////////////////////////////////
                         } else {
                             if (rowObj[headers[j]] == null) {
-                                rowObj[headers[j]] = ""; //test change all null to ""
+                                rowObj[headers[j]] = ""; //change all null to ""
                             }
                         }
                     }
@@ -336,7 +322,7 @@
                         ////////////////////////////////////////////////////////////////////
                     } else {
                         if (rowObj[headers[j]] == null) {
-                            rowObj[headers[j]] = ""; //test change all null to ""
+                            rowObj[headers[j]] = ""; //change all null to ""
                         }
                     }
                 }
@@ -346,7 +332,7 @@
     } catch (err) {
         // alert("an error occurred, unable to restore unsaved changes\n" + err);
         window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
-        //still build table, but losing changes on error. 
+        //still build table, but losing changes on error, without any error message. 
         for (var i = 0; i < rowLength; i++) {
             var rowObj = { id: i }
             for (var j = 0; j < headerLength; j++) {
@@ -363,7 +349,7 @@
                     ////////////////////////////////////////////////////////////////////
                 } else {
                     if (rowObj[headers[j]] == null) {
-                        rowObj[headers[j]] = ""; //test change all null to ""
+                        rowObj[headers[j]] = ""; //change all null to ""
                     }
                 }
             }
@@ -372,12 +358,12 @@
     }
 
     //login
-    var loginInitials = "{{user_initials}}"; //todo: remove all '' and ; so I can use this?
+    var loginInitials = "{{user_initials}}";
     var highlightLogin = false; //highlight user edited tables
 
     //all_initials
     var allInitials = {{ all_initials | safe }};
-    //console.log("allInitials: " + allInitials);
+    console.log("allInitials: " + allInitials);
 
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
@@ -393,15 +379,13 @@
         {
             label: "Hide Column",
             action: function (e, column) {
-                //column.setWidth(40);
                 column.hide();
             }
         },
         {
             label: "Show Hidden",
             action: function (e, column) {
-                //column.setWidth(200);
-                var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
+                var allColumns = table.getColumns();
                 for (var i = 0; i < allColumns.length; i++) {
                     if (!table.getColumn(allColumns[i]).isVisible()) {
                         table.getColumn(allColumns[i]).show();
@@ -412,9 +396,14 @@
         {
             label: "Reset All Column Widths",
             action: function (e, column) {
-                var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
-                for (var i = 0; i < allColumns.length; i++) {
-                    table.getColumn(allColumns[i]).setWidth(200); //todo: make checkbox columns smaller here
+                var allColumns = table.getColumns();
+                for (var i = 1; i < allColumns.length; i++) { //don't re-size checkbox column (column 0)
+                    //"E-CigO" and "Fuzzy set" are a different size
+                    if (table.getColumn(allColumns[i]).getField() == "E-CigO" || table.getColumn(allColumns[i]).getField() == "Fuzzy set") {
+                        table.getColumn(allColumns[i]).setWidth(140);
+                    } else {
+                        table.getColumn(allColumns[i]).setWidth(200);
+                    }
                 }
             }
         },
@@ -423,7 +412,7 @@
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
-    columnData.push({ formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
+    columnData.push({ title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
     for (var i = 0; i < headerLength; i++) {
         //Dropdown list for "Curation status":
         //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
@@ -1021,9 +1010,9 @@
         //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
             var data = row.getData();
-            if(data["ID"] === undefined){
+            if (data["ID"] === undefined) {
                 table.deleteRow(row);
-            // if (row.getCell("ID") === undefined) {
+                // if (row.getCell("ID") === undefined) {
                 console.log("ID undefined");
             } else {
                 var data = row.getData();
@@ -1345,7 +1334,7 @@
                                         if (tableEdited) {
                                             tableEdited = false;
                                         }
-                                        
+
                                     } else {
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
