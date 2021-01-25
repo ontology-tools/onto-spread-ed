@@ -415,11 +415,11 @@
     columnData.push({ title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
     for (var i = 0; i < headerLength; i++) {
         //Dropdown list for "Curation status":
-        if (headers[i] == "Curation status") {                                                                                            
+        if (headers[i] == "Curation status") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-        } else if (headers[i] == "E-CigO") { 
+        } else if (headers[i] == "E-CigO") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
-        } else if (headers[i] == "Fuzzy set") { 
+        } else if (headers[i] == "Fuzzy set") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         }
         else if (headers[i] == "To be reviewed by") {
@@ -1012,7 +1012,7 @@
                 callback: function (result) {
                     if (result === null || result === "") { //cancel or no curator selected
                         // row.deselect(); //probably not a good idea.. maybe they made a mistake and want to do something else.
-                    } else { 
+                    } else {
                         selectedRows.forEach(function (row) {
                             //logic:
                             //1. Don't repeat initials already present
@@ -1261,7 +1261,6 @@
                                         $("#saveAlert").dismissed = false;
                                         $("#saveAlert").show();
                                         $('#save-btn').hide(); //saved successfully, hide save button
-                                        //todo: remove cell.getElement().style.color = "#003399"; //??? how ???
 
                                         var rows = table.getRows();
                                         for (i = 0; i < rows.length; i++) {
@@ -1282,9 +1281,7 @@
                                         $('#saveAlert').addClass('alert-danger');
                                         $("#saveMessage").append('There was a problem saving changes: ' + errInfo);
                                         $("#saveMessage").append('merge info: ' + mergeInfo); //todo: do we need to show this? 
-                                        // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);
-                                        // console.log("errInfo: " + errInfo);
-                                        // console.log("mergeInfo: " + mergeInfo);
+                                        // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
                                         $(".alert").alert()
                                         $("#saveAlert").show();
                                     }
