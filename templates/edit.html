@@ -1352,7 +1352,11 @@
                                         var mergeInfo = response['merge_diff'];
                                         $('#saveAlert').removeClass('alert-success');
                                         $('#saveAlert').addClass('alert-danger');
-                                        $("#saveMessage").text('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);
+                                        $("#saveMessage").append('There was a problem saving changes: ' + errInfo);
+                                        $("#saveMessage").append('merge info: ' + mergeInfo); //todo: do we need to show this? 
+                                        // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);
+                                        // console.log("errInfo: " + errInfo);
+                                        // console.log("mergeInfo: " + mergeInfo);
                                         $(".alert").alert()
                                         $("#saveAlert").show();
                                     }
