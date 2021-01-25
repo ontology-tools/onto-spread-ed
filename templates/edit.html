@@ -415,12 +415,11 @@
     columnData.push({ title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
     for (var i = 0; i < headerLength; i++) {
         //Dropdown list for "Curation status":
-        //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
-        if (headers[i] == "Curation status") {                                                                                        //         “Proposed”-->”To Be Discussed”-->”In Discussion”-->”Discussed”-->”Published”-->”Obsolete”.      
+        if (headers[i] == "Curation status") {                                                                                            
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-        } else if (headers[i] == "E-CigO") { //todo: headerFilter can't select by unchecked?
+        } else if (headers[i] == "E-CigO") { 
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
-        } else if (headers[i] == "Fuzzy set") { //todo: checkbox change notdevelopment affecting highlight your rows if there is another curator listed
+        } else if (headers[i] == "Fuzzy set") { 
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         }
         else if (headers[i] == "To be reviewed by") {
@@ -437,46 +436,24 @@
     }
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
-        // tooltips:true, //example option (enable tooltips on all cells)
-        // resizableRows:true,
-        // footerElement:"<button>Custom Button</button>", 
         groupToggleElement: "header",
-        //height:"calc(100% - 250px)",
-        // height:"100%", //this makes the header not stay on the top..
         height: window.innerHeight / 3 * 2,
         layout: "fitColumns",
-        //layout:window.innerWidth > 800 ? "fitColumns" : "fitData",
         // pagination:"local",
         // paginationSize:"20",
         movableRows: false,
         groupBy: "Id",
         groupStartOpen: true,
         persistence: true,
-        /*persistence:{
-        sort: true, //persist column sorting
-        filter: true, //persist filter sorting
-        group: true, //persist row grouping
-        page: true, //persist page
-        //columns: true, //persist columns
-        columns: ["width", "visible", "frozen"],
-    },*/ //this doesn't work either for dropdown persistence
-        // movableRows:true,
-        // responsiveLayout:"hide",
         keybindings: true,
         history: true, //records table interaction
-        // addRowPos:"bottom",
-        // virtualDom:false,
         data: tableData,
         columns: columnData,
-        //autoColumns: true,
         reactiveData: true, //enables updating cell contents programmatically
-
         virtualDomBuffer: 1500, //may be needed to fix bug where up scroll is disappearing rows
-
         scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false, //don't scroll if row already on screen
 
-        //headerSortTristate:true, //enable tristate header sort for all columns - up, down and original order
 
         dataSorting: function (sorters) {
             //console.log("sorted");
@@ -490,30 +467,6 @@
 
         },
         renderComplete: function () {
-            // test find rows selected and highlight:
-            // below is inconsistent, tabulator does not find selected rows if some have been deleted beforehand (why?)
-            //going to deselect instead in the affected "highlight your rows" button function for now
-            // try {
-            //     var selectedRows = table.getSelectedRows();
-            //     for (i = 0; i < selectedRows.length; i++) {
-            //         var row = table.getRow(i);
-            //         var data = row.getData();
-            //         //show buttons concerning rows:
-            //         if (data[curation_status] === undefined) { //for tables without curation_status
-            //             //don't show some buttons if in a table where they are not needed
-            //         } else {
-            //             //show buttons to do with rows
-            //             $('#delete-rows').show();
-            //             $('#ask-for-review').show();
-            //             $('#reviewed').show();
-            //         }
-            //         row.getElement().style.backgroundColor = 'grey';
-            //     }
-            //     console.log("selectedRows: " + selectedRows);
-            // } catch {
-            //     console.log("no rows selected");
-            // }
-
             try {
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
                 var row = table.getRowFromPosition(0, true);
@@ -569,21 +522,8 @@
             //WARNING: THIS DOES NOT TRIGGER ON FIREFOX!
             var row = cell.getRow();
             var data = row.getData();
-            // var column = cell.getColumn();
-            // rowValue = row.getPosition(true);
-            // console.log(cell.getValue()); //this works
-            // //save backup curation status if "Curation status" column present: 
-            // if (data[curation_status] === undefined) { //Curation status column not present in table
-
-            // } else {
-            //     if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
-            //         prevCurationStatus = cell.getValue();
-            //         console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
-            //     }
-            // }
-            //e - the click event object
-            //cell - cell component
         },
+
         cellEditing: function (cell) {
             var row = cell.getRow();
             rowValue = row.getPosition(true);
@@ -851,7 +791,7 @@
                     }
                 }
             }
-            backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
+            backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten *what did I mean here? 
         },
 
         cellEditCancelled: function (cell) {
@@ -1050,9 +990,8 @@
         //renderComplete triggered here 
     });
 
-    //todo: button icon highlighted if a filter is active?
     $("#remove-formatting").click(function () {
-        clearFormatting(); //todo: this should also switch all up/down arrow filters back..
+        clearFormatting();
     });
 
     $("#ask-for-review").click(function () {
@@ -1071,9 +1010,9 @@
                 inputType: 'checkbox',
                 inputOptions: $(inputArray),
                 callback: function (result) {
-                    if (result === null) {
-                        // row.deselect(); //todo: should we? 
-                    } else {
+                    if (result === null || result === "") { //cancel or no curator selected
+                        // row.deselect(); //probably not a good idea.. maybe they made a mistake and want to do something else.
+                    } else { 
                         selectedRows.forEach(function (row) {
                             //logic:
                             //1. Don't repeat initials already present
