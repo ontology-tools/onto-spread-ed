@@ -11,7 +11,7 @@ if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
     GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
-    REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology"}
+    REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology", "BCIO": "jannahastings/ontologies"}
 else:
     REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology"}
 

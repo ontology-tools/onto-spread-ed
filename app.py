@@ -183,7 +183,7 @@ def home():
 
 
 @app.route('/repo/<repo_key>')
-@app.route('/repo/<repo_key>/<folder_path>')
+@app.route('/repo/<repo_key>/<path:folder_path>')
 @verify_logged_in
 def repo(repo_key, folder_path=""):
     repositories = app.config['REPOSITORIES']
@@ -215,7 +215,7 @@ def repo(repo_key, folder_path=""):
                             )
 
 
-@app.route('/edit/<repo_key>/<folder>/<spreadsheet>')
+@app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet):
     repositories = app.config['REPOSITORIES']
