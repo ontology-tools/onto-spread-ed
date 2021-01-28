@@ -15,7 +15,7 @@
         <b>Folders: </b><br />
         <ul>
         {% for dir in directories %}
-            <li> <a href="/repo/{{repo_name}}/{{folder_path}}/{{dir}}">{{dir}}</a> </li>
+            <li> <a href="/repo/{{repo_name}}/{{folder_path}}/{{dir}}">{{dir}}</a> </li> <!--todo: does this add extra "/"-->
         {% endfor %}
         </ul>
     {% endif %}
