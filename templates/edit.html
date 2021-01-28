@@ -79,16 +79,8 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
 
-<!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.8.2/dist/js/tabulator.min.js"></script> -->
-
-<!-- <link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.1/dist/js/tabulator.min.js"></script> -->
-
 
 <!-- bootstrap 4 theme -->
-<!-- <link href="https://unpkg.com/tabulator-tables@4.8.2/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
-<!-- link href="https://unpkg.com/tabulator-tables@4.9.1/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet"> -->
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
@@ -145,14 +137,9 @@
     var headerLength = headers.length;
 
 
-    //current spreadsheet name
-    //todo: thisSheet is undefined? Why? 
-    //var thisSheet = {{spreadsheet_name}}; //todo: need | safe ?
-    //todo: below is a hack. Fix this!!
-    var thisSheetHeader = $('#s-name').text().split(" ");
-    var thisSheet = thisSheetHeader[2];
+    //current spreadsheet name    
+    var thisSheet = '{{spreadsheet_name | safe}}';
     console.log("thisSheet is: " + thisSheet);
-
 
     //Build the table row data with field names
     var tableData = [];
@@ -196,7 +183,6 @@
             var changeWorkingOn = 0;
         } catch (err) {
             console.log(err);
-            // bootbox.alert(err); //don't bother people with errors, just use old version of table below:
             unsavedChanges = true;
         }
     }
@@ -215,7 +201,7 @@
                     for (var a = 0; a < changesArray.length; a++) {
                         if (i == changesArray[a + 1]) { //row
                             if (headers[j] == changesArray[a + 2]) { //column
-                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) { //todo: check if we need to JSON.stringify these?
+                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) {
                                     tableChangedArray.push("");
                                 } else {
                                     tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
@@ -282,11 +268,11 @@
             if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
-                //new method: restoring entire array:
+                //Restoring entire array:
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
-                //todo: below needs to block, but we want a bootbox style?
+                //todo: below needs to block, but we want a bootbox style which is asynchronous?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 $('#save-btn').show();
@@ -309,7 +295,7 @@
                             ////////////////////////////////////////////////////////////////////
                         } else {
                             if (rowObj[headers[j]] == null) {
-                                rowObj[headers[j]] = ""; //test change all null to ""
+                                rowObj[headers[j]] = ""; //change all null to ""
                             }
                         }
                     }
@@ -336,7 +322,7 @@
                         ////////////////////////////////////////////////////////////////////
                     } else {
                         if (rowObj[headers[j]] == null) {
-                            rowObj[headers[j]] = ""; //test change all null to ""
+                            rowObj[headers[j]] = ""; //change all null to ""
                         }
                     }
                 }
@@ -346,7 +332,7 @@
     } catch (err) {
         // alert("an error occurred, unable to restore unsaved changes\n" + err);
         window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
-        //still build table, but losing changes on error. 
+        //still build table, but losing changes on error, without any error message. 
         for (var i = 0; i < rowLength; i++) {
             var rowObj = { id: i }
             for (var j = 0; j < headerLength; j++) {
@@ -363,7 +349,7 @@
                     ////////////////////////////////////////////////////////////////////
                 } else {
                     if (rowObj[headers[j]] == null) {
-                        rowObj[headers[j]] = ""; //test change all null to ""
+                        rowObj[headers[j]] = ""; //change all null to ""
                     }
                 }
             }
@@ -372,12 +358,12 @@
     }
 
     //login
-    var loginInitials = "{{user_initials}}"; //todo: remove all '' and ; so I can use this?
+    var loginInitials = "{{user_initials}}";
     var highlightLogin = false; //highlight user edited tables
 
     //all_initials
     var allInitials = {{ all_initials | safe }};
-    //console.log("allInitials: " + allInitials);
+    console.log("allInitials: " + allInitials);
 
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
@@ -393,15 +379,13 @@
         {
             label: "Hide Column",
             action: function (e, column) {
-                //column.setWidth(40);
                 column.hide();
             }
         },
         {
             label: "Show Hidden",
             action: function (e, column) {
-                //column.setWidth(200);
-                var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
+                var allColumns = table.getColumns();
                 for (var i = 0; i < allColumns.length; i++) {
                     if (!table.getColumn(allColumns[i]).isVisible()) {
                         table.getColumn(allColumns[i]).show();
@@ -412,9 +396,14 @@
         {
             label: "Reset All Column Widths",
             action: function (e, column) {
-                var allColumns = table.getColumns(); //this is all columns, should we get filtered ones only?
-                for (var i = 0; i < allColumns.length; i++) {
-                    table.getColumn(allColumns[i]).setWidth(200); //todo: make checkbox columns smaller here
+                var allColumns = table.getColumns();
+                for (var i = 1; i < allColumns.length; i++) { //don't re-size checkbox column (column 0)
+                    //"E-CigO" and "Fuzzy set" are a different size
+                    if (table.getColumn(allColumns[i]).getField() == "E-CigO" || table.getColumn(allColumns[i]).getField() == "Fuzzy set") {
+                        table.getColumn(allColumns[i]).setWidth(140);
+                    } else {
+                        table.getColumn(allColumns[i]).setWidth(200);
+                    }
                 }
             }
         },
@@ -423,15 +412,14 @@
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
-    columnData.push({ formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
+    columnData.push({ title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
     for (var i = 0; i < headerLength; i++) {
         //Dropdown list for "Curation status":
-        //Todo: do I need to sanitize this? Need to support "Curation Status", "CurationStatus"?
-        if (headers[i] == "Curation status") {                                                                                        //         “Proposed”-->”To Be Discussed”-->”In Discussion”-->”Discussed”-->”Published”-->”Obsolete”.      
+        if (headers[i] == "Curation status") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-        } else if (headers[i] == "E-CigO") { //todo: headerFilter can't select by unchecked?
+        } else if (headers[i] == "E-CigO") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
-        } else if (headers[i] == "Fuzzy set") { //todo: checkbox change notdevelopment affecting highlight your rows if there is another curator listed
+        } else if (headers[i] == "Fuzzy set") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         }
         else if (headers[i] == "To be reviewed by") {
@@ -448,46 +436,24 @@
     }
     //Create the Tabulator table:
     var table = new Tabulator("#contentTable", {
-        // tooltips:true, //example option (enable tooltips on all cells)
-        // resizableRows:true,
-        // footerElement:"<button>Custom Button</button>", 
         groupToggleElement: "header",
-        //height:"calc(100% - 250px)",
-        // height:"100%", //this makes the header not stay on the top..
         height: window.innerHeight / 3 * 2,
         layout: "fitColumns",
-        //layout:window.innerWidth > 800 ? "fitColumns" : "fitData",
         // pagination:"local",
         // paginationSize:"20",
         movableRows: false,
         groupBy: "Id",
         groupStartOpen: true,
         persistence: true,
-        /*persistence:{
-        sort: true, //persist column sorting
-        filter: true, //persist filter sorting
-        group: true, //persist row grouping
-        page: true, //persist page
-        //columns: true, //persist columns
-        columns: ["width", "visible", "frozen"],
-    },*/ //this doesn't work either for dropdown persistence
-        // movableRows:true,
-        // responsiveLayout:"hide",
         keybindings: true,
         history: true, //records table interaction
-        // addRowPos:"bottom",
-        // virtualDom:false,
         data: tableData,
         columns: columnData,
-        //autoColumns: true,
         reactiveData: true, //enables updating cell contents programmatically
-
         virtualDomBuffer: 1500, //may be needed to fix bug where up scroll is disappearing rows
-
         scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false, //don't scroll if row already on screen
 
-        //headerSortTristate:true, //enable tristate header sort for all columns - up, down and original order
 
         dataSorting: function (sorters) {
             //console.log("sorted");
@@ -501,30 +467,6 @@
 
         },
         renderComplete: function () {
-            // test find rows selected and highlight:
-            // below is inconsistent, tabulator does not find selected rows if some have been deleted beforehand (why?)
-            //going to deselect instead in the affected "highlight your rows" button function for now
-            // try {
-            //     var selectedRows = table.getSelectedRows();
-            //     for (i = 0; i < selectedRows.length; i++) {
-            //         var row = table.getRow(i);
-            //         var data = row.getData();
-            //         //show buttons concerning rows:
-            //         if (data[curation_status] === undefined) { //for tables without curation_status
-            //             //don't show some buttons if in a table where they are not needed
-            //         } else {
-            //             //show buttons to do with rows
-            //             $('#delete-rows').show();
-            //             $('#ask-for-review').show();
-            //             $('#reviewed').show();
-            //         }
-            //         row.getElement().style.backgroundColor = 'grey';
-            //     }
-            //     console.log("selectedRows: " + selectedRows);
-            // } catch {
-            //     console.log("no rows selected");
-            // }
-
             try {
                 table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
                 var row = table.getRowFromPosition(0, true);
@@ -543,11 +485,11 @@
         rowSelected: function (row) {
             var data = row.getData();
             //show buttons concerning rows:
+            $('#delete-rows').show();
             if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
             } else {
-                //show buttons to do with rows
-                $('#delete-rows').show();
+                //show buttons to do with rows and curation status
                 $('#ask-for-review').show();
                 $('#reviewed').show();
             }
@@ -580,21 +522,8 @@
             //WARNING: THIS DOES NOT TRIGGER ON FIREFOX!
             var row = cell.getRow();
             var data = row.getData();
-            // var column = cell.getColumn();
-            // rowValue = row.getPosition(true);
-            // console.log(cell.getValue()); //this works
-            // //save backup curation status if "Curation status" column present: 
-            // if (data[curation_status] === undefined) { //Curation status column not present in table
-
-            // } else {
-            //     if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
-            //         prevCurationStatus = cell.getValue();
-            //         console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
-            //     }
-            // }
-            //e - the click event object
-            //cell - cell component
         },
+
         cellEditing: function (cell) {
             var row = cell.getRow();
             rowValue = row.getPosition(true);
@@ -780,6 +709,14 @@
             // 2. Once in 'published', can't change status to anything but 'obsolete'. 
             //      - if user tries to change status out of 'published' to anything else, their change should be 
             //      reverted and a popup message says "are you sure" as if they are trying to delete it
+            // 3a. It shouldn't be possible to set curation status to Discussed if there are empty values 
+            //     in any of the Label, Definition, and Parent columns. 
+            //     These should all be populated before a row can go into Discussed. 
+            // 3b. And then an additional requirement for the Published status is that 
+            //     it's not possible to go to Published status without a value in the ID column. 
+
+
+
             if (data[curation_status] === undefined) { //Curation status column not present in table
 
             } else {
@@ -816,6 +753,12 @@
                             }
                         }
                         if (prevCurationStatus == "Discussed" && savedCellDiscussed) {
+                            //additional check for empty "ID" column here: 
+                            if (data["ID"] == null || data["ID"] == "") {
+                                bootbox.alert("'ID' needs to be set first");
+                                data[curation_status] = prevCurationStatus; //reverting here
+                                //revert to prevCurationStatus and send a message
+                            }
                             console.log("this is fine");
                             //this is fine, allow it
                         } else {
@@ -835,9 +778,20 @@
                             //this is fine, allow it
                         }
                     }
+                    //3. 
+                    //if setting to "Discussed"
+                    if (cell.getValue() == "Discussed" && prevCurationStatus !== "Discussed") { //prevCurationStatus !== "Discussed" to make sure we aren't just re-setting it somewhere else
+                        if (data["Label"] == null || data["Label"] == "" | data["Definition"] == null || data["Definition"] == "" | data["Parent"] == null || data["Parent"] == "") {
+                            bootbox.alert("'Label', 'Definition' and 'Parent' columns all need to be set first");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                        } else {
+                            console.log("All set. Label, Definition and Parent. Should be Discussed now");
+                            //this is fine, allow it
+                        }
+                    }
                 }
             }
-            backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten
+            backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten *what did I mean here? 
         },
 
         cellEditCancelled: function (cell) {
@@ -995,8 +949,11 @@
         }
         //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
-            if (row.getCell("ID") === undefined) {
-
+            var data = row.getData();
+            if (data["ID"] === undefined) {
+                table.deleteRow(row);
+                // if (row.getCell("ID") === undefined) {
+                console.log("ID undefined");
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
@@ -1033,9 +990,8 @@
         //renderComplete triggered here 
     });
 
-    //todo: button icon highlighted if a filter is active?
     $("#remove-formatting").click(function () {
-        clearFormatting(); //todo: this should also switch all up/down arrow filters back..
+        clearFormatting();
     });
 
     $("#ask-for-review").click(function () {
@@ -1054,8 +1010,8 @@
                 inputType: 'checkbox',
                 inputOptions: $(inputArray),
                 callback: function (result) {
-                    if (result === null) {
-                        // row.deselect(); //todo: should we? 
+                    if (result === null || result === "") { //cancel or no curator selected
+                        // row.deselect(); //probably not a good idea.. maybe they made a mistake and want to do something else.
                     } else {
                         selectedRows.forEach(function (row) {
                             //logic:
@@ -1124,12 +1080,21 @@
                 var reviewedCell = "";
                 //three options to replace (eg if loginInitials are "to"):
                 // ; to | to; | to
+                //added two new options, ;to|to; - without spaces
+                // todo: how to check for arbitrary number of spaces? 
+                var semiFirstNoSpace = ";" + loginInitials;
+                var semiAfterNoSpace = loginInitials + ";";
+
                 var semiFirst = "; " + loginInitials;
                 var semiAfter = loginInitials + "; ";
 
                 if (cellValue !== null) {
                     reviewedCell = cellValue.replace(semiFirst, '');
                     reviewedCell = reviewedCell.replace(semiAfter, '');
+                    //replace if without spaces:
+                    reviewedCell = cellValue.replace(semiFirstNoSpace, '');
+                    reviewedCell = reviewedCell.replace(semiAfterNoSpace, '');
+
                     reviewedCell = reviewedCell.replace(loginInitials, '');
                 }
                 row.update({ "To be reviewed by": reviewedCell });
@@ -1232,6 +1197,7 @@
         if (changes.length > 0) {
             var cellArray = JSON.stringify(changes);
             localStorage.setItem("savedChanges" + thisSheet, cellArray);
+            console.log("changes.length = " + changes.length);
         }
         console.log("changes backed up");
     }
@@ -1283,6 +1249,9 @@
                                         bootbox.alert("Problem communicating with server");
                                     }
                                     else if (request.status === 200) {
+                                        window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                        changes = []; //no changes anymore to save
+                                        backupChanges();
                                         var response = JSON.parse(request.responseText);
                                         var new_file_sha = response['file_sha'];
                                         file_sha = new_file_sha;
@@ -1292,7 +1261,6 @@
                                         $("#saveAlert").dismissed = false;
                                         $("#saveAlert").show();
                                         $('#save-btn').hide(); //saved successfully, hide save button
-                                        //todo: remove cell.getElement().style.color = "#003399"; //??? how ???
 
                                         var rows = table.getRows();
                                         for (i = 0; i < rows.length; i++) {
@@ -1304,16 +1272,16 @@
                                         if (tableEdited) {
                                             tableEdited = false;
                                         }
-                                        window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-                                        changes = []; //no changes anymore to save
-                                        backupChanges();
+
                                     } else {
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
                                         var mergeInfo = response['merge_diff'];
                                         $('#saveAlert').removeClass('alert-success');
                                         $('#saveAlert').addClass('alert-danger');
-                                        $("#saveMessage").text('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);
+                                        $("#saveMessage").append('There was a problem saving changes: ' + errInfo);
+                                        $("#saveMessage").append('merge info: ' + mergeInfo); //todo: do we need to show this? 
+                                        // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
                                         $(".alert").alert()
                                         $("#saveAlert").show();
                                     }
