@@ -15,8 +15,13 @@
 <b>Folders: </b><br />
 <ul>
     {% for dir in directories %}
-    <li class="oneSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}{{dir}}">{{dir}}</a> </li>
+    {% if folder_path|length %}
     <li class="twoSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}/{{dir}}">{{dir}}</a> </li>
+    {% else %}
+    <li class="oneSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}{{dir}}">{{dir}}</a> </li>
+    {% endif %}
+    
+    
     <script type="text/javascript">
 
         console.log("folder_path is: " + "{{folder_path}}");
@@ -45,6 +50,7 @@
     crossorigin="anonymous"></script>
 
 <script type="text/javascript">
+/*
     $(document).ready(function () {
         console.log("ready1");
         if ("{{folder_path}}" == "") {
@@ -55,6 +61,7 @@
             // $('.twoSlash').hide();
         }
     });
+    */
 </script>
 
 
