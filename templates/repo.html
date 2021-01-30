@@ -20,12 +20,12 @@
     {% else %}
     <li class="oneSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}{{dir}}">{{dir}}</a> </li>
     {% endif %}
-    
-    
+
+
     <script type="text/javascript">
 
-        console.log("folder_path is: " + "{{folder_path}}");
-        console.log("full path is: " + "/repo/{{repo_name}}/{{folder_path}}/{{dir}}");
+        // console.log("folder_path is: " + "{{folder_path}}");
+        // console.log("full path is: " + "/repo/{{repo_name}}/{{folder_path}}/{{dir}}");
     </script>
     {% endfor %}
 </ul>
@@ -38,31 +38,13 @@
     <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
     </p>
     <script type="text/javascript">
-        console.log("folder_path is: " + "{{folder_path}}");
-        console.log("spreadsheet path is: " + "/edit/{{repo_name}}/{{folder_path}}/{{spr}}");
+        // console.log("folder_path is: " + "{{folder_path}}");
+        // console.log("spreadsheet path is: " + "/edit/{{repo_name}}/{{folder_path}}/{{spr}}");
     </script>
     {% endfor %}
 </ul>
 {% endif %}
 
-<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
-    integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
-    crossorigin="anonymous"></script>
-
-<script type="text/javascript">
-/*
-    $(document).ready(function () {
-        console.log("ready1");
-        if ("{{folder_path}}" == "") {
-            // $('.oneSlash').hide();
-            $('.twoSlash').hide();
-        } else {
-            $('.oneSlash').hide();
-            // $('.twoSlash').hide();
-        }
-    });
-    */
-</script>
 
 
 {% endblock %}
