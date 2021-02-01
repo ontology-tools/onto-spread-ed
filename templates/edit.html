@@ -279,34 +279,23 @@
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
                 //discard changes 
-                for (var i = 0; i < rowLength; i++) {
-                    var rowObj = { id: i }
-                    for (var j = 0; j < headerLength; j++) {
-                        rowObj[headers[j]] = rowData[i][headers[j]];
-                        //trying to set null values to 0 in checkbox columns here:
-                        if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
-                            if (rowObj[headers[j]] == null) {
-                                rowObj[headers[j]] = 0;
-                            }
-                            /////////////////////fix E-CigO removing ticks///////////////////////
-                            if (rowObj[headers[j]] == 1) {
-                                rowObj[headers[j]] = 1;
-                            }
-                            ////////////////////////////////////////////////////////////////////
-                        } else {
-                            if (rowObj[headers[j]] == null) {
-                                rowObj[headers[j]] = ""; //change all null to ""
-                            }
-                        }
-                    }
-                    tableData.push(rowObj);
-                }
+                populateTable();
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
-
+        
         } else {
             //no saved changes
-            for (var i = 0; i < rowLength; i++) {
+            populateTable();
+        }
+    } catch (err) {
+        // alert("an error occurred, unable to restore unsaved changes\n" + err);
+        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+        //still build table, but losing changes on error, without any error message. 
+        populateTable();
+    }
+
+    function populateTable(){
+        for (var i = 0; i < rowLength; i++) {
                 var rowObj = { id: i }
                 for (var j = 0; j < headerLength; j++) {
                     rowObj[headers[j]] = rowData[i][headers[j]];
@@ -325,36 +314,15 @@
                             rowObj[headers[j]] = ""; //change all null to ""
                         }
                     }
+                    //adding "External" status 
+                    if (headers[j] == curation_status) { //column
+                        if(!rowObj["ID"].includes("ADDICTO") || !rowObj["ID"].includes("BCIO")){
+                            rowObj[headers[j]] = "External";
+                        }
+                    }
                 }
                 tableData.push(rowObj);
             }
-        }
-    } catch (err) {
-        // alert("an error occurred, unable to restore unsaved changes\n" + err);
-        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
-        //still build table, but losing changes on error, without any error message. 
-        for (var i = 0; i < rowLength; i++) {
-            var rowObj = { id: i }
-            for (var j = 0; j < headerLength; j++) {
-                rowObj[headers[j]] = rowData[i][headers[j]];
-                //trying to set null values to 0 in checkbox columns here:
-                if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
-                    if (rowObj[headers[j]] == null) {
-                        rowObj[headers[j]] = 0;
-                    }
-                    /////////////////////fix E-CigO removing ticks///////////////////////
-                    if (rowObj[headers[j]] == 1) {
-                        rowObj[headers[j]] = 1;
-                    }
-                    ////////////////////////////////////////////////////////////////////
-                } else {
-                    if (rowObj[headers[j]] == null) {
-                        rowObj[headers[j]] = ""; //change all null to ""
-                    }
-                }
-            }
-            tableData.push(rowObj);
-        }
     }
 
     //login
