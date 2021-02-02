@@ -321,7 +321,7 @@
                 //adding "External" status 
                 if (headers[j] == curation_status) { //column
                     console.log("repo_name is: " + repo_name);
-                    if (rowObj["ID"] == undefined) { 
+                    if (rowObj["ID"] == undefined) {
                         //no "ID" column
                     } else {
                         if (rowObj["ID"] == "" || rowObj["ID"] == null) {
@@ -580,25 +580,60 @@
                 }
 
                 //override for "External" Curation status:
-                //todo: this is overriding the new row "Curation status" - what to do here? 
-                if (data["ID"] === undefined) {
-
-                } else {
-                    if (data["ID"].includes("ADDICTO") || data["ID"].includes("BCIO")) {
-                        if (data[curation_status] == "External") {
-                            data[curation_status] = "Proposed";
-                        }
-                    } else {
-                        if (data["ID"] == "" || data["ID"] == null) {
-                            //no change
-                        } else {
-                            data[curation_status] = "External";
-                        }
-
-                        //colour changed in "rowColours" function
+                //If "ID" changed to "ADDICTO" or "BCIO" (in corresponding repo), "Curation status" must be set to "Proposed"
+                if (cell.getValue() !== "" && cell.getValue() !== null) {
+                    rowValue = row.getPosition();//save absolute row position
+                    columnValue = cell.getField(); //column name
+                    if (cell.getValue().includes(repo_name.toUpperCase())) {
+                         if (data[curation_status] == "External") { //
+                            data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
+                         }
                     }
-
                 }
+                if (data["ID"] == undefined) {
+                    //no "ID" column
+                } else {
+                    if (data["ID"] == "" || data["ID"] == null) {
+                        //not External
+                    } else {
+                        //different repo's: 
+                        if (repo_name == "BCIO") {
+                            if (data["ID"].includes("BCIO")) {
+                                //not external
+                            } else {
+                                data[curation_status] = "External";
+                            }
+                        } else { //"AddictO repo"
+                            if (data["ID"].includes("ADDICTO")) {
+                                //not external
+                            } else {
+                                data[curation_status] = "External";
+                            }
+                        }
+                    }
+                }
+
+
+                // }
+
+                // if (data["ID"] === undefined) {
+
+                // } else {
+                //     if (data["ID"].includes("ADDICTO") || data["ID"].includes("BCIO")) {
+                //         if (data[curation_status] == "External") {
+                //             data[curation_status] = "Proposed";
+                //         }
+                //     } else {
+                //         if (data["ID"] == "" || data["ID"] == null) {
+                //             //no change
+                //         } else {
+                //             data[curation_status] = "External";
+                //         }
+
+                //         //colour changed in "rowColours" function
+                //     }
+
+                // }
 
             }
 
