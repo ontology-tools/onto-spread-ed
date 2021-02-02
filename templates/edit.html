@@ -88,7 +88,7 @@
     console.log("allCookies: " + allCookies);
 
     var file_sha = '{{file_sha}}';
-
+    var repo_name = '{{repo_name}}';
     //hide save button on load
     $('#save-btn').hide();
 
@@ -105,6 +105,7 @@
     var inDiscussion = "InDiscussion";
     var published = "Published";
     var obsolete = "Obsolete";
+    var external = "External";
 
     //whyFuzzy
     var why_Fuzzy = "Why fuzzy";//column name
@@ -279,60 +280,22 @@
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
             } else {
                 //discard changes 
-                for (var i = 0; i < rowLength; i++) {
-                    var rowObj = { id: i }
-                    for (var j = 0; j < headerLength; j++) {
-                        rowObj[headers[j]] = rowData[i][headers[j]];
-                        //trying to set null values to 0 in checkbox columns here:
-                        if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
-                            if (rowObj[headers[j]] == null) {
-                                rowObj[headers[j]] = 0;
-                            }
-                            /////////////////////fix E-CigO removing ticks///////////////////////
-                            if (rowObj[headers[j]] == 1) {
-                                rowObj[headers[j]] = 1;
-                            }
-                            ////////////////////////////////////////////////////////////////////
-                        } else {
-                            if (rowObj[headers[j]] == null) {
-                                rowObj[headers[j]] = ""; //change all null to ""
-                            }
-                        }
-                    }
-                    tableData.push(rowObj);
-                }
+                populateTable();
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
             }
 
         } else {
             //no saved changes
-            for (var i = 0; i < rowLength; i++) {
-                var rowObj = { id: i }
-                for (var j = 0; j < headerLength; j++) {
-                    rowObj[headers[j]] = rowData[i][headers[j]];
-                    //trying to set null values to 0 in checkbox columns here:
-                    if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
-                        if (rowObj[headers[j]] == null) {
-                            rowObj[headers[j]] = 0;
-                        }
-                        /////////////////////fix E-CigO removing ticks///////////////////////
-                        if (rowObj[headers[j]] == 1) {
-                            rowObj[headers[j]] = 1;
-                        }
-                        ////////////////////////////////////////////////////////////////////
-                    } else {
-                        if (rowObj[headers[j]] == null) {
-                            rowObj[headers[j]] = ""; //change all null to ""
-                        }
-                    }
-                }
-                tableData.push(rowObj);
-            }
+            populateTable();
         }
     } catch (err) {
         // alert("an error occurred, unable to restore unsaved changes\n" + err);
         window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
         //still build table, but losing changes on error, without any error message. 
+        populateTable();
+    }
+
+    function populateTable() {
         for (var i = 0; i < rowLength; i++) {
             var rowObj = { id: i }
             for (var j = 0; j < headerLength; j++) {
@@ -351,6 +314,38 @@
                     if (rowObj[headers[j]] == null) {
                         rowObj[headers[j]] = ""; //change all null to ""
                     }
+                }
+                //All rows with empty IDs --> not external. 
+                //Rows with AddictO IDs in AddictO repo or BCIO IDs in BCIO repo --> not external. 
+                //Only rows with  non-empty IDs, that are not matching the project ID template, are external.
+                //adding "External" status 
+                if (headers[j] == curation_status) { //column
+                    console.log("repo_name is: " + repo_name);
+                    if (rowObj["ID"] == undefined) {
+                        //no "ID" column
+                    } else {
+                        if (rowObj["ID"] == "" || rowObj["ID"] == null) {
+                            //not External
+                        } else {
+                            //different repo's: 
+                            if (repo_name == "BCIO") {
+                                //todo: is there no change for "" and null here as well? 
+                                if (rowObj["ID"].includes("BCIO")) {
+                                    //not external
+                                } else {
+                                    rowObj[headers[j]] = "External";
+                                }
+                            } else { //"AddictO repo"
+                                if (rowObj["ID"].includes("ADDICTO")) {
+                                    //not external
+                                } else {
+                                    rowObj[headers[j]] = "External";
+                                }
+                            }
+                        }
+                    }
+
+
                 }
             }
             tableData.push(rowObj);
@@ -583,7 +578,65 @@
                 if (data[curation_status] !== null) {
                     rowColours(row, data);
                 }
+
+                //override for "External" Curation status:
+                //If "ID" changed to "ADDICTO" or "BCIO" (in corresponding repo), "Curation status" must be set to "Proposed"
+                if (cell.getValue() !== "" && cell.getValue() !== null) {
+                    rowValue = row.getPosition();//save absolute row position
+                    columnValue = cell.getField(); //column name
+                    if (cell.getValue().includes(repo_name.toUpperCase())) {
+                         if (data[curation_status] == "External") { //
+                            data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
+                         }
+                    }
+                }
+                if (data["ID"] == undefined) {
+                    //no "ID" column
+                } else {
+                    if (data["ID"] == "" || data["ID"] == null) {
+                        //not External
+                    } else {
+                        //different repo's: 
+                        if (repo_name == "BCIO") {
+                            if (data["ID"].includes("BCIO")) {
+                                //not external
+                            } else {
+                                data[curation_status] = "External";
+                            }
+                        } else { //"AddictO repo"
+                            if (data["ID"].includes("ADDICTO")) {
+                                //not external
+                            } else {
+                                data[curation_status] = "External";
+                            }
+                        }
+                    }
+                }
+
+
+                // }
+
+                // if (data["ID"] === undefined) {
+
+                // } else {
+                //     if (data["ID"].includes("ADDICTO") || data["ID"].includes("BCIO")) {
+                //         if (data[curation_status] == "External") {
+                //             data[curation_status] = "Proposed";
+                //         }
+                //     } else {
+                //         if (data["ID"] == "" || data["ID"] == null) {
+                //             //no change
+                //         } else {
+                //             data[curation_status] = "External";
+                //         }
+
+                //         //colour changed in "rowColours" function
+                //     }
+
+                // }
+
             }
+
 
 
             //if a field in any column except "Curator" edited
@@ -893,6 +946,10 @@
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
         }
+        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
+            row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
+        }
+
     }
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
