@@ -88,7 +88,7 @@
     console.log("allCookies: " + allCookies);
 
     var file_sha = '{{file_sha}}';
-
+    var repo_name = '{{repo_name}}';
     //hide save button on load
     $('#save-btn').hide();
 
@@ -315,13 +315,37 @@
                         rowObj[headers[j]] = ""; //change all null to ""
                     }
                 }
+                //All rows with empty IDs --> not external. 
+                //Rows with AddictO IDs in AddictO repo or BCIO IDs in BCIO repo --> not external. 
+                //Only rows with  non-empty IDs, that are not matching the project ID template, are external.
                 //adding "External" status 
                 if (headers[j] == curation_status) { //column
-                    if (rowObj["ID"].includes("ADDICTO") || rowObj["ID"].includes("BCIO")) {
-                        //no change
+                    console.log("repo_name is: " + repo_name);
+                    if (rowObj["ID"] == undefined) { 
+                        //no "ID" column
                     } else {
-                        rowObj[headers[j]] = "External";
+                        if (rowObj["ID"] == "" || rowObj["ID"] == null) {
+                            //not External
+                        } else {
+                            //different repo's: 
+                            if (repo_name == "BCIO") {
+                                //todo: is there no change for "" and null here as well? 
+                                if (rowObj["ID"].includes("BCIO")) {
+                                    //not external
+                                } else {
+                                    rowObj[headers[j]] = "External";
+                                }
+                            } else { //"AddictO repo"
+                                if (rowObj["ID"].includes("ADDICTO")) {
+                                    //not external
+                                } else {
+                                    rowObj[headers[j]] = "External";
+                                }
+                            }
+                        }
                     }
+
+
                 }
             }
             tableData.push(rowObj);
@@ -554,22 +578,28 @@
                 if (data[curation_status] !== null) {
                     rowColours(row, data);
                 }
-                
+
                 //override for "External" Curation status:
                 //todo: this is overriding the new row "Curation status" - what to do here? 
                 if (data["ID"] === undefined) {
 
-                } else{
+                } else {
                     if (data["ID"].includes("ADDICTO") || data["ID"].includes("BCIO")) {
-                        //no change
+                        if (data[curation_status] == "External") {
+                            data[curation_status] = "Proposed";
+                        }
                     } else {
-                        console.log("External detected" + data["ID"]);
-                        data[curation_status] = "External";
+                        if (data["ID"] == "" || data["ID"] == null) {
+                            //no change
+                        } else {
+                            data[curation_status] = "External";
+                        }
+
                         //colour changed in "rowColours" function
                     }
-                    
+
                 }
-                
+
             }
 
 
