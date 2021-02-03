@@ -421,7 +421,7 @@
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
         else {
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams:{values:true}, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
     }
 
