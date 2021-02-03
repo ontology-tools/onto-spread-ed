@@ -422,7 +422,7 @@
         }
         else {
             // "autocomplete" editor idea from http://tabulator.info/docs/4.9/edit#masking - this does not enable editing
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams:{values:true}, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams:{values:true, freetext:true, allowEmpty:true}, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
     }
 
