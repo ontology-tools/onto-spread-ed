@@ -460,10 +460,22 @@ def getDiff(row_data_1, row_data_2, row_header): #(saving, server, header)
     print(f'the type of row_data_1 is: ')
     print(type(row_data_1))        
 
+    #sort out row_data_1 format to be the same as row_data_2
+    new_row_data_1 = []
+    for k in row_data_1:
+        dictT = {}
+        for key, val, item in zip(k, k.values(), k.items()):
+            if(key != "id"):
+                if(val == ""):
+                    val = None
+                #add to dictionary:
+                dictT[key] = val
+        #add to list:
+        new_row_data_1.append( dictT ) 
+    
     row_data_combo_1 = [row_header] 
     row_data_combo_2 = [row_header]
 
-    new_row_data_1 = [x for x in row_data_1 if x != "id"]
     row_data_combo_1.extend([list(r.values()) for r in new_row_data_1]) #row_data_1 has extra "id" column for some reason???!!!
     row_data_combo_2.extend([list(s.values()) for s in row_data_2])
 
@@ -479,12 +491,12 @@ def getDiff(row_data_1, row_data_2, row_header): #(saving, server, header)
     print(f'combined 2: ')
     print(row_data_combo_2)
 
-    # table1 = daff.PythonTableView(row_data_combo_1)
-    # table2 = daff.PythonTableView(row_data_combo_2)
+    table1 = daff.PythonTableView(row_data_combo_1)
+    table2 = daff.PythonTableView(row_data_combo_2)
     
     #old version:
-    table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
-    table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
+    # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
+    # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
 
     alignment = daff.Coopy.compareTables(table1,table2).align()
 
