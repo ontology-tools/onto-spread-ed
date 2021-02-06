@@ -585,9 +585,9 @@
                     rowValue = row.getPosition();//save absolute row position
                     columnValue = cell.getField(); //column name
                     if (cell.getValue().includes(repo_name.toUpperCase())) {
-                         if (data[curation_status] == "External") { //
+                        if (data[curation_status] == "External") { //
                             data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
-                         }
+                        }
                     }
                 }
                 if (data["ID"] == undefined) {
@@ -1341,6 +1341,33 @@
                                         // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
                                         $(".alert").alert()
                                         $("#saveAlert").show();
+                                        //new modal dialog here. Options: "Keep Both", "Overwrite", "Cancel changes"
+                                        bootbox.prompt({
+                                            title: "What would you like to do with the changes?",
+                                            inputType: 'select',
+                                            inputOptions: [
+                                            {
+                                                text: 'Click to choose',
+                                                value: ''
+                                            },
+                                            {
+                                                text: 'Keep both',
+                                                value: '1'
+                                            },
+                                            {
+                                                text: 'Overwrite',
+                                                value: '2'
+                                            },
+                                            {
+                                                text: 'Cancel changes',
+                                                value: '3'
+                                            }],
+                                            callback: function (result) {
+                                                console.log(result);
+                                                alert(result + "does nothing yet");
+                                                $("#saveAlert").hide();
+                                            }
+                                        });
                                     }
                                 }
                             }
