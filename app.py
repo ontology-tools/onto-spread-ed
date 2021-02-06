@@ -243,11 +243,7 @@ def edit(repo_key, folder, spreadsheet):
 
 @app.route('/save', methods=['POST'])
 @verify_logged_in
-def save():
-    # merge_diff = getDiffTester()
-    # return(
-    #         json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict', "merge_diff":merge_diff}), 400
-    #     )
+def save(): #todo: add boolean value (overwrite) here? 
     repo_key = request.form.get("repo_key")
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
@@ -266,11 +262,11 @@ def save():
         header = [k for k in first_row.keys()]
         del header[0]
         # Sort based on label
-        #what if 'Label' column not present:
+        # What if 'Label' column not present?
         if 'Label' in first_row:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("nah not bothering to sort, ok?") #do we need to sort? 
+            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
 
             
 
@@ -292,7 +288,7 @@ def save():
                 # Set row background colours according to 'Curation status'
                 # These should be kept in sync with those used in edit screen
                 # TODO add to config
-                # todo: what if "Curation status" not present? do a check here!
+                # What if "Curation status" not present?
                 if 'Curation status' in first_row:
                     if row[header.index("Curation status")]=="Discussed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type = "solid")
@@ -363,15 +359,17 @@ def save():
             raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
         pr_info = response['html_url']
 
+        overwrite = False #todo: move this up, to be True if user wants to overwrite changes. 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
-        if new_file_sha != file_sha:
+        
+        if new_file_sha != file_sha and not overwrite:
             print("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
             merge_diff = getDiff(row_data_parsed,new_rows, new_header) # getDiff(saving version, latest server version, header for both)
 
             return(
-                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>.', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
+                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
                 )
         else:
             # Merge the created PR
@@ -440,21 +438,6 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
 
 def getDiff(row_data_1, row_data_2, row_header): #(saving, server, header)
 
-    # data1 = [
-    # ['Country','Capital'],
-    # ['Ireland','Dublin'],
-    # ['France','Paris'],
-    # ['Spain','Barcelona']
-    # ]
-
-    # data2 = [
-    # ['Country','Code','Capital'],
-    # ['Ireland','ie','Dublin'],
-    # ['France','fr','Paris'],
-    # ['Spain','es','Madrid'],
-    # ['Germany','de','Berlin']
-    # ]
-
     
     #combine header and row_data here:
     print(f'the type of row_data_1 is: ')
@@ -495,60 +478,6 @@ def getDiff(row_data_1, row_data_2, row_header): #(saving, server, header)
     table2 = daff.PythonTableView(row_data_combo_2)
     
     #old version:
-    # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
-    # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
-
-    alignment = daff.Coopy.compareTables(table1,table2).align()
-
-    data_diff = []
-    table_diff = daff.PythonTableView(data_diff)
-
-    flags = daff.CompareFlags()
-    highlighter = daff.TableDiff(alignment,flags)
-    highlighter.hilite(table_diff)
-
-    diff2html = daff.DiffRender()
-    diff2html.usePrettyArrows(False)
-    diff2html.render(table_diff)
-    table_diff_html = diff2html.html()
-
-    print(table_diff_html)
-
-    return (table_diff_html)
-
-#getDiffTester:
-def getDiffTester(): 
-    # data1 = [
-    # ['Country','Capital'],
-    # ['Ireland','Dublin'],
-    # ['France','Paris'],
-    # ['Spain','Barcelona']
-    # ]
-
-    # data2 = [
-    # ['Country','Code','Capital'],
-    # ['Ireland','ie','Dublin'],
-    # ['France','fr','Paris'],
-    # ['Spain','es','Madrid'],
-    # ['Germany','de','Berlin']
-    # ]
-
-    data1 = [
-    ['Country','Capital'],
-    ['Ireland','Dublin'],
-    ['France','Paris'],
-    ['Spain','Barcelona']
-    ]
-
-    data2 = [
-    ['Country','Capital'],
-    ['Ireland','Dublin'],
-    ['France','Paris'],
-    ['Spain','Madrid'],
-    ['Germany','Berlin']
-    ]
-    table1 = daff.PythonTableView(data1)
-    table2 = daff.PythonTableView(data2)
     # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
     # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
 
