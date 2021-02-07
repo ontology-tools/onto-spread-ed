@@ -1347,7 +1347,7 @@
                                             inputType: 'select',
                                             inputOptions: [
                                             {
-                                                text: 'Click to choose',
+                                                text: 'Options:',
                                                 value: ''
                                             },
                                             {
@@ -1365,7 +1365,9 @@
                                             callback: function (result) {
                                                 console.log(result);
                                                 alert(result + "does nothing yet");
-                                                $("#saveAlert").hide();
+                                                // $("#saveMessage").text(''); //reset message
+                                                // $("#saveAlert").hide();
+                                                $("td.modify").css('background-color', '#00FF00');
                                             }
                                         });
                                     }
