@@ -248,9 +248,17 @@ def save(): #todo: add boolean value (overwrite) here?
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
     row_data = request.form.get("rowData")
+    #todo: testData here (initial spreadsheet loaded by user)
     file_sha = request.form.get("file_sha").strip()
     commit_msg = request.form.get("commit_msg")
     commit_msg_extra = request.form.get("commit_msg_extra")
+    overwrite = False
+    overwriteVal = request.form.get("overwrite") #todo: get actual boolean value True/False here!
+    print(f'overwriteVal is: ' + str(overwriteVal))
+    #print(overwriteVal)
+    if overwriteVal == "true":
+        overwrite = True
+        print(f'overwrite True here')
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
@@ -318,7 +326,7 @@ def save(): #todo: add boolean value (overwrite) here?
         if not response or "object" not in response or "sha" not in response["object"]:
             raise Exception(f"Unable to get SHA for HEAD of master in {repo_detail}")
         sha = response["object"]["sha"]
-        branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M')}"
+        branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
         print("About to try to create branch in ",f"repos/{repo_detail}/git/refs")
         response = github.post(
             f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
@@ -359,7 +367,6 @@ def save(): #todo: add boolean value (overwrite) here?
             raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
         pr_info = response['html_url']
 
-        overwrite = False #todo: move this up, to be True if user wants to overwrite changes. 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
         
         if new_file_sha != file_sha and not overwrite:
