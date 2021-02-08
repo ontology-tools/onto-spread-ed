@@ -248,7 +248,8 @@ def save(): #todo: add boolean value (overwrite) here?
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
     row_data = request.form.get("rowData")
-    #todo: testData here (initial spreadsheet loaded by user)
+    #testData here (initial spreadsheet loaded by user)
+    initial_data = request.form.get("initialData")
     file_sha = request.form.get("file_sha").strip()
     commit_msg = request.form.get("commit_msg")
     commit_msg_extra = request.form.get("commit_msg_extra")
@@ -264,8 +265,19 @@ def save(): #todo: add boolean value (overwrite) here?
     repo_detail = repositories[repo_key]
 
     try:
+        initial_data_parsed = json.loads(initial_data)
         row_data_parsed = json.loads(row_data)
         # Get the data, skip the first 'id' column
+        initial_first_row = initial_data_parsed[0]
+        initial_header = [k for k in initial_first_row.keys()]
+        del initial_header[0]
+        # Sort based on label
+        # What if 'Label' column not present?
+        if 'Label' in initial_first_row:
+            initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
+        else:
+            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff!
+
         first_row = row_data_parsed[0]
         header = [k for k in first_row.keys()]
         del header[0]
@@ -373,7 +385,7 @@ def save(): #todo: add boolean value (overwrite) here?
             print("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff = getDiff(row_data_parsed,new_rows, new_header) # getDiff(saving version, latest server version, header for both)
+            merge_diff = getDiff(row_data_parsed,new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
 
             return(
                 json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
@@ -443,12 +455,12 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
     return ( (file_sha, rows, header) )
 
 
-def getDiff(row_data_1, row_data_2, row_header): #(saving, server, header)
+def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(saving, server, header, initial)
 
     
-    #combine header and row_data here:
-    print(f'the type of row_data_1 is: ')
-    print(type(row_data_1))        
+    #combine header and row_data here: #todo: why did I bother, we remove the header in save() !!!!!!!
+    print(f'the type of row_data_3 is: ')
+    print(type(row_data_3))        
 
     #sort out row_data_1 format to be the same as row_data_2
     new_row_data_1 = []
@@ -462,33 +474,53 @@ def getDiff(row_data_1, row_data_2, row_header): #(saving, server, header)
                 dictT[key] = val
         #add to list:
         new_row_data_1.append( dictT ) 
+
+    #sort out row_data_3 format to be the same as row_data_2
+    new_row_data_3 = []
+    for h in row_data_3:
+        dictT3 = {}
+        for key, val, item in zip(h, h.values(), h.items()):
+            if(key != "id"):
+                if(val == ""):
+                    val = None
+                #add to dictionary:
+                dictT3[key] = val
+        #add to list:
+        new_row_data_3.append( dictT3 ) 
     
     row_data_combo_1 = [row_header] 
     row_data_combo_2 = [row_header]
+    row_data_combo_3 = [row_header]
 
     row_data_combo_1.extend([list(r.values()) for r in new_row_data_1]) #row_data_1 has extra "id" column for some reason???!!!
     row_data_combo_2.extend([list(s.values()) for s in row_data_2])
+    row_data_combo_3.extend([list(t.values()) for t in new_row_data_3])
 
     #checking:
-    print(f'row_header: ')
-    print(row_header)
-    print(f'row_data_1: ')
-    print(row_data_1)
-    print(f'row_data_2: ')
-    print(row_data_2)
-    print(f'combined 1: ')
-    print(row_data_combo_1)
+    # print(f'row_header: ')
+    # print(row_header)
+    # print(f'row_data_1: ')
+    # print(row_data_1)
+    # print(f'row_data_2: ')
+    # print(row_data_2)
+    # print(f'combined 1: ')
+    # print(row_data_combo_1)
     print(f'combined 2: ')
     print(row_data_combo_2)
+    print(f'combined 3: ')
+    print(row_data_combo_3)
 
     table1 = daff.PythonTableView(row_data_combo_1)
     table2 = daff.PythonTableView(row_data_combo_2)
+    table3 = daff.PythonTableView(row_data_combo_3)
     
     #old version:
     # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
     # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
 
-    alignment = daff.Coopy.compareTables(table1,table2).align()
+    alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
+    # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
+    # alignment = daff.Coopy.compareTables(table2,table1).align() #saving vs server
 
     data_diff = []
     table_diff = daff.PythonTableView(data_diff)

@@ -31,7 +31,7 @@
     <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> -->
     <div class="col-md-3">
         <button id="save-btn" class="btn btn-outline-success btn-sm"
-            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), 'false' ) ">
+            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) ">
             Save changes to repository
         </button>
     </div>
@@ -1269,7 +1269,7 @@
     */
     // todo: add testTableData to the list of arguments below - send to server and use daff to compare. 
     // also add boolean (overwrite) for overwriting server version (after review only!)
-    var save_changes = function (repo_key, folder, spreadsheet, rowData, overwrite) {
+    var save_changes = function (repo_key, folder, spreadsheet, rowData, initialData, overwrite) {
         $("#commit-msg").attr('value', 'Updating ' + spreadsheet);
 
         // Get a confirmation from the user:
@@ -1339,7 +1339,7 @@
                                         $('#saveAlert').removeClass('alert-success');
                                         $('#saveAlert').addClass('alert-danger');
                                         $("#saveMessage").append('"It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
-                                        $("#saveMessage").append('Merge info: ' + mergeInfo); //todo: do we need to show this? 
+                                        $("#saveMessage").append('Merge info (remote changes first): ' + mergeInfo); //todo: do we need to show this? 
                                         // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
                                         $(".alert").alert()
                                         $("#saveAlert").show();
@@ -1357,11 +1357,11 @@
                                                     value: '1'
                                                 },
                                                 {
-                                                    text: 'Overwrite',
+                                                    text: 'Overwrite remote changes',
                                                     value: '2',
                                                 },
                                                 {
-                                                    text: 'Cancel changes',
+                                                    text: 'Lose your changes',
                                                     value: '3'
                                                 }],
                                             callback: function (result) {
@@ -1371,7 +1371,7 @@
                                                         alert(result + "Still working on this one");
                                                         break;
                                                     case '2':
-                                                        save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), 'true');
+                                                        save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify( testTableData ), 'true');
                                                         break;
                                                     case '3':
                                                         //delete saved changes?
@@ -1383,12 +1383,15 @@
                                                         // alert(result + "does nothing yet");
                                                         break;
                                                     default:
-                                                        alert(result + "does nothing yet");
+                                                        // alert(result + "does nothing yet");
                                                 }
 
                                                 // $("#saveMessage").text(''); //reset message
                                                 // $("#saveAlert").hide();
+                                                $("tr.remove").css('background-color', '#DAA520');
+                                                $("tr.add").css('background-color', '#7CFC00');
                                                 $("td.modify").css('background-color', '#00FF00');
+                                                $("td.conflict").css('background-color', '#FF69B4'); //add "CONFLICT!" MESSAGE?
                                             }
                                         });
                                     }
@@ -1402,6 +1405,7 @@
                                 '&folder=' + folder +
                                 '&spreadsheet=' + spreadsheet +
                                 '&rowData=' + rowData +
+                                '&initialData=' + initialData +
                                 '&commit_msg=' + commit_msg +
                                 '&commit_msg_extra=' + msgBody +
                                 '&file_sha= ' + file_sha +
