@@ -1353,7 +1353,7 @@
                                         //     }
                                         //     testTableData3.push(rowObj3);
                                         // }
-                                        //saved table data, the right way: 
+                                        //saved table data 3, the right way: 
                                         for (var i = 0; i < row3Length; i++) {
                                             var rowObj3 = { id: i }
                                             for (var j = 0; j < header3Length; j++) {
@@ -1414,6 +1414,44 @@
                                             console.log("OLD != NEW");
                                             console.log(JSON.stringify(testTableData3));
                                             console.log(JSON.stringify(tableData));
+                                            var conflicted = false;
+                                            //check changes[] array against corresponding values? 
+                                            // var tableChangedArray = [];
+                                            for (var i = 0; i < row3Length; i++) {
+                                                console.log("ID is: " + testTableData[i]["ID"]);
+
+                                                // var rowObj3 = { id: i }
+                                                for (var j = 0; j < header3Length; j++) { //an additional "id" column is present?!
+                                                    
+                                                    for (var a = 0; a < changes.length; a++) {
+                                                        if (i == changes[a + 1]) { //row
+                                                            if (header3[j] == changes[a + 2]) { //column
+                                                                if (testTableData3[i][changes[a + 2]] === changes[a]) { //new same as saving
+                                                                    console.log("old is same as new");
+                                                                } else {
+                                                                    //check initial data for null and "":
+                                                                    var compareData = "";
+                                                                    if (testTableData[i][changes[a + 2]] == undefined || testTableData[i][changes[a + 2]] == null) {
+                                                                        compareData = "";
+                                                                    } else{
+                                                                        compareData = testTableData[i][changes[a + 2]];
+                                                                    }
+                                                                    //compare:
+                                                                    if(testTableData3[i][changes[a + 2]] === compareData){ //new same as initial
+                                                                        console.log("initial same as new");
+                                                                    } else{
+                                                                        console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + changes[a] + " on " + changes[a+2]);
+                                                                        conflicted = true;
+                                                                    }                                                                    
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            console.log("conflicted? " + conflicted);
+                                            // alert("conflicted");
+                    
                                         }
                                         //////// end deal with updated sheet from server ///////////////////////////
 
