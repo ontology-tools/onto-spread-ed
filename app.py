@@ -254,7 +254,7 @@ def save(): #todo: add boolean value (overwrite) here?
     commit_msg = request.form.get("commit_msg")
     commit_msg_extra = request.form.get("commit_msg_extra")
     overwrite = False
-    overwriteVal = request.form.get("overwrite") #todo: get actual boolean value True/False here!
+    overwriteVal = request.form.get("overwrite") #todo: get actual boolean value True/False here?
     print(f'overwriteVal is: ' + str(overwriteVal))
     #print(overwriteVal)
     if overwriteVal == "true":
@@ -386,9 +386,12 @@ def save(): #todo: add boolean value (overwrite) here?
 
             # Get the changes between the new file and this one:
             merge_diff = getDiff(row_data_parsed,new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
-
+            # update rows for comparison:
+            (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             return(
-                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
+                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
+                    +pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff,\
+                        "rows3": rows3, "header3": header3}), 400
                 )
         else:
             # Merge the created PR
@@ -455,7 +458,7 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
     return ( (file_sha, rows, header) )
 
 
-def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(saving, server, header, initial)
+def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server, header, 3initial)
 
     
     #combine header and row_data here: #todo: why did I bother, we remove the header in save() !!!!!!!
@@ -521,20 +524,35 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(saving, server, h
     alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
     # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
     # alignment = daff.Coopy.compareTables(table2,table1).align() #saving vs server
+    # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
 
+    #todo: what happened to PythonTableView3() or was it compareTables3()? 
     data_diff = []
     table_diff = daff.PythonTableView(data_diff)
 
     flags = daff.CompareFlags()
     highlighter = daff.TableDiff(alignment,flags)
+    
     highlighter.hilite(table_diff)
-
+    #hasDifference() should return true - and it does. 
+    if highlighter.hasDifference():
+        print(f'HASDIFFERENCE')
+    else:
+        print(f'no difference found')
     diff2html = daff.DiffRender()
     diff2html.usePrettyArrows(False)
     diff2html.render(table_diff)
     table_diff_html = diff2html.html()
 
-    print(table_diff_html)
+    # print(table_diff_html)
+
+    # merger test: 
+    merger = daff.Merger(table3,table1,table2,flags) #(1saving, 2server, 3initial)
+    merger.apply()
+    mergerConflictInfo = merger.getConflictInfos()
+    print(f'Merger conflict infos: ')
+    
+    print(mergerConflictInfo)
 
     return (table_diff_html)
 
