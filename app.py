@@ -32,6 +32,9 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+from whoosh.qparser import MultifieldParser
+from whoosh.index import open_dir
+
 from datetime import datetime
 
 # setup sqlalchemy
@@ -77,6 +80,32 @@ app = FlaskApp(__name__)
 app.config.from_object('config')
 
 github = GitHub(app)
+
+
+class SpreadsheetSearcher:
+    def __init__(self, index_dir):
+        self.index_dir = index_dir
+
+    def searchFor(self,search_string):
+        ix = open_dir(self.index_dir)
+
+        mparser = MultifieldParser(["class_id","label","definition","parent"],
+                                schema=ix.schema)
+
+        query = mparser.parse(search_string)
+
+        with ix.searcher() as searcher:
+            results = searcher.search(query)
+            resultslist = []
+            for hit in results:
+                allfields = {}
+                for field in hit:
+                    allfields[field]=hit[field]
+                resultslist.append(allfields)
+        return (resultslist)
+
+
+searcher = SpreadsheetSearcher("static/index")
 
 
 def verify_logged_in(fn):
@@ -265,9 +294,9 @@ def save():
         if 'Label' in first_row:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("nah not bothering to sort, ok?") #do we need to sort? 
+            print("nah not bothering to sort, ok?") #do we need to sort?
 
-            
+
 
         #print(row_data_parsed)
         print("Got file_sha",file_sha)
@@ -298,7 +327,7 @@ def save():
                     elif row[header.index("Curation status")]=="To Be Discussed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
                     elif row[header.index("Curation status")]=="In Discussion":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")                                
+                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")
                     elif row[header.index("Curation status")]=="Published":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type = "solid")
                     elif row[header.index("Curation status")]=="Obsolete":
@@ -472,9 +501,16 @@ def getDiff(row_data_1, row_data_2):
     return (table_diff_html)
 
 
+def searchAcrossSheets(search_string):
+    print(searcher.searchFor(search_string))
+
 
 
 if __name__ == "__main__":        # on running python app.py
+
     app.run(debug=app.config["DEBUG"], port=8080)        # run the flask app
+
+
+
 
 # [END gae_python37_app]

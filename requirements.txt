@@ -6,3 +6,4 @@ Flask-SQLAlchemy
 GitHub-Flask
 google-cloud-secret-manager
 daff
+whoosh
