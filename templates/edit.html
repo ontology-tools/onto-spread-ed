@@ -1331,7 +1331,12 @@
                                         if (tableEdited) {
                                             tableEdited = false;
                                         }
-
+                                        //todo: should we re-load spreadsheet like this on every successful save? 
+                                        if(overwrite == 'true'){ //true for merge, where there is different data to load in. 
+                                            //re-load here to get updated data:
+                                            alert("Changes were saved successfully to the repository. Re-loading data now");
+                                            location.reload(true); //todo: can tabulator just update without re-loading the page? 
+                                        }
                                     } else {
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
@@ -1416,11 +1421,51 @@
                                             // console.log(JSON.stringify(tableData));
                             
                                             var conflicted = false;
-
-                                            //todo: compare number of rows (or use daff diff?) for differences, as new rows are not dealt with in my merger below!
-
-                                            //check changes[] array against corresponding values
+                                            var rows = table.getRows();
+                                            /*
                                             var mergeTable = testTableData3;
+                                            //todo: need ANOTHER array to keep track of 2 different values for CONFLICTS - SERVER vs LOCAL
+                                            //todo: compare number of rows (or use daff diff?) for differences, as new rows are not dealt with in my merger below!
+                                            if(row3Length === rows.length){ //server vs local
+                                                console.log("same size tables");
+                                                //deal with merger here
+                                                for (var i = 0; i < row3Length; i++) {
+                                                    for (var j = 0; j < header3Length; j++) {
+                                                        if(testTableData3[i][header3[j]] === tableData[i][header3[j]]){ //server vs local values
+                                                            //same
+                                                        } else{ //server different from local
+                                                            console.log(testTableData3[i][header3[j]] + " not same as " + tableData[i][header3[j]]);
+                                                            //check for conflict, if server and initial differ as well: 
+                                                            //check initial data for null and "":
+                                                            var compareData = "";
+                                                            if (testTableData[i][header3[j]] == undefined || testTableData[i][header3[j]] == null) {
+                                                                compareData = "";
+                                                            } else{
+                                                                compareData = testTableData[i][header3[j]];
+                                                            }
+                                                            //compare:
+                                                            if(testTableData3[i][header3[j]] === compareData){ //new same as initial
+                                                                console.log("initial same as new");
+                                                                //add to testTableData3 merge array?
+                                                                mergeTable[i][header3[j]] = tableData[i][header3[j]];
+                                                            } else{
+                                                                console.log("conflict: " + testTableData3[i][header3[j]] + " vs " + tableData[i][header3[j]] + " row: " + i + " column: " + header3[j]);
+                                                                conflicted = true;
+                                                            }                   
+                                                        }
+                                                    }
+                                                }
+                                            } else{
+                                                console.log("not the same size");
+                                                console.log("table rows = " + rows.length);
+                                                //how to deal with extra rows? 
+                                            }
+                                            */
+                                            //check changes[] array against corresponding values
+                                             //correct version, using changes array (ignoring server vs initial conflict..)
+                                            var mergeTable = testTableData3;
+                                            var conflictTable = [];
+                                        if(row3Length === rows.length){ //server vs local
                                             for (var i = 0; i < row3Length; i++) {
                                                 console.log("ID is: " + testTableData[i]["ID"]);
 
@@ -1443,11 +1488,16 @@
                                                                     //compare:
                                                                     if(testTableData3[i][changes[a + 2]] === compareData){ //new same as initial
                                                                         console.log("initial same as new");
-                                                                        //add to testTableData3 array?
-                                                                        mergeTable[i][changes[a + 2]] === compareData;
+                                                                        //add to testTableData3 mergeTable array?
+                                                                        mergeTable[i][changes[a + 2]] = tableData[i][changes[a + 2]];
                                                                     } else{
-                                                                        console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + changes[a] + " on " + changes[a+2]);
+                                                                        console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + tableData[i][changes[a + 2]] + " row: " + i + " column: " + changes[a+2]);
                                                                         conflicted = true;
+                                                                        //todo: need row and column values here as well. 
+                                                                        conflictTable.push(testTableData3[i][changes[a + 2]]); //server
+                                                                        conflictTable.push(tableData[i][changes[a + 2]]); //local
+                                                                        conflictTable.push(i); //row
+                                                                        conflictTable.push(changes[a+2]); //column
                                                                     }                                                                    
                                                                 }
                                                             }
@@ -1455,7 +1505,14 @@
                                                     }
                                                 }
                                             }
-                                            console.log("conflicted? " + conflicted);                                       
+                                            
+                                            console.log("conflicted? " + conflicted);
+                                        } else {
+                                                console.log("not the same size");
+                                                console.log("table rows = " + rows.length);
+                                                //todo: how to deal with extra or deleted rows? 
+                                                conflicted = true; //for now
+                                            }                                       
                     
                                         }
                                         //////// end deal with updated sheet from server ///////////////////////////
@@ -1500,11 +1557,17 @@
                                                             alert(result + " Able to merge");
                                                             //todo: combine the tables and merge here with final check
                                                             save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify( testTableData ), 'true'); //overwrite is true now
-
+                                                            //todo: update sheet here!!!
                                                             //todo: what about deleted rows? ??? NO the row data is kept
                                                             //ok if we delete and add a row it will change the row number so not absolute here...
                                                         } else{
-                                                            alert(result + " Need to resolve a Data Conflict here");
+                                                            alert(" Need to resolve a Data Conflict here");
+                                                            for(var i = 0; i < conflictTable.length; i +=4){
+                                                                //todo: modal dialog to choose changes and add to mergeArray
+                                                                alert("you: " + conflictTable[i+1] + " vs server: " + conflictTable[i]);
+                                                            }
+                                                            
+
                                                         }
                                                         
                                                         break;
@@ -1599,6 +1662,18 @@
             return false;
         }
     });
+
+    //todo: use below to update and check for new data: 
+    window.onload = setupRefresh;
+    function setupRefresh()
+    {
+        setInterval("refreshBlock();",60000);
+    }
+    
+    function refreshBlock()
+    {
+       console.log("update every minute ");
+    }
 </script>
 
 {% endblock %}
