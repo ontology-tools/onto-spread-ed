@@ -1332,7 +1332,7 @@
                                             tableEdited = false;
                                         }
                                         //todo: should we re-load spreadsheet like this on every successful save? 
-                                        if(overwrite == 'true'){ //true for merge, where there is different data to load in. 
+                                        if (overwrite == 'true') { //true for merge, where there is different data to load in. 
                                             //re-load here to get updated data:
                                             alert("Changes were saved successfully to the repository. Re-loading data now");
                                             location.reload(true); //todo: can tabulator just update without re-loading the page? 
@@ -1413,13 +1413,13 @@
                                             }
                                             testTableData3.push(rowObj3);
                                         }
-                                        if (JSON.stringify(testTableData3) === JSON.stringify(tableData)) { 
+                                        if (JSON.stringify(testTableData3) === JSON.stringify(tableData)) {
                                             console.log("OLD === NEW");
                                         } else {
                                             console.log("OLD != NEW");
                                             // console.log(JSON.stringify(testTableData3));
                                             // console.log(JSON.stringify(tableData));
-                            
+
                                             var conflicted = false;
                                             var rows = table.getRows();
                                             /*
@@ -1462,58 +1462,58 @@
                                             }
                                             */
                                             //check changes[] array against corresponding values
-                                             //correct version, using changes array (ignoring server vs initial conflict..)
+                                            //correct version, using changes array (ignoring server vs initial conflict..)
                                             var mergeTable = testTableData3;
                                             var conflictTable = [];
-                                        if(row3Length === rows.length){ //server vs local
-                                            for (var i = 0; i < row3Length; i++) {
-                                                console.log("ID is: " + testTableData[i]["ID"]);
+                                            if (row3Length === rows.length) { //server vs local
+                                                for (var i = 0; i < row3Length; i++) {
+                                                    console.log("ID is: " + testTableData[i]["ID"]);
 
-                                                // var rowObj3 = { id: i }
-                                                for (var j = 0; j < header3Length; j++) { //an additional "id" column is present?!
-                                                    
-                                                    for (var a = 0; a < changes.length; a++) {
-                                                        if (i == changes[a + 1]) { //row
-                                                            if (header3[j] == changes[a + 2]) { //column
-                                                                if (testTableData3[i][changes[a + 2]] === changes[a]) { //new same as saving
-                                                                    console.log("old is same as new"); //todo: merge is safe so merge here
-                                                                } else {
-                                                                    //check initial data for null and "":
-                                                                    var compareData = "";
-                                                                    if (testTableData[i][changes[a + 2]] == undefined || testTableData[i][changes[a + 2]] == null) {
-                                                                        compareData = "";
-                                                                    } else{
-                                                                        compareData = testTableData[i][changes[a + 2]];
+                                                    // var rowObj3 = { id: i }
+                                                    for (var j = 0; j < header3Length; j++) { //an additional "id" column is present?!
+
+                                                        for (var a = 0; a < changes.length; a++) {
+                                                            if (i == changes[a + 1]) { //row
+                                                                if (header3[j] == changes[a + 2]) { //column
+                                                                    if (testTableData3[i][changes[a + 2]] === changes[a]) { //new same as saving
+                                                                        console.log("old is same as new"); //todo: merge is safe so merge here
+                                                                    } else {
+                                                                        //check initial data for null and "":
+                                                                        var compareData = "";
+                                                                        if (testTableData[i][changes[a + 2]] == undefined || testTableData[i][changes[a + 2]] == null) {
+                                                                            compareData = "";
+                                                                        } else {
+                                                                            compareData = testTableData[i][changes[a + 2]];
+                                                                        }
+                                                                        //compare:
+                                                                        if (testTableData3[i][changes[a + 2]] === compareData) { //new same as initial
+                                                                            console.log("initial same as new");
+                                                                            //add to testTableData3 mergeTable array
+                                                                            mergeTable[i][changes[a + 2]] = tableData[i][changes[a + 2]];
+                                                                        } else {
+                                                                            console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + tableData[i][changes[a + 2]] + " row: " + i + " column: " + changes[a + 2]);
+                                                                            conflicted = true;
+                                                                            //todo: need row and column values here as well. 
+                                                                            conflictTable.push(testTableData3[i][changes[a + 2]]); //server
+                                                                            conflictTable.push(tableData[i][changes[a + 2]]); //local
+                                                                            conflictTable.push(i); //row
+                                                                            conflictTable.push(changes[a + 2]); //column
+                                                                        }
                                                                     }
-                                                                    //compare:
-                                                                    if(testTableData3[i][changes[a + 2]] === compareData){ //new same as initial
-                                                                        console.log("initial same as new");
-                                                                        //add to testTableData3 mergeTable array?
-                                                                        mergeTable[i][changes[a + 2]] = tableData[i][changes[a + 2]];
-                                                                    } else{
-                                                                        console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + tableData[i][changes[a + 2]] + " row: " + i + " column: " + changes[a+2]);
-                                                                        conflicted = true;
-                                                                        //todo: need row and column values here as well. 
-                                                                        conflictTable.push(testTableData3[i][changes[a + 2]]); //server
-                                                                        conflictTable.push(tableData[i][changes[a + 2]]); //local
-                                                                        conflictTable.push(i); //row
-                                                                        conflictTable.push(changes[a+2]); //column
-                                                                    }                                                                    
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 }
-                                            }
-                                            
-                                            console.log("conflicted? " + conflicted);
-                                        } else {
+
+                                                console.log("conflicted? " + conflicted);
+                                            } else {
                                                 console.log("not the same size");
                                                 console.log("table rows = " + rows.length);
                                                 //todo: how to deal with extra or deleted rows? 
                                                 conflicted = true; //for now
-                                            }                                       
-                    
+                                            }
+
                                         }
                                         //////// end deal with updated sheet from server ///////////////////////////
 
@@ -1523,13 +1523,13 @@
                                         $("#saveMessage").append('Merge info (remote changes first): ' + mergeInfo); //todo: do we need to show this? 
                                         // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
                                         $(".alert").alert()
-                                        $("#saveAlert").show(); 
+                                        $("#saveAlert").show();
                                         //new modal dialog here. Options: "Keep Both", "Overwrite", "Cancel changes"
                                         //todo: only show this if save changes has been pressed again
                                         //todo: maybe have a new button (same place) with the prompt below? 
                                         $('#save-btn').removeClass('alert-success');
                                         $('#save-btn').addClass('alert-danger');
-                                         bootbox.prompt({
+                                        bootbox.prompt({
                                             title: "What would you like to do with the changes?",
                                             inputType: 'select',
                                             inputOptions: [
@@ -1553,26 +1553,98 @@
                                                 console.log(result);
                                                 switch (result) {
                                                     case '1':
-                                                        if(!conflicted){
+                                                        if (!conflicted) {
                                                             alert(result + " Able to merge");
-                                                            //todo: combine the tables and merge here with final check
-                                                            save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify( testTableData ), 'true'); //overwrite is true now
+                                                            //todo: final check here
+                                                            save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify(testTableData), 'true'); //overwrite is true now
                                                             //todo: update sheet here!!!
                                                             //todo: what about deleted rows? ??? NO the row data is kept
                                                             //ok if we delete and add a row it will change the row number so not absolute here...
-                                                        } else{
+                                                        } else {
                                                             alert(" Need to resolve a Data Conflict here");
-                                                            for(var i = 0; i < conflictTable.length; i +=4){
-                                                                //todo: modal dialog to choose changes and add to mergeArray
-                                                                alert("you: " + conflictTable[i+1] + " vs server: " + conflictTable[i]);
-                                                            }
-                                                            
+                                                            var block = false;
+                                                            for (var i = 0; i < conflictTable.length; i += 4) {
+                                                                //todo: my block trick didn't work. Use JQuery to build buttons for fix
+                                                                //or create a new tabulator to select changes? 
+                                                                if (confirm(conflictTable[i + 2] + "." + conflictTable[i + 3] + ": " + "OK " + conflictTable[i + 1] + "CANCEL: " + conflictTable[i])) {
+                                                                    mergeTable[conflictTable[i + 2]][conflictTable[i + 3]] = conflictTable[i+1];
+                                                                    console.log("i is: " + i);
+                                                                    if (i >= conflictTable.length - 4) {
+                                                                        alert(result + " Conflict resolved, will save now.");
+                                                                        // todo:  need final check here
+                                                                        save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify(testTableData), 'true'); //overwrite is true now
+                                                                    }
+                                                                } else {
+                                                                    mergeTable[conflictTable[i + 2]][conflictTable[i + 3]] = conflictTable[i];
+                                                                    console.log("i is: " + i);
+                                                                    if (i >= conflictTable.length - 4) {
+                                                                        alert(result + " Conflict resolved, will save now.");
+                                                                        // todo:  need final check here
+                                                                        save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify(testTableData), 'true'); //overwrite is true now
+                                                                    }
+                                                                }
 
+
+
+                                                                //todo: modal dialog to choose changes and add to mergeArray
+
+                                                                // if (!block) {
+                                                                //     block = true;
+                                                                //     bootbox.dialog({
+                                                                //         title: 'This spreadsheet has been updated since you loaded it',
+                                                                //         message: '<p>Choose what to do with the cell values</p>',
+                                                                //         size: 'large',
+                                                                //         onEscape: true,
+                                                                //         backdrop: true,
+                                                                //         buttons: {
+                                                                //             local: {
+                                                                //                 label: "Keep your change: " + conflictTable[i + 1] + " row: " + conflictTable[i + 2] + ", column: " + conflictTable[i + 3],
+                                                                //                 className: 'btn-primary',
+                                                                //                 callback: function () {
+                                                                //                     var a = conflictTable[i + 2];
+                                                                //                     var b = header3[conflictTable[i + 3]];
+                                                                //                     console.log("i is: " + i);
+                                                                //                     console.log("column is: " + conflictTable[i + 3]);
+                                                                //                     console.log("row is" + conflictTable[i + 2]);
+                                                                //                     // mergeTable[1]["ID"] = conflictTable[i + 1];
+                                                                //                     if (i > conflictTable.length - 3) {
+                                                                //                         alert(result + " Conflict resolved, will save now.");
+                                                                //                         // todo:  need final check here
+                                                                //                         save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify(testTableData), 'true'); //overwrite is true now
+
+                                                                //                     }
+                                                                //                     block = false;
+                                                                //                 }
+                                                                //             },
+                                                                //             remote: {
+                                                                //                 label: "Keep remote change: " + conflictTable[i] + "row: " + conflictTable[i + 2] + ", column: " + conflictTable[i + 3],
+                                                                //                 className: 'btn-info',
+                                                                //                 callback: function () {
+                                                                //                     // mergeTable[1]["ID"] = conflictTable[i];
+                                                                //                     if (i > conflictTable.length - 3) {
+                                                                //                         alert(result + " Conflict resolved, will save now.");
+                                                                //                         // todo:  need final check here
+                                                                //                         save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify(testTableData), 'true'); //overwrite is true now
+
+                                                                //                     }
+                                                                //                     block = false;
+                                                                //                 }
+                                                                //             }
+                                                                //         }
+                                                                //     });
+                                                                //     // alert("you: " + conflictTable[i+1] + " vs server: " + conflictTable[i]);
+                                                                // }
+
+                                                            }
+                                                            conflicted = false;
+                                                            // alert(result + " Conflict resolved, will save now.");
+                                                            //todo:  need final check here
+                                                            // save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify(testTableData), 'true'); //overwrite is true now
                                                         }
-                                                        
+
                                                         break;
                                                     case '2':
-                                                        save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify( testTableData ), 'true');
+                                                        save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true');
                                                         break;
                                                     case '3':
                                                         //delete saved changes?
@@ -1584,24 +1656,24 @@
                                                         // alert(result + "does nothing yet");
                                                         break;
                                                     default:
-                                                        // alert(result + "does nothing yet");
+                                                    // alert(result + "does nothing yet");
                                                 }
 
                                                 // $("#saveMessage").text(''); //reset message
                                                 // $("#saveAlert").hide();
-                                                $("tr").each(function(){
-                                                    if($(this).hasClass("remove")){
+                                                $("tr").each(function () {
+                                                    if ($(this).hasClass("remove")) {
                                                         console.log("REMOVE DETECTED");
                                                     }
-                                                    if($(this).hasClass("add")){
+                                                    if ($(this).hasClass("add")) {
                                                         console.log("ADD DETECTED");
                                                     }
                                                 });
-                                                $("td").each(function(){
-                                                    if($(this).hasClass("modify")){
+                                                $("td").each(function () {
+                                                    if ($(this).hasClass("modify")) {
                                                         console.log("MODIFY DETECTED");
                                                     }
-                                                    if($(this).hasClass("conflict")){
+                                                    if ($(this).hasClass("conflict")) {
                                                         console.log("CONFLICT DETECTED");
                                                     }
                                                 });
@@ -1665,14 +1737,12 @@
 
     //todo: use below to update and check for new data: 
     window.onload = setupRefresh;
-    function setupRefresh()
-    {
-        setInterval("refreshBlock();",60000);
+    function setupRefresh() {
+        setInterval("refreshBlock();", 60000);
     }
-    
-    function refreshBlock()
-    {
-       console.log("update every minute ");
+
+    function refreshBlock() {
+        console.log("update every minute ");
     }
 </script>
 
