@@ -1412,11 +1412,15 @@
                                             console.log("OLD === NEW");
                                         } else {
                                             console.log("OLD != NEW");
-                                            console.log(JSON.stringify(testTableData3));
-                                            console.log(JSON.stringify(tableData));
+                                            // console.log(JSON.stringify(testTableData3));
+                                            // console.log(JSON.stringify(tableData));
+                            
                                             var conflicted = false;
-                                            //check changes[] array against corresponding values? 
-                                            // var tableChangedArray = [];
+
+                                            //todo: compare number of rows (or use daff diff?) for differences, as new rows are not dealt with in my merger below!
+
+                                            //check changes[] array against corresponding values
+                                            var mergeTable = testTableData3;
                                             for (var i = 0; i < row3Length; i++) {
                                                 console.log("ID is: " + testTableData[i]["ID"]);
 
@@ -1427,7 +1431,7 @@
                                                         if (i == changes[a + 1]) { //row
                                                             if (header3[j] == changes[a + 2]) { //column
                                                                 if (testTableData3[i][changes[a + 2]] === changes[a]) { //new same as saving
-                                                                    console.log("old is same as new");
+                                                                    console.log("old is same as new"); //todo: merge is safe so merge here
                                                                 } else {
                                                                     //check initial data for null and "":
                                                                     var compareData = "";
@@ -1439,6 +1443,8 @@
                                                                     //compare:
                                                                     if(testTableData3[i][changes[a + 2]] === compareData){ //new same as initial
                                                                         console.log("initial same as new");
+                                                                        //add to testTableData3 array?
+                                                                        mergeTable[i][changes[a + 2]] === compareData;
                                                                     } else{
                                                                         console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + changes[a] + " on " + changes[a+2]);
                                                                         conflicted = true;
@@ -1449,8 +1455,7 @@
                                                     }
                                                 }
                                             }
-                                            console.log("conflicted? " + conflicted);
-                                            // alert("conflicted");
+                                            console.log("conflicted? " + conflicted);                                       
                     
                                         }
                                         //////// end deal with updated sheet from server ///////////////////////////
@@ -1461,9 +1466,13 @@
                                         $("#saveMessage").append('Merge info (remote changes first): ' + mergeInfo); //todo: do we need to show this? 
                                         // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
                                         $(".alert").alert()
-                                        $("#saveAlert").show();
+                                        $("#saveAlert").show(); 
                                         //new modal dialog here. Options: "Keep Both", "Overwrite", "Cancel changes"
-                                        bootbox.prompt({
+                                        //todo: only show this if save changes has been pressed again
+                                        //todo: maybe have a new button (same place) with the prompt below? 
+                                        $('#save-btn').removeClass('alert-success');
+                                        $('#save-btn').addClass('alert-danger');
+                                         bootbox.prompt({
                                             title: "What would you like to do with the changes?",
                                             inputType: 'select',
                                             inputOptions: [
@@ -1487,7 +1496,17 @@
                                                 console.log(result);
                                                 switch (result) {
                                                     case '1':
-                                                        alert(result + "Still working on this one");
+                                                        if(!conflicted){
+                                                            alert(result + " Able to merge");
+                                                            //todo: combine the tables and merge here with final check
+                                                            save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify( testTableData ), 'true'); //overwrite is true now
+
+                                                            //todo: what about deleted rows? ??? NO the row data is kept
+                                                            //ok if we delete and add a row it will change the row number so not absolute here...
+                                                        } else{
+                                                            alert(result + " Need to resolve a Data Conflict here");
+                                                        }
+                                                        
                                                         break;
                                                     case '2':
                                                         save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify( testTableData ), 'true');

@@ -385,7 +385,7 @@ def save(): #todo: add boolean value (overwrite) here?
             print("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff = getDiff(row_data_parsed,new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
+            merge_diff = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
             # update rows for comparison:
             (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             return(
@@ -521,7 +521,9 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
     # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
 
+    # alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
     alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
+    
     # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
     # alignment = daff.Coopy.compareTables(table2,table1).align() #saving vs server
     # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
