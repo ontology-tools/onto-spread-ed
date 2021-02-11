@@ -199,6 +199,16 @@ def loggedout():
 def user():
     return jsonify(github.get('/user'))
 
+@app.route('/search', methods=['POST'])
+@verify_logged_in
+def search():
+    searchTerm = request.form.get("inputText")
+    print(f'searchTerm: ')
+    print(searchTerm)
+    print(f'searchResults: ')
+    searchResults = searchAcrossSheets(searchTerm)
+    return ( json.dumps({"message":"Success",
+                             "searchResults": searchResults}), 200 )
 
 # Pages for the app
 @app.route('/')
