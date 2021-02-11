@@ -5,6 +5,27 @@
 {% endblock %}
 {% block content %}
 
+<form id="submitText" action="{{ url_for('user') }}" method="post">
+    <div class="row mb-3">
+      <div class="col-md-8">
+        <div class="form-group green-border-focus">
+          <label for="inputText" class=font-weight-bold>Search across all spreadsheets:</label>
+          <!-- todo: make largeTextArea responsive to screen size -->
+          <input id="input" form="submitText" class="form-control" id="inputText" name="inputText" rows="1">
+  
+              </textarea>
+        </div>
+      </div>
+    </div>
+  
+    <div class="row mb-3">
+      <div class="col-md-8">
+        <div class="float-right">
+          <button type="submit" id=tag-text class="btn btn-outline-success"></i>SEARCH</button>
+        </div>
+      </div>
+    </div>
+  </form>
 <h2> You are in project {{repo_name}} </h2>
 
 {% if folder_path %}
