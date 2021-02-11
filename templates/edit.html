@@ -1465,9 +1465,9 @@
                                             //correct version, using changes array (ignoring server vs initial conflict..)
                                             var mergeTable = testTableData3;
                                             var conflictTable = [];
-                                            if (row3Length === rows.length) { //server vs local
+                                            if (row3Length === rows.length) { //server vs local table size
                                                 for (var i = 0; i < row3Length; i++) {
-                                                    console.log("ID is: " + testTableData[i]["ID"]);
+                                                    // console.log("ID is: " + testTableData[i]["ID"]);
 
                                                     // var rowObj3 = { id: i }
                                                     for (var j = 0; j < header3Length; j++) { //an additional "id" column is present?!
@@ -1511,6 +1511,14 @@
                                                 console.log("not the same size");
                                                 console.log("table rows = " + rows.length);
                                                 //todo: how to deal with extra or deleted rows? 
+                                                if(row3Length > rows.length) { //server has more rows
+                                                    console.log("server added " + row3Length-rows.length + " rows" );
+                                                    console.log("or did local delete rows?");
+                                                }
+                                                if(row3Length < rows.length) { //local has more rows
+                                                    console.log("local added " + rows.length-row3Length + " rows" );
+                                                    console.log("or did server delete rows?");
+                                                } 
                                                 conflicted = true; //for now
                                             }
 

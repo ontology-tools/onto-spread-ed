@@ -462,8 +462,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
     
     #combine header and row_data here: #todo: why did I bother, we remove the header in save() !!!!!!!
-    print(f'the type of row_data_3 is: ')
-    print(type(row_data_3))        
+    # print(f'the type of row_data_3 is: ')
+    # print(type(row_data_3))        
 
     #sort out row_data_1 format to be the same as row_data_2
     new_row_data_1 = []
@@ -508,10 +508,10 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # print(row_data_2)
     # print(f'combined 1: ')
     # print(row_data_combo_1)
-    print(f'combined 2: ')
-    print(row_data_combo_2)
-    print(f'combined 3: ')
-    print(row_data_combo_3)
+    # print(f'combined 2: ')
+    # print(row_data_combo_2)
+    # print(f'combined 3: ')
+    # print(row_data_combo_3)
 
     table1 = daff.PythonTableView(row_data_combo_1)
     table2 = daff.PythonTableView(row_data_combo_2)
@@ -528,7 +528,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # alignment = daff.Coopy.compareTables(table2,table1).align() #saving vs server
     # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
 
-    #todo: what happened to PythonTableView3() or was it compareTables3()? 
+    
     data_diff = []
     table_diff = daff.PythonTableView(data_diff)
 
@@ -539,6 +539,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     #hasDifference() should return true - and it does. 
     if highlighter.hasDifference():
         print(f'HASDIFFERENCE')
+        print(highlighter.getSummary().row_deletes)
     else:
         print(f'no difference found')
     diff2html = daff.DiffRender()
@@ -549,12 +550,15 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # print(table_diff_html)
 
     # merger test: 
-    merger = daff.Merger(table3,table1,table2,flags) #(1saving, 2server, 3initial)
+    merger = daff.Merger(table1,table2,table3,flags) #(1saving, 2server, 3initial)
     merger.apply()
+    print(f'merger data:')
+    print(daff.DiffSummary().different)
     mergerConflictInfo = merger.getConflictInfos()
+    
     print(f'Merger conflict infos: ')
     
-    print(mergerConflictInfo)
+    print(mergerConflictInfo) #unreadable object
 
     return (table_diff_html)
 
