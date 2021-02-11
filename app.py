@@ -207,8 +207,11 @@ def search():
     print(searchTerm)
     print(f'searchResults: ')
     searchResults = searchAcrossSheets(searchTerm)
+    # print(searchResults)
+    searchResultsTable = "".join(str(searchResults)) 
+    print(searchResultsTable)
     return ( json.dumps({"message":"Success",
-                             "searchResults": searchResults}), 200 )
+                             "searchResults": searchResultsTable}), 200 )
 
 # Pages for the app
 @app.route('/')
@@ -512,7 +515,9 @@ def getDiff(row_data_1, row_data_2):
 
 
 def searchAcrossSheets(search_string):
-    print(searcher.searchFor(search_string))
+    searcherAllResults = searcher.searchFor(search_string)
+    # print(searcherAllResults)
+    return searcherAllResults
 
 
 

@@ -83,7 +83,10 @@
 
     // Define what happens on successful data submission
     XHR.addEventListener( "load", function(event) {
-      alert( event.target.responseText );
+      var response = JSON.parse(event.target.responseText);
+      var message = response['message'];
+      var results = response['searchResults'];
+      alert( message + " " + results );
     } );
 
     // Define what happens in case of error
