@@ -140,16 +140,18 @@
   function createTable(responseData) {
     // console.log(message);
     //todo: add if result contains something, else message "nothing to display"
+    //todo: various ways to deal with user selecting linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
     var table = new Tabulator("#contentTable", {
       data: responseData,
       columns: [ //Define Table Columns
-        { title: "Class id", field: "class_id" },
-        { title: "Definition", field: "definition" },
-        { title: "Label", field: "label" },
-        { title: "Parent", field: "parent" },
-        { title: "Repo", field: "repo" },
-        { title: "Spreadsheet", field: "spreadsheet" },
+        { title: "Class id", field: "class_id", formatter: "textarea", width: "120"},
+        { title: "Definition", field: "definition", formatter: "textarea"},
+        { title: "Label", field: "label", formatter: "textarea" },
+        { title: "Parent", field: "parent", formatter: "textarea" },
+        { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
+        { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
       ],
+      layout: "fitColumns",
     });
   }
 
