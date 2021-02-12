@@ -585,9 +585,9 @@
                     rowValue = row.getPosition();//save absolute row position
                     columnValue = cell.getField(); //column name
                     if (cell.getValue().includes(repo_name.toUpperCase())) {
-                         if (data[curation_status] == "External") { //
+                        if (data[curation_status] == "External") { //
                             data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
-                         }
+                        }
                     }
                 }
                 if (data["ID"] == undefined) {
@@ -1014,9 +1014,70 @@
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
-                if (cell.getValue() !== "" && cell.getValue() !== null) {
+                if (cell.getValue() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
+                    //set to obsolete and show a message here
+                    //todo: check for "Curation status" column here
+                    data[curation_status] = "Obsolete";
+                    //save change: 
+                    var rowValue = row.getPosition();//save absolute row position
+                    var columnValue = "Curation status"; //column name
+                    var alreadyChanged = false;
+                    //check for previously edited cell, and overwrite if already changed before
+                    for (var i = 0; i < changes.length; i++) {
+                        if (rowValue == changes[i]) { //matches row number
+                            if (columnValue == changes[i + 1]) { //matches column name as well
+                                console.log("already edited this field");
+                                changes.splice(i - 1, 3, data[curation_status], rowValue, columnValue);
+                                alreadyChanged = true;
+                            }
+                        }
+                    }
+                    if (!alreadyChanged) {
+                        changes.push(data[curation_status]);
+                        changes.push(rowValue);
+                        changes.push(columnValue);
+                    }
 
-                } else {
+                    bootbox.alert("You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead.");
+                    row.deselect();
+
+                    //set initials of "Curator"
+                    if (data[curator] !== null && data[curator] !== "") {
+                        var prevCurator = data[curator];
+                        var nameCheck = prevCurator.indexOf(loginInitials);
+                        if (nameCheck > -1) {
+                            //name exists, don't update
+                        } else {
+                            data[curator] = prevCurator + "; " + loginInitials;
+                        }
+                    } else {
+                        data[curator] = loginInitials;
+                    }
+
+                    //save curator column to local storage for backup here
+                    //{value, row, columnName}
+                    //data[curator], row.getPosition(), "Curator"
+                    if (data[curator] !== "" && data[curator] !== null) {
+                        rowValue = row.getPosition();//save absolute row position
+                        columnValue = "Curator"; //column name
+                        var alreadyChanged = false;
+                        //check for previously edited cell, and overwrite if already changed before
+                        for (var i = 0; i < changes.length; i++) {
+                            if (rowValue == changes[i]) { //matches row number
+                                if (columnValue == changes[i + 1]) { //matches column name as well
+                                    console.log("already edited this field");
+                                    changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                                    alreadyChanged = true;
+                                }
+                            }
+                        }
+                        if (!alreadyChanged) {
+                            changes.push(data[curator]);
+                            changes.push(rowValue);
+                            changes.push(columnValue);
+                        }
+                    }
+                } else { // ID is "" or null, we can delete 
                     table.deleteRow(row);
                 }
             }
