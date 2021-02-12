@@ -1341,14 +1341,14 @@
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
                                         var mergeInfo = response['merge_diff'];
-
+                                        var mergedTable = response['merged_table']
                                         //new updated sheet here: /////////////////////////////////////////////
-                                        var rows3 = response['rows3'];
-                                        var header3 = response['header3'];
-                                        var row3Length = rows3.length;
-                                        var header3Length = header3.length;
-                                        console.log("row3Length is: " + row3Length);
-                                        var testTableData3 = [];
+                                        // var rows3 = response['rows3'];
+                                        // var header3 = response['header3'];
+                                        // var row3Length = rows3.length;
+                                        // var header3Length = header3.length;
+                                        // console.log("row3Length is: " + row3Length);
+                                        // var testTableData3 = [];
 
                                         //get saved table data, compare to current table:
                                         // for (var i = 0; i < row3Length; i++) {
@@ -1359,170 +1359,170 @@
                                         //     testTableData3.push(rowObj3);
                                         // }
                                         //saved table data 3, the right way: 
-                                        for (var i = 0; i < row3Length; i++) {
-                                            var rowObj3 = { id: i }
-                                            for (var j = 0; j < header3Length; j++) {
-                                                rowObj3[header3[j]] = rows3[i][header3[j]];
-                                                //trying to set null values to 0 in checkbox columns here:
-                                                if (header3[j] == fuzzy_Set || header3[j] == "E-CigO") { //column
-                                                    if (rowObj3[header3[j]] == null) {
-                                                        rowObj3[header3[j]] = 0;
-                                                    }
-                                                    /////////////////////fix E-CigO removing ticks///////////////////////
-                                                    if (rowObj3[header3[j]] == 1) {
-                                                        rowObj3[header3[j]] = 1;
-                                                    }
-                                                    ////////////////////////////////////////////////////////////////////
-                                                } else {
-                                                    if (rowObj3[header3[j]] == null) {
-                                                        rowObj3[header3[j]] = ""; //change all null to ""
-                                                    }
-                                                }
+                                        // for (var i = 0; i < row3Length; i++) {
+                                        //     var rowObj3 = { id: i }
+                                        //     for (var j = 0; j < header3Length; j++) {
+                                        //         rowObj3[header3[j]] = rows3[i][header3[j]];
+                                        //         //trying to set null values to 0 in checkbox columns here:
+                                        //         if (header3[j] == fuzzy_Set || header3[j] == "E-CigO") { //column
+                                        //             if (rowObj3[header3[j]] == null) {
+                                        //                 rowObj3[header3[j]] = 0;
+                                        //             }
+                                        //             /////////////////////fix E-CigO removing ticks///////////////////////
+                                        //             if (rowObj3[header3[j]] == 1) {
+                                        //                 rowObj3[header3[j]] = 1;
+                                        //             }
+                                        //             ////////////////////////////////////////////////////////////////////
+                                        //         } else {
+                                        //             if (rowObj3[header3[j]] == null) {
+                                        //                 rowObj3[header3[j]] = ""; //change all null to ""
+                                        //             }
+                                        //         }
                                                 //All rows with empty IDs --> not external. 
                                                 //Rows with AddictO IDs in AddictO repo or BCIO IDs in BCIO repo --> not external. 
                                                 //Only rows with  non-empty IDs, that are not matching the project ID template, are external.
                                                 //adding "External" status 
-                                                if (header3[j] == curation_status) { //column
-                                                    // console.log("repo_name is: " + repo_name);
-                                                    if (rowObj3["ID"] == undefined) {
-                                                        //no "ID" column
-                                                    } else {
-                                                        if (rowObj3["ID"] == "" || rowObj3["ID"] == null) {
-                                                            //not External
-                                                        } else {
-                                                            //different repo's: 
-                                                            if (repo_name == "BCIO") {
-                                                                //todo: is there no change for "" and null here as well? 
-                                                                if (rowObj3["ID"].includes("BCIO")) {
-                                                                    //not external
-                                                                } else {
-                                                                    rowObj3[header3[j]] = "External";
-                                                                }
-                                                            } else { //"AddictO repo"
-                                                                if (rowObj3["ID"].includes("ADDICTO")) {
-                                                                    //not external
-                                                                } else {
-                                                                    rowObj3[header3[j]] = "External";
-                                                                }
-                                                            }
-                                                        }
-                                                    }
+                                        //         if (header3[j] == curation_status) { //column
+                                        //             // console.log("repo_name is: " + repo_name);
+                                        //             if (rowObj3["ID"] == undefined) {
+                                        //                 //no "ID" column
+                                        //             } else {
+                                        //                 if (rowObj3["ID"] == "" || rowObj3["ID"] == null) {
+                                        //                     //not External
+                                        //                 } else {
+                                        //                     //different repo's: 
+                                        //                     if (repo_name == "BCIO") {
+                                        //                         //todo: is there no change for "" and null here as well? 
+                                        //                         if (rowObj3["ID"].includes("BCIO")) {
+                                        //                             //not external
+                                        //                         } else {
+                                        //                             rowObj3[header3[j]] = "External";
+                                        //                         }
+                                        //                     } else { //"AddictO repo"
+                                        //                         if (rowObj3["ID"].includes("ADDICTO")) {
+                                        //                             //not external
+                                        //                         } else {
+                                        //                             rowObj3[header3[j]] = "External";
+                                        //                         }
+                                        //                     }
+                                        //                 }
+                                        //             }
 
 
-                                                }
-                                            }
-                                            testTableData3.push(rowObj3);
-                                        }
-                                        if (JSON.stringify(testTableData3) === JSON.stringify(tableData)) {
-                                            console.log("OLD === NEW");
-                                        } else {
-                                            console.log("OLD != NEW");
-                                            // console.log(JSON.stringify(testTableData3));
-                                            // console.log(JSON.stringify(tableData));
+                                        //         }
+                                        //     }
+                                        //     testTableData3.push(rowObj3);
+                                        // }
+                                        // if (JSON.stringify(testTableData3) === JSON.stringify(tableData)) {
+                                        //     console.log("OLD === NEW");
+                                        // } else {
+                                        //     console.log("OLD != NEW");
+                                        //     // console.log(JSON.stringify(testTableData3));
+                                        //     // console.log(JSON.stringify(tableData));
 
                                             var conflicted = false;
-                                            var rows = table.getRows();
-                                            /*
-                                            var mergeTable = testTableData3;
-                                            //todo: need ANOTHER array to keep track of 2 different values for CONFLICTS - SERVER vs LOCAL
-                                            //todo: compare number of rows (or use daff diff?) for differences, as new rows are not dealt with in my merger below!
-                                            if(row3Length === rows.length){ //server vs local
-                                                console.log("same size tables");
-                                                //deal with merger here
-                                                for (var i = 0; i < row3Length; i++) {
-                                                    for (var j = 0; j < header3Length; j++) {
-                                                        if(testTableData3[i][header3[j]] === tableData[i][header3[j]]){ //server vs local values
-                                                            //same
-                                                        } else{ //server different from local
-                                                            console.log(testTableData3[i][header3[j]] + " not same as " + tableData[i][header3[j]]);
-                                                            //check for conflict, if server and initial differ as well: 
-                                                            //check initial data for null and "":
-                                                            var compareData = "";
-                                                            if (testTableData[i][header3[j]] == undefined || testTableData[i][header3[j]] == null) {
-                                                                compareData = "";
-                                                            } else{
-                                                                compareData = testTableData[i][header3[j]];
-                                                            }
-                                                            //compare:
-                                                            if(testTableData3[i][header3[j]] === compareData){ //new same as initial
-                                                                console.log("initial same as new");
-                                                                //add to testTableData3 merge array?
-                                                                mergeTable[i][header3[j]] = tableData[i][header3[j]];
-                                                            } else{
-                                                                console.log("conflict: " + testTableData3[i][header3[j]] + " vs " + tableData[i][header3[j]] + " row: " + i + " column: " + header3[j]);
-                                                                conflicted = true;
-                                                            }                   
-                                                        }
-                                                    }
-                                                }
-                                            } else{
-                                                console.log("not the same size");
-                                                console.log("table rows = " + rows.length);
-                                                //how to deal with extra rows? 
-                                            }
-                                            */
+                                            // var rows = table.getRows();
+                                            
+                                            // var mergeTable = testTableData3;
+                                            // //todo: need ANOTHER array to keep track of 2 different values for CONFLICTS - SERVER vs LOCAL
+                                            // //todo: compare number of rows (or use daff diff?) for differences, as new rows are not dealt with in my merger below!
+                                            // if(row3Length === rows.length){ //server vs local
+                                            //     console.log("same size tables");
+                                            //     //deal with merger here
+                                            //     for (var i = 0; i < row3Length; i++) {
+                                            //         for (var j = 0; j < header3Length; j++) {
+                                            //             if(testTableData3[i][header3[j]] === tableData[i][header3[j]]){ //server vs local values
+                                            //                 //same
+                                            //             } else{ //server different from local
+                                            //                 console.log(testTableData3[i][header3[j]] + " not same as " + tableData[i][header3[j]]);
+                                            //                 //check for conflict, if server and initial differ as well: 
+                                            //                 //check initial data for null and "":
+                                            //                 var compareData = "";
+                                            //                 if (testTableData[i][header3[j]] == undefined || testTableData[i][header3[j]] == null) {
+                                            //                     compareData = "";
+                                            //                 } else{
+                                            //                     compareData = testTableData[i][header3[j]];
+                                            //                 }
+                                            //                 //compare:
+                                            //                 if(testTableData3[i][header3[j]] === compareData){ //new same as initial
+                                            //                     console.log("initial same as new");
+                                            //                     //add to testTableData3 merge array?
+                                            //                     mergeTable[i][header3[j]] = tableData[i][header3[j]];
+                                            //                 } else{
+                                            //                     console.log("conflict: " + testTableData3[i][header3[j]] + " vs " + tableData[i][header3[j]] + " row: " + i + " column: " + header3[j]);
+                                            //                     conflicted = true;
+                                            //                 }                   
+                                            //             }
+                                            //         }
+                                            //     }
+                                            // } else{
+                                            //     console.log("not the same size");
+                                            //     console.log("table rows = " + rows.length);
+                                            //     //how to deal with extra rows? 
+                                            // }
+                                            
                                             //check changes[] array against corresponding values
                                             //correct version, using changes array (ignoring server vs initial conflict..)
-                                            var mergeTable = testTableData3;
-                                            var conflictTable = [];
-                                            if (row3Length === rows.length) { //server vs local table size
-                                                for (var i = 0; i < row3Length; i++) {
-                                                    // console.log("ID is: " + testTableData[i]["ID"]);
+                                            // var mergeTable = testTableData3;
+                                            // var conflictTable = [];
+                                            // if (row3Length === rows.length) { //server vs local table size
+                                            //     for (var i = 0; i < row3Length; i++) {
+                                            //         // console.log("ID is: " + testTableData[i]["ID"]);
 
-                                                    // var rowObj3 = { id: i }
-                                                    for (var j = 0; j < header3Length; j++) { //an additional "id" column is present?!
+                                            //         // var rowObj3 = { id: i }
+                                            //         for (var j = 0; j < header3Length; j++) { //an additional "id" column is present?!
 
-                                                        for (var a = 0; a < changes.length; a++) {
-                                                            if (i == changes[a + 1]) { //row
-                                                                if (header3[j] == changes[a + 2]) { //column
-                                                                    if (testTableData3[i][changes[a + 2]] === changes[a]) { //new same as saving
-                                                                        console.log("old is same as new"); //todo: merge is safe so merge here
-                                                                    } else {
-                                                                        //check initial data for null and "":
-                                                                        var compareData = "";
-                                                                        if (testTableData[i][changes[a + 2]] == undefined || testTableData[i][changes[a + 2]] == null) {
-                                                                            compareData = "";
-                                                                        } else {
-                                                                            compareData = testTableData[i][changes[a + 2]];
-                                                                        }
-                                                                        //compare:
-                                                                        if (testTableData3[i][changes[a + 2]] === compareData) { //new same as initial
-                                                                            console.log("initial same as new");
-                                                                            //add to testTableData3 mergeTable array
-                                                                            mergeTable[i][changes[a + 2]] = tableData[i][changes[a + 2]];
-                                                                        } else {
-                                                                            console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + tableData[i][changes[a + 2]] + " row: " + i + " column: " + changes[a + 2]);
-                                                                            conflicted = true;
-                                                                            //todo: need row and column values here as well. 
-                                                                            conflictTable.push(testTableData3[i][changes[a + 2]]); //server
-                                                                            conflictTable.push(tableData[i][changes[a + 2]]); //local
-                                                                            conflictTable.push(i); //row
-                                                                            conflictTable.push(changes[a + 2]); //column
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                                            //             for (var a = 0; a < changes.length; a++) {
+                                            //                 if (i == changes[a + 1]) { //row
+                                            //                     if (header3[j] == changes[a + 2]) { //column
+                                            //                         if (testTableData3[i][changes[a + 2]] === changes[a]) { //new same as saving
+                                            //                             console.log("old is same as new"); //todo: merge is safe so merge here
+                                            //                         } else {
+                                            //                             //check initial data for null and "":
+                                            //                             var compareData = "";
+                                            //                             if (testTableData[i][changes[a + 2]] == undefined || testTableData[i][changes[a + 2]] == null) {
+                                            //                                 compareData = "";
+                                            //                             } else {
+                                            //                                 compareData = testTableData[i][changes[a + 2]];
+                                            //                             }
+                                            //                             //compare:
+                                            //                             if (testTableData3[i][changes[a + 2]] === compareData) { //new same as initial
+                                            //                                 console.log("initial same as new");
+                                            //                                 //add to testTableData3 mergeTable array
+                                            //                                 mergeTable[i][changes[a + 2]] = tableData[i][changes[a + 2]];
+                                            //                             } else {
+                                            //                                 console.log("conflict: " + testTableData3[i][changes[a + 2]] + " vs " + tableData[i][changes[a + 2]] + " row: " + i + " column: " + changes[a + 2]);
+                                            //                                 conflicted = true;
+                                            //                                 //todo: need row and column values here as well. 
+                                            //                                 conflictTable.push(testTableData3[i][changes[a + 2]]); //server
+                                            //                                 conflictTable.push(tableData[i][changes[a + 2]]); //local
+                                            //                                 conflictTable.push(i); //row
+                                            //                                 conflictTable.push(changes[a + 2]); //column
+                                            //                             }
+                                            //                         }
+                                            //                     }
+                                            //                 }
+                                            //             }
+                                            //         }
+                                            //     }
 
-                                                console.log("conflicted? " + conflicted);
-                                            } else {
-                                                console.log("not the same size");
-                                                console.log("table rows = " + rows.length);
-                                                //todo: how to deal with extra or deleted rows? 
-                                                if(row3Length > rows.length) { //server has more rows
-                                                    console.log("server added " + row3Length-rows.length + " rows" );
-                                                    console.log("or did local delete rows?");
-                                                }
-                                                if(row3Length < rows.length) { //local has more rows
-                                                    console.log("local added " + rows.length-row3Length + " rows" );
-                                                    console.log("or did server delete rows?");
-                                                } 
-                                                conflicted = true; //for now
-                                            }
+                                            //     console.log("conflicted? " + conflicted);
+                                            // } else {
+                                            //     console.log("not the same size");
+                                            //     console.log("table rows = " + rows.length);
+                                            //     //todo: how to deal with extra or deleted rows? 
+                                            //     if(row3Length > rows.length) { //server has more rows
+                                            //         console.log("server added " + row3Length-rows.length + " rows" );
+                                            //         console.log("or did local delete rows?");
+                                            //     }
+                                            //     if(row3Length < rows.length) { //local has more rows
+                                            //         console.log("local added " + rows.length-row3Length + " rows" );
+                                            //         console.log("or did server delete rows?");
+                                            //     } 
+                                            //     conflicted = true; //for now
+                                            // }
 
-                                        }
+                                        // }
                                         //////// end deal with updated sheet from server ///////////////////////////
 
                                         $('#saveAlert').removeClass('alert-success');
@@ -1561,6 +1561,8 @@
                                                 console.log(result);
                                                 switch (result) {
                                                     case '1':
+                                                    save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergedTable), JSON.stringify(testTableData), 'true');
+                                                    /*
                                                         if (!conflicted) {
                                                             alert(result + " Able to merge");
                                                             //todo: final check here
@@ -1649,7 +1651,7 @@
                                                             //todo:  need final check here
                                                             // save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergeTable), JSON.stringify(testTableData), 'true'); //overwrite is true now
                                                         }
-
+                                                        */
                                                         break;
                                                     case '2':
                                                         save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true');
@@ -1685,17 +1687,21 @@
                                                         console.log("CONFLICT DETECTED");
                                                     }
                                                 });
-                                                $("tr.remove").css('background-color', '#DAA520');
-                                                $("tr.add").css('background-color', '#7CFC00');
-                                                $("td.modify").css('background-color', '#00FF00');
-                                                $("td.conflict").css('background-color', '#FF69B4'); //add "CONFLICT!" MESSAGE?
+                                                $("tr.remove").css('background-color', '#DAA520'); //orange
+                                                $("tr.add").css('background-color', '#7CFC00'); //green
+                                                $("td.modify").css('background-color', '#00FF00'); //lighter green
+                                                $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
                                             }
                                         });
                                     }
                                 }
                             }
                             // Post the request to the server.
-                            //todo: need to send the original loaded data here as well. 
+                            console.log("rowData: " + rowData);
+                            console.log("initialData: " + initialData);
+                            // if(initialData == undefined){ //todo: find out why this is undefined!
+                            //     initialData = rowData;
+                            // }
                             request.open('POST', '/save', true);
                             request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                             request.send('repo_key=' + repo_key +

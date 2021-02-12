@@ -385,12 +385,13 @@ def save(): #todo: add boolean value (overwrite) here?
             print("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
+            # todo: WARNING: merged_table still has header attached, remove this!!!
+            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
             # update rows for comparison:
             (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             return(
                 json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
-                    +pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff,\
+                    +pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
                         "rows3": rows3, "header3": header3}), 400
                 )
         else:
@@ -521,11 +522,11 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
     # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
 
-    # alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
     alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
     
     # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
     # alignment = daff.Coopy.compareTables(table2,table1).align() #saving vs server
+    # alignment = daff.Coopy.compareTables(table1, table2).align() #server vs saving
     # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
 
     
@@ -533,6 +534,11 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     table_diff = daff.PythonTableView(data_diff)
 
     flags = daff.CompareFlags()
+
+    flags.allowDelete()
+    flags.allowUpdate()
+    flags.allowInsert()
+
     highlighter = daff.TableDiff(alignment,flags)
     
     highlighter.hilite(table_diff)
@@ -548,19 +554,44 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     table_diff_html = diff2html.html()
 
     # print(table_diff_html)
+    print(f'table 2 before patch test: ')
+    print(table2.toString()) 
+    # patch test: 
+    patcher = daff.HighlightPatch(table2,table_diff)
+    patcher.apply()
+    print(f'patch tester: ..................')
+    # print(f'table1:')
+    # print(table1.toString())
+    print(f'table2:')
+    print(table2.toString())
+    # print(table2.toString()) 
+    # print(f'table3:')
+    # print(table3.toString()) 
+    table2String = table2.toString().strip() #no
+    #todo: Task 1: turn MergeData into a Dict in order to post it to Github!
+    # - use Janna's sheet builder example? 
+    # - post direct instead of going through Flask front-end? 
+    # table2String.strip()
+    # table2Json = json.dumps(table2)
+    # table2Dict = dict(todo: make this into a dict with id:0++ per row here!)
+    # table2String = dict(table2String) #nope
 
-    # merger test: 
+    # merger test:  - not doing anything I can tell..
     merger = daff.Merger(table1,table2,table3,flags) #(1saving, 2server, 3initial)
     merger.apply()
     print(f'merger data:')
     print(daff.DiffSummary().different)
     mergerConflictInfo = merger.getConflictInfos()
     
-    print(f'Merger conflict infos: ')
-    
-    print(mergerConflictInfo) #unreadable object
-
-    return (table_diff_html)
+    # print(f'Merger conflict infos: ')
+    # print(f'table1:')
+    # print(table1.toString())
+    # print(f'table2:')
+    # print(table2.toString()) 
+    # print(f'table3:')
+    # print(table3.toString()) 
+   
+    return (table_diff_html, table2String)
 
 
 if __name__ == "__main__":        # on running python app.py
