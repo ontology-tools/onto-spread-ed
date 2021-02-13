@@ -213,7 +213,7 @@ def search():
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
                              #todo: searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS
-                             # how can we sanitize this data? 
+                             # how can we easily sanitize this data? - also {} and [] inside data will break it
 
 # Pages for the app
 @app.route('/')
