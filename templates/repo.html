@@ -110,7 +110,7 @@
         // alert(message + " " + results);
         results = results.replace(/\'/g, "\"");
         var resultsArray = JSON.parse(results);
-        console.log(results);
+        // console.log(results);
         createTable(resultsArray);
       });
 
@@ -140,9 +140,8 @@
   function createTable(responseData) {
     if (responseData.length < 1) {
       alert("No Results");
-    } else {
+    } 
       // console.log(message);
-      //todo: various ways to deal with user selecting linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
       var table = new Tabulator("#contentTable", {
         data: responseData,
         columns: [ //Define Table Columns
@@ -157,6 +156,8 @@
         pagination: "local",
         paginationSize: "5",
 
+        //todo: various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
+
         rowClick: function (e, row) {
           // loadDialog(row);
           var data = row.getData();
@@ -165,13 +166,13 @@
         },
       });
     }
-  }
+  
 
-function openSheet(repo, sheet){
-  // alert(sheet);
-  //sheet: / "edit" / repo / sheet
-  window.location.href = '/edit/' + repo + '/' + sheet;
-}
+  function openSheet(repo, sheet) {
+    // alert(sheet);
+    //sheet: / "edit" / repo / sheet
+    window.location.href = '/edit/' + repo + '/' + sheet;
+  }
 </script>
 
 

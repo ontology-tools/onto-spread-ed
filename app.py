@@ -212,8 +212,9 @@ def search():
     print(searchResultsTable)
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
-                             #todo: searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS
+                             #todo: searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
                              # how can we easily sanitize this data? - also {} and [] inside data will break it
+                             # ok, dealing with "" on the front end, also "" inside cells 
 
 # Pages for the app
 @app.route('/')
