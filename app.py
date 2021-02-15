@@ -261,8 +261,11 @@ def repo(repo_key, folder_path=""):
 
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
+@app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
 @verify_logged_in
-def edit(repo_key, folder, spreadsheet):
+def edit(repo_key, folder, spreadsheet, go_to_row = ''):
+    print(f'go_to_row is: ' )
+    print(go_to_row)
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
@@ -281,7 +284,8 @@ def edit(repo_key, folder, spreadsheet):
                             spreadsheet_name=spreadsheet,
                             header=json.dumps(header),
                             rows=json.dumps(rows),
-                            file_sha = file_sha
+                            file_sha = file_sha,
+                            go_to_row = go_to_row
                             )
 
 

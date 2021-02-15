@@ -162,16 +162,20 @@
           // loadDialog(row);
           var data = row.getData();
           // alert(data["spreadsheet"]);
-          openSheet(data["repo"], data["spreadsheet"]);
+          if(data['class_id'] != null && data['class_id'] != ""){
+            openSheet(data["repo"], data["spreadsheet"], data['class_id']);
+          } else{
+            openSheet(data["repo"], data["spreadsheet"], "");
+          }
         },
       });
     }
   
 
-  function openSheet(repo, sheet) {
+  function openSheet(repo, sheet, go_to_row) {
     // alert(sheet);
     //sheet: / "edit" / repo / sheet
-    window.location.href = '/edit/' + repo + '/' + sheet;
+    window.location.href = '/edit/' + repo + '/' + sheet+'/' + go_to_row;
   }
 </script>
 
