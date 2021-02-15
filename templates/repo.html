@@ -10,6 +10,7 @@
   <input id="inputText" name="inputText" value="" placeholder='search terms'>
   <input id="inputBtn" type="submit" class="btn btn-outline-success"></input>
 </form>
+<h4 id="resultsHeader">RESULTS - click on a row to open its spreadsheet:</h2>
 <!-- <form id="submitText" action="{{ url_for('search') }}" method="post">
     <div class="row mb-3">
       <div class="col-md-8">
@@ -95,6 +96,7 @@
   // console.log("searchTerm is: " + searchTerm)
 
   window.addEventListener("load", function () {
+    $("#resultsHeader").hide();
     function sendData() {
       const XHR = new XMLHttpRequest();
 
@@ -134,13 +136,19 @@
       event.preventDefault();
 
       sendData();
+      $("#resultsHeader").show();
     });
   });
 
   function createTable(responseData) {
     if (responseData.length < 1) {
-      alert("No Results");
-    } 
+      document.getElementById("resultsHeader").innerHTML = "No Results";
+      // $("#resultsHeader").innerText = "No Results";
+      // alert("No Results");
+    } else{
+      document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+      // $("#resultsHeader").innerText = "RESULTS - click on a row to open its spreadsheet:";
+    }
       // console.log(message);
       var table = new Tabulator("#contentTable", {
         data: responseData,
