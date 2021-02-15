@@ -1204,14 +1204,14 @@
                 return message;
             }
         };
-        //scroll to search term:
+        //scroll to search term if present:
         initialRowSearch = '{{go_to_row | safe}}';
             console.log(initialRowSearch);
-            if(initialRowSearch == "" || initialRowSearch == null){ //or if 'ID' column not present? Shouldn't be necessary, since we are linking to 'ID'
+            if(initialRowSearch == "" || initialRowSearch == null){ //or if 'Label' column not present? Shouldn't be necessary, since we are linking to 'Label'
                 
             } else{
                 //filter by ID:
-                table.setHeaderFilterValue("ID", initialRowSearch);
+                table.setHeaderFilterValue("Label", initialRowSearch);
             }
 
     });

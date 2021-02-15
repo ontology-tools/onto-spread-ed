@@ -162,8 +162,8 @@
           // loadDialog(row);
           var data = row.getData();
           // alert(data["spreadsheet"]);
-          if(data['class_id'] != null && data['class_id'] != ""){
-            openSheet(data["repo"], data["spreadsheet"], data['class_id']);
+          if(data['label'] != null && data['label'] != ""){
+            openSheet(data["repo"], data["spreadsheet"], data['label']);
           } else{
             openSheet(data["repo"], data["spreadsheet"], "");
           }
