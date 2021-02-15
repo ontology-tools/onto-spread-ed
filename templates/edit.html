@@ -1561,6 +1561,7 @@
                                                 console.log(result);
                                                 switch (result) {
                                                     case '1':
+                                                        console.log("Merged Table is: " + mergedTable);
                                                     save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(mergedTable), JSON.stringify(testTableData), 'true');
                                                     /*
                                                         if (!conflicted) {

@@ -557,17 +557,17 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     print(f'table 2 before patch test: ')
     print(table2.toString()) 
     # patch test: 
-    patcher = daff.HighlightPatch(table2,table_diff)
-    patcher.apply()
-    print(f'patch tester: ..................')
+    # patcher = daff.HighlightPatch(table2,table_diff)
+    # patcher.apply()
+    # print(f'patch tester: ..................')
     # print(f'table1:')
     # print(table1.toString())
-    print(f'table2:')
-    print(table2.toString())
+    # print(f'table2:')
+    # print(table2.toString())
     # print(table2.toString()) 
     # print(f'table3:')
     # print(table3.toString()) 
-    table2String = table2.toString().strip() #no
+    # table2String = table2.toString().strip() #no
     #todo: Task 1: turn MergeData into a Dict in order to post it to Github!
     # - use Janna's sheet builder example? 
     # - post direct instead of going through Flask front-end? 
@@ -576,12 +576,18 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # table2Dict = dict(todo: make this into a dict with id:0++ per row here!)
     # table2String = dict(table2String) #nope
 
-    # merger test:  - not doing anything I can tell..
-    merger = daff.Merger(table1,table2,table3,flags) #(1saving, 2server, 3initial)
+    # merger test: 
+    print(f'Merger test: ') 
+    merger = daff.Merger(table3,table2,table1,flags) #(1saving, 2server, 3initial)
     merger.apply()
-    print(f'merger data:')
-    print(daff.DiffSummary().different)
-    mergerConflictInfo = merger.getConflictInfos()
+    print(f'table2:')
+    table2String = table2.toString()
+    print(table2String) #after merger
+
+
+    # print(f'merger data:') #none
+    # print(daff.DiffSummary().different) #nothing here? 
+    # mergerConflictInfo = merger.getConflictInfos()
     
     # print(f'Merger conflict infos: ')
     # print(f'table1:')
