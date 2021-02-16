@@ -154,7 +154,7 @@
       // console.log(message);
       var table = new Tabulator("#contentTable", {
         data: responseData,
-        selectable:true, //for highlight?
+
         columns: [ //Define Table Columns
           { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
           { title: "Definition", field: "definition", formatter: "textarea" },
@@ -163,6 +163,7 @@
           { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
           { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
         ],
+        
         layout: "fitColumns",
         pagination: "local",
         paginationSize: "5",
