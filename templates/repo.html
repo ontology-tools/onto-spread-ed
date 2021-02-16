@@ -110,9 +110,10 @@
         var message = JSON.stringify(['message']);
         var results = response['searchResults'];
         // alert(message + " " + results);
-        results = results.replace(/\'/g, "\"");
+        results = results.replace(/\'/g, "\""); //replace '' with ""
+        
         var resultsArray = JSON.parse(results);
-        // console.log(results);
+        console.log(results);
         createTable(resultsArray);
       });
 
