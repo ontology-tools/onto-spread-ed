@@ -248,6 +248,8 @@ def save(): #todo: add boolean value (overwrite) here?
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
     row_data = request.form.get("rowData")
+    print(f'row_data: ')
+    print(row_data)
     #testData here (initial spreadsheet loaded by user)
     initial_data = request.form.get("initialData")
     file_sha = request.form.get("file_sha").strip()
@@ -273,6 +275,7 @@ def save(): #todo: add boolean value (overwrite) here?
         del initial_header[0]
         # Sort based on label
         # What if 'Label' column not present?
+        # todo: is sorting causing a problem with diff?
         if 'Label' in initial_first_row:
             initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
@@ -288,9 +291,11 @@ def save(): #todo: add boolean value (overwrite) here?
         else:
             print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
 
-            
+        print(f'')
+        print(f'row_data_parsed: ')
+        print(row_data_parsed)
+        print(f'')
 
-        #print(row_data_parsed)
         print("Got file_sha",file_sha)
 
         wb = openpyxl.Workbook()
@@ -456,13 +461,13 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
             values[key] = cell.value
         if any(values.values()):
             rows.append(values)
+    print(f'rows: ')
+    print(json.dumps(rows))
     return ( (file_sha, rows, header) )
 
 
 def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server, header, 3initial)
 
-    
-    #combine header and row_data here: #todo: why did I bother, we remove the header in save() !!!!!!!
     # print(f'the type of row_data_3 is: ')
     # print(type(row_data_3))        
 
@@ -492,9 +497,9 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
         #add to list:
         new_row_data_3.append( dictT3 ) 
     
-    row_data_combo_1 = [row_header] 
-    row_data_combo_2 = [row_header]
-    row_data_combo_3 = [row_header]
+    row_data_combo_1 = [] 
+    row_data_combo_2 = []
+    row_data_combo_3 = []
 
     row_data_combo_1.extend([list(r.values()) for r in new_row_data_1]) #row_data_1 has extra "id" column for some reason???!!!
     row_data_combo_2.extend([list(s.values()) for s in row_data_2])
@@ -554,8 +559,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     table_diff_html = diff2html.html()
 
     # print(table_diff_html)
-    print(f'table 2 before patch test: ')
-    print(table2.toString()) 
+    print(f'table 1 before patch test: ')
+    print(table1.toString()) 
     # patch test: 
     # patcher = daff.HighlightPatch(table2,table_diff)
     # patcher.apply()
@@ -584,6 +589,31 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     table2String = table2.toString()
     print(table2String) #after merger
 
+    data = table2.getData()
+    print(f'data: ')
+    print(json.dumps(data)) #it's a list.
+    #convert to correct format (dict):
+    dataDict = []
+    iter = 0
+    for k in data:
+        dictT = {}
+        # add "id" value:
+        iter = iter + 1
+        dictT['id'] = iter
+        for key, val in zip(row_header, k):
+            #todo: somehow add "id" = num here!            
+            dictT[key] = val
+        # add to list:
+        dataDict.append( dictT ) 
+        # print(f'update: ')
+        # print(dataDict)
+
+        
+    # dataDict = dict(zip(row_header, data))
+    print(f'dataDict: ')
+    print(json.dumps(dataDict))
+    print(f'the type of dataDict is: ')
+    print(type(dataDict))
 
     # print(f'merger data:') #none
     # print(daff.DiffSummary().different) #nothing here? 
@@ -597,7 +627,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # print(f'table3:')
     # print(table3.toString()) 
    
-    return (table_diff_html, table2String)
+    return (table_diff_html, dataDict)
 
 
 if __name__ == "__main__":        # on running python app.py
