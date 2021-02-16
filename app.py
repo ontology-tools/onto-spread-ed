@@ -224,7 +224,7 @@ def search():
                          '"': '',
                          ':': '',
                          '\\': '',
-                         '?': '',
+                        #  '?': '',
                          '\'': '',}
     for k in searchResults:
         dictT = {}

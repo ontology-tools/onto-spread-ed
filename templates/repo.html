@@ -110,7 +110,7 @@
         var message = JSON.stringify(['message']);
         var results = response['searchResults'];
         // alert(message + " " + results);
-        results = results.replace(/\'/g, "\""); //replace '' with ""
+        results = results.replace(/\'/g, "\""); //replace '' with "" for Tabulator
         
         var resultsArray = JSON.parse(results);
         console.log(results);
@@ -119,7 +119,8 @@
 
       // Define what happens in case of error
       XHR.addEventListener("error", function (event) {
-        alert('Oops! Something went wrong.');
+        bootbox.alert("Something went wrong");
+        console.log(event);
       });
 
       // Set up our request
@@ -153,6 +154,7 @@
       // console.log(message);
       var table = new Tabulator("#contentTable", {
         data: responseData,
+        selectable:true, //for highlight?
         columns: [ //Define Table Columns
           { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
           { title: "Definition", field: "definition", formatter: "textarea" },
