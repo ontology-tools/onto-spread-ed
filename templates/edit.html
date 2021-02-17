@@ -1364,6 +1364,7 @@
                                             alert("Changes were saved successfully to the repository. Re-loading data now");
                                             location.reload(true); //todo: can tabulator just update without re-loading the page? 
                                         }
+                                        //todo: handle more error codes here and do merge in correct circumstance
                                     } else {
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
