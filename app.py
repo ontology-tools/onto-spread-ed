@@ -530,8 +530,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
     
     # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
-    # alignment = daff.Coopy.compareTables(table2,table1).align() #saving vs server
-    # alignment = daff.Coopy.compareTables(table1, table2).align() #server vs saving
+    alignment2 = daff.Coopy.compareTables(table2,table1).align() #saving vs server
+    # alignment2 = daff.Coopy.compareTables(table1, table2).align() #server vs saving
     # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
 
     
@@ -540,11 +540,11 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
     flags = daff.CompareFlags()
 
-    flags.allowDelete()
-    flags.allowUpdate()
-    flags.allowInsert()
+    # flags.allowDelete()
+    # flags.allowUpdate()
+    # flags.allowInsert()
 
-    highlighter = daff.TableDiff(alignment,flags)
+    highlighter = daff.TableDiff(alignment2,flags)
     
     highlighter.hilite(table_diff)
     #hasDifference() should return true - and it does. 
@@ -586,13 +586,13 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     merger = daff.Merger(table3,table2,table1,flags) #(1saving, 2server, 3initial)
     merger.apply()
     print(f'table2:')
-    table2String = table2.toString()
-    print(table2String) #after merger
+    # table2String = table2.toString()
+    # print(table2String) #after merger
 
-    data = table2.getData()
-    print(f'data: ')
-    print(json.dumps(data)) #it's a list.
-    #convert to correct format (dict):
+    data = table2.getData() #merger table in list format
+    # print(f'data: ')
+    # print(json.dumps(data)) #it's a list.
+    #convert to correct format (list of dicts):
     dataDict = []
     iter = -1
     for k in data:        
@@ -602,9 +602,10 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
         if iter == 0:
             print(f'header row not using')
         else:
-            dictT['id'] = iter
-            for key, val in zip(row_header, k):
-                #todo: somehow add "id" = num here!            
+            dictT['id'] = iter #add "id" with iteration
+            for key, val in zip(row_header, k):      
+                #deal with conflicting val?
+                      
                 dictT[key] = val
         # add to list:
         if iter > 0:
@@ -613,11 +614,11 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
         # print(dataDict)
 
         
-    # dataDict = dict(zip(row_header, data))
-    print(f'dataDict: ')
-    print(json.dumps(dataDict))
-    print(f'the type of dataDict is: ')
-    print(type(dataDict))
+    
+    # print(f'dataDict: ')
+    # print(json.dumps(dataDict))
+    # print(f'the type of dataDict is: ')
+    # print(type(dataDict))
 
     # print(f'merger data:') #none
     # print(daff.DiffSummary().different) #nothing here? 
