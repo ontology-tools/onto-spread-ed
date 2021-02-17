@@ -32,6 +32,7 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import whoosh
 from whoosh.qparser import MultifieldParser
 from whoosh.index import open_dir
 
@@ -81,13 +82,35 @@ app.config.from_object('config')
 
 github = GitHub(app)
 
+# Implementation of Google Cloud Storage for index
+class BucketStorage(whoosh.filedb.filestore.RamStorage):
+    def __init__(self, bucket, blobname="index-spread-ed"):
+        super().__init__()
+        self.bucket = bucket
+        self.blobname = blobname
+
+    def save_to_bucket(self):
+        for name in self.files.keys():
+            with self.open_file(name) as source:
+                #print("Saving file",name)
+                blob = self.bucket.blob(name)
+                blob.upload_from_file(source)
+
+    def open_from_bucket(self):
+        for blob in bucket.list_blobs():
+            #print("Opening blob",blob.name)
+            with self.create_file(blob.name) as f:
+                blob.download_to_file(f)
+
 
 class SpreadsheetSearcher:
-    def __init__(self, index_dir):
-        self.index_dir = index_dir
+    # bucket is defined in config.py
+    def __init__(self):
+        self.storage = BucketStorage(bucket)
+        self.storage.open_from_bucket()
 
     def searchFor(self,search_string):
-        ix = open_dir(self.index_dir)
+        ix = self.storage.open_index()
 
         mparser = MultifieldParser(["class_id","label","definition","parent"],
                                 schema=ix.schema)
@@ -105,7 +128,7 @@ class SpreadsheetSearcher:
         return (resultslist)
 
 
-searcher = SpreadsheetSearcher("static/index")
+searcher = SpreadsheetSearcher()
 
 
 def verify_logged_in(fn):
@@ -208,13 +231,13 @@ def search():
     print(f'searchResults: ')
     searchResults = searchAcrossSheets(searchTerm)
     # print(searchResults)
-    searchResultsTable = "".join(str(searchResults)) 
+    searchResultsTable = "".join(str(searchResults))
     print(searchResultsTable)
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
                              #todo: searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
                              # how can we easily sanitize this data? - also {} and [] inside data will break it
-                             # ok, dealing with "" on the front end, also "" inside cells 
+                             # ok, dealing with "" on the front end, also "" inside cells
 
 # Pages for the app
 @app.route('/')
