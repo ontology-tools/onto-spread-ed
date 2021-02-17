@@ -248,8 +248,8 @@ def save(): #todo: add boolean value (overwrite) here?
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
     row_data = request.form.get("rowData")
-    print(f'row_data: ')
-    print(row_data)
+    # print(f'row_data: ')
+    # print(row_data)
     #testData here (initial spreadsheet loaded by user)
     initial_data = request.form.get("initialData")
     file_sha = request.form.get("file_sha").strip()
@@ -291,10 +291,10 @@ def save(): #todo: add boolean value (overwrite) here?
         else:
             print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
 
-        print(f'')
-        print(f'row_data_parsed: ')
-        print(row_data_parsed)
-        print(f'')
+        # print(f'')
+        # print(f'row_data_parsed: ')
+        # print(row_data_parsed)
+        # print(f'')
 
         print("Got file_sha",file_sha)
 
@@ -395,7 +395,7 @@ def save(): #todo: add boolean value (overwrite) here?
             # update rows for comparison:
             (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             return(
-                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
+                json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
                     +pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
                         "rows3": rows3, "header3": header3}), 400
                 )
@@ -461,8 +461,8 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
             values[key] = cell.value
         if any(values.values()):
             rows.append(values)
-    print(f'rows: ')
-    print(json.dumps(rows))
+    # print(f'rows: ')
+    # print(json.dumps(rows))
     return ( (file_sha, rows, header) )
 
 
@@ -559,8 +559,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     table_diff_html = diff2html.html()
 
     # print(table_diff_html)
-    print(f'table 1 before patch test: ')
-    print(table1.toString()) 
+    # print(f'table 1 before patch test: ')
+    # print(table1.toString()) 
     # patch test: 
     # patcher = daff.HighlightPatch(table2,table_diff)
     # patcher.apply()
@@ -582,17 +582,17 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # table2String = dict(table2String) #nope
 
     # merger test: 
-    print(f'Merger test: ') 
+    # print(f'Merger test: ') 
     merger = daff.Merger(table3,table2,table1,flags) #(1saving, 2server, 3initial)
     merger.apply()
-    print(f'table2:')
+    # print(f'table2:')
     # table2String = table2.toString()
     # print(table2String) #after merger
 
     data = table2.getData() #merger table in list format
     # print(f'data: ')
     # print(json.dumps(data)) #it's a list.
-    #convert to correct format (list of dicts):
+    # convert to correct format (list of dicts):
     dataDict = []
     iter = -1
     for k in data:        
@@ -600,15 +600,16 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
         iter = iter + 1
         dictT = {}
         if iter == 0:
-            print(f'header row not using')
+            pass
+            # print(f'header row - not using')
         else:
-            dictT['id'] = iter #add "id" with iteration
+            dictT['id'] = iter # add "id" with iteration
             for key, val in zip(row_header, k):      
                 #deal with conflicting val?
                       
                 dictT[key] = val
         # add to list:
-        if iter > 0:
+        if iter > 0: # not header - now empty dict
             dataDict.append( dictT ) 
         # print(f'update: ')
         # print(dataDict)
