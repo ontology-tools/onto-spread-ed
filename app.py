@@ -497,9 +497,9 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
         #add to list:
         new_row_data_3.append( dictT3 ) 
     
-    row_data_combo_1 = [] 
-    row_data_combo_2 = []
-    row_data_combo_3 = []
+    row_data_combo_1 = [row_header] 
+    row_data_combo_2 = [row_header]
+    row_data_combo_3 = [row_header]
 
     row_data_combo_1.extend([list(r.values()) for r in new_row_data_1]) #row_data_1 has extra "id" column for some reason???!!!
     row_data_combo_2.extend([list(s.values()) for s in row_data_2])
@@ -519,7 +519,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # print(f'combined 3: ')
     # print(row_data_combo_3)
 
-    table1 = daff.PythonTableView(row_data_combo_1)
+    table1 = daff.PythonTableView(row_data_combo_1) #daff needs a header in order to work correctly!
     table2 = daff.PythonTableView(row_data_combo_2)
     table3 = daff.PythonTableView(row_data_combo_3)
     
@@ -594,15 +594,18 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     print(json.dumps(data)) #it's a list.
     #convert to correct format (dict):
     dataDict = []
-    iter = 0
+    iter = -1
     for k in data:
         dictT = {}
         # add "id" value:
         iter = iter + 1
-        dictT['id'] = iter
-        for key, val in zip(row_header, k):
-            #todo: somehow add "id" = num here!            
-            dictT[key] = val
+        if iter == 0:
+            print(f'header row not using')
+        else:
+            dictT['id'] = iter
+            for key, val in zip(row_header, k):
+                #todo: somehow add "id" = num here!            
+                dictT[key] = val
         # add to list:
         dataDict.append( dictT ) 
         # print(f'update: ')
