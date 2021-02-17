@@ -40,7 +40,6 @@
 <div class="row mb-3">
     <div class="col-md-9">
         <div id="conflict-btns" class="btn-group btn-group-lg text-right">
-            <!-- todo: fix onclick here and remove popup in save()  -->
             <button id="merge-btn" class="btn btn-success"
                 onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', mergedTable, JSON.stringify(testTableData), 'true')">
                 Try to keep both
@@ -532,7 +531,9 @@
 
             row.getElement().style.backgroundColor = 'white';
             //re-do styling
-            if (data[curation_status] !== null) {
+            //todo: check for curation status failing here..?
+            if (data[curation_status] !== null || data[curation_status] !== undefined) {
+
                 rowColours(row, data);
             }
             rowValue = row.getPosition(true);

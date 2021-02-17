@@ -583,7 +583,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
     # merger test: 
     # print(f'Merger test: ') 
-    merger = daff.Merger(table3,table2,table1,flags) #(1saving, 2server, 3initial)
+    merger = daff.Merger(table3,table2,table1,flags) #(3initial, 1saving, 2server, flags)
     merger.apply()
     # print(f'table2:')
     # table2String = table2.toString()
@@ -616,8 +616,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
         
     
-    # print(f'dataDict: ')
-    # print(json.dumps(dataDict))
+    print(f'dataDict: ')
+    print(json.dumps(dataDict))
     # print(f'the type of dataDict is: ')
     # print(type(dataDict))
 
