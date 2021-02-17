@@ -598,16 +598,17 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     for k in data:        
         # add "id" value:
         iter = iter + 1
+        dictT = {}
         if iter == 0:
             print(f'header row not using')
         else:
-            dictT = {}
             dictT['id'] = iter
             for key, val in zip(row_header, k):
                 #todo: somehow add "id" = num here!            
                 dictT[key] = val
         # add to list:
-        dataDict.append( dictT ) 
+        if iter > 0:
+            dataDict.append( dictT ) 
         # print(f'update: ')
         # print(dataDict)
 
