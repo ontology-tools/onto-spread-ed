@@ -230,14 +230,47 @@ def search():
     print(searchTerm)
     print(f'searchResults: ')
     searchResults = searchAcrossSheets(searchTerm)
-    # print(searchResults)
-    searchResultsTable = "".join(str(searchResults)) 
+    print(searchResults)
+    
+
+    # fix up all data formatting: 
+    # searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
+    # ok, dealing with "" on the front end,
+    # {} and [] inside data will break JSON parse - also "" or '' inside of cells
+      
+    new_row_data_1 = []
+    replacementValues = {'{': '', 
+                         '}': '',
+                         '[': '',
+                         ']': '',
+                         ',': '',
+                         '"': '',
+                         ':': '',
+                         '\\': '',
+                        #  '?': '',
+                         '\'': '',}
+    for k in searchResults:
+        dictT = {}
+        for key, val, item in zip(k, k.values(), k.items()):
+            #update:
+            for key2, value in replacementValues.items():
+                val = val.replace(key2, value)
+            #add to dictionary:
+            dictT[key] = val
+        #add to list:
+        new_row_data_1.append( dictT ) 
+    print(f'')
+    print(f'new_row_data_1: ')
+    print(new_row_data_1)
+    searchResultsTable = "".join(str(new_row_data_1)) #dict to table? 
+    print(f'')
+    print(f'searchResultsTable: ')
     print(searchResultsTable)
+
+
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
-                             #todo: searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
-                             # how can we easily sanitize this data? - also {} and [] inside data will break it
-                             # ok, dealing with "" on the front end, also "" inside cells 
+                             
 
 # Pages for the app
 @app.route('/')
