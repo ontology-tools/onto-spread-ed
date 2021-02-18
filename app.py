@@ -84,10 +84,9 @@ github = GitHub(app)
 
 # Implementation of Google Cloud Storage for index
 class BucketStorage(whoosh.filedb.filestore.RamStorage):
-    def __init__(self, bucket, blobname="index-spread-ed"):
+    def __init__(self, bucket):
         super().__init__()
         self.bucket = bucket
-        self.blobname = blobname
 
     def save_to_bucket(self):
         for name in self.files.keys():
@@ -109,13 +108,13 @@ class SpreadsheetSearcher:
         self.storage = BucketStorage(bucket)
         self.storage.open_from_bucket()
 
-    def searchFor(self,search_string):
+    def searchFor(self, repo_name, search_string):
         ix = self.storage.open_index()
 
         mparser = MultifieldParser(["class_id","label","definition","parent"],
                                 schema=ix.schema)
 
-        query = mparser.parse(search_string)
+        query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
 
         with ix.searcher() as searcher:
             results = searcher.search(query)
@@ -226,10 +225,11 @@ def user():
 @verify_logged_in
 def search():
     searchTerm = request.form.get("inputText")
+    repoName = request.form.get("repoName")
     print(f'searchTerm: ')
     print(searchTerm)
     print(f'searchResults: ')
-    searchResults = searchAcrossSheets(searchTerm)
+    searchResults = searchAcrossSheets(repoName, searchTerm)
     print(searchResults)
     
 
