@@ -225,10 +225,11 @@ def user():
 @verify_logged_in
 def search():
     searchTerm = request.form.get("inputText")
+    repoName = request.form.get("repoName")
     print(f'searchTerm: ')
     print(searchTerm)
     print(f'searchResults: ')
-    searchResults = searchAcrossSheets(searchTerm)
+    searchResults = searchAcrossSheets(repoName, searchTerm)
     # print(searchResults)
     searchResultsTable = "".join(str(searchResults))
     print(searchResultsTable)
