@@ -102,6 +102,7 @@
 
       // Bind the FormData object and the form element
       const FD = new FormData(form);
+      FD.append('repoName','{{repo_name}}');
 
       // Define what happens on successful data submission
       // todo: add error checking to this request
@@ -125,8 +126,9 @@
 
       // Set up our request
       XHR.open("POST", '/search', true);
-
-      // The data sent is what the user provided in the form
+      // repoName = '{{repo_name}}';
+      // console.log("repoName is: " + repoName);
+      // console.log("FD is: " + FD);
       XHR.send(FD);
     }
 

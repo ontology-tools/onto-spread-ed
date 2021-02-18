@@ -228,7 +228,7 @@ def search():
     repoName = request.form.get("repoName")
     print(f'searchTerm: ')
     print(searchTerm)
-    print(f'searchResults: ')
+    # print(f'searchResults: ')
     searchResults = searchAcrossSheets(repoName, searchTerm)
     print(searchResults)
     
