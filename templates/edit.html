@@ -41,7 +41,8 @@
     <div class="col-md-9">
         <div id="conflict-btns" class="btn-group btn-group-lg text-right">
             <button id="merge-btn" class="btn btn-success"
-                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', mergedTable, JSON.stringify(testTableData), 'true')">
+                onclick="keep_both()">
+                <!-- onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', mergedTable, JSON.stringify(testTableData), 'true')"> -->
                 Try to keep both
             </button>
             <button id="overwrite-btn" class="btn btn-dark"
@@ -1437,9 +1438,17 @@
         });
     };
 
+    var keep_both = function() {
+        table.setData(mergedTable);
+        $("#saveMessage").text('THIS IS YOUR NEW MERGED TABLE. CLICK OK TO SAVE, OR CANCEL TO REVERT');
+        $('#conflict-btns').hide();
+    }
     var lose_changes = function () {
         //delete saved changes?
         unsavedChanges = false;
+        //using tabulator reactive data to update the table. No refresh needed...
+        //todo: IMPORTANT this is data from the merge, so shouldn't be here TEST ONLY
+        // table.setData(mergedTable); //no
         //remove previous table array
         // window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
         //refresh sheet
