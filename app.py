@@ -577,8 +577,8 @@ def getDiff(row_data_1, row_data_2):
     return (table_diff_html)
 
 
-def searchAcrossSheets(search_string):
-    searcherAllResults = searcher.searchFor(search_string)
+def searchAcrossSheets(repo_name, search_string):
+    searcherAllResults = searcher.searchFor(repo_name, search_string)
     # print(searcherAllResults)
     return searcherAllResults
 
