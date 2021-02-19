@@ -68,11 +68,11 @@
   {% endif %}
 
 
-  <script type="text/javascript">
+  <!-- <script type="text/javascript">
 
-        // console.log("folder_path is: " + "{{folder_path}}");
-        // console.log("full path is: " + "/repo/{{repo_name}}/{{folder_path}}/{{dir}}");
-  </script>
+        console.log("folder_path is: " + "{{folder_path}}");
+        console.log("full path is: " + "/repo/{{repo_name}}/{{folder_path}}/{{dir}}");
+  </script> -->
   {% endfor %}
 </ul>
 {% endif %}
@@ -81,11 +81,14 @@
 <b>Spreadsheets available for editing: </b><br />
 <ul>
   {% for spr in spreadsheets %}
+  <!-- todo: openSheet here? -->
   <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
   </p>
+
   <script type="text/javascript">
-        // console.log("folder_path is: " + "{{folder_path}}");
-        // console.log("spreadsheet path is: " + "/edit/{{repo_name}}/{{folder_path}}/{{spr}}");
+        console.log("folder_path is: " + "{{folder_path}}");
+        console.log("spr is: " + "{{spr}}");
+        console.log("spreadsheet path is: " + "/edit/{{repo_name}}/{{folder_path}}/{{spr}}");
   </script>
   {% endfor %}
 </ul>
@@ -102,6 +105,7 @@
 
       // Bind the FormData object and the form element
       const FD = new FormData(form);
+      FD.append('repoName','{{repo_name}}');
 
       // Define what happens on successful data submission
       // todo: add error checking to this request
@@ -110,21 +114,24 @@
         var message = JSON.stringify(['message']);
         var results = response['searchResults'];
         // alert(message + " " + results);
-        results = results.replace(/\'/g, "\"");
+        results = results.replace(/\'/g, "\""); //replace '' with "" for Tabulator
+        
         var resultsArray = JSON.parse(results);
-        // console.log(results);
+        console.log(results);
         createTable(resultsArray);
       });
 
       // Define what happens in case of error
       XHR.addEventListener("error", function (event) {
-        alert('Oops! Something went wrong.');
+        bootbox.alert("Something went wrong");
+        console.log(event);
       });
 
       // Set up our request
       XHR.open("POST", '/search', true);
-
-      // The data sent is what the user provided in the form
+      // repoName = '{{repo_name}}';
+      // console.log("repoName is: " + repoName);
+      // console.log("FD is: " + FD);
       XHR.send(FD);
     }
 
@@ -152,6 +159,7 @@
       // console.log(message);
       var table = new Tabulator("#contentTable", {
         data: responseData,
+
         columns: [ //Define Table Columns
           { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
           { title: "Definition", field: "definition", formatter: "textarea" },
@@ -160,6 +168,7 @@
           { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
           { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
         ],
+        
         layout: "fitColumns",
         pagination: "local",
         paginationSize: "5",
@@ -173,7 +182,7 @@
           if(data['label'] != null && data['label'] != ""){
             openSheet(data["repo"], data["spreadsheet"], data['label']);
           } else{
-            openSheet(data["repo"], data["spreadsheet"], "");
+            openSheet(data["repo"], data["spreadsheet"], '');
           }
         },
       });
@@ -183,7 +192,16 @@
   function openSheet(repo, sheet, go_to_row) {
     // alert(sheet);
     //sheet: / "edit" / repo / sheet
-    window.location.href = '/edit/' + repo + '/' + sheet+'/' + go_to_row;
+    console.log("go_to_row is: ") + go_to_row;
+    window.location.href = '/edit/' + repo + '/' + sheet;
+    // if(go_to_row === ''){
+    //   window.location.href = '/edit/' + repo + '/' + sheet;
+    // }else{
+    //   window.location.href = '/edit/' + repo + '/' + sheet + '/' + go_to_row;
+    // }
+    
+    //todo: test on with BCIO: 
+    // window.location.href = '/edit/' + 'BCIO' + '/' + 'Setting/inputs/Setting.xlsx'+ '/' + 1;
   }
 </script>
 

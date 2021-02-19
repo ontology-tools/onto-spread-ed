@@ -238,18 +238,52 @@ def user():
 def search():
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
+    # repoName = "BCIO"
     print(f'searchTerm: ')
     print(searchTerm)
-    print(f'searchResults: ')
+    # print(f'searchResults: ')
     searchResults = searchAcrossSheets(repoName, searchTerm)
-    # print(searchResults)
-    searchResultsTable = "".join(str(searchResults))
+    print(searchResults)
+    
+
+    # fix up all data formatting: 
+    # searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
+    # ok, dealing with "" on the front end,
+    # {} and [] inside data will break JSON parse - also "" or '' inside of cells
+      
+    new_row_data_1 = []
+    replacementValues = {'{': '', 
+                         '}': '',
+                         '[': '',
+                         ']': '',
+                         ',': '',
+                         '"': '',
+                         ':': '',
+                         '\\': '',
+                        #  '?': '',
+                         '\'': '',}
+    for k in searchResults:
+        dictT = {}
+        for key, val, item in zip(k, k.values(), k.items()):
+            #update:
+            for key2, value in replacementValues.items():
+                val = val.replace(key2, value)
+            #add to dictionary:
+            dictT[key] = val
+        #add to list:
+        new_row_data_1.append( dictT ) 
+    print(f'')
+    print(f'new_row_data_1: ')
+    print(new_row_data_1)
+    searchResultsTable = "".join(str(new_row_data_1)) #dict to table? 
+    print(f'')
+    print(f'searchResultsTable: ')
     print(searchResultsTable)
+
+
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
-                             #todo: searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
-                             # how can we easily sanitize this data? - also {} and [] inside data will break it
-                             # ok, dealing with "" on the front end, also "" inside cells
+                             
 
 # Pages for the app
 @app.route('/')
@@ -296,9 +330,11 @@ def repo(repo_key, folder_path=""):
 
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
-@app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
+# @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet, go_to_row = ''):
+    print(f'spreadsheet is: ' )
+    print(spreadsheet)
     print(f'go_to_row is: ' )
     print(go_to_row)
     repositories = app.config['REPOSITORIES']
