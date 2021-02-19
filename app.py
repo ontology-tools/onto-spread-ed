@@ -318,7 +318,7 @@ def repo(repo_key, folder_path=""):
 
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
-@app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
+# @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet, go_to_row = ''):
     print(f'spreadsheet is: ' )

@@ -192,11 +192,13 @@
   function openSheet(repo, sheet, go_to_row) {
     // alert(sheet);
     //sheet: / "edit" / repo / sheet
-    if(go_to_row === ''){
-      window.location.href = '/edit/' + repo + '/' + sheet;
-    }else{
-      window.location.href = '/edit/' + repo + '/' + sheet + '/' + go_to_row;
-    }
+    console.log("go_to_row is: ") + go_to_row;
+    window.location.href = '/edit/' + repo + '/' + sheet;
+    // if(go_to_row === ''){
+    //   window.location.href = '/edit/' + repo + '/' + sheet;
+    // }else{
+    //   window.location.href = '/edit/' + repo + '/' + sheet + '/' + go_to_row;
+    // }
     
     //todo: test on with BCIO: 
     // window.location.href = '/edit/' + 'BCIO' + '/' + 'Setting/inputs/Setting.xlsx'+ '/' + 1;
