@@ -181,8 +181,10 @@
           // alert(data["spreadsheet"]);
           if(data['label'] != null && data['label'] != ""){
             openSheet(data["repo"], data["spreadsheet"], data['label']);
+            console.log("label: " + data['label']);
           } else{
             openSheet(data["repo"], data["spreadsheet"], '');
+            console.log("no label");
           }
         },
       });
@@ -190,10 +192,15 @@
   
 
   function openSheet(repo, sheet, go_to_row) {
+    $.get('/direct/' + repo + '/' + sheet, {
+      go_to_row: JSON.stringify({go_to_row})
+    })
+      // window.location.href = '/edit/' + repo + '/' + sheet;
+    
     // alert(sheet);
     //sheet: / "edit" / repo / sheet
-    console.log("go_to_row is: ") + go_to_row;
-    window.location.href = '/edit/' + repo + '/' + sheet;
+    // console.log("go_to_row is: ") + go_to_row;
+    // window.location.href = '/edit/' + repo + '/' + sheet;
     // if(go_to_row === ''){
     //   window.location.href = '/edit/' + repo + '/' + sheet;
     // }else{

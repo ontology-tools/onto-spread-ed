@@ -239,11 +239,11 @@ def search():
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
     # repoName = "BCIO"
-    print(f'searchTerm: ')
-    print(searchTerm)
+    # print(f'searchTerm: ')
+    # print(searchTerm)
     # print(f'searchResults: ')
     searchResults = searchAcrossSheets(repoName, searchTerm)
-    print(searchResults)
+    # print(searchResults)
     
 
     # fix up all data formatting: 
@@ -272,13 +272,13 @@ def search():
             dictT[key] = val
         #add to list:
         new_row_data_1.append( dictT ) 
-    print(f'')
-    print(f'new_row_data_1: ')
-    print(new_row_data_1)
+    # print(f'')
+    # print(f'new_row_data_1: ')
+    # print(new_row_data_1)
     searchResultsTable = "".join(str(new_row_data_1)) #dict to table? 
-    print(f'')
-    print(f'searchResultsTable: ')
-    print(searchResultsTable)
+    # print(f'')
+    # print(f'searchResultsTable: ')
+    # print(searchResultsTable)
 
 
     return ( json.dumps({"message":"Success",
@@ -328,11 +328,36 @@ def repo(repo_key, folder_path=""):
                             spreadsheets = spreadsheets,
                             )
 
+#todo: build request here and http request on front end with required data.
+
+@app.route('/direct/<repo_key>/<path:folder>/<spreadsheet>')
+@verify_logged_in
+def direct(repo_key, folder, spreadsheet):
+    go_to_row = ""
+    go_to_row = json.loads(request.args.get('go_to_row'))
+    print(f'go_to_row in redirect is: ' )
+    print(go_to_row)
+    print(f'spreadsheet is: ' )
+    print(spreadsheet)
+    session['label'] = go_to_row['go_to_row']
+    labelVal = session['label']
+    print(f'labelVal is: ')
+    print(labelVal)
+    url = url_for('edit') + '/' + repo_key + '/' + folder + '/' + spreadsheet
+    print(f'url is: ')
+    print(url)
+    # return json.dumps({"message":"Success"}), 200 
+    return redirect(url) #todo: why does this not re-direct???
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 # @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
 @verify_logged_in
-def edit(repo_key, folder, spreadsheet, go_to_row = ''):
+def edit(repo_key, folder, spreadsheet): #todo: how to get go_to_row without having it in the @app.route
+
+    
+    # go_to_row = json.loads(request.args.get('go_to_row')) #works
+    go_to_row = session['label']
+
     print(f'spreadsheet is: ' )
     print(spreadsheet)
     print(f'go_to_row is: ' )
