@@ -87,19 +87,29 @@ class BucketStorage(whoosh.filedb.filestore.RamStorage):
     def __init__(self, bucket):
         super().__init__()
         self.bucket = bucket
+        self.filenameslist = []
 
     def save_to_bucket(self):
         for name in self.files.keys():
             with self.open_file(name) as source:
-                #print("Saving file",name)
+                print("Saving file",name)
                 blob = self.bucket.blob(name)
                 blob.upload_from_file(source)
+        for name in self.filenameslist:
+            if name not in self.files.keys():
+                blob = self.bucket.blob(name)
+                print("Deleting old file",name)
+                self.bucket.delete_blob(blob.name)
+                self.filenameslist.remove(name)
 
     def open_from_bucket(self):
+        self.filenameslist = []
         for blob in bucket.list_blobs():
-            #print("Opening blob",blob.name)
-            with self.create_file(blob.name) as f:
-                blob.download_to_file(f)
+            print("Opening blob",blob.name)
+            self.filenameslist.append(blob.name)
+            f = self.create_file(blob.name)
+            blob.download_to_file(f)
+            f.close()
 
 
 class SpreadsheetSearcher:
@@ -125,6 +135,8 @@ class SpreadsheetSearcher:
                     allfields[field]=hit[field]
                 resultslist.append(allfields)
         return (resultslist)
+
+        ix.close()
 
 
 searcher = SpreadsheetSearcher()
