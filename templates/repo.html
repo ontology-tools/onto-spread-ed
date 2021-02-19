@@ -68,11 +68,11 @@
   {% endif %}
 
 
-  <script type="text/javascript">
+  <!-- <script type="text/javascript">
 
-        // console.log("folder_path is: " + "{{folder_path}}");
-        // console.log("full path is: " + "/repo/{{repo_name}}/{{folder_path}}/{{dir}}");
-  </script>
+        console.log("folder_path is: " + "{{folder_path}}");
+        console.log("full path is: " + "/repo/{{repo_name}}/{{folder_path}}/{{dir}}");
+  </script> -->
   {% endfor %}
 </ul>
 {% endif %}
@@ -81,11 +81,14 @@
 <b>Spreadsheets available for editing: </b><br />
 <ul>
   {% for spr in spreadsheets %}
+  <!-- todo: openSheet here? -->
   <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
   </p>
+
   <script type="text/javascript">
-        // console.log("folder_path is: " + "{{folder_path}}");
-        // console.log("spreadsheet path is: " + "/edit/{{repo_name}}/{{folder_path}}/{{spr}}");
+        console.log("folder_path is: " + "{{folder_path}}");
+        console.log("spr is: " + "{{spr}}");
+        console.log("spreadsheet path is: " + "/edit/{{repo_name}}/{{folder_path}}/{{spr}}");
   </script>
   {% endfor %}
 </ul>
@@ -179,7 +182,7 @@
           if(data['label'] != null && data['label'] != ""){
             openSheet(data["repo"], data["spreadsheet"], data['label']);
           } else{
-            openSheet(data["repo"], data["spreadsheet"], "");
+            openSheet(data["repo"], data["spreadsheet"], '');
           }
         },
       });
@@ -189,7 +192,14 @@
   function openSheet(repo, sheet, go_to_row) {
     // alert(sheet);
     //sheet: / "edit" / repo / sheet
-    window.location.href = '/edit/' + repo + '/' + sheet+'/' + go_to_row;
+    if(go_to_row === ''){
+      window.location.href = '/edit/' + repo + '/' + sheet;
+    }else{
+      window.location.href = '/edit/' + repo + '/' + sheet + '/' + go_to_row;
+    }
+    
+    //todo: test on with BCIO: 
+    // window.location.href = '/edit/' + 'BCIO' + '/' + 'Setting/inputs/Setting.xlsx'+ '/' + 1;
   }
 </script>
 

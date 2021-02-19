@@ -226,6 +226,7 @@ def user():
 def search():
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
+    # repoName = "BCIO"
     print(f'searchTerm: ')
     print(searchTerm)
     # print(f'searchResults: ')
@@ -320,6 +321,8 @@ def repo(repo_key, folder_path=""):
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet, go_to_row = ''):
+    print(f'spreadsheet is: ' )
+    print(spreadsheet)
     print(f'go_to_row is: ' )
     print(go_to_row)
     repositories = app.config['REPOSITORIES']
