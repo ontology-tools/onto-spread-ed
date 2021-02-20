@@ -328,7 +328,6 @@ def repo(repo_key, folder_path=""):
                             spreadsheets = spreadsheets,
                             )
 
-#todo: build request here and http request on front end with required data.
 @app.route("/direct", methods=["GET", "POST"])
 def direct():
     if request.method == "POST":
@@ -340,89 +339,15 @@ def direct():
     url = '/edit' + '/' + repoStr + '/' + sheetStr 
     session['label'] = go_to_row['go_to_row']
     session['url'] = url
-    print(f'url: ')
-    print(url)
-    label = session.get('label')
-    print(f'')
-    print(f'label is: ')
-    print(label)
     return('success')
-    # return redirect(url_for('edit', )
-    # return redirect(url)
-    # return render_template("edit.html")
-
-# @app.route('/direct/<repo_key>/<path:folder>/<spreadsheet>')
-# @verify_logged_in
-# def direct(repo_key, folder, spreadsheet):
-#     go_to_row = ""
-#     go_to_row = json.loads(request.args.get('go_to_row'))
-#     print(f'go_to_row in redirect is: ' )
-#     print(go_to_row)
-#     print(f'spreadsheet is: ' )
-#     print(spreadsheet)
-#     session['label'] = go_to_row['go_to_row']
-#     labelVal = session['label']
-#     print(f'labelVal is: ')
-#     print(labelVal)
-#     url = url_for('edit') + '/' + repo_key + '/' + folder + '/' + spreadsheet
-#     print(f'url is: ')
-#     print(url)
-#     return redirect(url_for("edit", go_to_row=go_to_row['go_to_row']))
-#     # return json.dumps({"message":"Success"}), 200 
-#     return redirect(url) #todo: why does this not re-direct???
-
-# @app.route('/edit')
-# @verify_logged_in
-# def edit(): #todo: how to get go_to_row without having it in the @app.route
-
     
-    # go_to_row = json.loads(request.args.get('go_to_row')) #works
-    # if session.get('label') is None:
-    #     go_to_row = ''
-    # else:
-    #     go_to_row = session.get('label')
-    #     session.pop('label', None)
-
-    # print(f'spreadsheet is: ' )
-    # print(spreadsheet)
-    # print(f'go_to_row is: ' )
-    # print(go_to_row)
-    # repositories = app.config['REPOSITORIES']
-    # repo_detail = repositories[repo_key]
-    # (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
-    # if g.user.github_login in USERS_METADATA:
-    #     user_initials = USERS_METADATA[g.user.github_login]
-    # else:
-    #     print(f"The user {g.user.github_login} has no known metadata")
-    #     user_initials = g.user.github_login[0:2]
-
-    # return render_template('edit.html',
-    #                         login=g.user.github_login,
-    #                         user_initials=user_initials,
-    #                         all_initials=ALL_USERS_INITIALS,
-    #                         repo_name = repo_key,
-    #                         folder = folder,
-    #                         spreadsheet_name=spreadsheet,
-    #                         header=json.dumps(header),
-    #                         rows=json.dumps(rows),
-    #                         file_sha = file_sha,
-    #                         go_to_row = go_to_row
-    #                         )
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
-# @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
 @verify_logged_in
-def edit(repo_key, folder, spreadsheet): #todo: how to get go_to_row without having it in the @app.route
-
-    
-    # go_to_row = json.loads(request.args.get('go_to_row')) #works
+def edit(repo_key, folder, spreadsheet):
     go_to_row = session.get('label')
-        # session.pop('label', None)
+    # session.pop('label', None)
 
-    print(f'spreadsheet is: ' )
-    print(spreadsheet)
-    print(f'go_to_row is: ' )
-    print(go_to_row)
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)

@@ -173,7 +173,7 @@
         pagination: "local",
         paginationSize: "5",
 
-        //todo: various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
+        // various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
 
         rowClick: function (e, row) {
           // loadDialog(row);
@@ -208,19 +208,6 @@ data: { go_to_row: JSON.stringify({go_to_row}),  repo: JSON.stringify({repo}) , 
     //   go_to_row: JSON.stringify({go_to_row})
     // , repo: JSON.stringify({repo}) , sheet: JSON.stringify({sheet}) });
       // window.location.href = '/edit/' + repo + '/' + sheet;
-    
-    // alert(sheet);
-    //sheet: / "edit" / repo / sheet
-    // console.log("go_to_row is: ") + go_to_row;
-    // window.location.href = '/edit/' + repo + '/' + sheet;
-    // if(go_to_row === ''){
-    //   window.location.href = '/edit/' + repo + '/' + sheet;
-    // }else{
-    //   window.location.href = '/edit/' + repo + '/' + sheet + '/' + go_to_row;
-    // }
-    
-    //todo: test on with BCIO: 
-    // window.location.href = '/edit/' + 'BCIO' + '/' + 'Setting/inputs/Setting.xlsx'+ '/' + 1;
   }
 </script>
 
