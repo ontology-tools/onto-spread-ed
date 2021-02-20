@@ -11,151 +11,151 @@
   <input id="inputBtn" type="submit" class="btn btn-outline-success"></input>
 </form>
 <h4 id="resultsHeader">RESULTS - click on a row to open its spreadsheet:</h2>
-<!-- <form id="submitText" action="{{ url_for('search') }}" method="post">
+  <!-- <form id="submitText" action="{{ url_for('search') }}" method="post">
     <div class="row mb-3">
       <div class="col-md-8">
         <div class="form-group green-border-focus">
           <label for="inputText" class=font-weight-bold>Search across all spreadsheets:</label>
           <!-- todo: make largeTextArea responsive to screen size -->
-<!-- <input id="input" form="submitText" class="form-control" id="inputText" name="inputText" rows="1">
+  <!-- <input id="input" form="submitText" class="form-control" id="inputText" name="inputText" rows="1">
   
               </textarea>
         </div>
       </div>
     </div> -->
 
-<!-- <div class="row mb-3">
+  <!-- <div class="row mb-3">
       <div class="col-md-8">
         <div class="float-right">
           <button type="submit" id=tag-text class="btn btn-outline-success"></i>SEARCH</button>
         </div>
       </div>
     </div> -->
-<!-- </form> -->
+  <!-- </form> -->
 
-<div class="row">
-  <div class="col-md-12">
-    <div id="contentTable" class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.8em;">
+  <div class="row">
+    <div class="col-md-12">
+      <div id="contentTable" class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.8em;">
+      </div>
     </div>
   </div>
-</div>
 
-<!-- //tabulator: -->
-<!-- always up-to-date tabulator CDN? -->
-<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
-<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
-
-
-<!-- bootstrap 4 theme -->
-<link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+  <!-- //tabulator: -->
+  <!-- always up-to-date tabulator CDN? -->
+  <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
+  <script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
 
 
+  <!-- bootstrap 4 theme -->
+  <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
-<h2> You are in project {{repo_name}} </h2>
 
-{% if folder_path %}
-<h3> Folder {{folder_path}} </h3>
-{% endif %}
 
-{% if directories|length > 0 %}
-<b>Folders: </b><br />
-<ul>
-  {% for dir in directories %}
-  {% if folder_path|length %}
-  <li class="twoSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}/{{dir}}">{{dir}}</a> </li>
-  {% else %}
-  <li class="oneSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}{{dir}}">{{dir}}</a> </li>
+  <h2> You are in project {{repo_name}} </h2>
+
+  {% if folder_path %}
+  <h3> Folder {{folder_path}} </h3>
   {% endif %}
 
+  {% if directories|length > 0 %}
+  <b>Folders: </b><br />
+  <ul>
+    {% for dir in directories %}
+    {% if folder_path|length %}
+    <li class="twoSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}/{{dir}}">{{dir}}</a> </li>
+    {% else %}
+    <li class="oneSlash"> <a href="/repo/{{repo_name}}/{{folder_path}}{{dir}}">{{dir}}</a> </li>
+    {% endif %}
 
-  <!-- <script type="text/javascript">
+
+    <!-- <script type="text/javascript">
 
         console.log("folder_path is: " + "{{folder_path}}");
         console.log("full path is: " + "/repo/{{repo_name}}/{{folder_path}}/{{dir}}");
   </script> -->
-  {% endfor %}
-</ul>
-{% endif %}
+    {% endfor %}
+  </ul>
+  {% endif %}
 
-{% if spreadsheets|length > 0 %}
-<b>Spreadsheets available for editing: </b><br />
-<ul>
-  {% for spr in spreadsheets %}
-  <!-- todo: openSheet here? -->
-  <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
-  </p>
+  {% if spreadsheets|length > 0 %}
+  <b>Spreadsheets available for editing: </b><br />
+  <ul>
+    {% for spr in spreadsheets %}
+    <!-- todo: openSheet here? -->
+    <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
+    </p>
 
-  <script type="text/javascript">
+    <script type="text/javascript">
         // console.log("folder_path is: " + "{{folder_path}}");
         // console.log("spr is: " + "{{spr}}");
         // console.log("spreadsheet path is: " + "/edit/{{repo_name}}/{{folder_path}}/{{spr}}");
-  </script>
-  {% endfor %}
-</ul>
-{% endif %}
+    </script>
+    {% endfor %}
+  </ul>
+  {% endif %}
 
-<script type="text/javascript">
-  // var searchFor = function (searchTerm) {
-  // console.log("searchTerm is: " + searchTerm)
+  <script type="text/javascript">
+    // var searchFor = function (searchTerm) {
+    // console.log("searchTerm is: " + searchTerm)
 
-  window.addEventListener("load", function () {
-    $("#resultsHeader").hide();
-    function sendData() {
-      const XHR = new XMLHttpRequest();
+    window.addEventListener("load", function () {
+      $("#resultsHeader").hide();
+      function sendData() {
+        const XHR = new XMLHttpRequest();
 
-      // Bind the FormData object and the form element
-      const FD = new FormData(form);
-      FD.append('repoName','{{repo_name}}');
+        // Bind the FormData object and the form element
+        const FD = new FormData(form);
+        FD.append('repoName', '{{repo_name}}');
 
-      // Define what happens on successful data submission
-      // todo: add error checking to this request
-      XHR.addEventListener("load", function (event) {
-        var response = JSON.parse(event.target.responseText);
-        var message = JSON.stringify(['message']);
-        var results = response['searchResults'];
-        // alert(message + " " + results);
-        results = results.replace(/\'/g, "\""); //replace '' with "" for Tabulator
-        
-        var resultsArray = JSON.parse(results);
-        console.log(results);
-        createTable(resultsArray);
+        // Define what happens on successful data submission
+        // todo: add error checking to this request
+        XHR.addEventListener("load", function (event) {
+          var response = JSON.parse(event.target.responseText);
+          var message = JSON.stringify(['message']);
+          var results = response['searchResults'];
+          // alert(message + " " + results);
+          results = results.replace(/\'/g, "\""); //replace '' with "" for Tabulator
+
+          var resultsArray = JSON.parse(results);
+          console.log(results);
+          createTable(resultsArray);
+        });
+
+        // Define what happens in case of error
+        XHR.addEventListener("error", function (event) {
+          bootbox.alert("Something went wrong");
+          console.log(event);
+        });
+
+        // Set up our request
+        XHR.open("POST", '/search', true);
+        // repoName = '{{repo_name}}';
+        // console.log("repoName is: " + repoName);
+        // console.log("FD is: " + FD);
+        XHR.send(FD);
+      }
+
+      // Access the form element...
+      const form = document.getElementById("submitText");
+
+      // ...and take over its submit event.
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        sendData();
+        $("#resultsHeader").show();
       });
-
-      // Define what happens in case of error
-      XHR.addEventListener("error", function (event) {
-        bootbox.alert("Something went wrong");
-        console.log(event);
-      });
-
-      // Set up our request
-      XHR.open("POST", '/search', true);
-      // repoName = '{{repo_name}}';
-      // console.log("repoName is: " + repoName);
-      // console.log("FD is: " + FD);
-      XHR.send(FD);
-    }
-
-    // Access the form element...
-    const form = document.getElementById("submitText");
-
-    // ...and take over its submit event.
-    form.addEventListener("submit", function (event) {
-      event.preventDefault();
-
-      sendData();
-      $("#resultsHeader").show();
     });
-  });
 
-  function createTable(responseData) {
-    if (responseData.length < 1) {
-      document.getElementById("resultsHeader").innerHTML = "No Results";
-      // $("#resultsHeader").innerText = "No Results";
-      // alert("No Results");
-    } else{
-      document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
-      // $("#resultsHeader").innerText = "RESULTS - click on a row to open its spreadsheet:";
-    }
+    function createTable(responseData) {
+      if (responseData.length < 1) {
+        document.getElementById("resultsHeader").innerHTML = "No Results";
+        // $("#resultsHeader").innerText = "No Results";
+        // alert("No Results");
+      } else {
+        document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+        // $("#resultsHeader").innerText = "RESULTS - click on a row to open its spreadsheet:";
+      }
       // console.log(message);
       var table = new Tabulator("#contentTable", {
         data: responseData,
@@ -168,7 +168,7 @@
           { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
           { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
         ],
-        
+
         layout: "fitColumns",
         pagination: "local",
         paginationSize: "5",
@@ -179,37 +179,37 @@
           // loadDialog(row);
           var data = row.getData();
           // alert(data["spreadsheet"]);
-          if(data['label'] != null && data['label'] != ""){
+          if (data['label'] != null && data['label'] != "") {
             openSheet(data["repo"], data["spreadsheet"], data['label']);
             console.log("label: " + data['label']);
-          } else{
+          } else {
             openSheet(data["repo"], data["spreadsheet"], '');
             console.log("no label");
           }
         },
       });
     }
-  
 
-  function openSheet(repo, sheet, go_to_row) {
-    console.log(sheet + " "  + sheet + " " + go_to_row)
 
-jQuery.ajax({
-url: '/direct',
-dataType: 'text',
-type: 'POST',
-async: 'false', 
-data: { go_to_row: JSON.stringify({go_to_row}),  repo: JSON.stringify({repo}) , sheet: JSON.stringify({sheet})},
-  success: function(data) {
-    window.location.href = '/edit/' + repo + '/' + sheet;             
-  }
-});
-    // $.post('/direct', { 
-    //   go_to_row: JSON.stringify({go_to_row})
-    // , repo: JSON.stringify({repo}) , sheet: JSON.stringify({sheet}) });
+    function openSheet(repo, sheet, go_to_row) {
+      console.log(sheet + " " + sheet + " " + go_to_row)
+
+      jQuery.ajax({
+        url: '/direct',
+        dataType: 'text',
+        type: 'POST',
+        async: 'false',
+        data: { go_to_row: JSON.stringify({ go_to_row }), repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
+        success: function (data) {
+          window.location.href = '/edit/' + repo + '/' + sheet;
+        }
+      });
+      // $.post('/direct', { 
+      //   go_to_row: JSON.stringify({go_to_row})
+      // , repo: JSON.stringify({repo}) , sheet: JSON.stringify({sheet}) });
       // window.location.href = '/edit/' + repo + '/' + sheet;
-  }
-</script>
+    }
+  </script>
 
 
-{% endblock %}
+  {% endblock %}

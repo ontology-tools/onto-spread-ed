@@ -328,7 +328,7 @@ def repo(repo_key, folder_path=""):
                             spreadsheets = spreadsheets,
                             )
 
-@app.route("/direct", methods=["GET", "POST"])
+@app.route("/direct", methods=["POST"])
 def direct():
     if request.method == "POST":
         repo = json.loads(request.form.get("repo"))
