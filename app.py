@@ -345,8 +345,11 @@ def direct():
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet):
-    go_to_row = session.get('label')
-    # session.pop('label', None)
+    if session.get('label') == None:
+        go_to_row = ""
+    else:
+        go_to_row = session.get('label')
+        session.pop('label', None)
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]

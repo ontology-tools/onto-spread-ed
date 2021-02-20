@@ -595,9 +595,9 @@
                     rowValue = row.getPosition();//save absolute row position
                     columnValue = cell.getField(); //column name
                     if (cell.getValue().includes(repo_name.toUpperCase())) {
-                         if (data[curation_status] == "External") { //
+                        if (data[curation_status] == "External") { //
                             data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
-                         }
+                        }
                     }
                 }
                 if (data["ID"] == undefined) {
@@ -1206,13 +1206,13 @@
         };
         //scroll to search term if present:
         initialRowSearch = '{{go_to_row | safe}}';
-            console.log(initialRowSearch);
-            if(initialRowSearch == "" || initialRowSearch == null){ //or if 'Label' column not present? Shouldn't be necessary, since we are linking to 'Label'
-                
-            } else{
-                //filter by ID:
-                table.setHeaderFilterValue("Label", initialRowSearch);
-            }
+        console.log(initialRowSearch);
+        if (initialRowSearch == "" || initialRowSearch == null) { 
+
+        } else {
+            //filter by Label:
+            table.setHeaderFilterValue("Label", initialRowSearch);
+        }
 
     });
 
