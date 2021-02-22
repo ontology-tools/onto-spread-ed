@@ -1396,6 +1396,7 @@
                                         
                                         $('#saveAlert').removeClass('alert-success');
                                         $('#saveAlert').addClass('alert-danger');
+                                        $("#saveMessage").append(errInfo);
                                         $("#saveMessage").append('<br> SEE THE BUTTONS ABOVE THIS MESSAGE FOR OPTIONS TO DEAL WITH THIS <br>');
                                         $("#saveMessage").append('Merge info: ' + mergeInfo); 
                                         // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
