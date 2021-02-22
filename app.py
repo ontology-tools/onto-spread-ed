@@ -389,15 +389,14 @@ def save(): #todo: add boolean value (overwrite) here?
         if new_file_sha != file_sha and not overwrite:
             print("PR created and must be merged manually as repo file had changed")
 
-            # Get the changes between the new file and this one:
-            # todo: WARNING: merged_table still has header attached, remove this!!!
+            # Get the changes between the new file and this one:            
             merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
             # update rows for comparison:
             (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             return(
                 json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
                     +pr_info+'">here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
-                        "rows3": rows3, "header3": header3}), 400
+                        "rows3": rows3, "header3": header3}), 300 #400 for missing REPO
                 )
         else:
             # Merge the created PR

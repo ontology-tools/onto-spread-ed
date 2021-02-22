@@ -56,6 +56,23 @@
     </div>
 </div>
 
+<div class="row mb-3">
+    <div class="col-md-9">
+        <!-- todo: make functions for these buttons -->
+        <div id="merge-btns" class="btn-group btn-group-lg text-right">
+            <button id="merge-overwrite-btn" class="btn btn-success"
+            onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                SAVE
+            </button>
+            <!-- todo: need the old table data to revert to below! -->
+            <button id="merge-revert-btn" class="btn btn-dark"            
+                onclick="revert_changes()">
+                REVERT
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-12">
         <div id="saveAlert" class="alert alert-success collapse" role="alert">
@@ -113,6 +130,7 @@
     //hide save button on load
     $('#save-btn').hide();
     $('#conflict-btns').hide();
+    $('#merge-btns').hide();
 
 
 
@@ -171,6 +189,7 @@
     //Build the table row data with field names
     var tableData = [];
     var testTableData = [];
+    var previousData = [];
 
     //get saved table data, compare to current table:
     for (var i = 0; i < rowLength; i++) {
@@ -298,7 +317,7 @@
                 //Restoring entire array:
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
-                tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
+                tableData = JSON.parse(previousTableData); //todo: this doesn't take into account changes made on the server!
                 //todo: below needs to block, but we want a bootbox style which is asynchronous?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
@@ -1295,8 +1314,6 @@
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
     */
-    // todo: add testTableData to the list of arguments below - send to server and use daff to compare. 
-    // also add boolean (overwrite) for overwriting server version (after review only!)
     var save_changes = function (repo_key, folder, spreadsheet, rowData, initialData, overwrite) {
         $("#commit-msg").attr('value', 'Updating ' + spreadsheet);
 
@@ -1331,6 +1348,7 @@
                             // Define a function to handle a state change of the request:
                             request.onreadystatechange = function () {
                                 $("*").css("cursor", "default");
+                                console.log("request status is: " + request.status);
                                 if (request.readyState === 4) {
                                     if (!request.status) {
                                         bootbox.alert("Problem communicating with server");
@@ -1366,7 +1384,11 @@
                                             location.reload(true); //todo: can tabulator just update without re-loading the page? 
                                         }
                                         //todo: handle more error codes here and do merge in correct circumstance
-                                    } else {
+                                    } else if (request.status === 400) { //repo not found error
+                                        $("#saveAlert").addClass("alert-danger");
+                                        $("#saveMessage").text('REPO not found, is your internet working?');
+                                        $("#saveAlert").show();
+                                    } else  if(request.status === 300){ //error code for merge
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
                                         var mergeInfo = response['merge_diff'];
@@ -1406,6 +1428,13 @@
                                         $("tr.add").css('background-color', '#7CFC00'); //green
                                         $("td.modify").css('background-color', '#00FF00'); //lighter green
                                         $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
+                                    } else {
+                                        var response = JSON.parse(request.responseText);
+                                        console.log(response);
+                                        var errInfo = response['Error'];
+                                        $("#saveAlert").addClass("alert-danger");
+                                        $("#saveMessage").text('error saving' + errInfo);
+                                        $("#saveAlert").show();
                                     }
                                 }
                             }
@@ -1439,10 +1468,24 @@
     };
 
     var keep_both = function() {
+        //backup old data:
+        previousData = table.getData();
         table.setData(mergedTable);
-        $("#saveMessage").text('THIS IS YOUR NEW MERGED TABLE. CLICK OK TO SAVE, OR CANCEL TO REVERT');
+        $("#saveMessage").text('IMPORTANT: This is your new Merged Table. You can edit it, and click on SAVE above, or click REVERT to go back. PLEASE CHOOSE NOW');
         $('#conflict-btns').hide();
+        $('#merge-btns').show();
     }
+
+    var revert_changes = function () {
+        table.setData(previousData); 
+        $('#merge-btns').hide();
+        $("#saveMessage").removeClass('alert-danger');
+        $("#saveMessage").text('');
+        $("#saveMessage").hide(); //todo: this is not working
+
+        $('#save-btn').show();
+    }
+
     var lose_changes = function () {
         //delete saved changes?
         unsavedChanges = false;
@@ -1455,6 +1498,13 @@
         location.reload(true);
     };
 
+    
+
+    //todo: click handlers for SAVE and REVERT below: (remove buttons and message)
+    // $("#").click(function () {
+
+    // }
+
 
 
 
@@ -1462,6 +1512,7 @@
     $("#closeSaveMsgBtn").click(function () {
         $("#saveMessage").text('');
         $('#conflict-btns').hide();
+        $('#merge-btns').hide();
         //keep save button though if present? OK no..
         $(this).parent().hide();
     });
