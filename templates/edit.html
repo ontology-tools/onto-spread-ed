@@ -39,7 +39,7 @@
 
 <div class="row mb-3">
     <div class="col-md-9">
-        <div id="conflict-btns" class="btn-group btn-group-lg text-right">
+        <div id="conflict-btns" class="btn-group btn-group-lg text-right" style="display: none">
             <button id="merge-btn" class="btn btn-success"
                 onclick="keep_both()">
                 <!-- onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', mergedTable, JSON.stringify(testTableData), 'true')"> -->
@@ -58,13 +58,11 @@
 
 <div class="row mb-3">
     <div class="col-md-9">
-        <!-- todo: make functions for these buttons -->
-        <div id="merge-btns" class="btn-group btn-group-lg text-right">
-            <button id="merge-overwrite-btn" class="btn btn-success"
+        <div id="merge-btns" class="btn-group btn-group-lg text-right " style="display: none">
+            <button id="merge-overwrite-btn" class="btn btn-success" 
             onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
                 SAVE
             </button>
-            <!-- todo: need the old table data to revert to below! -->
             <button id="merge-revert-btn" class="btn btn-dark"            
                 onclick="revert_changes()">
                 REVERT
