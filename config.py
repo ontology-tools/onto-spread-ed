@@ -21,7 +21,8 @@ if os.environ.get("FLASK_ENV")=='development':
     os.environ['GOOGLE_APPLICATION_CREDENTIALS']='ontospreaded.json'
 else:
     REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology"}
-
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'ontospreaded.json'
+    
     # Create the Secret Manager client.
     client = secretmanager.SecretManagerServiceClient()
 

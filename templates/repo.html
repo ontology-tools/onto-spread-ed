@@ -10,7 +10,8 @@
   <input id="inputText" name="inputText" value="" placeholder='search terms'>
   <input id="inputBtn" type="submit" class="btn btn-outline-success"></input>
 </form>
-<h4 id="resultsHeader">RESULTS - click on a row to open its spreadsheet:</h2>
+
+<h4 id="resultsHeader" style="display:none">RESULTS - click on a row to open its spreadsheet:</h2>
   <!-- <form id="submitText" action="{{ url_for('search') }}" method="post">
     <div class="row mb-3">
       <div class="col-md-8">
@@ -35,7 +36,7 @@
 
   <div class="row">
     <div class="col-md-12">
-      <div id="contentTable" class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.8em;">
+      <div id="contentTable" class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.8em; display:none;">
       </div>
     </div>
   </div>
