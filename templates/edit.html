@@ -1383,8 +1383,10 @@
                                         }
                                         //todo: handle more error codes here and do merge in correct circumstance
                                     } else if (request.status === 400) { //repo not found error
+                                        var response = JSON.parse(request.responseText);
+                                        var errInfo = response['Error'];
                                         $("#saveAlert").addClass("alert-danger");
-                                        $("#saveMessage").text('REPO not found, is your internet working?');
+                                        $("#saveMessage").text('REPO not found - ' + errInfo);
                                         $("#saveAlert").show();
                                     } else  if(request.status === 300){ //error code for merge
                                         var response = JSON.parse(request.responseText);
