@@ -239,11 +239,11 @@ def search():
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
     # repoName = "BCIO"
-    print(f'searchTerm: ')
-    print(searchTerm)
+    # print(f'searchTerm: ')
+    # print(searchTerm)
     # print(f'searchResults: ')
     searchResults = searchAcrossSheets(repoName, searchTerm)
-    print(searchResults)
+    # print(searchResults)
     
 
     # fix up all data formatting: 
@@ -272,13 +272,13 @@ def search():
             dictT[key] = val
         #add to list:
         new_row_data_1.append( dictT ) 
-    print(f'')
-    print(f'new_row_data_1: ')
-    print(new_row_data_1)
+    # print(f'')
+    # print(f'new_row_data_1: ')
+    # print(new_row_data_1)
     searchResultsTable = "".join(str(new_row_data_1)) #dict to table? 
-    print(f'')
-    print(f'searchResultsTable: ')
-    print(searchResultsTable)
+    # print(f'')
+    # print(f'searchResultsTable: ')
+    # print(searchResultsTable)
 
 
     return ( json.dumps({"message":"Success",
@@ -328,15 +328,29 @@ def repo(repo_key, folder_path=""):
                             spreadsheets = spreadsheets,
                             )
 
+@app.route("/direct", methods=["POST"])
+def direct():
+    if request.method == "POST":
+        repo = json.loads(request.form.get("repo"))
+        sheet = json.loads(request.form.get("sheet"))
+        go_to_row = json.loads(request.form.get("go_to_row"))
+    repoStr = repo['repo']
+    sheetStr = sheet['sheet']
+    url = '/edit' + '/' + repoStr + '/' + sheetStr 
+    session['label'] = go_to_row['go_to_row']
+    session['url'] = url
+    return('success')
+    
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
-# @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>/<go_to_row>')
 @verify_logged_in
-def edit(repo_key, folder, spreadsheet, go_to_row = ''):
-    print(f'spreadsheet is: ' )
-    print(spreadsheet)
-    print(f'go_to_row is: ' )
-    print(go_to_row)
+def edit(repo_key, folder, spreadsheet):
+    if session.get('label') == None:
+        go_to_row = ""
+    else:
+        go_to_row = session.get('label')
+        session.pop('label', None)
+
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
