@@ -1,6 +1,11 @@
 import os
 
-# Example configuration
+# Connect to the Google cloud Secret Manager client
+from google.cloud import secretmanager
+# Connect to Google cloud storage client
+from google.cloud import storage
+
+
 DEBUG = True
 
 APP_TITLE = "Ontology Spreadsheet Editor"
@@ -11,12 +16,12 @@ if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
     GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
-    REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology", "BCIO":"jannahastings/ontologies"}
+    REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology", "BCIO": "jannahastings/ontologies"}
+    # onto-spread-ed google credentials in local directory for dev mode
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS']='ontospreaded.json'
 else:
     REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology"}
 
-    # Import the Secret Manager client library.
-    from google.cloud import secretmanager
     # Create the Secret Manager client.
     client = secretmanager.SecretManagerServiceClient()
 
@@ -42,8 +47,13 @@ else:
     response = client.access_secret_version(request={"name": name})
     SECRET_KEY = response.payload.data.decode("UTF-8")
 
+# Cloud storage - for the index search
+storage_client = storage.Client()
+bucket = storage_client.get_bucket('index-spread-ed')
+
 
 
 USERS_METADATA = {"jannahastings": "JH", "robertjwest":"RW", "sharoncox":"SC",
-                  "ksoar":"KS", "CaitlinNotley702": "CN", "CaitlinNotley": "CN"}
+                  "ksoar":"KS", "CaitlinNotley702": "CN", "CaitlinNotley": "CN",
+                  "alisonjwright":"AW", "zcbtelh": "EH"}
 ALL_USERS_INITIALS = [v for v in USERS_METADATA.values()]
