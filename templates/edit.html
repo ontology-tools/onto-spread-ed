@@ -1396,7 +1396,6 @@
                                         
                                         $('#saveAlert').removeClass('alert-success');
                                         $('#saveAlert').addClass('alert-danger');
-                                        $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
                                         $("#saveMessage").append('<br> SEE THE BUTTONS ABOVE THIS MESSAGE FOR OPTIONS TO DEAL WITH THIS <br>');
                                         $("#saveMessage").append('Merge info: ' + mergeInfo); 
                                         // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
@@ -1431,7 +1430,7 @@
                                         console.log(response);
                                         var errInfo = response['Error'];
                                         $("#saveAlert").addClass("alert-danger");
-                                        $("#saveMessage").text('error saving' + errInfo);
+                                        $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
                                         $("#saveAlert").show();
                                     }
                                 }
