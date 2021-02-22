@@ -1479,9 +1479,10 @@
     var revert_changes = function () {
         table.setData(previousData); 
         $('#merge-btns').hide();
-        $("#saveMessage").removeClass('alert-danger');
+        $("#saveMessage").removeClass('alert-danger'); //not working!
         $("#saveMessage").text('');
-        $("#saveMessage").hide(); //todo: this is not working
+        $("#saveAlert").dismissed = true; //todo: does nothing..
+        // $("#saveMessage").hide(); //todo: this is not working
 
         $('#save-btn').show();
     }
