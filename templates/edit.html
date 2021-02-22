@@ -30,7 +30,7 @@
     </div>
     <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> -->
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success btn-sm"
+        <button id="save-btn" class="btn btn-outline-success btn-sm" style="display: none"
             onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) ">
             Save changes to repository
         </button>
