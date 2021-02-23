@@ -32,6 +32,10 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import whoosh
+from whoosh.qparser import MultifieldParser
+from whoosh.index import open_dir
+
 from datetime import datetime
 
 # setup sqlalchemy
@@ -77,6 +81,65 @@ app = FlaskApp(__name__)
 app.config.from_object('config')
 
 github = GitHub(app)
+
+# Implementation of Google Cloud Storage for index
+class BucketStorage(whoosh.filedb.filestore.RamStorage):
+    def __init__(self, bucket):
+        super().__init__()
+        self.bucket = bucket
+        self.filenameslist = []
+
+    def save_to_bucket(self):
+        for name in self.files.keys():
+            with self.open_file(name) as source:
+                print("Saving file",name)
+                blob = self.bucket.blob(name)
+                blob.upload_from_file(source)
+        for name in self.filenameslist:
+            if name not in self.files.keys():
+                blob = self.bucket.blob(name)
+                print("Deleting old file",name)
+                self.bucket.delete_blob(blob.name)
+                self.filenameslist.remove(name)
+
+    def open_from_bucket(self):
+        self.filenameslist = []
+        for blob in bucket.list_blobs():
+            print("Opening blob",blob.name)
+            self.filenameslist.append(blob.name)
+            f = self.create_file(blob.name)
+            blob.download_to_file(f)
+            f.close()
+
+
+class SpreadsheetSearcher:
+    # bucket is defined in config.py
+    def __init__(self):
+        self.storage = BucketStorage(bucket)
+        self.storage.open_from_bucket()
+
+    def searchFor(self, repo_name, search_string):
+        ix = self.storage.open_index()
+
+        mparser = MultifieldParser(["class_id","label","definition","parent"],
+                                schema=ix.schema)
+
+        query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
+
+        with ix.searcher() as searcher:
+            results = searcher.search(query)
+            resultslist = []
+            for hit in results:
+                allfields = {}
+                for field in hit:
+                    allfields[field]=hit[field]
+                resultslist.append(allfields)
+        return (resultslist)
+
+        ix.close()
+
+
+searcher = SpreadsheetSearcher()
 
 
 def verify_logged_in(fn):
@@ -170,6 +233,57 @@ def loggedout():
 def user():
     return jsonify(github.get('/user'))
 
+@app.route('/search', methods=['POST'])
+@verify_logged_in
+def search():
+    searchTerm = request.form.get("inputText")
+    repoName = request.form.get("repoName")
+    # repoName = "BCIO"
+    # print(f'searchTerm: ')
+    # print(searchTerm)
+    # print(f'searchResults: ')
+    searchResults = searchAcrossSheets(repoName, searchTerm)
+    # print(searchResults)
+    
+
+    # fix up all data formatting: 
+    # searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
+    # ok, dealing with "" on the front end,
+    # {} and [] inside data will break JSON parse - also "" or '' inside of cells
+      
+    new_row_data_1 = []
+    replacementValues = {'{': '', 
+                         '}': '',
+                         '[': '',
+                         ']': '',
+                         ',': '',
+                         '"': '',
+                         ':': '',
+                         '\\': '',
+                        #  '?': '',
+                         '\'': '',}
+    for k in searchResults:
+        dictT = {}
+        for key, val, item in zip(k, k.values(), k.items()):
+            #update:
+            for key2, value in replacementValues.items():
+                val = val.replace(key2, value)
+            #add to dictionary:
+            dictT[key] = val
+        #add to list:
+        new_row_data_1.append( dictT ) 
+    # print(f'')
+    # print(f'new_row_data_1: ')
+    # print(new_row_data_1)
+    searchResultsTable = "".join(str(new_row_data_1)) #dict to table? 
+    # print(f'')
+    # print(f'searchResultsTable: ')
+    # print(searchResultsTable)
+
+
+    return ( json.dumps({"message":"Success",
+                             "searchResults": searchResultsTable}), 200 )
+                             
 
 # Pages for the app
 @app.route('/')
@@ -214,10 +328,29 @@ def repo(repo_key, folder_path=""):
                             spreadsheets = spreadsheets,
                             )
 
+@app.route("/direct", methods=["POST"])
+def direct():
+    if request.method == "POST":
+        repo = json.loads(request.form.get("repo"))
+        sheet = json.loads(request.form.get("sheet"))
+        go_to_row = json.loads(request.form.get("go_to_row"))
+    repoStr = repo['repo']
+    sheetStr = sheet['sheet']
+    url = '/edit' + '/' + repoStr + '/' + sheetStr 
+    session['label'] = go_to_row['go_to_row']
+    session['url'] = url
+    return('success')
+    
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet):
+    if session.get('label') == None:
+        go_to_row = ""
+    else:
+        go_to_row = session.get('label')
+        session.pop('label', None)
+
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
@@ -236,7 +369,8 @@ def edit(repo_key, folder, spreadsheet):
                             spreadsheet_name=spreadsheet,
                             header=json.dumps(header),
                             rows=json.dumps(rows),
-                            file_sha = file_sha
+                            file_sha = file_sha,
+                            go_to_row = go_to_row
                             )
 
 
@@ -265,9 +399,9 @@ def save():
         if 'Label' in first_row:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("nah not bothering to sort, ok?") #do we need to sort? 
+            print("nah not bothering to sort, ok?") #do we need to sort?
 
-            
+
 
         #print(row_data_parsed)
         print("Got file_sha",file_sha)
@@ -298,7 +432,7 @@ def save():
                     elif row[header.index("Curation status")]=="To Be Discussed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
                     elif row[header.index("Curation status")]=="In Discussion":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")                                
+                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")
                     elif row[header.index("Curation status")]=="Published":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type = "solid")
                     elif row[header.index("Curation status")]=="Obsolete":
@@ -472,9 +606,18 @@ def getDiff(row_data_1, row_data_2):
     return (table_diff_html)
 
 
+def searchAcrossSheets(repo_name, search_string):
+    searcherAllResults = searcher.searchFor(repo_name, search_string)
+    # print(searcherAllResults)
+    return searcherAllResults
+
 
 
 if __name__ == "__main__":        # on running python app.py
+
     app.run(debug=app.config["DEBUG"], port=8080)        # run the flask app
+
+
+
 
 # [END gae_python37_app]

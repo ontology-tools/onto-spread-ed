@@ -84,7 +84,7 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
-
+    var initialRowSearch = "";
 
     allCookies = document.cookie;
     console.log("allCookies: " + allCookies);
@@ -463,15 +463,23 @@
         renderStarted: function () {
 
         },
-        renderComplete: function () {
-            try {
-                table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
-                var row = table.getRowFromPosition(0, true);
-                var cell = row.getCell("parent");
-                cell.setValue("replaced");
-            } catch {
+        renderComplete: function (table) {
+            //todo: why is table undefined here? 
+            // initialRowSearch = '{{go_to_row | safe}}';
+            // console.log(initialRowSearch);
+            // if(initialRowSearch == ""){
+            //     table.scrollToRow(10);
+            // }
+            //todo: remove this try/catch testing code below
+            // try {
+            //     table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
+            //     var row = table.getRowFromPosition(0, true);
+            //     var cell = row.getCell("parent");
+            //     cell.setValue("replaced"); //todo: what is this doing here???
+            //     console.log("what does this do?" + row + " " + cell);
+            // } catch {
                 //console.log("caught"); //this happens on initial load, table loaded twice?
-            }
+            // }
         },
 
         columnResized: function (column) {
@@ -1257,6 +1265,15 @@
                 return message;
             }
         };
+        //scroll to search term if present:
+        initialRowSearch = '{{go_to_row | safe}}';
+        console.log(initialRowSearch);
+        if (initialRowSearch == "" || initialRowSearch == null) {
+
+        } else {
+            //filter by Label:
+            table.setHeaderFilterValue("Label", initialRowSearch);
+        }
 
     });
 
