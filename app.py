@@ -499,7 +499,7 @@ def save():
         if not response or "object" not in response or "sha" not in response["object"]:
             raise Exception(f"Unable to get SHA for HEAD of master in {repo_detail}")
         sha = response["object"]["sha"]
-        branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M')}"
+        branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
         print("About to try to create branch in ",f"repos/{repo_detail}/git/refs")
         response = github.post(
             f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
