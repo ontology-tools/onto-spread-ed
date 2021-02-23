@@ -147,7 +147,7 @@ class SpreadsheetSearcher:
                                    schema=ix.schema)
         print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
         writer.delete_by_query(
-            mparser.parse("repo:" + repo_name + " AND spreadsheet:" + folder+"/"+sheet_name))
+            mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder+"/"+sheet_name+"\""))
         writer.commit()
 
         writer = ix.writer()
