@@ -31,7 +31,7 @@
 
     <div class="col-md-3">
         <button id="save-btn" class="btn btn-outline-success btn-sm"
-            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) ">
+            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData()) ) ">
             Save changes to repository
         </button>
     </div>
@@ -84,6 +84,8 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
+
+
     allCookies = document.cookie;
     console.log("allCookies: " + allCookies);
 
@@ -1405,6 +1407,9 @@
                                     }
                                 }
                             }
+                            //get rid of ampersand:
+                            rowData =  rowData.replace('&', 'and');                           
+                      
                             // Post the request to the server.
                             request.open('POST', '/save', true);
                             request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
