@@ -291,6 +291,13 @@ def search():
 @verify_logged_in
 def home():
     repositories = app.config['REPOSITORIES']
+    user_repos = repositories.keys()
+    # Filter just the repositories that the user can see
+    if g.user.github_login in USERS_METADATA:
+        user_repos = USERS_METADATA[g.user.github_login]["repositories"]
+
+    repositories = {k:v for k,v in repositories.items() if k in user_repos}
+
     return render_template('index.html',
                            login=g.user.github_login,
                            repos=repositories)
@@ -314,7 +321,7 @@ def repo(repo_key, folder_path=""):
         elif directory['type']=='file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
     if g.user.github_login in USERS_METADATA:
-        user_initials = USERS_METADATA[g.user.github_login]
+        user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -355,7 +362,7 @@ def edit(repo_key, folder, spreadsheet):
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
     if g.user.github_login in USERS_METADATA:
-        user_initials = USERS_METADATA[g.user.github_login]
+        user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
