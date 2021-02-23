@@ -854,7 +854,12 @@
                     }
                 }
             }
-            backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten *what did I mean here? 
+            
+            backupChanges();  //todo: backup changes after validate() ? 
+            
+            //validate changes
+            validate(cell.getValue(), column.getDefinition().title, data, headers, table); //cell, column, row, headers, table
+        
         },
 
         cellEditCancelled: function (cell) {
@@ -1472,6 +1477,21 @@
             return false;
         }
     });
+
+    //validations function: 
+    var validate = function(cell, column, rowData, headers, table) { 
+        console.log('validate cell is: ' + cell);
+        console.log(' ');
+        console.log('validate column is: ' + column);
+        console.log(' ');
+        console.log('validate row is: ' + JSON.stringify(rowData));
+        console.log(' ');
+        console.log('validate headers is: ' + headers);
+        console.log(' ');
+        console.log('validate table is: ' + JSON.stringify(table.getData()));
+        console.log(' ');
+
+    }
 </script>
 
 {% endblock %}
