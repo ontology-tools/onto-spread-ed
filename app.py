@@ -128,7 +128,7 @@ class SpreadsheetSearcher:
         query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
 
         with ix.searcher() as searcher:
-            results = searcher.search(query)
+            results = searcher.search(query, limit=100)
             resultslist = []
             for hit in results:
                 allfields = {}
