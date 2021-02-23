@@ -1480,6 +1480,7 @@
 
     //validations function: 
     var validate = function(cell, column, rowData, headers, table) { 
+        //todo: get rid of '&'
         console.log('validate cell is: ' + cell);
         console.log(' ');
         console.log('validate column is: ' + column);
@@ -1491,6 +1492,22 @@
         console.log('validate table is: ' + JSON.stringify(table.getData()));
         console.log(' ');
 
+        jQuery.ajax({
+        url: '/validate',
+        dataType: 'text',
+        type: 'POST',
+        async: 'false',
+        data: { cell: JSON.stringify(cell), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData())},
+        success: function (message) {
+            // console.log(message);
+            if(message === 'success'){
+                console.log(message + ' - did it!')
+            } else{
+                console.log(message);
+            }
+        //   window.location.href = '/edit/' + repo + '/' + sheet;
+        }
+      });
     }
 </script>
 

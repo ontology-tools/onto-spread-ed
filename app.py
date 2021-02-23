@@ -340,6 +340,21 @@ def direct():
     session['label'] = go_to_row['go_to_row']
     session['url'] = url
     return('success')
+
+@app.route("/validate", methods=["POST"]) # cell, column, rowData, headers, table
+def verify():
+    if request.method == "POST":
+        cell = json.loads(request.form.get("cell"))
+        column = json.loads(request.form.get("column"))
+        rowData = json.loads(request.form.get("rowData"))
+        headers = json.loads(request.form.get("headers"))
+        table = json.loads(request.form.get("table"))
+    print('cell: ' + cell)
+    print('column: ' + column)
+    print('rowData: ' + json.dumps(rowData)) 
+    print('headers: ' + json.dumps(headers))
+    print('table: ' + json.dumps(table))
+    return('success')
     
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
