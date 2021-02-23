@@ -84,6 +84,9 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
+
+    // todo: delete this test:
+    var returnVal = true;
     var initialRowSearch = "";
 
     allCookies = document.cookie;
@@ -478,7 +481,7 @@
             //     cell.setValue("replaced"); //todo: what is this doing here???
             //     console.log("what does this do?" + row + " " + cell);
             // } catch {
-                //console.log("caught"); //this happens on initial load, table loaded twice?
+            //console.log("caught"); //this happens on initial load, table loaded twice?
             // }
         },
 
@@ -854,12 +857,24 @@
                     }
                 }
             }
-            
+
             backupChanges();  //todo: backup changes after validate() ? 
-            
+
+            validate(cell.getValue(), column.getDefinition().title, data, headers, table).done(function (message) {
+                if (message == 'success') {
+                    console.log("validate true");
+                } else {
+                    console.log("validate false");
+                }
+            });
             //validate changes
-            validate(cell.getValue(), column.getDefinition().title, data, headers, table); //cell, column, row, headers, table
-        
+            // if (validate(cell.getValue(), column.getDefinition().title, data, headers, table) == true) { //cell, column, row, headers, table
+            //     console.log("validate true");
+            // } else {
+            //     console.log("validate false");
+            // }
+            // console.log("returnVal is: " + returnVal);
+
         },
 
         cellEditCancelled: function (cell) {
@@ -1430,8 +1445,8 @@
                                 }
                             }
                             //get rid of ampersand:
-                            rowData =  rowData.replace('&', 'and');                           
-                      
+                            rowData = rowData.replace('&', 'and');
+
                             // Post the request to the server.
                             request.open('POST', '/save', true);
                             request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
@@ -1479,8 +1494,9 @@
     });
 
     //validations function: 
-    var validate = function(cell, column, rowData, headers, table) { 
+    function validate(cell, column, rowData, headers, table) {
         //todo: get rid of '&'
+
         console.log('validate cell is: ' + cell);
         console.log(' ');
         console.log('validate column is: ' + column);
@@ -1492,22 +1508,17 @@
         console.log('validate table is: ' + JSON.stringify(table.getData()));
         console.log(' ');
 
-        jQuery.ajax({
-        url: '/validate',
-        dataType: 'text',
-        type: 'POST',
-        async: 'false',
-        data: { cell: JSON.stringify(cell), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData())},
-        success: function (message) {
-            // console.log(message);
-            if(message === 'success'){
-                console.log(message + ' - did it!')
-            } else{
-                console.log(message);
+        return $.ajax({
+            url: '/validate',
+            dataType: 'text',
+            type: 'POST',
+            // async: 'true',
+            data: { cell: JSON.stringify(cell), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
+            success: function (message) {
+               
             }
-        //   window.location.href = '/edit/' + repo + '/' + sheet;
-        }
-      });
+        });
+
     }
 </script>
 

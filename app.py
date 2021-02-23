@@ -347,14 +347,16 @@ def verify():
         cell = json.loads(request.form.get("cell"))
         column = json.loads(request.form.get("column"))
         rowData = json.loads(request.form.get("rowData"))
-        headers = json.loads(request.form.get("headers"))
-        table = json.loads(request.form.get("table"))
+        headers = json.loads(request.form.get("headers")) 
+        table = json.loads(request.form.get("table")) 
     print('cell: ' + cell)
     print('column: ' + column)
     print('rowData: ' + json.dumps(rowData)) 
     print('headers: ' + json.dumps(headers))
     print('table: ' + json.dumps(table))
-    return('success')
+    if cell == 'fail':
+        return ('fail')
+    return ('success')
     
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
