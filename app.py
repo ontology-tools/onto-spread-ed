@@ -117,9 +117,9 @@ class SpreadsheetSearcher:
     # bucket is defined in config.py
     def __init__(self):
         self.storage = BucketStorage(bucket)
-        self.storage.open_from_bucket()
 
     def searchFor(self, repo_name, search_string):
+        self.storage.open_from_bucket()
         ix = self.storage.open_index()
 
         mparser = MultifieldParser(["class_id","label","definition","parent"],
@@ -140,13 +140,16 @@ class SpreadsheetSearcher:
         ix.close()
 
     def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
+        self.storage.open_from_bucket()
         ix = self.storage.open_index()
         writer = ix.writer()
         mparser = MultifieldParser(["repo", "spreadsheet"],
                                    schema=ix.schema)
+        print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
         writer.delete_by_query(
-            mparser.parse("repo:" + repo_name + " AND spreadsheet:" + sheet_name))
+            mparser.parse("repo:" + repo_name + " AND spreadsheet:" + folder+"/"+sheet_name))
         writer.commit()
+
         writer = ix.writer()
 
         for r in range(len(sheet_data)):
@@ -172,7 +175,7 @@ class SpreadsheetSearcher:
 
             if class_id or label or definition or parent:
                 writer.add_document(repo=repo_name,
-                                    spreadsheet=folder+'/'+sheet_name.replace('./', ''),
+                                    spreadsheet=folder+'/'+sheet_name,
                                     class_id=(class_id if class_id else None),
                                     label=(label if label else None),
                                     definition=(definition if definition else None),
