@@ -406,12 +406,12 @@ def verify():
         headers = json.loads(request.form.get("headers")) 
         table = json.loads(request.form.get("table")) 
     print('cell: ' + cell)
-    print('column: ' + column)
-    print('rowData: ' + json.dumps(rowData)) 
-    print('headers: ' + json.dumps(headers))
-    print('table: ' + json.dumps(table))
+    # print('column: ' + column)
+    # print('rowData: ' + json.dumps(rowData)) 
+    # print('headers: ' + json.dumps(headers))
+    # print('table: ' + json.dumps(table))
     if cell == 'fail': #todo: do validation check here, using cell == 'fail' for testing
-        return ('fail')
+        return ('fail message says you failed')
     return ('success') #todo: do we need message:success, 200 here? 
     
 

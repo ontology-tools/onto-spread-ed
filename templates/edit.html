@@ -132,6 +132,9 @@
     // array to save changes in backupChanges
     var changes = [];
 
+    //validate error messages array:
+    var validateErrorMessages = [];
+
     //boolean conflict check
     var unsavedChanges = false;
 
@@ -456,14 +459,19 @@
 
         //tooltips for validate:
         tooltips: true,
-        tooltipGenerationMode:"hover", //update on hover
+        tooltipGenerationMode: "hover", //update on hover
         tooltips: function (cell) {
-            //cell - cell component
+            var tooltipMsg = "ERROR - validation failed";
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                if (cell == validateErrorMessages[i]) { 
+                    tooltipMsg = validateErrorMessages[i+1] + i; //todo: remove "+ i" - just for testing
+                }
+            }
             if (cell.getElement().style.backgroundColor == 'red') {
                 //function should return a string for the tooltip of false to hide the tooltip
-                return cell.getColumn().getField() + " - " + cell.getValue(); //return cells "field - value";
+                return tooltipMsg; 
             } else {
-                return;
+                return false;
             }
         },
 
@@ -873,16 +881,17 @@
             backupChanges();  //todo: backup changes after validate() ? 
 
             //promise:
-            validate(cell.getValue(), column.getDefinition().title, data, headers, table).done(function (message) {
+            validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
                 if (message == 'success') {
                     console.log("validate true");
-                } else if (message == 'fail') {
+                } else {
+                    console.log("ERROR: " + message);
                     console.log("validate false");
                     //set background of cell to light red
                     cell.getElement().style.backgroundColor = 'red';
+                    validateErrorMessages.push(cell);
+                    validateErrorMessages.push(message); //todo: add cell here
                     //display message in a pop-up if user hovers over the cell
-                } else {
-                    console.log("ERROR: " + message);
                 }
             });
 
@@ -1509,7 +1518,15 @@
     function validate(cell, column, rowData, headers, table) {
         //todo: get rid of '&'
 
-        console.log('validate cell is: ' + cell);
+        //check if cell was previously invalid, then remove reference:
+        for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                if (cell == validateErrorMessages[i]) { 
+                    validateErrorMessages.splice(i, 2); //remove cell and message
+                    cell.getElement().style.backgroundColor = null; //remove style backgroundColor
+                    // rowColours(cell.getRow(), rowData); //update row colour? not necessary, done elsewhere
+                }
+            }
+        console.log('validate cell is: ' + cell.getValue());
         console.log(' ');
         console.log('validate column is: ' + column);
         console.log(' ');
@@ -1525,7 +1542,7 @@
             url: '/validate',
             dataType: 'text',
             type: 'POST',
-            data: { cell: JSON.stringify(cell), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
+            data: { cell: JSON.stringify(cell.getValue()), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
             success: function (message) {
 
             }
