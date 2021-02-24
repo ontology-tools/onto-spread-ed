@@ -464,7 +464,7 @@
             var tooltipMsg = "ERROR - validation failed";
             for (var i = 0; i < validateErrorMessages.length; i += 2) {
                 if (cell == validateErrorMessages[i]) {
-                    tooltipMsg = validateErrorMessages[i + 1] + i; //todo: remove "+ i" - just for testing
+                    tooltipMsg = validateErrorMessages[i + 1] + (i / 2 + 1); //todo: remove "+ i" - just for testing
                 }
             }
             if (cell.getElement().style.backgroundColor == 'red') {
