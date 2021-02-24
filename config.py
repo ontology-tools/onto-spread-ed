@@ -19,10 +19,17 @@ if os.environ.get("FLASK_ENV")=='development':
     REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology", "BCIO": "jannahastings/ontologies"}
     # onto-spread-ed google credentials in local directory for dev mode
     os.environ['GOOGLE_APPLICATION_CREDENTIALS']='ontospreaded.json'
+    # Cloud storage - for the index search
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket('index-spread-ed-dev')
+
 else:
-    REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology"}
+    REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology", "BCIO": "HumanBehaviourChangeProject/ontologies"}
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'ontospreaded.json'
-    
+    # Cloud storage - for the index search
+    storage_client = storage.Client()
+    bucket = storage_client.get_bucket('index-spread-ed')
+
     # Create the Secret Manager client.
     client = secretmanager.SecretManagerServiceClient()
 
@@ -48,13 +55,12 @@ else:
     response = client.access_secret_version(request={"name": name})
     SECRET_KEY = response.payload.data.decode("UTF-8")
 
-# Cloud storage - for the index search
-storage_client = storage.Client()
-bucket = storage_client.get_bucket('index-spread-ed')
-
-
-
-USERS_METADATA = {"jannahastings": "JH", "robertjwest":"RW", "sharoncox":"SC",
-                  "ksoar":"KS", "CaitlinNotley702": "CN", "CaitlinNotley": "CN",
-                  "alisonjwright":"AW", "zcbtelh": "EH"}
-ALL_USERS_INITIALS = [v for v in USERS_METADATA.values()]
+USERS_METADATA = {"jannahastings": {"initials":"JH", "repositories":["AddictO","BCIO"]},
+                  "robertjwest": {"initials":"RW", "repositories":["AddictO","BCIO"]},
+                  "sharoncox":{"initials":"SC", "repositories":["AddictO"]},
+                  "ksoar":{"initials":"KS", "repositories":["AddictO"]},
+                  "CaitlinNotley702": {"initials":"CN", "repositories":["AddictO"]},
+                  "CaitlinNotley": {"initials":"CN", "repositories":["AddictO"]},
+                  "alisonjwright":{"initials":"AW", "repositories":["BCIO"]},
+                  "zcbtelh": {"initials":"EH", "repositories":["BCIO"]} }
+ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]

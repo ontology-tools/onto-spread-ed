@@ -82,6 +82,7 @@ app.config.from_object('config')
 
 github = GitHub(app)
 
+
 # Implementation of Google Cloud Storage for index
 class BucketStorage(whoosh.filedb.filestore.RamStorage):
     def __init__(self, bucket):
@@ -116,9 +117,9 @@ class SpreadsheetSearcher:
     # bucket is defined in config.py
     def __init__(self):
         self.storage = BucketStorage(bucket)
-        self.storage.open_from_bucket()
 
     def searchFor(self, repo_name, search_string):
+        self.storage.open_from_bucket()
         ix = self.storage.open_index()
 
         mparser = MultifieldParser(["class_id","label","definition","parent"],
@@ -127,7 +128,7 @@ class SpreadsheetSearcher:
         query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
 
         with ix.searcher() as searcher:
-            results = searcher.search(query)
+            results = searcher.search(query, limit=100)
             resultslist = []
             for hit in results:
                 allfields = {}
@@ -138,6 +139,49 @@ class SpreadsheetSearcher:
 
         ix.close()
 
+    def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
+        self.storage.open_from_bucket()
+        ix = self.storage.open_index()
+        writer = ix.writer()
+        mparser = MultifieldParser(["repo", "spreadsheet"],
+                                   schema=ix.schema)
+        print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
+        writer.delete_by_query(
+            mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder+"/"+sheet_name+"\""))
+        writer.commit()
+
+        writer = ix.writer()
+
+        for r in range(len(sheet_data)):
+            row = [v for v in sheet_data[r].values()]
+            del row[0] # Tabulator-added ID column
+
+            if "ID" in header:
+                class_id = row[header.index("ID")]
+            else:
+                class_id = None
+            if "Label" in header:
+                label = row[header.index("Label")]
+            else:
+                label = None
+            if "Definition" in header:
+                definition = row[header.index("Definition")]
+            else:
+                definition = None
+            if "Parent" in header:
+                parent = row[header.index("Parent")]
+            else:
+                parent = None
+
+            if class_id or label or definition or parent:
+                writer.add_document(repo=repo_name,
+                                    spreadsheet=folder+'/'+sheet_name,
+                                    class_id=(class_id if class_id else None),
+                                    label=(label if label else None),
+                                    definition=(definition if definition else None),
+                                    parent=(parent if parent else None))
+        writer.commit(optimize=True)
+        self.storage.save_to_bucket()
 
 searcher = SpreadsheetSearcher()
 
@@ -233,6 +277,13 @@ def loggedout():
 def user():
     return jsonify(github.get('/user'))
 
+
+
+
+
+# Pages for the app
+
+
 @app.route('/search', methods=['POST'])
 @verify_logged_in
 def search():
@@ -244,7 +295,6 @@ def search():
     # print(f'searchResults: ')
     searchResults = searchAcrossSheets(repoName, searchTerm)
     # print(searchResults)
-    
 
     # fix up all data formatting: 
     # searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
@@ -285,12 +335,18 @@ def search():
                              "searchResults": searchResultsTable}), 200 )
                              
 
-# Pages for the app
 @app.route('/')
 @app.route('/home')
 @verify_logged_in
 def home():
     repositories = app.config['REPOSITORIES']
+    user_repos = repositories.keys()
+    # Filter just the repositories that the user can see
+    if g.user.github_login in USERS_METADATA:
+        user_repos = USERS_METADATA[g.user.github_login]["repositories"]
+
+    repositories = {k:v for k,v in repositories.items() if k in user_repos}
+
     return render_template('index.html',
                            login=g.user.github_login,
                            repos=repositories)
@@ -314,7 +370,7 @@ def repo(repo_key, folder_path=""):
         elif directory['type']=='file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
     if g.user.github_login in USERS_METADATA:
-        user_initials = USERS_METADATA[g.user.github_login]
+        user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -372,7 +428,7 @@ def edit(repo_key, folder, spreadsheet):
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
     if g.user.github_login in USERS_METADATA:
-        user_initials = USERS_METADATA[g.user.github_login]
+        user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -418,21 +474,18 @@ def save():
         else:
             print("nah not bothering to sort, ok?") #do we need to sort?
 
-
-
         #print(row_data_parsed)
         print("Got file_sha",file_sha)
 
         wb = openpyxl.Workbook()
         sheet = wb.active
-        #sheet.title="Definitions" # This creates a new sheet, no good
 
         for c in range(len(header)):
             sheet.cell(row=1, column=c+1).value=header[c]
             sheet.cell(row=1, column=c+1).font = Font(size=12,bold=True)
         for r in range(len(row_data_parsed)):
             row = [v for v in row_data_parsed[r].values()]
-            del row[0]
+            del row[0] # Tabulator-added ID column
             for c in range(len(header)):
                 sheet.cell(row=r+2, column=c+1).value=row[c]
                 # Set row background colours according to 'Curation status'
@@ -442,8 +495,6 @@ def save():
                 if 'Curation status' in first_row:
                     if row[header.index("Curation status")]=="Discussed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type = "solid")
-                    elif row[header.index("Curation status")]=="Ready": #this is depreciated
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
                     elif row[header.index("Curation status")]=="Proposed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffffff", fill_type = "solid")
                     elif row[header.index("Curation status")]=="To Be Discussed":
@@ -468,7 +519,7 @@ def save():
         if not response or "object" not in response or "sha" not in response["object"]:
             raise Exception(f"Unable to get SHA for HEAD of master in {repo_detail}")
         sha = response["object"]["sha"]
-        branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M')}"
+        branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
         print("About to try to create branch in ",f"repos/{repo_detail}/git/refs")
         response = github.post(
             f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
@@ -540,8 +591,12 @@ def save():
             if not response:
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
-        print ("Save succeeded")
-        # TODO Figure out responses and send message. Options are Success / Save failure / Merge failure
+        print ("Save succeeded.")
+        # Update the search index for this file.
+        print ("Updating index...")
+        searcher.updateIndex(repo_key, folder, spreadsheet, header, row_data_parsed)
+        print("Update of index completed.")
+
         # Get the sha AGAIN for the file
         response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         if not response or "sha" not in response:
