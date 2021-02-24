@@ -454,6 +454,18 @@
         scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false, //don't scroll if row already on screen
 
+        //tooltips for validate:
+        tooltips: true,
+        tooltipGenerationMode:"hover", //update on hover
+        tooltips: function (cell) {
+            //cell - cell component
+            if (cell.getElement().style.backgroundColor == 'red') {
+                //function should return a string for the tooltip of false to hide the tooltip
+                return cell.getColumn().getField() + " - " + cell.getValue(); //return cells "field - value";
+            } else {
+                return;
+            }
+        },
 
         dataSorting: function (sorters) {
             //console.log("sorted");
@@ -864,13 +876,16 @@
             validate(cell.getValue(), column.getDefinition().title, data, headers, table).done(function (message) {
                 if (message == 'success') {
                     console.log("validate true");
-                } else if(message =='fail'){
+                } else if (message == 'fail') {
                     console.log("validate false");
+                    //set background of cell to light red
+                    cell.getElement().style.backgroundColor = 'red';
+                    //display message in a pop-up if user hovers over the cell
                 } else {
                     console.log("ERROR: " + message);
                 }
             });
-            
+
 
         },
 
@@ -1512,7 +1527,7 @@
             type: 'POST',
             data: { cell: JSON.stringify(cell), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
             success: function (message) {
-               
+
             }
         });
 
