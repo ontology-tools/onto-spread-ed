@@ -356,7 +356,7 @@ def verify():
     print('table: ' + json.dumps(table))
     if cell == 'fail':
         return ('fail')
-    return ('success')
+    return ('success') #todo: do we need message:success, 200 here? 
     
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')

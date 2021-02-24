@@ -860,20 +860,17 @@
 
             backupChanges();  //todo: backup changes after validate() ? 
 
+            //promise:
             validate(cell.getValue(), column.getDefinition().title, data, headers, table).done(function (message) {
                 if (message == 'success') {
                     console.log("validate true");
-                } else {
+                } else if(message =='fail'){
                     console.log("validate false");
+                } else {
+                    console.log("ERROR: " + message);
                 }
             });
-            //validate changes
-            // if (validate(cell.getValue(), column.getDefinition().title, data, headers, table) == true) { //cell, column, row, headers, table
-            //     console.log("validate true");
-            // } else {
-            //     console.log("validate false");
-            // }
-            // console.log("returnVal is: " + returnVal);
+            
 
         },
 
@@ -1508,11 +1505,11 @@
         console.log('validate table is: ' + JSON.stringify(table.getData()));
         console.log(' ');
 
+        //todo: handle errors!
         return $.ajax({
             url: '/validate',
             dataType: 'text',
             type: 'POST',
-            // async: 'true',
             data: { cell: JSON.stringify(cell), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
             success: function (message) {
                
