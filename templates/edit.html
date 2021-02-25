@@ -40,8 +40,7 @@
 <div class="row mb-3">
     <div class="col-md-9">
         <div id="conflict-btns" class="btn-group btn-group-lg text-right" style="display: none">
-            <button id="merge-btn" class="btn btn-success"
-                onclick="keep_both()">
+            <button id="merge-btn" class="btn btn-success" onclick="keep_both()">
                 <!-- onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', mergedTable, JSON.stringify(testTableData), 'true')"> -->
                 Try to keep both
             </button>
@@ -59,12 +58,11 @@
 <div class="row mb-3">
     <div class="col-md-9">
         <div id="merge-btns" class="btn-group btn-group-lg text-right " style="display: none">
-            <button id="merge-overwrite-btn" class="btn btn-success" 
-            onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+            <button id="merge-overwrite-btn" class="btn btn-success"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
                 SAVE
             </button>
-            <button id="merge-revert-btn" class="btn btn-dark"            
-                onclick="revert_changes()">
+            <button id="merge-revert-btn" class="btn btn-dark" onclick="revert_changes()">
                 REVERT
             </button>
         </div>
@@ -521,7 +519,7 @@
             //     cell.setValue("replaced"); //todo: what is this doing here???
             //     console.log("what does this do?" + row + " " + cell);
             // } catch {
-                //console.log("caught"); //this happens on initial load, table loaded twice?
+            //console.log("caught"); //this happens on initial load, table loaded twice?
             // }
         },
 
@@ -640,9 +638,9 @@
                     rowValue = row.getPosition();//save absolute row position
                     columnValue = cell.getField(); //column name
                     if (cell.getValue().includes(repo_name.toUpperCase())) {
-                         if (data[curation_status] == "External") { //
+                        if (data[curation_status] == "External") { //
                             data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
-                         }
+                        }
                     }
                 }
                 if (data["ID"] == undefined) {
@@ -1102,7 +1100,7 @@
                         var nameCheck = prevCurator.indexOf(loginInitials);
                         if (nameCheck > -1) {
                             //name exists, don't update
-                } else {
+                        } else {
                             data[curator] = prevCurator + "; " + loginInitials;
                         }
                     } else {
@@ -1468,22 +1466,22 @@
                                         $("#saveAlert").addClass("alert-danger");
                                         $("#saveMessage").text('REPO not found - ' + errInfo);
                                         $("#saveAlert").show();
-                                    } else  if(request.status === 300){ //error code for merge
+                                    } else if (request.status === 300) { //error code for merge
                                         var response = JSON.parse(request.responseText);
                                         var errInfo = response['Error'];
                                         var mergeInfo = response['merge_diff'];
                                         mergedTable = response['merged_table']
-                                        
+
                                         var conflicted = false; // not using this right now..
-                                        
+
                                         $('#saveAlert').removeClass('alert-success');
                                         $('#saveAlert').addClass('alert-danger');
                                         $("#saveMessage").append(errInfo);
                                         $("#saveMessage").append('<br> SEE THE BUTTONS ABOVE THIS MESSAGE FOR OPTIONS TO DEAL WITH THIS <br>');
-                                        $("#saveMessage").append('Merge info: ' + mergeInfo); 
+                                        $("#saveMessage").append('Merge info: ' + mergeInfo);
                                         // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
                                         $(".alert").alert() //???
-                                        $("#saveAlert").show();                           
+                                        $("#saveAlert").show();
                                         $('#save-btn').hide();
                                         $('#conflict-btns').show();
                                         // $("#saveMessage").text(''); //reset message
@@ -1500,8 +1498,6 @@
                                             if ($(this).hasClass("modify")) {
                                                 console.log("MODIFY DETECTED");
                                             }
-				//get rid of ampersand:
-                            rowData =  rowData.replace('&', 'and');
                                             if ($(this).hasClass("conflict")) {
                                                 console.log("CONFLICT DETECTED");
                                             }
@@ -1521,6 +1517,14 @@
                                 }
                             }
                             // Post the request to the server.
+                            //get rid of ampersands first:
+                            getRidOfAmpersands(rowData, initialData);
+                            // rowData = rowData.replace('&', 'and');
+                            // initialData = initialData.replace('&', 'and');
+                            // rowData = rowData.replace('=', 'equals');
+                            // initialData = initialData.replace('=', 'equals');
+                            console.log("rowData: " + rowData);
+                            console.log("initialData: " + initialData);
                             request.open('POST', '/save', true);
                             request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                             request.send('repo_key=' + repo_key +
@@ -1544,7 +1548,14 @@
         });
     };
 
-    var keep_both = function() {
+    var getRidOfAmpersands = function(rowData, initialData){
+        rowData = rowData.replace('&', 'and');
+                            initialData = initialData.replace('&', 'and');
+                            rowData = rowData.replace('=', 'equals');
+                            initialData = initialData.replace('=', 'equals');
+                            return rowData, initialData;
+    }
+    var keep_both = function () {
         //backup old data:
         previousData = table.getData();
         table.setData(mergedTable);
@@ -1554,7 +1565,7 @@
     }
 
     var revert_changes = function () {
-        table.setData(previousData); 
+        table.setData(previousData);
         $('#merge-btns').hide();
         $("#saveMessage").removeClass('alert-danger'); //not working!
         $("#saveMessage").text('');
@@ -1576,7 +1587,7 @@
         location.reload(true);
     };
 
-    
+
 
     //todo: click handlers for SAVE and REVERT below: (remove buttons and message)
     // $("#").click(function () {

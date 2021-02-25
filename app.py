@@ -810,8 +810,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
         
     
-    print(f'dataDict: ')
-    print(json.dumps(dataDict))
+    # print(f'dataDict: ')
+    # print(json.dumps(dataDict))
     # print(f'the type of dataDict is: ')
     # print(type(dataDict))
 
