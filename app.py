@@ -576,14 +576,18 @@ def save():
         pr_info = response['html_url']
 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
-        if new_file_sha != file_sha:
+        
+        if new_file_sha != file_sha and not overwrite:
             print("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff = getDiff(row_data_parsed,new_rows)
-
+            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
+            # update rows for comparison:
+            (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             return(
-                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>.', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
+                json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
+                    + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
+                        "rows3": rows3, "header3": header3}), 300 #400 for missing REPO
                 )
         else:
             # Merge the created PR
@@ -651,6 +655,8 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
             values[key] = cell.value
         if any(values.values()):
             rows.append(values)
+    # print(f'rows: ')
+    # print(json.dumps(rows))
     return ( (file_sha, rows, header) )
 
 
@@ -801,6 +807,13 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
             dataDict.append( dictT ) 
         # print(f'update: ')
         # print(dataDict)
+
+        
+    
+    print(f'dataDict: ')
+    print(json.dumps(dataDict))
+    # print(f'the type of dataDict is: ')
+    # print(type(dataDict))
 
     # print(f'merger data:') #none
     # print(daff.DiffSummary().different) #nothing here? 
