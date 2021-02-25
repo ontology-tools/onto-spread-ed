@@ -32,12 +32,15 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import whoosh
+from whoosh.qparser import MultifieldParser
+from whoosh.index import open_dir
+
 from datetime import datetime
 
 # setup sqlalchemy
 
 from config import *
-import pandas as pd # may not be needed..
 
 engine = create_engine(DATABASE_URI)
 db_session = scoped_session(sessionmaker(autocommit=False,
@@ -78,6 +81,109 @@ app = FlaskApp(__name__)
 app.config.from_object('config')
 
 github = GitHub(app)
+
+
+# Implementation of Google Cloud Storage for index
+class BucketStorage(whoosh.filedb.filestore.RamStorage):
+    def __init__(self, bucket):
+        super().__init__()
+        self.bucket = bucket
+        self.filenameslist = []
+
+    def save_to_bucket(self):
+        for name in self.files.keys():
+            with self.open_file(name) as source:
+                print("Saving file",name)
+                blob = self.bucket.blob(name)
+                blob.upload_from_file(source)
+        for name in self.filenameslist:
+            if name not in self.files.keys():
+                blob = self.bucket.blob(name)
+                print("Deleting old file",name)
+                self.bucket.delete_blob(blob.name)
+                self.filenameslist.remove(name)
+
+    def open_from_bucket(self):
+        self.filenameslist = []
+        for blob in bucket.list_blobs():
+            print("Opening blob",blob.name)
+            self.filenameslist.append(blob.name)
+            f = self.create_file(blob.name)
+            blob.download_to_file(f)
+            f.close()
+
+
+class SpreadsheetSearcher:
+    # bucket is defined in config.py
+    def __init__(self):
+        self.storage = BucketStorage(bucket)
+
+    def searchFor(self, repo_name, search_string):
+        self.storage.open_from_bucket()
+        ix = self.storage.open_index()
+
+        mparser = MultifieldParser(["class_id","label","definition","parent"],
+                                schema=ix.schema)
+
+        query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
+
+        with ix.searcher() as searcher:
+            results = searcher.search(query, limit=100)
+            resultslist = []
+            for hit in results:
+                allfields = {}
+                for field in hit:
+                    allfields[field]=hit[field]
+                resultslist.append(allfields)
+        return (resultslist)
+
+        ix.close()
+
+    def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
+        self.storage.open_from_bucket()
+        ix = self.storage.open_index()
+        writer = ix.writer()
+        mparser = MultifieldParser(["repo", "spreadsheet"],
+                                   schema=ix.schema)
+        print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
+        writer.delete_by_query(
+            mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder+"/"+sheet_name+"\""))
+        writer.commit()
+
+        writer = ix.writer()
+
+        for r in range(len(sheet_data)):
+            row = [v for v in sheet_data[r].values()]
+            del row[0] # Tabulator-added ID column
+
+            if "ID" in header:
+                class_id = row[header.index("ID")]
+            else:
+                class_id = None
+            if "Label" in header:
+                label = row[header.index("Label")]
+            else:
+                label = None
+            if "Definition" in header:
+                definition = row[header.index("Definition")]
+            else:
+                definition = None
+            if "Parent" in header:
+                parent = row[header.index("Parent")]
+            else:
+                parent = None
+
+            if class_id or label or definition or parent:
+                writer.add_document(repo=repo_name,
+                                    spreadsheet=folder+'/'+sheet_name,
+                                    class_id=(class_id if class_id else None),
+                                    label=(label if label else None),
+                                    definition=(definition if definition else None),
+                                    parent=(parent if parent else None))
+        writer.commit(optimize=True)
+        self.storage.save_to_bucket()
+
+searcher = SpreadsheetSearcher()
 
 
 def verify_logged_in(fn):
@@ -172,12 +278,75 @@ def user():
     return jsonify(github.get('/user'))
 
 
+
+
+
 # Pages for the app
+
+
+@app.route('/search', methods=['POST'])
+@verify_logged_in
+def search():
+    searchTerm = request.form.get("inputText")
+    repoName = request.form.get("repoName")
+    # repoName = "BCIO"
+    # print(f'searchTerm: ')
+    # print(searchTerm)
+    # print(f'searchResults: ')
+    searchResults = searchAcrossSheets(repoName, searchTerm)
+    # print(searchResults)
+
+    # fix up all data formatting: 
+    # searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
+    # ok, dealing with "" on the front end,
+    # {} and [] inside data will break JSON parse - also "" or '' inside of cells
+      
+    new_row_data_1 = []
+    replacementValues = {'{': '', 
+                         '}': '',
+                         '[': '',
+                         ']': '',
+                         ',': '',
+                         '"': '',
+                         ':': '',
+                         '\\': '',
+                        #  '?': '',
+                         '\'': '',}
+    for k in searchResults:
+        dictT = {}
+        for key, val, item in zip(k, k.values(), k.items()):
+            #update:
+            for key2, value in replacementValues.items():
+                val = val.replace(key2, value)
+            #add to dictionary:
+            dictT[key] = val
+        #add to list:
+        new_row_data_1.append( dictT ) 
+    # print(f'')
+    # print(f'new_row_data_1: ')
+    # print(new_row_data_1)
+    searchResultsTable = "".join(str(new_row_data_1)) #dict to table? 
+    # print(f'')
+    # print(f'searchResultsTable: ')
+    # print(searchResultsTable)
+
+
+    return ( json.dumps({"message":"Success",
+                             "searchResults": searchResultsTable}), 200 )
+                             
+
 @app.route('/')
 @app.route('/home')
 @verify_logged_in
 def home():
     repositories = app.config['REPOSITORIES']
+    user_repos = repositories.keys()
+    # Filter just the repositories that the user can see
+    if g.user.github_login in USERS_METADATA:
+        user_repos = USERS_METADATA[g.user.github_login]["repositories"]
+
+    repositories = {k:v for k,v in repositories.items() if k in user_repos}
+
     return render_template('index.html',
                            login=g.user.github_login,
                            repos=repositories)
@@ -201,7 +370,7 @@ def repo(repo_key, folder_path=""):
         elif directory['type']=='file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
     if g.user.github_login in USERS_METADATA:
-        user_initials = USERS_METADATA[g.user.github_login]
+        user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -215,15 +384,34 @@ def repo(repo_key, folder_path=""):
                             spreadsheets = spreadsheets,
                             )
 
+@app.route("/direct", methods=["POST"])
+def direct():
+    if request.method == "POST":
+        repo = json.loads(request.form.get("repo"))
+        sheet = json.loads(request.form.get("sheet"))
+        go_to_row = json.loads(request.form.get("go_to_row"))
+    repoStr = repo['repo']
+    sheetStr = sheet['sheet']
+    url = '/edit' + '/' + repoStr + '/' + sheetStr 
+    session['label'] = go_to_row['go_to_row']
+    session['url'] = url
+    return('success')
+
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet):
+    if session.get('label') == None:
+        go_to_row = ""
+    else:
+        go_to_row = session.get('label')
+        session.pop('label', None)
+
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
     if g.user.github_login in USERS_METADATA:
-        user_initials = USERS_METADATA[g.user.github_login]
+        user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -237,13 +425,14 @@ def edit(repo_key, folder, spreadsheet):
                             spreadsheet_name=spreadsheet,
                             header=json.dumps(header),
                             rows=json.dumps(rows),
-                            file_sha = file_sha
+                            file_sha = file_sha,
+                            go_to_row = go_to_row
                             )
 
 
 @app.route('/save', methods=['POST'])
 @verify_logged_in
-def save(): #todo: add boolean value (overwrite) here? 
+def save():
     repo_key = request.form.get("repo_key")
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
@@ -296,6 +485,8 @@ def save(): #todo: add boolean value (overwrite) here?
         # print(row_data_parsed)
         # print(f'')
 
+
+        #print(row_data_parsed)
         print("Got file_sha",file_sha)
 
         wb = openpyxl.Workbook()
@@ -307,7 +498,7 @@ def save(): #todo: add boolean value (overwrite) here?
             sheet.cell(row=1, column=c+1).font = Font(size=12,bold=True)
         for r in range(len(row_data_parsed)):
             row = [v for v in row_data_parsed[r].values()]
-            del row[0]
+            del row[0] # Tabulator-added ID column
             for c in range(len(header)):
                 sheet.cell(row=r+2, column=c+1).value=row[c]
                 # Set row background colours according to 'Curation status'
@@ -385,18 +576,14 @@ def save(): #todo: add boolean value (overwrite) here?
         pr_info = response['html_url']
 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
-        
-        if new_file_sha != file_sha and not overwrite:
+        if new_file_sha != file_sha:
             print("PR created and must be merged manually as repo file had changed")
 
-            # Get the changes between the new file and this one:            
-            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
-            # update rows for comparison:
-            (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
+            # Get the changes between the new file and this one:
+            merge_diff = getDiff(row_data_parsed,new_rows)
+
             return(
-                json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
-                    + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
-                        "rows3": rows3, "header3": header3}), 300 #400 for missing REPO
+                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>.', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
                 )
         else:
             # Merge the created PR
@@ -419,8 +606,12 @@ def save(): #todo: add boolean value (overwrite) here?
             if not response:
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
-        print ("Save succeeded")
-        # TODO Figure out responses and send message. Options are Success / Save failure / Merge failure
+        print ("Save succeeded.")
+        # Update the search index for this file.
+        print ("Updating index...")
+        searcher.updateIndex(repo_key, folder, spreadsheet, header, row_data_parsed)
+        print("Update of index completed.")
+
         # Get the sha AGAIN for the file
         response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         if not response or "sha" not in response:
@@ -438,7 +629,7 @@ def save(): #todo: add boolean value (overwrite) here?
         return (
             json.dumps({"message": "Failed",
                         "Error":format(err)}),
-            400, #this now causes front end to fail. todo: change this number? 
+            400,
         )
 
 
@@ -460,8 +651,6 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
             values[key] = cell.value
         if any(values.values()):
             rows.append(values)
-    # print(f'rows: ')
-    # print(json.dumps(rows))
     return ( (file_sha, rows, header) )
 
 
@@ -495,7 +684,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
                 dictT3[key] = val
         #add to list:
         new_row_data_3.append( dictT3 ) 
-    
+
     row_data_combo_1 = [row_header] 
     row_data_combo_2 = [row_header]
     row_data_combo_3 = [row_header]
@@ -533,7 +722,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # alignment2 = daff.Coopy.compareTables(table1, table2).align() #server vs saving
     # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
 
-    
+
     data_diff = []
     table_diff = daff.PythonTableView(data_diff)
 
@@ -605,20 +794,13 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
             dictT['id'] = iter # add "id" with iteration
             for key, val in zip(row_header, k):      
                 #deal with conflicting val?
-                      
+
                 dictT[key] = val
         # add to list:
         if iter > 0: # not header - now empty dict
             dataDict.append( dictT ) 
         # print(f'update: ')
         # print(dataDict)
-
-        
-    
-    print(f'dataDict: ')
-    print(json.dumps(dataDict))
-    # print(f'the type of dataDict is: ')
-    # print(type(dataDict))
 
     # print(f'merger data:') #none
     # print(daff.DiffSummary().different) #nothing here? 
@@ -635,7 +817,15 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     return (table_diff_html, dataDict)
 
 
+def searchAcrossSheets(repo_name, search_string):
+    searcherAllResults = searcher.searchFor(repo_name, search_string)
+    # print(searcherAllResults)
+    return searcherAllResults
 if __name__ == "__main__":        # on running python app.py
+
     app.run(debug=app.config["DEBUG"], port=8080)        # run the flask app
+
+
+
 
 # [END gae_python37_app]
