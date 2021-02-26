@@ -34,7 +34,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import whoosh
 from whoosh.qparser import MultifieldParser
-from whoosh.index import open_dir
+import threading
 
 from datetime import datetime
 
@@ -117,6 +117,7 @@ class SpreadsheetSearcher:
     # bucket is defined in config.py
     def __init__(self):
         self.storage = BucketStorage(bucket)
+        self.threadLock = threading.Lock()
 
     def searchFor(self, repo_name, search_string):
         self.storage.open_from_bucket()
@@ -140,6 +141,8 @@ class SpreadsheetSearcher:
         ix.close()
 
     def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
+        self.threadLock.acquire()
+        print("Updating index...")
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
         writer = ix.writer()
@@ -182,6 +185,9 @@ class SpreadsheetSearcher:
                                     parent=(parent if parent else None))
         writer.commit(optimize=True)
         self.storage.save_to_bucket()
+        self.threadLock.release()
+        print("Update of index completed.")
+
 
 searcher = SpreadsheetSearcher()
 
@@ -611,10 +617,11 @@ def save():
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
         print ("Save succeeded.")
-        # Update the search index for this file.
-        print ("Updating index...")
-        searcher.updateIndex(repo_key, folder, spreadsheet, header, row_data_parsed)
-        print("Update of index completed.")
+        # Update the search index for this file ASYNCHRONOUSLY (don't wait)
+        thread = threading.Thread(target=searcher.updateIndex,
+                                  args=(repo_key, folder, spreadsheet, header, row_data_parsed))
+        thread.daemon = True  # Daemonize thread
+        thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
         response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
