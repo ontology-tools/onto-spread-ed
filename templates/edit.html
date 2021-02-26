@@ -1388,17 +1388,23 @@
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
     */
+
     var save_changes = function (repo_key, folder, spreadsheet, rowData) {
         //check for validate errors:
+        var saveValidationMessage = "";
+        var combinedValidationMessages = "";
         if (validateErrorMessages.length > 0) {
             console.log("validate errors!!!")
-            var saveValidationMessage = "";
+
             for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                saveValidationMessage += (i / 2 + 1) + ": " + validateErrorMessages[i + 1] + "\n";
+                combinedValidationMessages += "<p>";
+                saveValidationMessage = (i / 2 + 1) + ": " + validateErrorMessages[i + 1];
+                combinedValidationMessages += saveValidationMessage + "</p>";
             }
+
             var saveValidation = bootbox.dialog({
                 title: "There are validation errors, are you sure you want to save?",
-                message: saveValidationMessage, //todo: make html message?
+                message: combinedValidationMessages, //todo: make html message?
                 buttons: {
                     confirm: {
                         label: 'Submit anyway',
@@ -1410,7 +1416,7 @@
                     cancel: {
                         label: 'Cancel',
                         className: 'btn-success', //todo: what colour should this be?
-                        // callback: function () { //todo: does this return anyway without this?
+                        // callback: function () { //todo: does this return anyway without this? Yes
                         //     return;
                         // }
                     },
