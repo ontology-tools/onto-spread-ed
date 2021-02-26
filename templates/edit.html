@@ -193,18 +193,7 @@
     var previousData = [];
 
 
-    //prototype replace char all in a string
-    String.prototype.allReplace = function (obj) {
-        var retStr = this;
-        for (var x in obj) {
-            retStr = retStr.replace(new RegExp(x, 'g'), obj[x]);
-        }
-        return retStr;
-    };
-
-    // console.log('aabbaabbcc'.allReplace({ 'a': 'h', 'b': 'o' }));
-    // console.log 'hhoohhoocc';
-
+    
     //get saved table data, compare to current table:
     for (var i = 0; i < rowLength; i++) {
         var rowObj = { id: i }
@@ -212,13 +201,12 @@
             rowObj[headers[j]] = rowData[i][headers[j]];
             //replace & and =
             if (rowObj[headers[j]] !== null) {
-                rowObj[headers[j]] = rowObj[headers[j]].allReplace({ '&': 'and' });
+                rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');
             }
 
         }
         testTableData.push(rowObj);
     }
-
 
     //todo: save login name as well as sheet name?.
     var previousTableData = localStorage.getItem("savedTableData" + thisSheet);
@@ -367,7 +355,7 @@
                 rowObj[headers[j]] = rowData[i][headers[j]];
                 //replace & and =
                 if (rowObj[headers[j]] !== null) {
-                    rowObj[headers[j]] = rowObj[headers[j]].allReplace({ '&': 'and' });
+                    rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');                    
                 }
                 //trying to set null values to 0 in checkbox columns here:
                 if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
@@ -420,7 +408,7 @@
             tableData.push(rowObj);
         }
     }
-
+    
 
 
     //login
@@ -1547,8 +1535,8 @@
                             // Post the request to the server.
                             //get rid of ampersands first:
 
-                            rowData = rowData.allReplace({ '&': 'and' });
-                            initialData = initialData.allReplace({ '&': 'and' });
+                            rowData = rowData.replaceAll('&', 'and');
+                            initialData = initialData.replaceAll('&', 'and');
                             console.log("rowData: " + rowData);
                             console.log("initialData: " + initialData);
                             request.open('POST', '/save', true);
