@@ -28,14 +28,47 @@
                 Reviewed</button>
         </div>
     </div>
-
+    <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) "> -->
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success btn-sm"
-            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData()) ) ">
+        <button id="save-btn" class="btn btn-outline-success btn-sm" style="display: none"
+            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) ">
             Save changes to repository
         </button>
     </div>
 </div>
+
+<div class="row mb-3">
+    <div class="col-md-9">
+        <div id="conflict-btns" class="btn-group btn-group-lg text-right" style="display: none">
+            <button id="merge-btn" class="btn btn-success" onclick="keep_both()">
+                <!-- onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', mergedTable, JSON.stringify(testTableData), 'true')"> -->
+                Try to keep both
+            </button>
+            <button id="overwrite-btn" class="btn btn-dark"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                Overwrite remote changes
+            </button>
+            <button id="lose-changes-btn" class="btn btn-danger" onclick="lose_changes()">
+                Lose your changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-9">
+        <div id="merge-btns" class="btn-group btn-group-lg text-right " style="display: none">
+            <button id="merge-overwrite-btn" class="btn btn-success"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                SAVE
+            </button>
+            <button id="merge-revert-btn" class="btn btn-dark" onclick="revert_changes()">
+                REVERT
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-12">
         <div id="saveAlert" class="alert alert-success collapse" role="alert">
@@ -46,6 +79,7 @@
         </div>
     </div>
 </div>
+
 <div class="row">
     <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-hover table-sm" style="font-size: 0.8em;">
@@ -96,6 +130,9 @@
     var repo_name = '{{repo_name}}';
     //hide save button on load
     $('#save-btn').hide();
+    $('#conflict-btns').hide();
+    $('#merge-btns').hide();
+
 
 
 
@@ -138,8 +175,14 @@
     //boolean conflict check
     var unsavedChanges = false;
 
+    // merge info array: 
+    var mergedTable = [];
+
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
+
+
+
     var rowLength = rowData.length;
 
     var headers = {{ header | safe }};
@@ -153,12 +196,20 @@
     //Build the table row data with field names
     var tableData = [];
     var testTableData = [];
+    var previousData = [];
+
+
 
     //get saved table data, compare to current table:
     for (var i = 0; i < rowLength; i++) {
         var rowObj = { id: i }
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = rowData[i][headers[j]];
+            //replace & and =
+            if (rowObj[headers[j]] !== null) {
+                rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');
+            }
+
         }
         testTableData.push(rowObj);
     }
@@ -280,7 +331,7 @@
                 //Restoring entire array:
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
-                tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
+                tableData = JSON.parse(previousTableData); //todo: this doesn't take into account changes made on the server!
                 //todo: below needs to block, but we want a bootbox style which is asynchronous?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
@@ -308,6 +359,10 @@
             var rowObj = { id: i }
             for (var j = 0; j < headerLength; j++) {
                 rowObj[headers[j]] = rowData[i][headers[j]];
+                //replace & and =
+                if (rowObj[headers[j]] !== null) {
+                    rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');                    
+                }
                 //trying to set null values to 0 in checkbox columns here:
                 if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
                     if (rowObj[headers[j]] == null) {
@@ -359,6 +414,8 @@
             tableData.push(rowObj);
         }
     }
+
+
 
     //login
     var loginInitials = "{{user_initials}}";
@@ -501,7 +558,7 @@
             //     cell.setValue("replaced"); //todo: what is this doing here???
             //     console.log("what does this do?" + row + " " + cell);
             // } catch {
-            //console.log("caught"); //this happens on initial load, table loaded twice?
+                //console.log("caught"); //this happens on initial load, table loaded twice?
             // }
         },
 
@@ -539,7 +596,9 @@
 
             row.getElement().style.backgroundColor = 'white';
             //re-do styling
-            if (data[curation_status] !== null) {
+            //todo: check for curation status failing here..?
+            if (data[curation_status] !== null || data[curation_status] !== undefined) {
+
                 rowColours(row, data);
             }
             rowValue = row.getPosition(true);
@@ -1389,8 +1448,8 @@
     * Submit a pull request to github to update the given configuration file in the repository.
     */
 
-    var save_changes = function (repo_key, folder, spreadsheet, rowData) {
-        //check for validate errors:
+    var save_changes = function (repo_key, folder, spreadsheet, rowData, initialData, overwrite) {
+       //check for validate errors:
         var saveValidationMessage = "";
         var combinedValidationMessages = "";
         if (validateErrorMessages.length > 0) {
@@ -1426,57 +1485,58 @@
             submit();
         }
 
-        function submit() {
-            $("#commit-msg").attr('value', 'Updating ' + spreadsheet);
+        function submit() { 
+$("#commit-msg").attr('value', 'Updating ' + spreadsheet);
 
-            // Get a confirmation from the user:
-            var modal = bootbox.dialog({
-                title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
-                message: $("#message-box").html(),
-                buttons: {
-                    confirm: {
-                        label: 'Submit',
-                        className: 'btn-danger',
-                        callback: function () {
-                            var aForm = modal.find(".form");
-                            var formData = aForm.serializeArray(),
-                                dataObj = {};
-                            $(formData).each(function (i, field) {
-                                dataObj[field.name] = field.value;
-                            });
-                            var commit_msg = dataObj["commit-msg"];
-                            var msgBody = dataObj["descr"];
-                            if (commit_msg !== null && commit_msg !== undefined) {
-                                if (!commit_msg || commit_msg.trim() === "") {
-                                    bootbox.alert({
-                                        closeButton: false,
-                                        message: "Commit message cannot be empty. Your change has not been submitted."
-                                    });
-                                    return;
-                                }
+        // Get a confirmation from the user:
+        var modal = bootbox.dialog({
+            title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
+            message: $("#message-box").html(),
+            buttons: {
+                confirm: {
+                    label: 'Submit',
+                    className: 'btn-danger',
+                    callback: function () {
+                        var aForm = modal.find(".form");
+                        var formData = aForm.serializeArray(),
+                            dataObj = {};
+                        $(formData).each(function (i, field) {
+                            dataObj[field.name] = field.value;
+                        });
+                        var commit_msg = dataObj["commit-msg"];
+                        var msgBody = dataObj["descr"];
+                        if (commit_msg !== null && commit_msg !== undefined) {
+                            if (!commit_msg || commit_msg.trim() === "") {
+                                bootbox.alert({
+                                    closeButton: false,
+                                    message: "Commit message cannot be empty. Your change has not been submitted."
+                                });
+                                return;
+                            }
 
-                                // Embed the code into a request.
-                                var request = new XMLHttpRequest();
-                                // Define a function to handle a state change of the request:
-                                request.onreadystatechange = function () {
-                                    $("*").css("cursor", "default");
-                                    if (request.readyState === 4) {
-                                        if (!request.status) {
-                                            bootbox.alert("Problem communicating with server");
-                                        }
-                                        else if (request.status === 200) {
-                                            window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-                                            changes = []; //no changes anymore to save
-                                            backupChanges();
-                                            var response = JSON.parse(request.responseText);
-                                            var new_file_sha = response['file_sha'];
-                                            file_sha = new_file_sha;
-                                            $('#saveAlert').removeClass('alert-danger');
-                                            $('#saveAlert').addClass('alert-success');
-                                            $("#saveMessage").text('Changes were saved successfully to the repository. ');
-                                            $("#saveAlert").dismissed = false;
-                                            $("#saveAlert").show();
-                                            $('#save-btn').hide(); //saved successfully, hide save button
+                            // Embed the code into a request.
+                            var request = new XMLHttpRequest();
+                            // Define a function to handle a state change of the request:
+                            request.onreadystatechange = function () {
+                                $("*").css("cursor", "default");
+                                console.log("request status is: " + request.status);
+                                if (request.readyState === 4) {
+                                    if (!request.status) {
+                                        bootbox.alert("Problem communicating with server");
+                                    }
+                                    else if (request.status === 200) {
+                                        window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                        changes = []; //no changes anymore to save
+                                        backupChanges();
+                                        var response = JSON.parse(request.responseText);
+                                        var new_file_sha = response['file_sha'];
+                                        file_sha = new_file_sha;
+                                        $('#saveAlert').removeClass('alert-danger');
+                                        $('#saveAlert').addClass('alert-success');
+                                        $("#saveMessage").text('Changes were saved successfully to the repository. ');
+                                        $("#saveAlert").dismissed = false;
+                                        $("#saveAlert").show();
+                                        $('#save-btn').hide(); //saved successfully, hide save button
 
                                             //clear validation cell colours: 
                                             for (var i = 0; i < validateErrorMessages.length; i += 2) {
@@ -1486,56 +1546,147 @@
                                             //delete validation message array: 
                                             validateErrorMessages = [];
 
-                                            var rows = table.getRows();
-                                            for (i = 0; i < rows.length; i++) {
-                                                var cells = rows[i].getCells();
-                                                for (j = 0; j < cells.length; j++) {
-                                                    cells[j].getElement().style.color = 'black'; //do we want to change all to black?
-                                                }
+                                        var rows = table.getRows();
+                                        for (i = 0; i < rows.length; i++) {
+                                            var cells = rows[i].getCells();
+                                            for (j = 0; j < cells.length; j++) {
+                                                cells[j].getElement().style.color = 'black'; //do we want to change all to black?
                                             }
-                                            if (tableEdited) {
-                                                tableEdited = false;
-                                            }
-
-                                        } else {
-                                            var response = JSON.parse(request.responseText);
-                                            var errInfo = response['Error'];
-                                            var mergeInfo = response['merge_diff'];
-                                            $('#saveAlert').removeClass('alert-success');
-                                            $('#saveAlert').addClass('alert-danger');
-                                            $("#saveMessage").append('"It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
-                                            $("#saveMessage").append('merge info: ' + mergeInfo); //todo: do we need to show this? 
-                                            // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
-                                            $(".alert").alert()
-                                            $("#saveAlert").show();
                                         }
+                                        if (tableEdited) {
+                                            tableEdited = false;
+                                        }
+                                        //todo: should we re-load spreadsheet like this on every successful save? 
+                                        if (overwrite == 'true') { //true for merge, where there is different data to load in. 
+                                            //re-load here to get updated data - need alert not bootbox (for blocking):
+                                            alert("Changes were saved successfully to the repository. Re-loading data now");
+                                            location.reload(true); //todo: can tabulator just update without re-loading the page? 
+                                        }
+                                        //todo: handle more error codes here and do merge in correct circumstance
+                                    } else if (request.status === 400) { //repo not found error
+                                        var response = JSON.parse(request.responseText);
+                                        var errInfo = response['Error'];
+                                        $("#saveAlert").addClass("alert-danger");
+                                        $("#saveMessage").text('REPO not found - ' + errInfo);
+                                        $("#saveAlert").show();
+                                    } else if (request.status === 300) { //error code for merge
+                                        var response = JSON.parse(request.responseText);
+                                        var errInfo = response['Error'];
+                                        var mergeInfo = response['merge_diff'];
+                                        mergedTable = response['merged_table']
+
+                                        var conflicted = false; // not using this right now..
+
+                                        $('#saveAlert').removeClass('alert-success');
+                                        $('#saveAlert').addClass('alert-danger');
+                                        $("#saveMessage").append(errInfo);
+                                        $("#saveMessage").append('<br> SEE THE BUTTONS ABOVE THIS MESSAGE FOR OPTIONS TO DEAL WITH THIS <br>');
+                                        $("#saveMessage").append('Merge info: ' + mergeInfo);
+                                        // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
+                                        $(".alert").alert() //???
+                                        $("#saveAlert").show();
+                                        $('#save-btn').hide();
+                                        $('#conflict-btns').show();
+                                        // $("#saveMessage").text(''); //reset message
+                                        // $("#saveAlert").hide();
+                                        $("tr").each(function () {
+                                            if ($(this).hasClass("remove")) {
+                                                console.log("REMOVE DETECTED");
+                                    }
+                                            if ($(this).hasClass("add")) {
+                                                console.log("ADD DETECTED");
+                                }
+                                        });
+                                        $("td").each(function () {
+                                            if ($(this).hasClass("modify")) {
+                                                console.log("MODIFY DETECTED");
+                            }
+                                            if ($(this).hasClass("conflict")) {
+                                                console.log("CONFLICT DETECTED");
+                                            }
+                                        });
+                                        $("tr.remove").css('background-color', '#DAA520'); //orange
+                                        $("tr.add").css('background-color', '#7CFC00'); //green
+                                        $("td.modify").css('background-color', '#00FF00'); //lighter green
+                                        $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
+                                    } else {
+                                        var response = JSON.parse(request.responseText);
+                                        console.log(response);
+                                        var errInfo = response['Error'];
+                                        $("#saveAlert").addClass("alert-danger");
+                                        $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
+                                        $("#saveAlert").show();
                                     }
                                 }
-                                //get rid of ampersand:
-                                rowData = rowData.replace('&', 'and');
-
-                                // Post the request to the server.
-                                request.open('POST', '/save', true);
-                                request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-                                request.send('repo_key=' + repo_key +
-                                    '&folder=' + folder +
-                                    '&spreadsheet=' + spreadsheet +
-                                    '&rowData=' + rowData +
-                                    '&commit_msg=' + commit_msg +
-                                    '&commit_msg_extra=' + msgBody +
-                                    '&file_sha= ' + file_sha);
-                                $("*").css("cursor", "progress");
                             }
+                            // Post the request to the server.
+                            //get rid of ampersands first:
+                      
+                            rowData = rowData.replaceAll('&', 'and');
+                            initialData = initialData.replaceAll('&', 'and');
+                            console.log("rowData: " + rowData);
+                            console.log("initialData: " + initialData);
+                            request.open('POST', '/save', true);
+                            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                            request.send('repo_key=' + repo_key +
+                                '&folder=' + folder +
+                                '&spreadsheet=' + spreadsheet +
+                                '&rowData=' + rowData +
+                                '&commit_msg=' + commit_msg +
+                                '&commit_msg_extra=' + msgBody +
+                                '&file_sha= ' + file_sha +
+                                '&overwrite=' + overwrite);
+                            $("*").css("cursor", "progress");
                         }
-                    },
-                    cancel: {
-                        label: 'Cancel',
-                        className: 'btn-primary'
                     }
+                },
+                cancel: {
+                    label: 'Cancel',
+                    className: 'btn-primary'
                 }
-            });
-        }
+            }
+        });
     };
+
+
+    var keep_both = function () {
+        //backup old data:
+        previousData = table.getData();
+        table.setData(mergedTable);
+        $("#saveMessage").text('IMPORTANT: This is your new Merged Table. You can edit it, and click on SAVE above, or click REVERT to go back. PLEASE CHOOSE NOW');
+        $('#conflict-btns').hide();
+        $('#merge-btns').show();
+        }
+
+    var revert_changes = function () {
+        table.setData(previousData);
+        $('#merge-btns').hide();
+        $("#saveMessage").removeClass('alert-danger'); //not working!
+        $("#saveMessage").text('');
+        $("#saveAlert").hide();
+        // $("#saveMessage").hide(); //todo: this is not working
+
+        $('#save-btn').show();
+    }
+
+    var lose_changes = function () {
+        //delete saved changes?
+        unsavedChanges = false;
+        //using tabulator reactive data to update the table. No refresh needed...
+        //todo: IMPORTANT this is data from the merge, so shouldn't be here TEST ONLY
+        // table.setData(mergedTable); //no
+        //remove previous table array
+        // window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
+        //refresh sheet
+        location.reload(true);
+    };
+
+
+
+    //todo: click handlers for SAVE and REVERT below: (remove buttons and message)
+    // $("#").click(function () {
+
+    // }
 
 
 
@@ -1543,6 +1694,9 @@
     /** Hide save results message */
     $("#closeSaveMsgBtn").click(function () {
         $("#saveMessage").text('');
+        $('#conflict-btns').hide();
+        $('#merge-btns').hide();
+        //keep save button though if present? OK no..
         $(this).parent().hide();
     });
 
@@ -1595,6 +1749,15 @@
             }
         });
 
+    }
+//todo: use below to update and check for new data: 
+    window.onload = setupRefresh;
+    function setupRefresh() {
+        setInterval("refreshBlock();", 60000);
+    }
+
+    function refreshBlock() {
+        console.log("update every minute ");
     }
 </script>
 

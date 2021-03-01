@@ -119,6 +119,8 @@
 
           var resultsArray = JSON.parse(results);
           console.log(results);
+          $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
+          
           createTable(resultsArray);
         });
 
@@ -144,6 +146,7 @@
         event.preventDefault();
 
         sendData();
+        $("#resultsHeader").text("SEARCHING...");
         $("#resultsHeader").show();
       });
     });

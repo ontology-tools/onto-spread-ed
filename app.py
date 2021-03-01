@@ -35,6 +35,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import whoosh
 from whoosh.qparser import MultifieldParser
 from whoosh.index import open_dir
+import threading
 
 from datetime import datetime
 
@@ -117,6 +118,7 @@ class SpreadsheetSearcher:
     # bucket is defined in config.py
     def __init__(self):
         self.storage = BucketStorage(bucket)
+        self.threadLock = threading.Lock()
 
     def searchFor(self, repo_name, search_string):
         self.storage.open_from_bucket()
@@ -140,6 +142,8 @@ class SpreadsheetSearcher:
         ix.close()
 
     def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
+        self.threadLock.acquire()
+        print("Updating index...")
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
         writer = ix.writer()
@@ -182,6 +186,9 @@ class SpreadsheetSearcher:
                                     parent=(parent if parent else None))
         writer.commit(optimize=True)
         self.storage.save_to_bucket()
+        self.threadLock.release()
+        print("Update of index completed.")
+
 
 searcher = SpreadsheetSearcher()
 
@@ -454,31 +461,61 @@ def save():
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
     row_data = request.form.get("rowData")
+    # print(f'row_data: ')
+    # print(row_data)
+    #testData here (initial spreadsheet loaded by user)
+    initial_data = request.form.get("initialData")
     file_sha = request.form.get("file_sha").strip()
     commit_msg = request.form.get("commit_msg")
     commit_msg_extra = request.form.get("commit_msg_extra")
+    overwrite = False
+    overwriteVal = request.form.get("overwrite") #todo: get actual boolean value True/False here?
+    print(f'overwriteVal is: ' + str(overwriteVal))
+    #print(overwriteVal)
+    if overwriteVal == "true":
+        overwrite = True
+        print(f'overwrite True here')
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
 
     try:
+        initial_data_parsed = json.loads(initial_data)
         row_data_parsed = json.loads(row_data)
         # Get the data, skip the first 'id' column
+        initial_first_row = initial_data_parsed[0]
+        initial_header = [k for k in initial_first_row.keys()]
+        del initial_header[0]
+        # Sort based on label
+        # What if 'Label' column not present?
+        # todo: is sorting causing a problem with diff?
+        if 'Label' in initial_first_row:
+            initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
+        else:
+            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff!
+
         first_row = row_data_parsed[0]
         header = [k for k in first_row.keys()]
         del header[0]
         # Sort based on label
-        #what if 'Label' column not present:
+        # What if 'Label' column not present?
         if 'Label' in first_row:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("nah not bothering to sort, ok?") #do we need to sort?
+            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
+
+        # print(f'')
+        # print(f'row_data_parsed: ')
+        # print(row_data_parsed)
+        # print(f'')
+
 
         #print(row_data_parsed)
         print("Got file_sha",file_sha)
 
         wb = openpyxl.Workbook()
         sheet = wb.active
+        #sheet.title="Definitions" # This creates a new sheet, no good
 
         for c in range(len(header)):
             sheet.cell(row=1, column=c+1).value=header[c]
@@ -491,10 +528,12 @@ def save():
                 # Set row background colours according to 'Curation status'
                 # These should be kept in sync with those used in edit screen
                 # TODO add to config
-                # todo: what if "Curation status" not present? do a check here!
+                # What if "Curation status" not present?
                 if 'Curation status' in first_row:
                     if row[header.index("Curation status")]=="Discussed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type = "solid")
+                    elif row[header.index("Curation status")]=="Ready": #this is depreciated
+                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
                     elif row[header.index("Curation status")]=="Proposed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffffff", fill_type = "solid")
                     elif row[header.index("Curation status")]=="To Be Discussed":
@@ -561,14 +600,18 @@ def save():
         pr_info = response['html_url']
 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
-        if new_file_sha != file_sha:
+        
+        if new_file_sha != file_sha and not overwrite:
             print("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff = getDiff(row_data_parsed,new_rows)
-
+            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
+            # update rows for comparison:
+            (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             return(
-                json.dumps({'Error': 'Your change was saved to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'+pr_info+'">here </a>.', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff}), 400
+                json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
+                    + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
+                        "rows3": rows3, "header3": header3}), 300 #400 for missing REPO
                 )
         else:
             # Merge the created PR
@@ -592,10 +635,11 @@ def save():
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
         print ("Save succeeded.")
-        # Update the search index for this file.
-        print ("Updating index...")
-        searcher.updateIndex(repo_key, folder, spreadsheet, header, row_data_parsed)
-        print("Update of index completed.")
+        # Update the search index for this file ASYNCHRONOUSLY (don't wait)
+        thread = threading.Thread(target=searcher.updateIndex,
+                                  args=(repo_key, folder, spreadsheet, header, row_data_parsed))
+        thread.daemon = True  # Daemonize thread
+        thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
         response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
@@ -636,46 +680,179 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
             values[key] = cell.value
         if any(values.values()):
             rows.append(values)
+    # print(f'rows: ')
+    # print(json.dumps(rows))
     return ( (file_sha, rows, header) )
 
 
-def getDiff(row_data_1, row_data_2):
+def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server, header, 3initial)
 
-#data1 = [
-#  ['Country','Capital'],
-#  ['Ireland','Dublin'],
-#  ['France','Paris'],
-#  ['Spain','Barcelona']
-#  ]
+    # print(f'the type of row_data_3 is: ')
+    # print(type(row_data_3))        
 
-#data2 = [
-#  ['Country','Code','Capital'],
-#  ['Ireland','ie','Dublin'],
-#  ['France','fr','Paris'],
-#  ['Spain','es','Madrid'],
-#  ['Germany','de','Berlin']
-#  ]
+    #sort out row_data_1 format to be the same as row_data_2
+    new_row_data_1 = []
+    for k in row_data_1:
+        dictT = {}
+        for key, val, item in zip(k, k.values(), k.items()):
+            if(key != "id"):
+                if(val == ""):
+                    val = None
+                #add to dictionary:
+                dictT[key] = val
+        #add to list:
+        new_row_data_1.append( dictT ) 
 
-    table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
-    table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
+    #sort out row_data_3 format to be the same as row_data_2
+    new_row_data_3 = []
+    for h in row_data_3:
+        dictT3 = {}
+        for key, val, item in zip(h, h.values(), h.items()):
+            if(key != "id"):
+                if(val == ""):
+                    val = None
+                #add to dictionary:
+                dictT3[key] = val
+        #add to list:
+        new_row_data_3.append( dictT3 ) 
 
-    alignment = daff.Coopy.compareTables(table1,table2).align()
+    row_data_combo_1 = [row_header] 
+    row_data_combo_2 = [row_header]
+    row_data_combo_3 = [row_header]
+
+    row_data_combo_1.extend([list(r.values()) for r in new_row_data_1]) #row_data_1 has extra "id" column for some reason???!!!
+    row_data_combo_2.extend([list(s.values()) for s in row_data_2])
+    row_data_combo_3.extend([list(t.values()) for t in new_row_data_3])
+
+    #checking:
+    # print(f'row_header: ')
+    # print(row_header)
+    # print(f'row_data_1: ')
+    # print(row_data_1)
+    # print(f'row_data_2: ')
+    # print(row_data_2)
+    # print(f'combined 1: ')
+    # print(row_data_combo_1)
+    # print(f'combined 2: ')
+    # print(row_data_combo_2)
+    # print(f'combined 3: ')
+    # print(row_data_combo_3)
+
+    table1 = daff.PythonTableView(row_data_combo_1) #daff needs a header in order to work correctly!
+    table2 = daff.PythonTableView(row_data_combo_2)
+    table3 = daff.PythonTableView(row_data_combo_3)
+    
+    #old version:
+    # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
+    # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
+
+    alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
+    
+    # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
+    alignment2 = daff.Coopy.compareTables(table2,table1).align() #saving vs server
+    # alignment2 = daff.Coopy.compareTables(table1, table2).align() #server vs saving
+    # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
+
 
     data_diff = []
     table_diff = daff.PythonTableView(data_diff)
 
     flags = daff.CompareFlags()
-    highlighter = daff.TableDiff(alignment,flags)
-    highlighter.hilite(table_diff)
 
+    # flags.allowDelete()
+    # flags.allowUpdate()
+    # flags.allowInsert()
+
+    highlighter = daff.TableDiff(alignment2,flags)
+    
+    highlighter.hilite(table_diff)
+    #hasDifference() should return true - and it does. 
+    if highlighter.hasDifference():
+        print(f'HASDIFFERENCE')
+        print(highlighter.getSummary().row_deletes)
+    else:
+        print(f'no difference found')
     diff2html = daff.DiffRender()
     diff2html.usePrettyArrows(False)
     diff2html.render(table_diff)
     table_diff_html = diff2html.html()
 
-    print(table_diff_html)
+    # print(table_diff_html)
+    # print(f'table 1 before patch test: ')
+    # print(table1.toString()) 
+    # patch test: 
+    # patcher = daff.HighlightPatch(table2,table_diff)
+    # patcher.apply()
+    # print(f'patch tester: ..................')
+    # print(f'table1:')
+    # print(table1.toString())
+    # print(f'table2:')
+    # print(table2.toString())
+    # print(table2.toString()) 
+    # print(f'table3:')
+    # print(table3.toString()) 
+    # table2String = table2.toString().strip() #no
+    #todo: Task 1: turn MergeData into a Dict in order to post it to Github!
+    # - use Janna's sheet builder example? 
+    # - post direct instead of going through Flask front-end? 
+    # table2String.strip()
+    # table2Json = json.dumps(table2)
+    # table2Dict = dict(todo: make this into a dict with id:0++ per row here!)
+    # table2String = dict(table2String) #nope
 
-    return (table_diff_html)
+    # merger test: 
+    # print(f'Merger test: ') 
+    merger = daff.Merger(table3,table2,table1,flags) #(3initial, 1saving, 2server, flags)
+    merger.apply()
+    # print(f'table2:')
+    # table2String = table2.toString()
+    # print(table2String) #after merger
+
+    data = table2.getData() #merger table in list format
+    # print(f'data: ')
+    # print(json.dumps(data)) #it's a list.
+    # convert to correct format (list of dicts):
+    dataDict = []
+    iter = -1
+    for k in data:        
+        # add "id" value:
+        iter = iter + 1
+        dictT = {}
+        if iter == 0:
+            pass
+            # print(f'header row - not using')
+        else:
+            dictT['id'] = iter # add "id" with iteration
+            for key, val in zip(row_header, k):      
+                #deal with conflicting val?
+
+                dictT[key] = val
+        # add to list:
+        if iter > 0: # not header - now empty dict
+            dataDict.append( dictT ) 
+        # print(f'update: ')
+        # print(dataDict)
+
+        
+    
+    # print(f'dataDict: ')
+    # print(json.dumps(dataDict))
+    # print(f'the type of dataDict is: ')
+    # print(type(dataDict))
+
+    # print(f'merger data:') #none
+    # print(daff.DiffSummary().different) #nothing here? 
+    # mergerConflictInfo = merger.getConflictInfos()
+    
+    # print(f'Merger conflict infos: ')
+    # print(f'table1:')
+    # print(table1.toString())
+    # print(f'table2:')
+    # print(table2.toString()) 
+    # print(f'table3:')
+    # print(table3.toString()) 
+   
+    return (table_diff_html, dataDict)
 
 
 def searchAcrossSheets(repo_name, search_string):
