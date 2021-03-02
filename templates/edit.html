@@ -541,7 +541,7 @@
 
         },
         renderStarted: function () {
-           
+
         },
         renderComplete: function (table) {
             //todo: why is table undefined here? 
@@ -1513,9 +1513,18 @@
                                     });
                                     return;
                                 }
-                                var dialog = bootbox.dialog({
+                                var saveIndicator = bootbox.dialog({
                                     message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SAVING...</p>',
                                     closeButton: false
+                                });
+
+                                saveIndicator.init(function () {
+                                    console.log("showing dialog");
+                                    saveIndicator.attr("id", "save_indicator");
+                                    setTimeout(() => {
+                                        saveIndicator.modal('hide');
+                                        // bootbox.alert("Save taking too long, please check your internet connection");
+                                    }, 10000);
                                 });
 
 
@@ -1524,10 +1533,18 @@
                                 // Define a function to handle a state change of the request:
                                 request.onreadystatechange = function () {
                                     $("*").css("cursor", "default");
-                                    dialog.modal('hide');
+                                    saveIndicator.modal('hide');
                                     console.log("request status is: " + request.status);
                                     if (request.readyState === 4) {
                                         if (!request.status) {
+                                            // saveIndicator.modal('hide');
+                                            // $("#save_indicator").hide();
+                                            // saveIndicator.hide();
+                                            // $(["id=save_indicator"]).hide();
+                                            // $('#modal').modal('close');
+                                            // dialog.modal('close');
+                                            // dialog.modal('hide');
+                                            // bootbox.hideAll();
                                             bootbox.alert("Problem communicating with server");
                                         }
                                         else if (request.status === 200) {
@@ -1768,11 +1785,11 @@
     }
 
     // $(document).ready(function () {
-    
+
     //     // alert("document is ready");
     // });
     // $(window).on("load", function () {
-    
+
     // });
 </script>
 
