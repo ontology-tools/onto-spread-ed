@@ -541,7 +541,7 @@
 
         },
         renderStarted: function () {
-
+           
         },
         renderComplete: function (table) {
             //todo: why is table undefined here? 
@@ -1513,12 +1513,18 @@
                                     });
                                     return;
                                 }
+                                var dialog = bootbox.dialog({
+                                    message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SAVING...</p>',
+                                    closeButton: false
+                                });
+
 
                                 // Embed the code into a request.
                                 var request = new XMLHttpRequest();
                                 // Define a function to handle a state change of the request:
                                 request.onreadystatechange = function () {
                                     $("*").css("cursor", "default");
+                                    dialog.modal('hide');
                                     console.log("request status is: " + request.status);
                                     if (request.readyState === 4) {
                                         if (!request.status) {
@@ -1761,6 +1767,13 @@
         console.log("update every minute ");
     }
 
+    // $(document).ready(function () {
+    
+    //     // alert("document is ready");
+    // });
+    // $(window).on("load", function () {
+    
+    // });
 </script>
 
 {% endblock %}

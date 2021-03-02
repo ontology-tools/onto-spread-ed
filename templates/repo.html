@@ -36,7 +36,8 @@
 
   <div class="row">
     <div class="col-md-12">
-      <div id="contentTable" class="table table-bordered table-striped table-hover table-sm" style="font-size: 0.8em; display:none;">
+      <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
+        style="font-size: 0.8em; display:none;">
       </div>
     </div>
   </div>
@@ -98,9 +99,13 @@
   <script type="text/javascript">
     // var searchFor = function (searchTerm) {
     // console.log("searchTerm is: " + searchTerm)
+    
 
     window.addEventListener("load", function () {
+    
+      
       console.log("loaded");
+      
       $("#resultsHeader").hide();
 
       function sendData() {
@@ -122,7 +127,7 @@
           var resultsArray = JSON.parse(results);
           console.log(results);
           $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
-          
+
           createTable(resultsArray);
         });
 
@@ -146,14 +151,20 @@
       // ...and take over its submit event.
       form.addEventListener("submit", function (event) {
         event.preventDefault();
-
+        var dialog = bootbox.dialog({
+          message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
+          closeButton: true
+        });
         sendData();
         $("#resultsHeader").text("SEARCHING...");
         $("#resultsHeader").show();
+        
       });
     });
 
     function createTable(responseData) {
+      bootbox.hideAll();
+      // dialog.modal('hide'); //not working, why? 
       if (responseData.length < 1) {
         document.getElementById("resultsHeader").innerHTML = "No Results";
         // $("#resultsHeader").innerText = "No Results";
