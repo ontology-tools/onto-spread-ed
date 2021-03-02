@@ -415,16 +415,15 @@ def verify():
         headers = json.loads(request.form.get("headers")) 
         table = json.loads(request.form.get("table")) 
 
-    print('cell: ' + cell)    
-    print('column: ' + column)
-    print('rowData: ' + json.dumps(rowData)) 
-    print('headers: ' + json.dumps(headers))
-    print('table: ' + json.dumps(table))
+    # print('cell: ' + cell)    
+    # print('column: ' + column)
+    # print('rowData: ' + json.dumps(rowData)) 
+    # print('headers: ' + json.dumps(headers))
+    # print('table: ' + json.dumps(table))
+    if column == "Label" or column == "ID" or column == "Definition":
+        if checkNotUnique(cell, column, headers, table): #todo: checkNotUnique should return the message?
+            return ('Value is not unique')
 
-    if checkNotUnique(cell, column, headers, table):
-        return ('Value is not unique')
-
-    
     #test:
     if cell == 'fail': #todo: do validation check here, using cell == 'fail' for testing
         return ('fail message says you failed')
@@ -432,19 +431,34 @@ def verify():
     return ('success') #todo: do we need message:success, 200 here? 
     
 #validation checks here: 
+#todo: add white space removal to string check values
 def checkNotUnique(cell, column, headers, table):
+    counter = 0
+    print(f'cell is ' + cell)
     #if label, ID or definition column
     #check cell against all other cells in the same column
     #return true if same
     for r in range(len(table)): 
         row = [v for v in table[r].values()]
         del row[0] # Tabulator-added ID column
-        for c in range(len(headers)-1):
-            print(row[c+1])
-            if row[c+1]==cell:
-                print(f'not unique:' + cell)
-                print(row[c+1])
-                return True
+        for c in range(len(headers)):
+            if headers[c] == "ID":
+                if row[c]==cell:
+                    counter += 1 
+                    if counter > 1: #more than one of the same
+                        print(f'not unique:' + cell)
+                        print(row[c+1])
+                        return True
+            if headers[c] == "Label":
+                if row[c]==cell:
+                    counter += 1 
+                    if counter > 1: #more than one of the same
+                        return True
+            if headers[c] == "Definition":
+                if row[c]==cell:
+                    counter += 1 
+                    if counter > 1: #more than one of the same
+                        return True
 
     print('cell: ' + cell)
     return False
