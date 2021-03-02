@@ -1533,7 +1533,7 @@
                                 // Define a function to handle a state change of the request:
                                 request.onreadystatechange = function () {
                                     $("*").css("cursor", "default");
-                                    saveIndicator.modal('hide');
+                                    saveIndicator.modal('hide'); //doesn't trigger if there is no internet?!
                                     console.log("request status is: " + request.status);
                                     if (request.readyState === 4) {
                                         if (!request.status) {
