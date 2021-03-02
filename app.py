@@ -404,6 +404,8 @@ def direct():
     session['url'] = url
     return('success')
 
+#todo: what if there are multiple validation errors at the same time? Do we need to support this? \
+#or just one at a time?
 @app.route("/validate", methods=["POST"]) # cell, column, rowData, headers, table
 def verify():
     if request.method == "POST":
@@ -412,15 +414,40 @@ def verify():
         rowData = json.loads(request.form.get("rowData"))
         headers = json.loads(request.form.get("headers")) 
         table = json.loads(request.form.get("table")) 
-    print('cell: ' + cell)
-    # print('column: ' + column)
-    # print('rowData: ' + json.dumps(rowData)) 
-    # print('headers: ' + json.dumps(headers))
-    # print('table: ' + json.dumps(table))
+
+    print('cell: ' + cell)    
+    print('column: ' + column)
+    print('rowData: ' + json.dumps(rowData)) 
+    print('headers: ' + json.dumps(headers))
+    print('table: ' + json.dumps(table))
+
+    if checkNotUnique(cell, column, headers, table):
+        return ('Value is not unique')
+
+    
+    #test:
     if cell == 'fail': #todo: do validation check here, using cell == 'fail' for testing
         return ('fail message says you failed')
+
     return ('success') #todo: do we need message:success, 200 here? 
     
+#validation checks here: 
+def checkNotUnique(cell, column, headers, table):
+    #if label, ID or definition column
+    #check cell against all other cells in the same column
+    #return true if same
+    for r in range(len(table)): 
+        row = [v for v in table[r].values()]
+        del row[0] # Tabulator-added ID column
+        for c in range(len(headers)-1):
+            print(row[c+1])
+            if row[c+1]==cell:
+                print(f'not unique:' + cell)
+                print(row[c+1])
+                return True
+
+    print('cell: ' + cell)
+    return False
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
