@@ -434,7 +434,9 @@ def verify():
 #todo: add white space removal to string check values
 def checkNotUnique(cell, column, headers, table):
     counter = 0
-    print(f'cell is ' + cell)
+    print(len(cell))
+    cellStr = cell.strip()
+    print(cellStr)
     #if label, ID or definition column
     #check cell against all other cells in the same column
     #return true if same
@@ -443,24 +445,24 @@ def checkNotUnique(cell, column, headers, table):
         del row[0] # Tabulator-added ID column
         for c in range(len(headers)):
             if headers[c] == "ID":
-                if row[c]==cell:
+                if row[c].strip()==cellStr:
                     counter += 1 
                     if counter > 1: #more than one of the same
-                        print(f'not unique:' + cell)
+                        print(f'not unique:' + cellStr)
                         print(row[c+1])
                         return True
             if headers[c] == "Label":
-                if row[c]==cell:
+                if row[c].strip()==cellStr:
                     counter += 1 
                     if counter > 1: #more than one of the same
                         return True
             if headers[c] == "Definition":
-                if row[c]==cell:
+                if row[c].strip()==cellStr:
                     counter += 1 
                     if counter > 1: #more than one of the same
                         return True
 
-    print('cell: ' + cell)
+    print(len(cellStr))
     return False
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
