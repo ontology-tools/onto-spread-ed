@@ -307,9 +307,11 @@ def search():
     # searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
     # ok, dealing with "" on the front end,
     # {} and [] inside data will break JSON parse - also "" or '' inside of cells
+    # todo: fix "one" and "on" search error - 
       
     new_row_data_1 = []
-    replacementValues = {'{': '', 
+    replacementValues = {'\xa0': ' ', #non-breaking space
+                         '{': '', 
                          '}': '',
                          '[': '',
                          ']': '',
@@ -404,9 +406,8 @@ def direct():
     session['url'] = url
     return('success')
 
-#todo: what if there are multiple validation errors at the same time? Do we need to support this? \
-#or just one at a time?
-@app.route("/validate", methods=["POST"]) # cell, column, rowData, headers, table
+
+@app.route("/validate", methods=["POST"]) 
 def verify():
     if request.method == "POST":
         cell = json.loads(request.form.get("cell"))
@@ -414,52 +415,46 @@ def verify():
         rowData = json.loads(request.form.get("rowData"))
         headers = json.loads(request.form.get("headers")) 
         table = json.loads(request.form.get("table")) 
-
     # print('cell: ' + cell)    
     # print('column: ' + column)
     # print('rowData: ' + json.dumps(rowData)) 
     # print('headers: ' + json.dumps(headers))
     # print('table: ' + json.dumps(table))
     if column == "Label" or column == "ID" or column == "Definition":
-        if checkNotUnique(cell, column, headers, table): #todo: checkNotUnique should return the message?
+        if checkNotUnique(cell, column, headers, table): #todo: checkNotUnique should return the message? Do we need more info in there?
             return ('Value is not unique')
-
-    #test:
-    # if cell == 'fail': #todo: do validation check here, using cell == 'fail' for testing
+    # test:
+    # if cell == 'fail': 
     #     return ('fail message says you failed')
-
     return ('success') #todo: do we need message:success, 200 here? 
     
-#validation checks here: 
-#todo: add white space removal to string check values
+# validation checks here: 
 def checkNotUnique(cell, column, headers, table):
     counter = 0
     print(len(cell))
     cellStr = cell.strip()
     print(cellStr)
-    #if label, ID or definition column
-    #check cell against all other cells in the same column
-    #return true if same
+    # if Label, ID or Definition column
+    # check cell against all other cells in the same column
+    # return true if same
     for r in range(len(table)): 
         row = [v for v in table[r].values()]
-        del row[0] # Tabulator-added ID column
+        del row[0] # remove extra numbered "id" column
         for c in range(len(headers)):
             if headers[c] == "ID":
                 if row[c].strip()==cellStr:
                     counter += 1 
                     if counter > 1: #more than one of the same
-                        print(f'not unique:' + cellStr)
-                        print(row[c+1])
                         return True
             if headers[c] == "Label":
                 if row[c].strip()==cellStr:
                     counter += 1 
-                    if counter > 1: #more than one of the same
+                    if counter > 1: 
                         return True
             if headers[c] == "Definition":
                 if row[c].strip()==cellStr:
                     counter += 1 
-                    if counter > 1: #more than one of the same
+                    if counter > 1: 
                         return True
 
     print(len(cellStr))
