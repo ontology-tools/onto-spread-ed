@@ -425,8 +425,8 @@ def verify():
             return ('Value is not unique')
 
     #test:
-    if cell == 'fail': #todo: do validation check here, using cell == 'fail' for testing
-        return ('fail message says you failed')
+    # if cell == 'fail': #todo: do validation check here, using cell == 'fail' for testing
+    #     return ('fail message says you failed')
 
     return ('success') #todo: do we need message:success, 200 here? 
     
