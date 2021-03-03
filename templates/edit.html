@@ -521,7 +521,7 @@
             var tooltipMsg = "ERROR - validation failed";
             for (var i = 0; i < validateErrorMessages.length; i += 2) {
                 if (cell == validateErrorMessages[i]) {
-                    tooltipMsg = validateErrorMessages[i + 1] + (i / 2 + 1); //todo: remove "+ i" - just for testing
+                    tooltipMsg = validateErrorMessages[i + 1]; // + (i / 2 + 1); // "+ i" just for testing
                 }
             }
             if (cell.getElement().style.backgroundColor == 'red') {
@@ -1741,7 +1741,7 @@
 
     //validations function: 
     function validate(cell, column, rowData, headers, table) {
-        //todo: get rid of '&'
+        //todo: get rid of '&' ? - not necessary!   
 
         //check if cell was previously invalid, then remove reference:
         for (var i = 0; i < validateErrorMessages.length; i += 2) {
