@@ -288,7 +288,12 @@ def search():
     repoName = request.form.get("repoName")
 
     searchResults = searchAcrossSheets(repoName, searchTerm)
+    
     searchResultsTable = json.dumps(searchResults)
+    # print(f'')
+    # print(f'searchResultsTable: ')
+    # print(searchResultsTable)
+
 
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
