@@ -232,7 +232,8 @@ def token_getter():
 def authorized(access_token):
     next_url = request.args.get('next') or url_for('home')
     if access_token is None:
-        return redirect(next_url)
+        print("Authorization failed.")
+        return redirect(url_for('logout'))
 
     user = User.query.filter_by(github_access_token=access_token).first()
     if user is None:
@@ -243,8 +244,8 @@ def authorized(access_token):
     github_user = github.get('/user')
     user.github_id = github_user['id']
     user.github_login = github_user['login']
-        user.github_access_token = access_token
-        db_session.add(user)
+    user.github_access_token = access_token
+    db_session.add(user)
     db_session.commit()
 
     session['user_id'] = user.id
@@ -356,8 +357,8 @@ def direct():
     session['url'] = url
     return('success')
 
-
-@app.route("/validate", methods=["POST"]) 
+@app.route("/validate", methods=["POST"]) # cell, column, rowData, headers, table
+@verify_logged_in
 def verify():
     if request.method == "POST":
         cell = json.loads(request.form.get("cell"))
