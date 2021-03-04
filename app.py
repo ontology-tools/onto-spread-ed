@@ -35,7 +35,6 @@ from sqlalchemy.ext.declarative import declarative_base
 import whoosh
 from whoosh.qparser import MultifieldParser
 from whoosh.index import open_dir
-import threading
 
 from datetime import datetime
 
@@ -48,7 +47,6 @@ db_session = scoped_session(sessionmaker(autocommit=False,
                                          autoflush=False,
                                          bind=engine))
 Base = declarative_base()
-Base.query = db_session.query_property()
 
 class User(Base):
     __tablename__ = 'users'
@@ -62,6 +60,8 @@ class User(Base):
         self.github_access_token = github_access_token
 
 def init_db():
+
+    Base.query = db_session.query_property()
     Base.metadata.create_all(bind=engine)
 
 
@@ -118,7 +118,6 @@ class SpreadsheetSearcher:
     # bucket is defined in config.py
     def __init__(self):
         self.storage = BucketStorage(bucket)
-        self.threadLock = threading.Lock()
 
     def searchFor(self, repo_name, search_string):
         self.storage.open_from_bucket()
@@ -137,13 +136,12 @@ class SpreadsheetSearcher:
                 for field in hit:
                     allfields[field]=hit[field]
                 resultslist.append(allfields)
-        return (resultslist)
 
         ix.close()
 
+        return (resultslist)
+
     def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
-        self.threadLock.acquire()
-        print("Updating index...")
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
         writer = ix.writer()
@@ -186,9 +184,7 @@ class SpreadsheetSearcher:
                                     parent=(parent if parent else None))
         writer.commit(optimize=True)
         self.storage.save_to_bucket()
-        self.threadLock.release()
-        print("Update of index completed.")
-
+        ix.close()
 
 searcher = SpreadsheetSearcher()
 
@@ -202,7 +198,7 @@ def verify_logged_in(fn):
     def wrapped(*args, **kwargs):
         # If the user is not logged in, then redirect him to the "logged out" page:
         if not g.user:
-            return redirect(url_for("logout"))
+            return redirect(url_for("login"))
         return fn(*args, **kwargs)
 
     return wrapped
@@ -214,6 +210,7 @@ def verify_logged_in(fn):
 def before_request():
     g.user = None
     if 'user_id' in session:
+        print("user-id in session: ",session['user_id'])
         g.user = User.query.get(session['user_id'])
 
 
@@ -240,17 +237,14 @@ def authorized(access_token):
     user = User.query.filter_by(github_access_token=access_token).first()
     if user is None:
         user = User(access_token)
-        db_session.add(user)
-
-    user.github_access_token = access_token
-
     # Not necessary to get these details here
     # but it helps humans to identify users easily.
     g.user = user
     github_user = github.get('/user')
     user.github_id = github_user['id']
     user.github_login = github_user['login']
-
+        user.github_access_token = access_token
+        db_session.add(user)
     db_session.commit()
 
     session['user_id'] = user.id
@@ -259,17 +253,14 @@ def authorized(access_token):
 
 @app.route('/login')
 def login():
-    if session.get('user_id', None) is None:
+    if session.get('user_id', None) is not None:
+        session.pop('user_id',None) # Could be stale
         return github.authorize(scope="user,repo")
-    else:
-        return 'Already logged in'
-
 
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
     return redirect(url_for('loggedout'))
-
 
 @app.route("/loggedout")
 def loggedout():
@@ -286,8 +277,6 @@ def user():
 
 
 
-
-
 # Pages for the app
 
 
@@ -296,49 +285,9 @@ def user():
 def search():
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
-    # repoName = "BCIO"
-    # print(f'searchTerm: ')
-    # print(searchTerm)
-    # print(f'searchResults: ')
+
     searchResults = searchAcrossSheets(repoName, searchTerm)
-    # print(searchResults)
-
-    # fix up all data formatting: 
-    # searchResultsTable needs data with "" not '' and also NO TRAILING , OR IT BREAKS Tabulator
-    # ok, dealing with "" on the front end,
-    # {} and [] inside data will break JSON parse - also "" or '' inside of cells
-    # todo: fix "one" and "on" search error - 
-      
-    new_row_data_1 = []
-    replacementValues = {'\xa0': ' ', #non-breaking space
-                         '{': '', 
-                         '}': '',
-                         '[': '',
-                         ']': '',
-                         ',': '',
-                         '"': '',
-                         ':': '',
-                         '\\': '',
-                        #  '?': '',
-                         '\'': '',}
-    for k in searchResults:
-        dictT = {}
-        for key, val, item in zip(k, k.values(), k.items()):
-            #update:
-            for key2, value in replacementValues.items():
-                val = val.replace(key2, value)
-            #add to dictionary:
-            dictT[key] = val
-        #add to list:
-        new_row_data_1.append( dictT ) 
-    # print(f'')
-    # print(f'new_row_data_1: ')
-    # print(new_row_data_1)
-    searchResultsTable = "".join(str(new_row_data_1)) #dict to table? 
-    # print(f'')
-    # print(f'searchResultsTable: ')
-    # print(searchResultsTable)
-
+    searchResultsTable = json.dumps(searchResults)
 
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
@@ -394,6 +343,7 @@ def repo(repo_key, folder_path=""):
                             )
 
 @app.route("/direct", methods=["POST"])
+@verify_logged_in
 def direct():
     if request.method == "POST":
         repo = json.loads(request.form.get("repo"))
@@ -553,7 +503,6 @@ def save():
 
         wb = openpyxl.Workbook()
         sheet = wb.active
-        #sheet.title="Definitions" # This creates a new sheet, no good
 
         for c in range(len(header)):
             sheet.cell(row=1, column=c+1).value=header[c]
@@ -577,7 +526,7 @@ def save():
                     elif row[header.index("Curation status")]=="To Be Discussed":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
                     elif row[header.index("Curation status")]=="In Discussion":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")
+                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")                                
                     elif row[header.index("Curation status")]=="Published":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type = "solid")
                     elif row[header.index("Curation status")]=="Obsolete":
@@ -673,11 +622,10 @@ def save():
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
         print ("Save succeeded.")
-        # Update the search index for this file ASYNCHRONOUSLY (don't wait)
-        thread = threading.Thread(target=searcher.updateIndex,
-                                  args=(repo_key, folder, spreadsheet, header, row_data_parsed))
-        thread.daemon = True  # Daemonize thread
-        thread.start()  # Start the execution
+        # Update the search index for this file.
+        print ("Updating index...")
+        searcher.updateIndex(repo_key, folder, spreadsheet, header, row_data_parsed)
+        print("Update of index completed.")
 
         # Get the sha AGAIN for the file
         response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
@@ -699,6 +647,15 @@ def save():
             400,
         )
 
+
+@app.route('/keepalive', methods=['POST'])
+@verify_logged_in
+def keep_alive():
+    print("Keep alive requested from edit screen")
+    return ( json.dumps({"message":"Success"}), 200 )
+
+
+# Internal methods
 
 def get_spreadsheet(repo_detail,folder,spreadsheet):
     spreadsheet_file = github.get(
