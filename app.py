@@ -193,7 +193,6 @@ def verify_logged_in(fn):
     """
     Decorator used to make sure that the user is logged in
     """
-
     @functools.wraps(fn)
     def wrapped(*args, **kwargs):
         # If the user is not logged in, then redirect him to the "logged out" page:
@@ -256,7 +255,7 @@ def authorized(access_token):
 def login():
     if session.get('user_id', None) is not None:
         session.pop('user_id',None) # Could be stale
-        return github.authorize(scope="user,repo")
+    return github.authorize(scope="user,repo")
 
 @app.route('/logout')
 def logout():
