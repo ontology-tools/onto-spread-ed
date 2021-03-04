@@ -1527,7 +1527,7 @@
                                     setTimeout(() => {
                                         saveIndicator.modal('hide');
                                         // bootbox.alert("Save taking too long, please check your internet connection");
-                                    }, 10000);
+                                    }, 15000);
                                 });
 
 
@@ -1563,6 +1563,7 @@
                                         $("#saveAlert").dismissed = false;
                                         $("#saveAlert").show();
                                         $('#save-btn').hide(); //saved successfully, hide save button
+                                        $('#merge-btns').hide(); //if there was a merge conflict, hide these after saving
 
                                             //clear validation cell colours: 
                                             for (var i = 0; i < validateErrorMessages.length; i += 2) {
