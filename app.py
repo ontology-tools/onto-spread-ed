@@ -392,17 +392,17 @@ def checkNotUnique(cell, column, headers, table):
         row = [v for v in table[r].values()]
         del row[0] # remove extra numbered "id" column
         for c in range(len(headers)):
-            if headers[c] == "ID":
+            if headers[c] == "ID" and column == "ID":
                 if row[c].strip()==cellStr:
                     counter += 1 
                     if counter > 1: #more than one of the same
                         return True
-            if headers[c] == "Label":
+            if headers[c] == "Label" and column == "Label":
                 if row[c].strip()==cellStr:
                     counter += 1 
                     if counter > 1: 
                         return True
-            if headers[c] == "Definition":
+            if headers[c] == "Definition" and column == "Definition":
                 if row[c].strip()==cellStr:
                     counter += 1 
                     if counter > 1: 
