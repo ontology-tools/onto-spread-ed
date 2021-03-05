@@ -653,12 +653,30 @@ def save():
         )
 
 
+
 @app.route('/keepalive', methods=['POST'])
 @verify_logged_in
 def keep_alive():
     print("Keep alive requested from edit screen")
     return ( json.dumps({"message":"Success"}), 200 )
 
+#todo: use this function to compare initial spreadsheet to server version - check for updates?
+@app.route("/checkForUpdates", methods=["POST"])
+def checkForUpdates():
+    if request.method == "POST":
+        repo_key = request.form.get("repo_key") #todo: fix keyError!
+        folder = request.form.get("folder")
+        spreadsheet = request.form.get("spreadsheet")
+        initialData = request.form.get("initialData")      
+
+        repositories = app.config['REPOSITORIES']
+        repo_detail = repositories[repo_key]
+        spreadsheet_file = github.get(
+            f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
+        )
+        file_sha = spreadsheet_file['sha']
+        print("Check update - Got file_sha",file_sha)
+        return ( json.dumps({"message":"Success"}), 200 )
 
 # Internal methods
 

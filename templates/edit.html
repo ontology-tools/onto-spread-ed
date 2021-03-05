@@ -1794,9 +1794,29 @@
 
     function refreshBlock() {
         console.log("update every minute ");
+        checkForUpdates(repo_name, '{{folder}}' , '{{ spreadsheet_name }}', JSON.stringify( testTableData ));
+            
     }
 
-    // $(document).ready(function () {
+    function checkForUpdates(repo_key, folder, spreadsheet_name, initialData) {
+      console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + initialData);
+
+      jQuery.ajax({
+        url: '/checkForUpdates',
+        contentType: "application/x-www-form-urlencoded",
+        dataType: "text/json",
+        type: 'POST',
+        async: 'false',
+        data: { repo_key: JSON.stringify({ repo_key} ), folder: JSON.stringify({ folder }), spreadsheet: JSON.stringify({ spreadsheet_name }), initialData: JSON.stringify({ initialData }) },
+        success: function (data) {
+          console.log(data);
+        }, 
+        error: function (request, status, error) {
+            console.log(error);
+        }
+      });
+     }
+
 
     setInterval(function () {
         $.ajax({
