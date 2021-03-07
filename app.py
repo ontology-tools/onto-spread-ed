@@ -32,9 +32,10 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import threading
+
 import whoosh
 from whoosh.qparser import MultifieldParser
-from whoosh.index import open_dir
 
 from datetime import datetime
 
@@ -118,6 +119,7 @@ class SpreadsheetSearcher:
     # bucket is defined in config.py
     def __init__(self):
         self.storage = BucketStorage(bucket)
+        self.threadLock = threading.Lock()
 
     def searchFor(self, repo_name, search_string):
         self.storage.open_from_bucket()
@@ -142,6 +144,8 @@ class SpreadsheetSearcher:
         return (resultslist)
 
     def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
+        self.threadLock.acquire()
+        print("Updating index...")
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
         writer = ix.writer()
@@ -185,6 +189,8 @@ class SpreadsheetSearcher:
         writer.commit(optimize=True)
         self.storage.save_to_bucket()
         ix.close()
+        self.threadLock.release()
+        print("Update of index completed.")
 
 searcher = SpreadsheetSearcher()
 
@@ -454,9 +460,6 @@ def save():
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
     row_data = request.form.get("rowData")
-    # print(f'row_data: ')
-    # print(row_data)
-    #testData here (initial spreadsheet loaded by user)
     initial_data = request.form.get("initialData")
     file_sha = request.form.get("file_sha").strip()
     commit_msg = request.form.get("commit_msg")
@@ -464,7 +467,6 @@ def save():
     overwrite = False
     overwriteVal = request.form.get("overwrite") #todo: get actual boolean value True/False here?
     print(f'overwriteVal is: ' + str(overwriteVal))
-    #print(overwriteVal)
     if overwriteVal == "true":
         overwrite = True
         print(f'overwrite True here')
@@ -497,13 +499,6 @@ def save():
         else:
             print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
 
-        # print(f'')
-        # print(f'row_data_parsed: ')
-        # print(row_data_parsed)
-        # print(f'')
-
-
-        #print(row_data_parsed)
         print("Got file_sha",file_sha)
 
         wb = openpyxl.Workbook()
@@ -627,10 +622,11 @@ def save():
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
         print ("Save succeeded.")
-        # Update the search index for this file.
-        print ("Updating index...")
-        searcher.updateIndex(repo_key, folder, spreadsheet, header, row_data_parsed)
-        print("Update of index completed.")
+        # Update the search index for this file ASYNCHRONOUSLY (don't wait)
+        thread = threading.Thread(target=searcher.updateIndex,
+                                  args=(repo_key, folder, spreadsheet, header, row_data_parsed))
+        thread.daemon = True  # Daemonize thread
+        thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
         response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
