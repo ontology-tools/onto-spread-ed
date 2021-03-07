@@ -61,6 +61,9 @@ USERS_METADATA = {"jannahastings": {"initials":"JH", "repositories":["AddictO","
                   "ksoar":{"initials":"KS", "repositories":["AddictO"]},
                   "CaitlinNotley702": {"initials":"CN", "repositories":["AddictO"]},
                   "CaitlinNotley": {"initials":"CN", "repositories":["AddictO"]},
-                  "alisonjwright":{"initials":"AW", "repositories":["BCIO"]},
-                  "zcbtelh": {"initials":"EH", "repositories":["BCIO"]} }
+                  "alisonjwright":{"initials":"AW", "repositories":["BCIO","AddictO"]},
+                  "zcbtelh": {"initials":"EH", "repositories":["BCIO"]},
+                  "candicemooreucl": {"initials":"CM", "repositories":["BCIO"]},
+                  "oscarcastroserrano": {"initials":"OC", "repositories":["BCIO"]},
+                  "emilyjhayes": {"initials":"EJH", "repositories":["BCIO"]}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
