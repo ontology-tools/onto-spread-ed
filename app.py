@@ -215,7 +215,7 @@ def verify_logged_in(fn):
 def before_request():
     g.user = None
     if 'user_id' in session:
-        print("user-id in session: ",session['user_id'])
+        #print("user-id in session: ",session['user_id'])
         g.user = User.query.get(session['user_id'])
 
 
@@ -298,7 +298,6 @@ def search():
     # print(f'')
     # print(f'searchResultsTable: ')
     # print(searchResultsTable)
-
 
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
