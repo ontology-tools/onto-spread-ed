@@ -6,9 +6,40 @@
 {% endblock %}
 {% block content %}
 
+<!-- circle button indicator: -->
+<!-- todo: remove this if not used -->
+<style type="text/css">
+    .btn-circle.btn-sm {
+        width: 30px;
+        height: 30px;
+        padding: 6px 0px;
+        border-radius: 15px;
+        font-size: 8px;
+        text-align: center;
+    }
+
+    .btn-circle.btn-md {
+        width: 50px;
+        height: 50px;
+        padding: 7px 10px;
+        border-radius: 25px;
+        font-size: 10px;
+        text-align: center;
+    }
+
+    .btn-circle.btn-xl {
+        width: 80px;
+        height: 80px;
+        padding: 10px 16px;
+        border-radius: 40px;
+        font-size: 11px;
+        text-align: center;
+    }
+</style>
+
 <div class="row mb-3">
-    <div class="col-md-12">
-        <h2 id="s-name"> Editing {{spreadsheet_name}} </h2>
+    <div class="col-md-12">        
+            <h2 id="s-name"> Editing {{spreadsheet_name}} </h2>
     </div>
 </div>
 
@@ -26,6 +57,10 @@
                 review</button>
             <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i>
                 Reviewed</button>
+            <button id=updates type="button" class="btn btn-warning btn-primary btn-sm text-center" style="display: none">
+                <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>UPDATES AVAILABLE
+                <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div></button>
+
         </div>
     </div>
 
@@ -977,6 +1012,8 @@
             $('#delete-rows').hide();
             $('#ask-for-review').hide();
             $('#reviewed').hide();
+            $('#updates').hide();
+
             //update highlighting
             if (data[curation_status] === undefined) { //for tables without curation_status
 
@@ -1561,6 +1598,7 @@
                                             $("#saveAlert").dismissed = false;
                                             $("#saveAlert").show();
                                             $('#save-btn').hide(); //saved successfully, hide save button
+                                            $('#updates').hide();
                                             $('#merge-btns').hide(); //if there was a merge conflict, hide these after saving
 
                                             //clear validation cell colours: 
@@ -1611,6 +1649,7 @@
                                             $(".alert").alert() //???
                                             $("#saveAlert").show();
                                             $('#save-btn').hide();
+                                            $('#updates').hide();
                                             $('#conflict-btns').show();
                                             // $("#saveMessage").text(''); //reset message
                                             // $("#saveAlert").hide();
@@ -1794,35 +1833,36 @@
 
     function refreshBlock() {
         console.log("update every minute ");
-        checkForUpdates('{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}', file_sha);
-            
+        checkForUpdates('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', file_sha);
+
     }
 
     function checkForUpdates(repo_key, folder, spreadsheet_name, file_sha) {
-      console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
+        console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
 
-      jQuery.ajax({
-        url: '/checkForUpdates',
-        contentType: "application/x-www-form-urlencoded",
-        dataType: "json",
-        type: 'POST',
-        async: 'false',
-        data: { repo_key: repo_key, folder: folder, spreadsheet: spreadsheet_name, file_sha },
-        success: function (data) {
-            var msg = data.message;
-            console.log(msg);
-          if(msg == "Success"){
-              console.log("happy");
-          } else{
-              console.log("sad");
-              alert("Someone has made changes on this spreadsheet!");
-          }
-        }, 
-        error: function (request, status, error) {
-            console.log(error);
-        }
-      });
-     }
+        jQuery.ajax({
+            url: '/checkForUpdates',
+            contentType: "application/x-www-form-urlencoded",
+            dataType: "json",
+            type: 'POST',
+            async: 'false',
+            data: { repo_key: repo_key, folder: folder, spreadsheet: spreadsheet_name, file_sha },
+            success: function (data) {
+                var msg = data.message;
+                console.log(msg);
+                if (msg == "Success") {
+                    console.log("happy");
+                } else {
+                    console.log("sad");
+                    // alert("Someone has made changes on this spreadsheet!");
+                    $('#updates').show(); //todo: need to hide on save and keep hidden if merger happens
+                }
+            },
+            error: function (request, status, error) {
+                console.log(error);
+            }
+        });
+    }
 
 
     setInterval(function () {
@@ -1835,7 +1875,7 @@
             success: function (result) {
                 var d = new Date();
                 var n = d.toLocaleTimeString();
-                $("#keepAlive").text(n + " | server alive");                
+                $("#keepAlive").text(n + " | server alive");
             },
             error: function (request, status, error) {
                 var d = new Date();
