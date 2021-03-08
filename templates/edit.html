@@ -1815,7 +1815,7 @@
               console.log("happy");
           } else{
               console.log("sad");
-              alert("Someone has made changes on this spreadsheet!")
+              alert("Someone has made changes on this spreadsheet!");
           }
         }, 
         error: function (request, status, error) {
@@ -1835,7 +1835,7 @@
             success: function (result) {
                 var d = new Date();
                 var n = d.toLocaleTimeString();
-                $("#keepAlive").text(n + " | server alive");
+                $("#keepAlive").text(n + " | server alive");                
             },
             error: function (request, status, error) {
                 var d = new Date();
