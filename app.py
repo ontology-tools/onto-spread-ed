@@ -662,8 +662,9 @@ def checkForUpdates():
         repo_key = request.form.get("repo_key") #todo: fix keyError!
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
-        initialData = request.form.get("initialData")      
-
+        # initialData = request.form.get("initialData") 
+        old_sha = request.form.get("file_sha")     
+        print(repo_key, folder, spreadsheet, old_sha)
         repositories = app.config['REPOSITORIES']
         repo_detail = repositories[repo_key]
         spreadsheet_file = github.get(
@@ -671,7 +672,10 @@ def checkForUpdates():
         )
         file_sha = spreadsheet_file['sha']
         print("Check update - Got file_sha",file_sha)
-        return ( json.dumps({"message":"Success"}), 200 )
+        if old_sha == file_sha:
+            return ( json.dumps({"message":"Success"}), 200 )
+        else:
+            return ( json.dumps({"message":"Fail"}), 200 )
 
 # Internal methods
 

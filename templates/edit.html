@@ -1794,22 +1794,29 @@
 
     function refreshBlock() {
         console.log("update every minute ");
-        checkForUpdates(repo_name, '{{folder}}' , '{{ spreadsheet_name }}', JSON.stringify( testTableData ));
+        checkForUpdates('{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}', file_sha);
             
     }
 
-    function checkForUpdates(repo_key, folder, spreadsheet_name, initialData) {
-      console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + initialData);
+    function checkForUpdates(repo_key, folder, spreadsheet_name, file_sha) {
+      console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
 
       jQuery.ajax({
         url: '/checkForUpdates',
         contentType: "application/x-www-form-urlencoded",
-        dataType: "text/json",
+        dataType: "json",
         type: 'POST',
         async: 'false',
-        data: { repo_key: JSON.stringify({ repo_key} ), folder: JSON.stringify({ folder }), spreadsheet: JSON.stringify({ spreadsheet_name }), initialData: JSON.stringify({ initialData }) },
+        data: { repo_key: repo_key, folder: folder, spreadsheet: spreadsheet_name, file_sha },
         success: function (data) {
-          console.log(data);
+            var msg = data.message;
+            console.log(msg);
+          if(msg == "Success"){
+              console.log("happy");
+          } else{
+              console.log("sad");
+              alert("Someone has made changes on this spreadsheet!")
+          }
         }, 
         error: function (request, status, error) {
             console.log(error);
