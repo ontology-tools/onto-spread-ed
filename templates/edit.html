@@ -9,8 +9,8 @@
 
 
 <div class="row mb-3">
-    <div class="col-md-12">        
-            <h2 id="s-name"> Editing {{spreadsheet_name}} </h2>
+    <div class="col-md-12">
+        <h2 id="s-name"> Editing {{spreadsheet_name}} </h2>
     </div>
 </div>
 
@@ -636,15 +636,49 @@
             //todo: is putting validate() here compromising performance? 
             //promise:
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
-                if (message == 'success') {
+                var messageJSON = JSON.parse(message);
+                console.log("message: " + message);
+                if (message == 'success') { //no validation errors
                     console.log("validate true");
                 } else {
-                    console.log("ERROR: " + message);
+                    var hoverMessage = messageJSON.message;
+                    console.log("ERROR: " + hoverMessage);
                     console.log("validate false");
                     //set background of cell to light red
-                    cell.getElement().style.backgroundColor = 'red';
-                    validateErrorMessages.push(cell);
-                    validateErrorMessages.push(message);
+                    // cell.getElement().style.backgroundColor = 'red';
+                    // validateErrorMessages.push(cell);
+                    // validateErrorMessages.push(hoverMessage);
+                    // console.log("messageJSONvalues: " + messageJSON.values);
+                    function getOtherErrors(obj) {
+                        for (var k in obj) {
+                            if (obj[k] instanceof Object) {
+                                getOtherErrors(obj[k]);
+                            } else {
+                                if(k == "message"){ //todo: what if there is a "message" column? 
+                                    console.log("done message"); 
+                                } else{
+                                    console.log(k + " is: " + obj[k]);
+                                    //todo: 
+                                    //1. turn cell red
+                                    row.getCell(k).getElement().style.backgroundColor = 'red';
+                                    //2. add to validateErrorMessages array
+                                    validateErrorMessages.push(row.getCell(k));
+                                    validateErrorMessages.push(hoverMessage);                                    
+                                }
+                                
+                            };
+                        }
+                    };
+                    getOtherErrors(messageJSON);
+                    
+
+                    // console.log(values);
+                    // if(messageJSON.values == "none"){
+                    //     //no row errors
+                    // } else{
+                    //     //deal with more row values here:
+                    //     console.log(messageJSON.values);
+                    // }
                     //display message in a pop-up if user hovers over the cell
                 }
             });
@@ -968,7 +1002,7 @@
                 }
             }
 
-            backupChanges();  
+            backupChanges();
 
             //todo: how to validate entire row here (as well as each cell?)
             //promise:
@@ -1804,8 +1838,8 @@
         console.log(' ');
         console.log('validate headers is: ' + headers);
         console.log(' ');
-        console.log('validate table is: ' + JSON.stringify(table.getData()));
-        console.log(' ');
+        // console.log('validate table is: ' + JSON.stringify(table.getData()));
+        // console.log(' ');
 
         //todo: handle errors!
         return $.ajax({
