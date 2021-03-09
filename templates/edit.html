@@ -6,36 +6,7 @@
 {% endblock %}
 {% block content %}
 
-<!-- circle button indicator: -->
-<!-- todo: remove this if not used -->
-<style type="text/css">
-    .btn-circle.btn-sm {
-        width: 30px;
-        height: 30px;
-        padding: 6px 0px;
-        border-radius: 15px;
-        font-size: 8px;
-        text-align: center;
-    }
 
-    .btn-circle.btn-md {
-        width: 50px;
-        height: 50px;
-        padding: 7px 10px;
-        border-radius: 25px;
-        font-size: 10px;
-        text-align: center;
-    }
-
-    .btn-circle.btn-xl {
-        width: 80px;
-        height: 80px;
-        padding: 10px 16px;
-        border-radius: 40px;
-        font-size: 11px;
-        text-align: center;
-    }
-</style>
 
 <div class="row mb-3">
     <div class="col-md-12">        
@@ -57,10 +28,6 @@
                 review</button>
             <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i>
                 Reviewed</button>
-            <button id=updates type="button" class="btn btn-warning btn-primary btn-sm text-center" style="display: none">
-                <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>UPDATES AVAILABLE
-                <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div></button>
-
         </div>
     </div>
 
@@ -114,6 +81,16 @@
         </div>
     </div>
 </div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div id=updates type="button" class="alert alert-warning text-center" role="alert" style="display: none">
+            <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>UPDATES AVAILABLE
+            <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>
+        </div>
+    </div>
+</div>
+
 
 <div class="row">
     <div class="col-md-12">
@@ -1855,7 +1832,7 @@
                 } else {
                     console.log("sad");
                     // alert("Someone has made changes on this spreadsheet!");
-                    $('#updates').show(); //todo: need to hide on save and keep hidden if merger happens
+                    $('#updates').show(); //todo: need to hide on save and keep hidden during merger
                 }
             },
             error: function (request, status, error) {
