@@ -380,6 +380,12 @@ def verify():
     # print('rowData: ' + json.dumps(rowData)) 
     # print('headers: ' + json.dumps(headers))
     # print('table: ' + json.dumps(table))
+
+    # check for blank cells under conditions:
+    if column == "Label" or column == "Definition" or column == "Parent" or column == "AO sub-ontology" or column == "Curation status" :
+        if checkBlank(cell, column, headers, rowData, table): 
+            return ('Value should not be empty')
+    #check for unique values in column:
     if column == "Label" or column == "ID" or column == "Definition":
         if checkNotUnique(cell, column, headers, table): #todo: checkNotUnique should return the message? Do we need more info in there?
             return ('Value is not unique')
@@ -389,11 +395,26 @@ def verify():
     return ('success') #todo: do we need message:success, 200 here? 
     
 # validation checks here: 
+
+def checkBlank(cell, column, headers, rowData, table):
+    if column == "Definition" or column == "Parent":
+        print("Curation status: ", rowData["Curation status"])
+        if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
+            return False
+        else:
+            if cell.strip() == "":
+                return True        
+    if cell.strip()=="":
+        return True
+    return False
+
 def checkNotUnique(cell, column, headers, table):
     counter = 0
     print(len(cell))
     cellStr = cell.strip()
     print(cellStr)
+    if cellStr == "":
+        return False
     # if Label, ID or Definition column
     # check cell against all other cells in the same column
     # return true if same

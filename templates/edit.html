@@ -632,6 +632,22 @@
             var data = row.getData();
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
+            console.log("editing");
+            //todo: is putting validate() here compromising performance? 
+            //promise:
+            validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
+                if (message == 'success') {
+                    console.log("validate true");
+                } else {
+                    console.log("ERROR: " + message);
+                    console.log("validate false");
+                    //set background of cell to light red
+                    cell.getElement().style.backgroundColor = 'red';
+                    validateErrorMessages.push(cell);
+                    validateErrorMessages.push(message);
+                    //display message in a pop-up if user hovers over the cell
+                }
+            });
             // console.log(cell.getValue()); //this works
             // console.log("cellEditing column is: " + column.getDefinition().title)
             //save backup curation status if "Curation status" column present: 
@@ -952,8 +968,9 @@
                 }
             }
 
-            backupChanges();  //todo: backup changes after validate() ? 
+            backupChanges();  
 
+            //todo: how to validate entire row here (as well as each cell?)
             //promise:
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
                 if (message == 'success') {
@@ -1809,13 +1826,13 @@
     }
 
     function refreshBlock() {
-        console.log("update every minute ");
+        // console.log("update every minute ");
         checkForUpdates('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', file_sha);
 
     }
 
     function checkForUpdates(repo_key, folder, spreadsheet_name, file_sha) {
-        console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
+        // console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
 
         jQuery.ajax({
             url: '/checkForUpdates',
@@ -1828,9 +1845,9 @@
                 var msg = data.message;
                 console.log(msg);
                 if (msg == "Success") {
-                    console.log("happy");
+                    // console.log("happy");
                 } else {
-                    console.log("sad");
+                    // console.log("sad");
                     // alert("Someone has made changes on this spreadsheet!");
                     $('#updates').show(); //todo: need to hide on save and keep hidden during merger
                 }
