@@ -383,19 +383,20 @@ def verify():
 
     # check for blank cells under conditions first:
     # if column == "Label" or column == "Definition" or column == "Parent" or column == "AO sub-ontology" or column == "Curation status" :
-    data = {}
-    returnData = checkBlankMulti(1, data, cell, column, headers, rowData, table)
+    blank = {}
+    unique = {}
+    returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
     print('returnData', returnData)
     if len(returnData) > 0:
-        return (json.dumps({"message":"Value should not be empty","values":returnData}))
+        return (json.dumps({"message":"Value should not be empty","values":returnData, "unique":uniqueData}))
     # if checkBlank(cell, column, headers, rowData, table): 
     #     return (json.dumps({"message":"Value should not be empty","values":"emptyTest"}))
     # check for unique values in column:
     #todo: make this one work with above - maybe by returning message along with values!!
-    emptyData = {}
-    if column == "Label" or column == "ID" or column == "Definition":
-        if checkNotUnique(cell, column, headers, table): #todo: checkNotUnique should return the message? Do we need more info in there?
-            return (json.dumps({"message":"Value is not unique", "values":emptyData}))
+    # emptyData = {}
+    # if column == "Label" or column == "ID" or column == "Definition":
+    #     if checkNotUnique(cell, column, headers, table): #todo: checkNotUnique should return the message? Do we need more info in there?
+    #         return (json.dumps({"message":"Value is not unique", "values":emptyData}))
     # test:
     # if cell == 'fail': 
     #     return ('fail message says you failed')
@@ -404,10 +405,10 @@ def verify():
 # validation checks here: 
 
 # recursive check each cell in rowData:
-def checkBlankMulti(current, data, cell, column, headers, rowData, table):
+def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
      
     print('current is: ', current)
-    print('data is: ', data)
+    print('blank is: ', blank)
     for index, (key, value) in enumerate(rowData.items()): # don't need to loop here, surely there is a faster way?
         if index == current:
             if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status" :
@@ -418,23 +419,27 @@ def checkBlankMulti(current, data, cell, column, headers, rowData, table):
                         # return False, ""
                     else:
                         if value.strip() == "":
-                            data.update({key:value})
+                            blank.update({key:value})
                             print('Not status or Ext key is', key)
                             print('Not status or Ext value is', value)
                             # return True        
                 if value.strip()=="":
-                    data.update({key:value})
+                    blank.update({key:value})
                     print('key is', key)
                     print('value is',  value)
                     # return True
                 else:
                     print('not blank key is', key)
                     print('not blank value is', value)
+            if key == "Label" or key == "ID" or key == "Definition":
+                if checkNotUnique(cell, column, headers, table):
+                    unique.update({key:value})
+
     # go again:
     current = current + 1
     if current >= len(rowData):   
-        return data
-    return checkBlankMulti(current, data, cell, column, headers, rowData, table)
+        return (blank, unique)
+    return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
     # return False
 
 def checkBlank(cell, column, headers, rowData, table):

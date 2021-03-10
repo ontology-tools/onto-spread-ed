@@ -633,6 +633,7 @@
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
             console.log("editing");
+
             //todo: is putting validate() here compromising performance? 
             //promise:
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
@@ -651,26 +652,45 @@
                     // console.log("messageJSONvalues: " + messageJSON.values);
                     function getOtherErrors(obj) {
                         for (var k in obj) {
-                            if (obj[k] instanceof Object) {
-                                getOtherErrors(obj[k]);
-                            } else {
-                                if(k == "message"){ //todo: what if there is a "message" column? 
-                                    console.log("done message"); 
-                                } else{
-                                    console.log(k + " is: " + obj[k]);
-                                    //todo: 
+                            console.log("k is: " + k);
+                            // if (obj[k] instanceof Object) {
+                            //     getOtherErrors(obj[k]);
+                            // } else {
+                            if (k == "message") { //todo: what if there is a "message" column? 
+                                console.log("message is: " + obj[k]);
+                                console.log("done message");
+                            } else if (k == "values") {
+                                for (var v in obj[k]) {
+                                    console.log(v + " is: " + obj[v]);         
+                                    //todo: this only one error one at a time... if two it removes both!
+                                    //first remove all old validateErrorMessages for same cell:
+                                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                                        if (row.getCell(v) == validateErrorMessages[i]) {
+                                            validateErrorMessages.splice(i, 2); //remove cell and message
+                                            row.getCell(v).getElement().style.backgroundColor = null; //remove style backgroundColor
+                                        } 
+                                    }
                                     //1. turn cell red
-                                    row.getCell(k).getElement().style.backgroundColor = 'red';
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
                                     //2. add to validateErrorMessages array
-                                    validateErrorMessages.push(row.getCell(k));
-                                    validateErrorMessages.push(hoverMessage);                                    
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value should not be empty");
                                 }
-                                
-                            };
+
+                            } else if (k == "unique") { //todo: done up to here
+                                for (var v in obj[k]) {
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value is not unique");
+                                    console.log("new v is: " + obj[v]);
+                                }
+                            }
+
+                            // };
                         }
                     };
                     getOtherErrors(messageJSON);
-                    
+                    console.log(validateErrorMessages);
 
                     // console.log(values);
                     // if(messageJSON.values == "none"){
@@ -1004,8 +1024,76 @@
 
             backupChanges();
 
-            //todo: how to validate entire row here (as well as each cell?)
             //promise:
+            validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
+                var messageJSON = JSON.parse(message);
+                console.log("message: " + message);
+                if (message == 'success') { //no validation errors
+                    console.log("validate true");
+                } else {
+                    var hoverMessage = messageJSON.message;
+                    console.log("ERROR: " + hoverMessage);
+                    console.log("validate false");
+                    //set background of cell to light red
+                    // cell.getElement().style.backgroundColor = 'red';
+                    // validateErrorMessages.push(cell);
+                    // validateErrorMessages.push(hoverMessage);
+                    // console.log("messageJSONvalues: " + messageJSON.values);
+                    function getOtherErrors(obj) {
+                        for (var k in obj) {
+                            console.log("k is: " + k);
+                            // if (obj[k] instanceof Object) {
+                            //     getOtherErrors(obj[k]);
+                            // } else {
+                            if (k == "message") { //todo: what if there is a "message" column? 
+                                console.log("message is: " + obj[k]);
+                                console.log("done message");
+                            } else if (k == "values") {
+                                for (var v in obj[k]) {
+                                    console.log(v + " is: " + obj[v]);         
+                                    //todo: this only one error one at a time... if two it removes both!
+                                    //first remove all old validateErrorMessages for same cell:
+                                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                                        if (row.getCell(v) == validateErrorMessages[i]) {
+                                            validateErrorMessages.splice(i, 2); //remove cell and message
+                                            row.getCell(v).getElement().style.backgroundColor = null; //remove style backgroundColor
+                                        } 
+                                    }
+                                    //1. turn cell red
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
+                                    //2. add to validateErrorMessages array
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value should not be empty");
+                                }
+
+                            } else if (k == "unique") { //todo: done up to here
+                                for (var v in obj[k]) {
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value is not unique");
+                                    console.log("new v is: " + obj[v]);
+                                }
+                            }
+
+                            // };
+                        }
+                    };
+                    getOtherErrors(messageJSON);
+                    console.log(validateErrorMessages);
+
+                    // console.log(values);
+                    // if(messageJSON.values == "none"){
+                    //     //no row errors
+                    // } else{
+                    //     //deal with more row values here:
+                    //     console.log(messageJSON.values);
+                    // }
+                    //display message in a pop-up if user hovers over the cell
+                }
+            });
+            
+            //promise:
+            /*
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
                 if (message == 'success') {
                     console.log("validate true");
@@ -1020,7 +1108,7 @@
                 }
             });
 
-
+            */
         },
 
         cellEditCancelled: function (cell) {
@@ -1823,13 +1911,13 @@
         //todo: get rid of '&' ? - not necessary!   
 
         //check if cell was previously invalid, then remove reference:
-        for (var i = 0; i < validateErrorMessages.length; i += 2) {
-            if (cell == validateErrorMessages[i]) {
-                validateErrorMessages.splice(i, 2); //remove cell and message
-                cell.getElement().style.backgroundColor = null; //remove style backgroundColor
-                // rowColours(cell.getRow(), rowData); //update row colour? not necessary, done elsewhere
-            }
-        }
+        // for (var i = 0; i < validateErrorMessages.length; i += 2) {
+        //     if (cell == validateErrorMessages[i]) {
+        //         validateErrorMessages.splice(i, 2); //remove cell and message
+        //         cell.getElement().style.backgroundColor = null; //remove style backgroundColor
+        //         // rowColours(cell.getRow(), rowData); //update row colour? not necessary, done elsewhere
+        //     }
+        // }
         console.log('validate cell is: ' + cell.getValue());
         console.log(' ');
         console.log('validate column is: ' + column);
