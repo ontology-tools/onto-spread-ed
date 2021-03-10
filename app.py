@@ -382,24 +382,12 @@ def verify():
     # print('table: ' + json.dumps(table))
 
     # check for blank cells under conditions first:
-    # if column == "Label" or column == "Definition" or column == "Parent" or column == "AO sub-ontology" or column == "Curation status" :
     blank = {}
     unique = {}
     returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
     print('returnData ', returnData, 'uniquedata ', uniqueData), 
     if len(returnData) > 0 or len(uniqueData) > 0:
         return (json.dumps({"message":"fail","values":returnData, "unique":uniqueData}))
-    # if checkBlank(cell, column, headers, rowData, table): 
-    #     return (json.dumps({"message":"Value should not be empty","values":"emptyTest"}))
-    # check for unique values in column:
-    #todo: make this one work with above - maybe by returning message along with values!!
-    # emptyData = {}
-    # if column == "Label" or column == "ID" or column == "Definition":
-    #     if checkNotUnique(cell, column, headers, table): #todo: checkNotUnique should return the message? Do we need more info in there?
-    #         return (json.dumps({"message":"Value is not unique", "values":emptyData}))
-    # test:
-    # if cell == 'fail': 
-    #     return ('fail message says you failed')
     return ('success') #todo: do we need message:success, 200 here? 
     
 # validation checks here: 
@@ -409,7 +397,7 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
      
     print('current is: ', current)
     print('blank is: ', blank)
-    for index, (key, value) in enumerate(rowData.items()): # don't need to loop here, surely there is a faster way?
+    for index, (key, value) in enumerate(rowData.items()): # todo: really, we need to loop here, surely there is a faster way?
         if index == current:
             if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status" :
                 if key == "Definition" or key == "Parent":
@@ -433,20 +421,6 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
     if current >= len(rowData):   
         return (blank, unique)
     return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
-    # return False
-
-# def checkBlank(cell, column, headers, rowData, table):
-#     if column == "Definition" or column == "Parent":
-#         print("Curation status: ", rowData["Curation status"])
-#         if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
-#             return False
-#         else:
-#             if cell.strip() == "":
-#                 return True        
-#     if cell.strip()=="":
-#         return True
-#     return False
-
 
 def checkNotUnique(cell, column, headers, table):
     counter = 0

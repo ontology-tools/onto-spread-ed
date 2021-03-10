@@ -634,7 +634,7 @@
             rowValue = row.getPosition(true);
             console.log("editing");
 
-            //todo: is putting validate() here compromising performance? 
+            //todo: is putting validate() here compromising performance? Commented out for now...
             //promise:
             /*
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
@@ -1063,15 +1063,6 @@
                     }
                 } else {
                     var messageJSON = JSON.parse(message);
-                    //todo: remove hoverMessage here, not using
-                    // var hoverMessage = messageJSON.message;
-                    // console.log("ERROR: " + hoverMessage);
-                    // console.log("validate false");
-                    //set background of cell to light red
-                    // cell.getElement().style.backgroundColor = 'red';
-                    // validateErrorMessages.push(cell);
-                    // validateErrorMessages.push(hoverMessage);
-                    // console.log("messageJSONvalues: " + messageJSON.values);
 
                     //first remove all old validateErrorMessages for same rows:
                     for (var i = 0; i < validateErrorMessages.length; i += 2) {
@@ -1081,22 +1072,17 @@
                                 row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
                             }
                         }
-
                     }
 
                     function getOtherErrors(obj) {
                         for (var k in obj) {
                             console.log("k is: " + k);
-                            // if (obj[k] instanceof Object) {
-                            //     getOtherErrors(obj[k]);
-                            // } else {
                             if (k == "message") { //todo: what if there is a "message" column? 
                                 console.log("message is: " + obj[k]);
                                 console.log("done message");
                             } else if (k == "values") {
                                 for (var v in obj[k]) {
                                     console.log(v + " is: " + obj[v]);
-                                    //todo: this only one error one at a time... if two it removes both!
 
                                     //1. turn cell red
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
@@ -1104,8 +1090,7 @@
                                     validateErrorMessages.push(row.getCell(v));
                                     validateErrorMessages.push("Value should not be empty");
                                 }
-
-                            } else if (k == "unique") { //todo: done up to here
+                            } else if (k == "unique") {
                                 for (var v in obj[k]) {
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
                                     validateErrorMessages.push(row.getCell(v));
@@ -1113,41 +1098,12 @@
                                     console.log("new v is: " + obj[v]);
                                 }
                             }
-
-                            // };
                         }
                     };
                     getOtherErrors(messageJSON);
                     console.log(validateErrorMessages);
-
-                    // console.log(values);
-                    // if(messageJSON.values == "none"){
-                    //     //no row errors
-                    // } else{
-                    //     //deal with more row values here:
-                    //     console.log(messageJSON.values);
-                    // }
-                    //display message in a pop-up if user hovers over the cell
                 }
             });
-
-            //promise:
-            /*
-            validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
-                if (message == 'success') {
-                    console.log("validate true");
-                } else {
-                    console.log("ERROR: " + message);
-                    console.log("validate false");
-                    //set background of cell to light red
-                    cell.getElement().style.backgroundColor = 'red';
-                    validateErrorMessages.push(cell);
-                    validateErrorMessages.push(message);
-                    //display message in a pop-up if user hovers over the cell
-                }
-            });
-
-            */
         },
 
         cellEditCancelled: function (cell) {
