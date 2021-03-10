@@ -650,6 +650,18 @@
                     // validateErrorMessages.push(cell);
                     // validateErrorMessages.push(hoverMessage);
                     // console.log("messageJSONvalues: " + messageJSON.values);
+
+                    //first remove all old validateErrorMessages for same rows:
+                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                        for (var j = 0; j < headerLength; j++) {
+                            if (row.getCell(headers[j]) == validateErrorMessages[i]) {
+                                validateErrorMessages.splice(i, 2); //remove cell and message
+                                row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            }
+                        }
+
+                    }
+
                     function getOtherErrors(obj) {
                         for (var k in obj) {
                             console.log("k is: " + k);
@@ -661,15 +673,9 @@
                                 console.log("done message");
                             } else if (k == "values") {
                                 for (var v in obj[k]) {
-                                    console.log(v + " is: " + obj[v]);         
+                                    console.log(v + " is: " + obj[v]);
                                     //todo: this only one error one at a time... if two it removes both!
-                                    //first remove all old validateErrorMessages for same cell:
-                                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                                        if (row.getCell(v) == validateErrorMessages[i]) {
-                                            validateErrorMessages.splice(i, 2); //remove cell and message
-                                            row.getCell(v).getElement().style.backgroundColor = null; //remove style backgroundColor
-                                        } 
-                                    }
+
                                     //1. turn cell red
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
                                     //2. add to validateErrorMessages array
@@ -1039,6 +1045,18 @@
                     // validateErrorMessages.push(cell);
                     // validateErrorMessages.push(hoverMessage);
                     // console.log("messageJSONvalues: " + messageJSON.values);
+
+                    //first remove all old validateErrorMessages for same rows:
+                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                        for (var j = 0; j < headerLength; j++) {
+                            if (row.getCell(headers[j]) == validateErrorMessages[i]) {
+                                validateErrorMessages.splice(i, 2); //remove cell and message
+                                row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            }
+                        }
+
+                    }
+
                     function getOtherErrors(obj) {
                         for (var k in obj) {
                             console.log("k is: " + k);
@@ -1050,15 +1068,9 @@
                                 console.log("done message");
                             } else if (k == "values") {
                                 for (var v in obj[k]) {
-                                    console.log(v + " is: " + obj[v]);         
+                                    console.log(v + " is: " + obj[v]);
                                     //todo: this only one error one at a time... if two it removes both!
-                                    //first remove all old validateErrorMessages for same cell:
-                                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                                        if (row.getCell(v) == validateErrorMessages[i]) {
-                                            validateErrorMessages.splice(i, 2); //remove cell and message
-                                            row.getCell(v).getElement().style.backgroundColor = null; //remove style backgroundColor
-                                        } 
-                                    }
+
                                     //1. turn cell red
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
                                     //2. add to validateErrorMessages array
@@ -1091,7 +1103,7 @@
                     //display message in a pop-up if user hovers over the cell
                 }
             });
-            
+
             //promise:
             /*
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
