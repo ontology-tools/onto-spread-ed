@@ -637,14 +637,28 @@
             //todo: is putting validate() here compromising performance? 
             //promise:
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
-                var messageJSON = JSON.parse(message);
-                console.log("message: " + message);
+                // console.log("validate function reached");
+                // console.log(message);
+
+                // console.log("after validate function");
+                // console.log("message: " + message);
                 if (message == 'success') { //no validation errors
                     console.log("validate true");
+                    //first remove all old validateErrorMessages for same rows:
+                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                        for (var j = 0; j < headerLength; j++) {
+                            if (row.getCell(headers[j]) == validateErrorMessages[i]) {
+                                validateErrorMessages.splice(i, 2); //remove cell and message
+                                row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            }
+                        }
+
+                    }
                 } else {
-                    var hoverMessage = messageJSON.message;
-                    console.log("ERROR: " + hoverMessage);
-                    console.log("validate false");
+                    var messageJSON = JSON.parse(message);
+                    // var hoverMessage = messageJSON.message;
+                    // console.log("ERROR: " + hoverMessage);
+                    // console.log("validate false");
                     //set background of cell to light red
                     // cell.getElement().style.backgroundColor = 'red';
                     // validateErrorMessages.push(cell);
@@ -1032,14 +1046,26 @@
 
             //promise:
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
-                var messageJSON = JSON.parse(message);
+
                 console.log("message: " + message);
                 if (message == 'success') { //no validation errors
                     console.log("validate true");
+                    //first remove all old validateErrorMessages for same rows:
+                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                        for (var j = 0; j < headerLength; j++) {
+                            if (row.getCell(headers[j]) == validateErrorMessages[i]) {
+                                validateErrorMessages.splice(i, 2); //remove cell and message
+                                row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            }
+                        }
+
+                    }
                 } else {
-                    var hoverMessage = messageJSON.message;
-                    console.log("ERROR: " + hoverMessage);
-                    console.log("validate false");
+                    var messageJSON = JSON.parse(message);
+                    //todo: remove hoverMessage here, not using
+                    // var hoverMessage = messageJSON.message;
+                    // console.log("ERROR: " + hoverMessage);
+                    // console.log("validate false");
                     //set background of cell to light red
                     // cell.getElement().style.backgroundColor = 'red';
                     // validateErrorMessages.push(cell);
@@ -1948,7 +1974,9 @@
             type: 'POST',
             data: { cell: JSON.stringify(cell.getValue()), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
             success: function (message) {
-
+                console.log("no validation errors?")
+            }, error: function () {
+                console.log("validate message error: " + message);
             }
         });
 

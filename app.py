@@ -386,9 +386,9 @@ def verify():
     blank = {}
     unique = {}
     returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
-    print('returnData', returnData)
-    if len(returnData) > 0:
-        return (json.dumps({"message":"Value should not be empty","values":returnData, "unique":uniqueData}))
+    print('returnData ', returnData, 'uniquedata ', uniqueData), 
+    if len(returnData) > 0 or len(uniqueData) > 0:
+        return (json.dumps({"message":"fail","values":returnData, "unique":uniqueData}))
     # if checkBlank(cell, column, headers, rowData, table): 
     #     return (json.dumps({"message":"Value should not be empty","values":"emptyTest"}))
     # check for unique values in column:
@@ -413,26 +413,19 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
         if index == current:
             if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status" :
                 if key == "Definition" or key == "Parent":
-                    print("Curation status: ", rowData["Curation status"])
+                    # print("Curation status: ", rowData["Curation status"])
                     if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
                         pass
-                        # return False, ""
                     else:
                         if value.strip() == "":
                             blank.update({key:value})
-                            print('Not status or Ext key is', key)
-                            print('Not status or Ext value is', value)
-                            # return True        
-                if value.strip()=="":
-                    blank.update({key:value})
-                    print('key is', key)
-                    print('value is',  value)
-                    # return True
-                else:
-                    print('not blank key is', key)
-                    print('not blank value is', value)
+                else:       
+                    if value.strip()=="":
+                        blank.update({key:value})
+                    else:
+                        pass
             if key == "Label" or key == "ID" or key == "Definition":
-                if checkNotUnique(cell, column, headers, table):
+                if checkNotUnique(value, key, headers, table):
                     unique.update({key:value})
 
     # go again:
@@ -442,25 +435,26 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
     return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
     # return False
 
-def checkBlank(cell, column, headers, rowData, table):
-    if column == "Definition" or column == "Parent":
-        print("Curation status: ", rowData["Curation status"])
-        if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
-            return False
-        else:
-            if cell.strip() == "":
-                return True        
-    if cell.strip()=="":
-        return True
-    return False
+# def checkBlank(cell, column, headers, rowData, table):
+#     if column == "Definition" or column == "Parent":
+#         print("Curation status: ", rowData["Curation status"])
+#         if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
+#             return False
+#         else:
+#             if cell.strip() == "":
+#                 return True        
+#     if cell.strip()=="":
+#         return True
+#     return False
 
 
 def checkNotUnique(cell, column, headers, table):
     counter = 0
-    print(len(cell))
+    # print(len(cell))
     cellStr = cell.strip()
-    print(cellStr)
+    # print(cellStr)
     if cellStr == "":
+        # print("space")
         return False
     # if Label, ID or Definition column
     # check cell against all other cells in the same column
@@ -485,7 +479,7 @@ def checkNotUnique(cell, column, headers, table):
                     if counter > 1: 
                         return True
 
-    print(len(cellStr))
+    # print(len(cellStr))
     return False
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
