@@ -1617,11 +1617,15 @@
         var saveValidationMessage = "";
         var combinedValidationMessages = "";
         if (validateErrorMessages.length > 0) {
-            console.log("validate errors!!!")
+            console.log("validate errors!!!");
 
             for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                var errorCell = validateErrorMessages[i];
+                var errorCol = errorCell.getColumn().getDefinition().title;
+                var errorRow = errorCell.getRow().getPosition(true); //position in filtered data
+                console.log(errorCol + " " + errorRow);
                 combinedValidationMessages += "<p>";
-                saveValidationMessage = (i / 2 + 1) + ": " + validateErrorMessages[i + 1];
+                saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
                 combinedValidationMessages += saveValidationMessage + "</p>";
             }
 
