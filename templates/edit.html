@@ -1058,10 +1058,7 @@
                         for (var i = 0; i < validateErrorMessages.length; i += 2) {
                             write = true;
                             for (var j = 0; j < headerLength; j++) {
-                                console.log("i is: " + i);
-
                                 if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
-                                    // validateErrorMessages.splice(i, 2); //remove cell and message - very bad, re-calculates lenght inside loop!!!
                                     row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
                                     write = false;
                                 }
@@ -1084,10 +1081,7 @@
                         for (var i = 0; i < validateErrorMessages.length; i += 2) {
                             write = true;
                             for (var j = 0; j < headerLength; j++) {
-                                console.log("i is: " + i);
-
                                 if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
-                                    // validateErrorMessages.splice(i, 2); //remove cell and message - very bad, re-calculates lenght inside loop!!!
                                     row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
                                     write = false;
                                 }
@@ -1207,26 +1201,23 @@
         rowDeleted: function (row) {
             //remove all old validateErrorMessages for this row:
             if (validateErrorMessages.length > 0) {
-                        var newValidateErrorMessages = [];
-                        var write = true;
-                        for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                            write = true;
-                            for (var j = 0; j < headerLength; j++) {
-                                console.log("i is: " + i);
-
-                                if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
-                                    // validateErrorMessages.splice(i, 2); //remove cell and message - very bad, re-calculates lenght inside loop!!!
-                                    row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
-                                    write = false;
-                                }
-                            }
-                            if (write) {
-                                newValidateErrorMessages.push(validateErrorMessages[i]);
-                                newValidateErrorMessages.push(validateErrorMessages[i + 1]);
-                            }
+                var newValidateErrorMessages = [];
+                var write = true;
+                for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                    write = true;
+                    for (var j = 0; j < headerLength; j++) {
+                        if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
+                            row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            write = false;
                         }
-                        validateErrorMessages = newValidateErrorMessages; //replace
                     }
+                    if (write) {
+                        newValidateErrorMessages.push(validateErrorMessages[i]);
+                        newValidateErrorMessages.push(validateErrorMessages[i + 1]);
+                    }
+                }
+                validateErrorMessages = newValidateErrorMessages; //replace
+            }
 
         },
 
