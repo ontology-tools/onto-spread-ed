@@ -1760,9 +1760,11 @@
                                             $('#merge-btns').hide(); //if there was a merge conflict, hide these after saving
 
                                             //clear validation cell colours: 
-                                            for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                                                cellToClear = validateErrorMessages[i];
-                                                cellToClear.getElement().style.backgroundColor = null; //remove style backgroundColor
+                                            if (validateErrorMessages.lenth > 0) {
+                                                for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                                                    cellToClear = validateErrorMessages[i];
+                                                    cellToClear.getElement().style.backgroundColor = null; //remove style backgroundColor
+                                                }
                                             }
                                             //delete validation message array: 
                                             validateErrorMessages = [];
