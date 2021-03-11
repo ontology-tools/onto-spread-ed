@@ -1059,7 +1059,6 @@
                                 row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
                             }
                         }
-
                     }
                 } else {
                     var messageJSON = JSON.parse(message);
@@ -1176,6 +1175,20 @@
             // console.log(row.getData());
             var pos = row.getPosition();
             // console.log(pos);
+        },
+
+        rowDeleted:function(row){
+           //remove all old validateErrorMessages for this row:
+           for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                        for (var j = 0; j < headerLength; j++) {
+                            if (row.getCell(headers[j]) == validateErrorMessages[i]) {
+                                validateErrorMessages.splice(i, 2); //remove cell and message
+                                row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            }
+                        }
+
+                    }
+        
         },
 
         // rowUpdated:function(row){
