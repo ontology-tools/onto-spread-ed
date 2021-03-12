@@ -366,7 +366,7 @@ def direct():
     session['url'] = url
     return('success')
 
-@app.route("/validate", methods=["POST"]) # cell, column, rowData, headers, table
+@app.route("/validate", methods=["POST"]) 
 @verify_logged_in
 def verify():
     if request.method == "POST":
@@ -375,17 +375,10 @@ def verify():
         rowData = json.loads(request.form.get("rowData"))
         headers = json.loads(request.form.get("headers")) 
         table = json.loads(request.form.get("table")) 
-    # print('cell: ' + cell)    
-    # print('column: ' + column)
-    # print('rowData: ' + json.dumps(rowData)) 
-    # print('headers: ' + json.dumps(headers))
-    # print('table: ' + json.dumps(table))
-
     # check for blank cells under conditions first:
     blank = {}
     unique = {}
     returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
-    print('returnData ', returnData, 'uniquedata ', uniqueData), 
     if len(returnData) > 0 or len(uniqueData) > 0:
         return (json.dumps({"message":"fail","values":returnData, "unique":uniqueData}))
     return ('success') #todo: do we need message:success, 200 here? 
@@ -394,19 +387,19 @@ def verify():
 
 # recursive check each cell in rowData:
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
-     
-    print('current is: ', current)
-    print('blank is: ', blank)
     for index, (key, value) in enumerate(rowData.items()): # todo: really, we need to loop here, surely there is a faster way?
         if index == current:
             if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status" :
                 if key == "Definition" or key == "Parent":
-                    # print("Curation status: ", rowData["Curation status"])
-                    if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
-                        pass
+                    status = rowData.get("Curation status") #check for "Curation status"
+                    if(status):
+                        if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
+                            pass
+                        else:
+                            if value.strip() == "":
+                                blank.update({key:value})
                     else:
-                        if value.strip() == "":
-                            blank.update({key:value})
+                        pass #no "Curation status" column
                 else:       
                     if value.strip()=="":
                         blank.update({key:value})
@@ -415,7 +408,6 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
             if key == "Label" or key == "ID" or key == "Definition":
                 if checkNotUnique(value, key, headers, table):
                     unique.update({key:value})
-
     # go again:
     current = current + 1
     if current >= len(rowData):   
@@ -424,15 +416,10 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
 
 def checkNotUnique(cell, column, headers, table):
     counter = 0
-    # print(len(cell))
     cellStr = cell.strip()
-    # print(cellStr)
     if cellStr == "":
-        # print("space")
         return False
-    # if Label, ID or Definition column
-    # check cell against all other cells in the same column
-    # return true if same
+    # if Label, ID or Definition column, check cell against all other cells in the same column and return true if same
     for r in range(len(table)): 
         row = [v for v in table[r].values()]
         del row[0] # remove extra numbered "id" column
@@ -452,8 +439,6 @@ def checkNotUnique(cell, column, headers, table):
                     counter += 1 
                     if counter > 1: 
                         return True
-
-    # print(len(cellStr))
     return False
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
