@@ -165,7 +165,7 @@
     $('#save-btn').hide();
     $('#conflict-btns').hide();
     $('#merge-btns').hide();
-
+    $('#validation-btns').hide();
 
 
 
@@ -1066,9 +1066,9 @@
             //promise:
             validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
 
-                console.log("message: " + message);
+                // console.log("message: " + message);
                 if (message == 'success') { //no validation errors
-                    console.log("validate true");
+                    // console.log("validate true");
                     //first remove all old validateErrorMessages for same rows:
                     if (validateErrorMessages.length > 0) {
                         var newValidateErrorMessages = [];
@@ -1087,6 +1087,7 @@
                             }
                         }
                         validateErrorMessages = newValidateErrorMessages; //replace
+
                     }
 
                 } else {
@@ -1114,13 +1115,13 @@
 
                     function getOtherErrors(obj) {
                         for (var k in obj) {
-                            console.log("k is: " + k);
+                            // console.log("k is: " + k);
                             if (k == "message") { //todo: what if there is a "message" column? 
-                                console.log("message is: " + obj[k]);
-                                console.log("done message");
+                                // console.log("message is: " + obj[k]);
+                                // console.log("done message");
                             } else if (k == "values") {
                                 for (var v in obj[k]) {
-                                    console.log(v + " is: " + obj[v]);
+                                    // console.log(v + " is: " + obj[v]);
 
                                     //1. turn cell red
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
@@ -1133,15 +1134,24 @@
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
                                     validateErrorMessages.push(row.getCell(v));
                                     validateErrorMessages.push("Value is not unique");
-                                    console.log("new v is: " + obj[v]);
+                                    // console.log("new v is: " + obj[v]);
                                 }
                             }
                         }
                     };
                     getOtherErrors(messageJSON);
-                    console.log(validateErrorMessages);
+
+
+                    // console.log(validateErrorMessages);
                 }
             });
+            //check if we are dealing with validation errors:
+            if ($("#validation-btns").is(":hidden")) {
+                console.log("HIDDEN");
+            } else {
+                console.log("NOT HIDDEN");
+                validateButtons();
+            }
         },
 
         cellEditCancelled: function (cell) {
@@ -1692,40 +1702,7 @@
                         label: 'Show errors in table',
                         className: 'btn-primary',
                         callback: function () {
-                            $("#validation-btns").empty(); //first remove any old buttons
-                            $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
-                            //create buttons for each validation error:
-                            for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                                var filterValidateBtn = "";
-                                var errorCell = validateErrorMessages[i];
-                                var errorCol = errorCell.getColumn().getDefinition().title;
-                                var errorRow = errorCell.getRow().getPosition(); //position in filtered data
-                                var number = (i / 2 + 1);
-                                console.log(errorCol + " " + errorRow);
-                                var btnID = "merge-overwrite-btn" + number;
-                                var cellFilter = errorCell.getValue();
-                                
-                                var $filterValidateBtn = $("<button id='" + btnID + "' class='btn btn-sm btn-outline-info' \
-                                >" + number + ": " + errorCol + ", " + errorRow + "</button>");
-
-                                // $("#validation-btns").append(filterValidateBtn);
-                                //add handler to button:
-                                (function (errorCol, cellFilter, errorRow) {
-                                    $filterValidateBtn.click(function () {
-                                        clearFormatting(); //make sure we are showing the whole table
-                                        // alert(cellFilter + " " + errorCol + " " + errorRow);
-                                        // table.setHeaderFilterValue(errorCol, cellFilter); //can't filter by ""!
-                                        table.scrollToRow(errorRow, "center", true);
-                                        table.scrollToColumn(errorCol, "middle", true);
-                                    });
-                                }(errorCol, cellFilter, errorRow));
-                                $("#validation-btns").append($filterValidateBtn);
-                               
-                                // combinedValidationMessages += "<p>";
-                                // saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
-                                // combinedValidationMessages += saveValidationMessage + "</p>";
-                            }
-                            $("#validation-btns").show();
+                            validateButtons();
                         }
                     },
                     cancel: {
@@ -1938,6 +1915,43 @@
 
     }
 
+    function validateButtons() {
+        $("#validation-btns").empty(); //first remove any old buttons
+        $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
+        //create buttons for each validation error:
+        for (var i = 0; i < validateErrorMessages.length; i += 2) {
+            var filterValidateBtn = "";
+            var errorCell = validateErrorMessages[i];
+            var errorCol = errorCell.getColumn().getDefinition().title;
+            var errorRow = errorCell.getRow().getPosition(); //position in filtered data
+            var number = (i / 2 + 1);
+            console.log(errorCol + " " + errorRow);
+            var btnID = "merge-overwrite-btn" + number;
+            var cellFilter = errorCell.getValue();
+
+            var $filterValidateBtn = $("<button id='" + btnID + "' class='btn btn-sm btn-outline-info' \
+                                >" + number + ": " + errorCol + ", " + errorRow + "</button>");
+
+            // $("#validation-btns").append(filterValidateBtn);
+            //add handler to button:
+            (function (errorCol, cellFilter, errorRow) {
+                $filterValidateBtn.click(function () {
+                    clearFormatting(); //make sure we are showing the whole table
+                    // alert(cellFilter + " " + errorCol + " " + errorRow);
+                    // table.setHeaderFilterValue(errorCol, cellFilter); //can't filter by ""!
+                    table.scrollToRow(errorRow, "center", true);
+                    table.scrollToColumn(errorCol, "middle", true);
+                });
+            }(errorCol, cellFilter, errorRow));
+            $("#validation-btns").append($filterValidateBtn);
+
+            // combinedValidationMessages += "<p>";
+            // saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
+            // combinedValidationMessages += saveValidationMessage + "</p>";
+        }
+        $("#validation-btns").show();
+    }
+
     function hide_save_indicator() {
         $("#save_indicator").removeClass("in");
         $(".modal-backdrop").remove();
@@ -2022,14 +2036,14 @@
         //         // rowColours(cell.getRow(), rowData); //update row colour? not necessary, done elsewhere
         //     }
         // }
-        console.log('validate cell is: ' + cell.getValue());
-        console.log(' ');
-        console.log('validate column is: ' + column);
-        console.log(' ');
-        console.log('validate row is: ' + JSON.stringify(rowData));
-        console.log(' ');
-        console.log('validate headers is: ' + headers);
-        console.log(' ');
+        // console.log('validate cell is: ' + cell.getValue());
+        // console.log(' ');
+        // console.log('validate column is: ' + column);
+        // console.log(' ');
+        // console.log('validate row is: ' + JSON.stringify(rowData));
+        // console.log(' ');
+        // console.log('validate headers is: ' + headers);
+        // console.log(' ');
         // console.log('validate table is: ' + JSON.stringify(table.getData()));
         // console.log(' ');
 
