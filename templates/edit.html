@@ -71,6 +71,24 @@
     </div>
 </div>
 
+<div class="row mb-3">
+
+    <div id="validation-btns" class="col-md-9" style="display: none">
+
+
+        <!-- <div id="validation-btns" class="btn-group btn-group-lg text-right " style="display: none"> -->
+        <!-- validation-btns go here -->
+        <!-- <button id="merge-overwrite-btn" class="btn btn-success"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                SAVE
+            </button>
+            <button id="merge-revert-btn" class="btn btn-dark" onclick="revert_changes()">
+                REVERT
+            </button> -->
+        <!-- </div> -->
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-12">
         <div id="saveAlert" class="alert alert-success collapse" role="alert">
@@ -1670,6 +1688,46 @@
                             submit();
                         }
                     },
+                    fix: {
+                        label: 'Show errors in table',
+                        className: 'btn-primary',
+                        callback: function () {
+                            $("#validation-btns").empty(); //first remove any old buttons
+                            $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
+                            //create buttons for each validation error:
+                            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                                var filterValidateBtn = "";
+                                var errorCell = validateErrorMessages[i];
+                                var errorCol = errorCell.getColumn().getDefinition().title;
+                                var errorRow = errorCell.getRow().getPosition(); //position in filtered data
+                                var number = (i / 2 + 1);
+                                console.log(errorCol + " " + errorRow);
+                                var btnID = "merge-overwrite-btn" + number;
+                                var cellFilter = errorCell.getValue();
+                                
+                                var $filterValidateBtn = $("<button id='" + btnID + "' class='btn btn-sm btn-outline-info' \
+                                >" + number + ": " + errorCol + ", " + errorRow + "</button>");
+
+                                // $("#validation-btns").append(filterValidateBtn);
+                                //add handler to button:
+                                (function (errorCol, cellFilter, errorRow) {
+                                    $filterValidateBtn.click(function () {
+                                        clearFormatting(); //make sure we are showing the whole table
+                                        // alert(cellFilter + " " + errorCol + " " + errorRow);
+                                        // table.setHeaderFilterValue(errorCol, cellFilter); //can't filter by ""!
+                                        table.scrollToRow(errorRow, "center", true);
+                                        table.scrollToColumn(errorCol, "middle", true);
+                                    });
+                                }(errorCol, cellFilter, errorRow));
+                                $("#validation-btns").append($filterValidateBtn);
+                               
+                                // combinedValidationMessages += "<p>";
+                                // saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
+                                // combinedValidationMessages += saveValidationMessage + "</p>";
+                            }
+                            $("#validation-btns").show();
+                        }
+                    },
                     cancel: {
                         label: 'Cancel',
                         className: 'btn-success', //todo: what colour should this be?
@@ -1758,6 +1816,7 @@
                                             $('#save-btn').hide(); //saved successfully, hide save button
                                             $('#updates').hide();
                                             $('#merge-btns').hide(); //if there was a merge conflict, hide these after saving
+                                            $("#validation-btns").hide(); //if there were validation errors being dealt with, hide these
 
                                             //clear validation cell colours: 
                                             if (validateErrorMessages.lenth > 0) {
@@ -1809,6 +1868,7 @@
                                             $(".alert").alert() //???
                                             $("#saveAlert").show();
                                             $('#save-btn').hide();
+                                            $("#validation-btns").hide(); //I think we don't want these here
                                             $('#updates').hide();
                                             $('#conflict-btns').show();
                                             // $("#saveMessage").text(''); //reset message
