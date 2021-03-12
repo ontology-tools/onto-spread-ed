@@ -1087,7 +1087,12 @@
                             }
                         }
                         validateErrorMessages = newValidateErrorMessages; //replace
-
+                        if ($("#validation-btns").is(":hidden")) {
+                            console.log("HIDDEN");
+                        } else {
+                            console.log("NOT HIDDEN");
+                            validateButtons();
+                        }
                     }
 
                 } else {
@@ -1111,6 +1116,12 @@
                             }
                         }
                         validateErrorMessages = newValidateErrorMessages; //replace
+                        if ($("#validation-btns").is(":hidden")) {
+                            console.log("HIDDEN");
+                        } else {
+                            console.log("NOT HIDDEN");
+                            validateButtons();
+                        }
                     }
 
                     function getOtherErrors(obj) {
@@ -1140,18 +1151,17 @@
                         }
                     };
                     getOtherErrors(messageJSON);
-
-
                     // console.log(validateErrorMessages);
+                    //check if we are dealing with validation errors:
+                    if ($("#validation-btns").is(":hidden")) {
+                        console.log("HIDDEN");
+                    } else {
+                        console.log("NOT HIDDEN");
+                        validateButtons();
+                    }
                 }
             });
-            //check if we are dealing with validation errors:
-            if ($("#validation-btns").is(":hidden")) {
-                console.log("HIDDEN");
-            } else {
-                console.log("NOT HIDDEN");
-                validateButtons();
-            }
+
         },
 
         cellEditCancelled: function (cell) {
@@ -1916,40 +1926,44 @@
     }
 
     function validateButtons() {
-        $("#validation-btns").empty(); //first remove any old buttons
-        $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
-        //create buttons for each validation error:
-        for (var i = 0; i < validateErrorMessages.length; i += 2) {
-            var filterValidateBtn = "";
-            var errorCell = validateErrorMessages[i];
-            var errorCol = errorCell.getColumn().getDefinition().title;
-            var errorRow = errorCell.getRow().getPosition(); //position in filtered data
-            var number = (i / 2 + 1);
-            console.log(errorCol + " " + errorRow);
-            var btnID = "merge-overwrite-btn" + number;
-            var cellFilter = errorCell.getValue();
+        if (validateErrorMessages.length == 0) {
+            $("#validation-btns").hide();
+        } else {
+            $("#validation-btns").empty(); //first remove any old buttons
+            $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
+            //create buttons for each validation error:
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                var filterValidateBtn = "";
+                var errorCell = validateErrorMessages[i];
+                var errorCol = errorCell.getColumn().getDefinition().title;
+                var errorRow = errorCell.getRow().getPosition(); //position in filtered data
+                var number = (i / 2 + 1);
+                console.log(errorCol + " " + errorRow);
+                var btnID = "merge-overwrite-btn" + number;
+                var cellFilter = errorCell.getValue();
 
-            var $filterValidateBtn = $("<button id='" + btnID + "' class='btn btn-sm btn-outline-info' \
+                var $filterValidateBtn = $("<button id='" + btnID + "' class='btn btn-sm btn-outline-info' \
                                 >" + number + ": " + errorCol + ", " + errorRow + "</button>");
 
-            // $("#validation-btns").append(filterValidateBtn);
-            //add handler to button:
-            (function (errorCol, cellFilter, errorRow) {
-                $filterValidateBtn.click(function () {
-                    clearFormatting(); //make sure we are showing the whole table
-                    // alert(cellFilter + " " + errorCol + " " + errorRow);
-                    // table.setHeaderFilterValue(errorCol, cellFilter); //can't filter by ""!
-                    table.scrollToRow(errorRow, "center", true);
-                    table.scrollToColumn(errorCol, "middle", true);
-                });
-            }(errorCol, cellFilter, errorRow));
-            $("#validation-btns").append($filterValidateBtn);
+                // $("#validation-btns").append(filterValidateBtn);
+                //add handler to button:
+                (function (errorCol, cellFilter, errorRow) {
+                    $filterValidateBtn.click(function () {
+                        clearFormatting(); //make sure we are showing the whole table
+                        // alert(cellFilter + " " + errorCol + " " + errorRow);
+                        // table.setHeaderFilterValue(errorCol, cellFilter); //can't filter by ""!
+                        table.scrollToRow(errorRow, "center", true);
+                        table.scrollToColumn(errorCol, "middle", true);
+                    });
+                }(errorCol, cellFilter, errorRow));
+                $("#validation-btns").append($filterValidateBtn);
 
-            // combinedValidationMessages += "<p>";
-            // saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
-            // combinedValidationMessages += saveValidationMessage + "</p>";
+                // combinedValidationMessages += "<p>";
+                // saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
+                // combinedValidationMessages += saveValidationMessage + "</p>";
+            }
+            $("#validation-btns").show();
         }
-        $("#validation-btns").show();
     }
 
     function hide_save_indicator() {
