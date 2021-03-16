@@ -1093,6 +1093,7 @@
                         } else {
                             console.log("NOT HIDDEN");
                             validateButtons();
+                            // $("#validation-btns").hide();
                         }
                     }
 
@@ -1117,12 +1118,13 @@
                             }
                         }
                         validateErrorMessages = newValidateErrorMessages; //replace
-                        if ($("#validation-btns").is(":hidden")) {
-                            console.log("HIDDEN");
-                        } else {
-                            console.log("NOT HIDDEN");
-                            validateButtons();
-                        }
+                        //below is a duplicate?
+                        // if ($("#validation-btns").is(":hidden")) {
+                        //     console.log("HIDDEN");
+                        // } else {
+                        //     console.log("NOT HIDDEN");
+                        //     validateButtons();
+                        // }
                     }
 
                     function getOtherErrors(obj) {
@@ -1930,6 +1932,7 @@
     function validateButtons() {
         if (validateErrorMessages.length == 0) {
             $("#validation-btns").hide();
+            console.log("validation buttons lenth 0");
         } else {
             $("#validation-btns").empty(); //first remove any old buttons
             $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
