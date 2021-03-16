@@ -574,9 +574,10 @@
 
         },
         renderStarted: function () {
-
+            // console.log("renderStarted");
         },
         renderComplete: function (table) {
+            // console.log("renderCompleted");
             //todo: why is table undefined here? 
             // initialRowSearch = '{{go_to_row | safe}}';
             // console.log(initialRowSearch);
@@ -650,7 +651,7 @@
             var data = row.getData();
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
-            console.log("editing");
+            console.log("editing row: " + rowValue);
 
             //todo: is putting validate() here compromising performance? Commented out for now...
             //promise:
@@ -749,7 +750,7 @@
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     prevCurationStatus = cell.getValue();
-                    console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+                    // console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
                 }
             }
         },
@@ -1307,7 +1308,8 @@
             "AddictO_Research_activity_Defs.xlsx"];
         var AOsub_ontologyNames = ["Environmental system", "Human being", "Human behaviour", "Human population",
             "Intervention", "", "Organisation", "Product", "Research activity"];
-        var rowObj = { id: 0 } //todo: what does this actually do? 
+        var idNum = table.getDataCount();
+        var rowObj = { id: idNum } //add to end of table! todo: check how this change (was 0) affects things 
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
@@ -1936,9 +1938,9 @@
                 var filterValidateBtn = "";
                 var errorCell = validateErrorMessages[i];
                 var errorCol = errorCell.getColumn().getDefinition().title;
-                var errorRow = errorCell.getRow().getPosition(); //position in filtered data
+                var errorRow = errorCell.getRow().getPosition(); //position 
                 var number = (i / 2 + 1);
-                console.log(errorCol + " " + errorRow);
+                // console.log(errorCol + " " + errorRow);
                 var btnID = "merge-overwrite-btn" + number;
                 var cellFilter = errorCell.getValue();
 
@@ -1950,17 +1952,30 @@
                 (function (errorCol, cellFilter, errorRow) {
                     $filterValidateBtn.click(function () {
                         clearFormatting(); //make sure we are showing the whole table
+                        // table.redraw(); //does nothing for this issue
                         // alert(cellFilter + " " + errorCol + " " + errorRow);
-                        // table.setHeaderFilterValue(errorCol, cellFilter); //can't filter by ""!
-                        table.scrollToRow(errorRow, "center", true);
-                        table.scrollToColumn(errorCol, "middle", true);
+
+                        table.scrollToRow(errorRow, "center", true)
+                            .then(function () {
+                                //cool, this works now!
+                            })
+                            .catch(function (error) {
+                                console.log("error scrolling to row");
+                                console.log("number of rows: " + table.getDataCount());
+                            });
+                        table.scrollToColumn(errorCol, "middle", true).then(function () {
+                            var rowToScrollTo = table.getRowFromPosition(errorRow);
+                            // console.log(rowToScrollTo);
+                            var cellToScrollTo = rowToScrollTo.getCell(errorCol);
+                            cellToScrollTo.getElement().focus(); 
+                        })
+                            .catch(function (error) {
+                                console.log("error scrolling to column");
+                                console.log("supposed to be at : " + errorCol);
+                            });
                     });
                 }(errorCol, cellFilter, errorRow));
                 $("#validation-btns").append($filterValidateBtn);
-
-                // combinedValidationMessages += "<p>";
-                // saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
-                // combinedValidationMessages += saveValidationMessage + "</p>";
             }
             $("#validation-btns").show();
         }
@@ -1996,21 +2011,11 @@
         //delete saved changes?
         unsavedChanges = false;
         //using tabulator reactive data to update the table. No refresh needed...
-        //todo: IMPORTANT this is data from the merge, so shouldn't be here TEST ONLY
-        // table.setData(mergedTable); //no
-        //remove previous table array
+        //remove previous table array?
         // window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
         //refresh sheet
         location.reload(true);
     };
-
-
-
-    //todo: click handlers for SAVE and REVERT below: (remove buttons and message)
-    // $("#").click(function () {
-
-    // }
-
 
 
 
@@ -2040,26 +2045,6 @@
 
     //validations function: 
     function validate(cell, column, rowData, headers, table) {
-        //todo: get rid of '&' ? - not necessary!   
-
-        //check if cell was previously invalid, then remove reference:
-        // for (var i = 0; i < validateErrorMessages.length; i += 2) {
-        //     if (cell == validateErrorMessages[i]) {
-        //         validateErrorMessages.splice(i, 2); //remove cell and message
-        //         cell.getElement().style.backgroundColor = null; //remove style backgroundColor
-        //         // rowColours(cell.getRow(), rowData); //update row colour? not necessary, done elsewhere
-        //     }
-        // }
-        // console.log('validate cell is: ' + cell.getValue());
-        // console.log(' ');
-        // console.log('validate column is: ' + column);
-        // console.log(' ');
-        // console.log('validate row is: ' + JSON.stringify(rowData));
-        // console.log(' ');
-        // console.log('validate headers is: ' + headers);
-        // console.log(' ');
-        // console.log('validate table is: ' + JSON.stringify(table.getData()));
-        // console.log(' ');
 
         //todo: handle errors!
         return $.ajax({
