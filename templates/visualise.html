@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+{% block content %}
+<h1>VISUALISATIONS</h1>
+<script>
+  window.addEventListener("load", function () {
+    var repo = '{{ repo }}';
+    console.log("repo is " + repo);
+    var sheet = '{{ sheet}} ';
+    console.log(sheet);
+  });
+</script>
+{% endblock %}
+
+{%block javascript%}
+
+{% endblock %}

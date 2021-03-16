@@ -698,6 +698,35 @@ def checkForUpdates():
         else:
             return ( json.dumps({"message":"Fail"}), 200 )
 
+
+
+@app.route('/openVisualise', methods=['POST'])
+@verify_logged_in
+def openVisualise():
+    if request.method == "POST":
+        repo = json.loads(request.form.get("repo"))
+        print("repo is ", repo)
+        sheet = json.loads(request.form.get("sheet"))
+        print("sheet is ", sheet)
+    print("openVisualise method reached");
+    # repoStr = repo['repo']
+    # sheetStr = sheet['sheet']
+
+    # repositories = {k:v for k,v in repositories.items() if k in user_repos}
+    # return('success')
+    # return render_template('visualise.html',
+    #                        login=g.user.github_login,
+    #                        repo=repo)
+    # return render_template("visualise.html", sheet=sheet, repo=repo)
+    return redirect(url_for('visualise', repo=repo, sheet=sheet))
+
+
+@app.route('/visualise/<repo>/<sheet>')
+# @verify_logged_in
+def visualise(repo, sheet):
+
+    return render_template("visualise.html", sheet=sheet, repo=repo)
+
 # Internal methods
 
 def get_spreadsheet(repo_detail,folder,spreadsheet):

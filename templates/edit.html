@@ -28,6 +28,10 @@
                 review</button>
             <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i>
                 Reviewed</button>
+            <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-desktop"></i>
+                Visualise sheet</button>
+            <button id=visualise-selection class="btn btn-outline-success btn-sm"><i class="fas fa-desktop"></i>
+                Visualise selection</button>
         </div>
     </div>
 
@@ -611,6 +615,8 @@
                 //show buttons to do with rows and curation status
                 $('#ask-for-review').show();
                 $('#reviewed').show();
+                $('#visualise-selection').show();
+
             }
             row.getElement().style.backgroundColor = 'grey';
             rowValue = row.getPosition(true);
@@ -626,6 +632,7 @@
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
+                $('#visualise-selection').hide();
             }
 
             row.getElement().style.backgroundColor = 'white';
@@ -1185,6 +1192,7 @@
             $('#ask-for-review').hide();
             $('#reviewed').hide();
             $('#updates').hide();
+            $('#visualise-selection').hide();
 
             //update highlighting
             if (data[curation_status] === undefined) { //for tables without curation_status
@@ -1589,6 +1597,33 @@
         });
 
     });
+
+    $("#visualise-sheet").click(function () {
+
+        var repo = "testRepo";
+        var sheet = "testSheet";
+
+        jQuery.ajax({
+        url: '/openVisualise',
+        dataType: 'text',
+        type: 'POST',
+        async: 'false',
+        data: { repo: JSON.stringify( repo ), sheet: JSON.stringify( sheet ) },
+        // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
+        success: function (data) {
+            console.log("success");
+            window.location.href = "/visualise/" + repo + "/" + sheet;
+            // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
+        }, error: function(err){
+            console.log("error" + err);
+        }
+      });
+
+    }); 
+
+    $("#visualise-selection").click(function () {
+
+    }); 
 
     $('#contentTable').ready(function () {
         //warn user if unsaved changes:
