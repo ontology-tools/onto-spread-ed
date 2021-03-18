@@ -2,10 +2,47 @@
 {% block title %}{{ config['APP_TITLE'] }}{% endblock %}
 {% block head %}
 {{ super() }}
+<style type="text/css">
+  #mynetwork {
+      width: 600px;
+      height: 400px;
+      border: 1px solid lightgray;
+  }
+</style>
 {% endblock %}
 {% block content %}
+<div id="mynetwork"></div>
+<!-- graphvis library: -->
+<!-- from here: https://visjs.github.io/vis-network/examples/network/basic_usage/standalone.html -->
+<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 <h1>VISUALISATIONS</h1>
 <script>
+  // create an array with nodes
+  var nodes = new vis.DataSet([
+    { id: 1, label: "Node 1" },
+    { id: 2, label: "Node 2" },
+    { id: 3, label: "Node 3" },
+    { id: 4, label: "Node 4" },
+    { id: 5, label: "Node 5" }
+  ]);
+
+  // create an array with edges
+  var edges = new vis.DataSet([
+    { from: 1, to: 3 },
+    { from: 1, to: 2 },
+    { from: 2, to: 4 },
+    { from: 2, to: 5 },
+    { from: 3, to: 3 }
+  ]);
+
+  // create a network
+  var container = document.getElementById("mynetwork");
+  var data = {
+    nodes: nodes,
+    edges: edges
+  };
+  var options = {};
+  var network = new vis.Network(container, data, options);
   window.addEventListener("load", function () {
     var repo = '{{ repo }}';
     console.log("repo is " + repo);
