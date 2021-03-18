@@ -16,6 +16,9 @@
 <!-- graphvis library: -->
 <!-- from here: https://visjs.github.io/vis-network/examples/network/basic_usage/standalone.html -->
 <!-- <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script> -->
+<script type="text/javascript" src="https://unpkg.com/vis-data@latest/peer/umd/vis-data.min.js"></script>
+<script type="text/javascript" src="https://unpkg.com/vis-network@latest/peer/umd/vis-network.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/vis-network/styles/vis-network.min.css" />
 
 <script>
   /*
@@ -52,11 +55,27 @@
     // console.log("graph is: " + graph);
     // console.log(JSON.parse(graph));
 // load the JSON file containing the Gephi network.
-/*
-var gephiJSON = graph; // code in importing_from_gephi.
+var graph = ('{{graph | tojson}}');
+console.log(graph);
+var gephiJSON = JSON.parse(graph); // code in importing_from_gephi.
+console.log(gephiJSON);
+var props = ('{{props | tojson}}');
 
 // you can customize the result like with these options. These are explained below.
 // These are the default options.
+// var parserOptions = props;
+// var parserOptions = {
+//   edges: {
+//     inheritColors: false
+//   },
+//   nodes: {
+//     fixed: true,
+//     parseColor: false
+//   }
+// }
+
+
+
 var parserOptions = {
   edges: {
     inheritColors: false
@@ -66,28 +85,63 @@ var parserOptions = {
     parseColor: false
   }
 }
+// create an array with nodes
+// var parsed = vis.parseGephiNetwork(graph, parserOptions);
+
+var nodes = new vis.DataSet([
+    { id: 1, label: "Node 1" },
+    { id: 2, label: "Node 2" },
+    { id: 3, label: "Node 3" },
+    { id: 4, label: "Node 4" },
+    { id: 5, label: "Node 5" }
+  ]);
+
+  // create an array with edges
+  var edges = new vis.DataSet([
+    { from: 1, to: 3 },
+    { from: 1, to: 2 },
+    { from: 2, to: 4 },
+    { from: 2, to: 5 },
+    { from: 3, to: 3 }
+  ]);
+
+  var options = {};
+/*
+  // create a network
+  var container = document.getElementById("mynetwork");
+  var data = {
+    nodes: nodes,
+    edges: edges
+  };
+  var options = {};
+
+  
+  var network = new vis.Network(container, data, options);
+*/
 
 // parse the gephi file to receive an object
 // containing nodes and edges in vis format.
-var parsed = vis.parseGephiNetwork(gephiJSON, parserOptions);
+// var parsed = vis.parseGephiNetwork(gephiJSON, parserOptions);
 
 // provide data in the normal fashion
 var data = {
-  nodes: parsed.nodes,
-  edges: parsed.edges
+  nodes: nodes,
+  edges: edges
 };
 
 // create a network
-var network = new vis.Network(container, data);
-*/
+var container = document.getElementById("mynetwork");
+var network = new vis.Network(container, data, options);
+
   window.addEventListener("load", function () {
-    var repo = '{{ repo }}';
-    console.log("repo is " + repo);
-    var sheet = '{{ sheet}}';
-    console.log(sheet);
-    var graph = JSON.parse('{{graph | tojson}}');
+    // var repo = '{{ repo }}';
+    // console.log("repo is " + repo);
+    // var sheet = '{{ sheet}}';
+    // console.log(sheet);
+
+    // var graph = ('{{graph | tojson}}');
     // var graph = "{{ url_for('static', filename='example.json')}}";
-    console.log(graph);
+    // console.log(graph);
     
   });
 </script>

@@ -1,22 +1,52 @@
 {
-    "glossary": {
-        "title": "example glossary",
-		"GlossDiv": {
-            "title": "S",
-			"GlossList": {
-                "GlossEntry": {
-                    "ID": "SGML",
-					"SortAs": "SGML",
-					"GlossTerm": "Standard Generalized Markup Language",
-					"Acronym": "SGML",
-					"Abbrev": "ISO 8879:1986",
-					"GlossDef": {
-                        "para": "A meta-markup language, used to create markup languages such as DocBook.",
-						"GlossSeeAlso": ["GML", "XML"]
-                    },
-					"GlossSee": "markup"
-                }
-            }
-        }
-    }
-}
+    "edges": [
+      {
+        "label": "Edge 1",
+        "source": "1",
+        "target": "2",
+        "id": "1",
+        "attributes": {
+          "title": "Title Edge 1",
+          "Weight": "1.0"
+        },
+        "color": "rgb(74,168,208)",
+        "size": 1
+      }
+    ],
+    "nodes": [
+      {
+        "label": "Node 1",
+        "x": -545.59228515625,
+        "y": 742.2496337890625,
+        "id": "1",
+        "attributes": {
+          "Modularity Class": "2",
+          "Number of triangles": "0",
+          "contentfile": "node_1",
+          "Degree": "3",
+          "PageRank": "0.0518578989623337",
+          "Clustering Coefficient": "0.0",
+          "Weighted Degree": "3.0"
+        },
+        "color": "rgb(253,196,160)",
+        "size": 8.333333015441895
+      },
+      {
+        "label": "Node 2",
+        "x": 113.09465789794922,
+        "y": 1198.474853515625,
+        "id": "2",
+        "attributes": {
+          "Modularity Class": "4",
+          "Number of triangles": "0",
+          "contentfile": "node_2",
+          "Degree": "10",
+          "PageRank": "0.16873345574200924",
+          "Clustering Coefficient": "0.0",
+          "Weighted Degree": "10.0"
+        },
+        "color": "rgb(179,0,0)",
+        "size": 20
+      }
+    ]
+  }
