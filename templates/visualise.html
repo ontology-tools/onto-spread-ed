@@ -121,12 +121,12 @@ var nodes = new vis.DataSet([
 
 // parse the gephi file to receive an object
 // containing nodes and edges in vis format.
-// var parsed = vis.parseGephiNetwork(gephiJSON, parserOptions);
+var parsed = vis.parseGephiNetwork(gephiJSON, parserOptions);
 
 // provide data in the normal fashion
 var data = {
-  nodes: nodes,
-  edges: edges
+  nodes: parsed.nodes,
+  edges: parsed.edges
 };
 
 // create a network
