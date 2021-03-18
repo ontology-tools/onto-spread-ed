@@ -4,8 +4,8 @@
 {{ super() }}
 <style type="text/css">
   #mynetwork {
-      width: 600px;
-      height: 400px;
+      width: 1000px;
+      height: 800px;
       border: 1px solid lightgray;
   }
 </style>
@@ -58,7 +58,7 @@
     // console.log("graph is: " + graph);
     // console.log(JSON.parse(graph));
 // load the JSON file containing the Gephi network.
-var graph = ('{{graph | tojson}}');
+var graph = ('{{graph | tojson | safe}}');
 console.log(graph);
 var gephiJSON = JSON.parse(graph); // code in importing_from_gephi.
 console.log(gephiJSON);

@@ -724,8 +724,8 @@ def openVisualise():
 @app.route('/visualise/<repo>/<sheet>')
 # @verify_logged_in
 def visualise(repo, sheet):
-    # filename = os.path.join(app.static_folder, 'addicto-products.json')
-    filename = os.path.join(app.static_folder, 'example.json')
+    filename = os.path.join(app.static_folder, 'addicto-products.json')
+    # filename = os.path.join(app.static_folder, 'example.json')
     with open(filename) as data_file:
         graph = json.load(data_file)
     filename = os.path.join(app.static_folder, 'imageProps.json')
