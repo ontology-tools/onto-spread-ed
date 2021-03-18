@@ -1,0 +1,43 @@
+ 
+{
+    "style": "filled,rounded",
+    "fillcolor":"white",
+    "relationProperties": {
+        "subClassOf": {
+            "color": "black",
+            "penwith": 3,
+            "arrowhead": "open",
+            "label": ""
+        },
+        "BFO:0000050": {
+            "arrowhead": "open",
+            "color": "blue",
+            "label": "part of"
+        },
+        "BFO:0000051": {
+            "arrowhead":"open",
+            "color":"blue",
+            "label":"has part"
+        },
+        "RO:0001019": {
+            "arrowhead":"open",
+            "color":"green",
+            "label":"contains"
+        },
+        "RO:0001000": {
+            "arrowhead":"open",
+            "color":"darkgreen",
+            "label":"derives from"
+        },
+        "RO:0000087": {
+            "arrowhead":"open",
+            "color":"darkgreen",
+            "label":"has role"
+        },
+        "IAO:0000136": {
+            "arrowhead": "open",
+            "color": "darkgrey",
+            "label": "is about"
+        }
+    }, "conditionalProperties": 
+[{"conditions": {"id": "OBO:ADDICTO_0000316"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000302"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000311"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000746"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000827"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000817"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000279"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000536"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000303"}, "properties": {"fillcolor": "white"}}, {"conditions": {"id": "OBO:ADDICTO_0000813"}, "properties": {"fillcolor": "white"}}]}

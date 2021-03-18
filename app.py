@@ -724,7 +724,10 @@ def openVisualise():
 @app.route('/visualise/<repo>/<sheet>')
 # @verify_logged_in
 def visualise(repo, sheet):
-    graph = "testGraph"
+    filename = os.path.join(app.static_folder, 'example.json')
+    with open(filename) as data_file:
+        graph = json.load(data_file)
+    # graph = '/static/addicto-products.json'
     return render_template("visualise.html", sheet=sheet, repo=repo, graph=graph)
 
 # Internal methods

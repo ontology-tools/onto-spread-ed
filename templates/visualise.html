@@ -2,21 +2,23 @@
 {% block title %}{{ config['APP_TITLE'] }}{% endblock %}
 {% block head %}
 {{ super() }}
-<style type="text/css">
+<!-- <style type="text/css">
   #mynetwork {
       width: 600px;
       height: 400px;
       border: 1px solid lightgray;
-  }
+  } -->
 </style>
 {% endblock %}
 {% block content %}
+<h1>VISUALISATIONS</h1>
 <div id="mynetwork"></div>
 <!-- graphvis library: -->
 <!-- from here: https://visjs.github.io/vis-network/examples/network/basic_usage/standalone.html -->
-<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-<h1>VISUALISATIONS</h1>
+<!-- <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script> -->
+
 <script>
+  /*
   // create an array with nodes
   var nodes = new vis.DataSet([
     { id: 1, label: "Node 1" },
@@ -43,13 +45,50 @@
   };
   var options = {};
   var network = new vis.Network(container, data, options);
+*/
+// var graph = "{{ url_for('static', filename='example.json')}}";
+
+// var graph = {{ url_for('static', filename='addicto-products.json')}};
+    // console.log("graph is: " + graph);
+    // console.log(JSON.parse(graph));
+// load the JSON file containing the Gephi network.
+/*
+var gephiJSON = graph; // code in importing_from_gephi.
+
+// you can customize the result like with these options. These are explained below.
+// These are the default options.
+var parserOptions = {
+  edges: {
+    inheritColors: false
+  },
+  nodes: {
+    fixed: true,
+    parseColor: false
+  }
+}
+
+// parse the gephi file to receive an object
+// containing nodes and edges in vis format.
+var parsed = vis.parseGephiNetwork(gephiJSON, parserOptions);
+
+// provide data in the normal fashion
+var data = {
+  nodes: parsed.nodes,
+  edges: parsed.edges
+};
+
+// create a network
+var network = new vis.Network(container, data);
+*/
   window.addEventListener("load", function () {
     var repo = '{{ repo }}';
     console.log("repo is " + repo);
     var sheet = '{{ sheet}}';
     console.log(sheet);
-    var graph = '{{ graph }}';
-    console.log("graph is: " + graph);
+    var graph = JSON.parse('{{graph | tojson}}');
+    // var graph = "{{ url_for('static', filename='example.json')}}";
+    console.log(graph);
+    
   });
 </script>
 {% endblock %}
