@@ -2,12 +2,12 @@
 {% block title %}{{ config['APP_TITLE'] }}{% endblock %}
 {% block head %}
 {{ super() }}
-<!-- <style type="text/css">
+<style type="text/css">
   #mynetwork {
       width: 600px;
       height: 400px;
       border: 1px solid lightgray;
-  } -->
+  }
 </style>
 {% endblock %}
 {% block content %}
@@ -106,6 +106,24 @@ var nodes = new vis.DataSet([
   ]);
 
   var options = {};
+  // var options = {
+  // processProperties: function (clusterOptions,
+  //     childNodes, childEdges) {
+  //   var totalMass = 0;
+  //   var totalValue = 0;
+  //   for (var i = 0; i < childNodes.length; i++) {
+  //     totalMass += childNodes[i].mass;
+  //     totalValue = childNodes[i].value
+  //       ? totalValue + childNodes[i].value
+  //       : totalValue;
+  //   }
+  //   clusterOptions.mass = totalMass;
+  //   if (totalValue > 0) {
+  //     clusterOptions.value = totalValue;
+  //   }
+  //   return clusterOptions;
+  // },
+// }
 /*
   // create a network
   var container = document.getElementById("mynetwork");

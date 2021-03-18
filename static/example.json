@@ -11,6 +11,18 @@
         },
         "color": "rgb(74,168,208)",
         "size": 1
+      },
+      {
+        "label": "Edge 2",
+        "source": "2",
+        "target": "3",
+        "id": "2",
+        "attributes": {
+          "title": "Title Edge 2",
+          "Weight": "2.0"
+        },
+        "color": "rgb(74,168,208)",
+        "size": 4
       }
     ],
     "nodes": [
@@ -28,7 +40,7 @@
           "Clustering Coefficient": "0.0",
           "Weighted Degree": "3.0"
         },
-        "color": "rgb(253,196,160)",
+        "color": "rgb(120,40,160)",
         "size": 8.333333015441895
       },
       {
@@ -38,7 +50,7 @@
         "id": "2",
         "attributes": {
           "Modularity Class": "4",
-          "Number of triangles": "0",
+          "Number of triangles": "10",
           "contentfile": "node_2",
           "Degree": "10",
           "PageRank": "0.16873345574200924",
@@ -46,6 +58,23 @@
           "Weighted Degree": "10.0"
         },
         "color": "rgb(179,0,0)",
+        "size": 20
+      },
+      {
+        "label": "Node 3",
+        "x": 113.09465789794922,
+        "y": 1198.474853515625,
+        "id": "3",
+        "attributes": {
+          "Modularity Class": "4",
+          "Number of triangles": "10",
+          "contentfile": "node_3",
+          "Degree": "10",
+          "PageRank": "0.16873345574200924",
+          "Clustering Coefficient": "0.0",
+          "Weighted Degree": "10.0"
+        },
+        "color": "rgb(179,0,200)",
         "size": 20
       }
     ]
