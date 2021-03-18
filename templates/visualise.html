@@ -46,7 +46,10 @@
     nodes: nodes,
     edges: edges
   };
-  var options = {};
+  // var options = {};
+  var options = {
+    shape: 'box',
+  };
   var network = new vis.Network(container, data, options);
 */
 // var graph = "{{ url_for('static', filename='example.json')}}";
@@ -105,7 +108,13 @@ var nodes = new vis.DataSet([
     { from: 3, to: 3 }
   ]);
 
-  var options = {};
+  // var options = {};
+  var options = {
+    nodes: {
+      shape: 'box',
+    },
+    
+  };
   // var options = {
   // processProperties: function (clusterOptions,
   //     childNodes, childEdges) {
