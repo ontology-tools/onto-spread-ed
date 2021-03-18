@@ -724,8 +724,8 @@ def openVisualise():
 @app.route('/visualise/<repo>/<sheet>')
 # @verify_logged_in
 def visualise(repo, sheet):
-
-    return render_template("visualise.html", sheet=sheet, repo=repo)
+    graph = "testGraph"
+    return render_template("visualise.html", sheet=sheet, repo=repo, graph=graph)
 
 # Internal methods
 
