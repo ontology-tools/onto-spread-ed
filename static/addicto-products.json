@@ -47,7 +47,7 @@
             "label": "liquid product",
             "meta": {
                 "definition": {
-                    "val": "A product that is composed of a sourcestance in the liquid state.",
+                    "val": "A product that is composed of a substance in the liquid state.",
                     "xrefs": []
                 }
             }
@@ -288,61 +288,7 @@
                 ]
             }
         },
-        {
-            "id": "OBO:ADDICTO_0000212",
-            "label": "e-cigarette",
-            "meta": {
-                "definition": {
-                    "val": "An electronic vaping device that is hand held and produces for inhalation an aerosol formed by heating an e-liquid.",
-                    "xrefs": []
-                },
-                "comments": [
-                    "The e-liquid contains one or more humectants , usually together with flavourants and nicotine. The heating is achieved by means of a battery-powered heating elementthat is activated by a switch or by suction as the user sucks on the mouthpiece of the device."
-                ],
-                "basicPropertyValues": [
-                    {
-                        "pred": "OBO:http://addictovocab.org/addicto.owl#curator_notes",
-                        "val": "The primary label is based on the fact that this is a the most commonly used term and is clear. It has the disadvantage that it carries negative connotations in some quarters but other terminology does not adequately capture this class as defined."
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": " electronic vaping device"
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": " nicotine vaping device"
-                    },
-                    {
-                        "pred": "IAO:0000112",
-                        "val": "\"Electronic cigarettes  are handheld electronic vaping devices which produce an aerosol formed by heating an eliquid.\" Hartmann-Boyce et al., 2020. Cochrane Review of Electronic cigarettes for smoking cessation."
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": " ANDS"
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": " alternative nicotine vaping device"
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": " nicotine vaping product, NVP"
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": " electronic nicotine vaping device"
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": " ENDS"
-                    },
-                    {
-                        "pred": "IAO:0000118",
-                        "val": "vape"
-                    }
-                ]
-            }
-        },
+       
         {
             "id": "OBO:ADDICTO_0000207",
             "label": "combustible tobacco-containing product",
@@ -670,7 +616,7 @@
             "label": "electronic vaping device",
             "meta": {
                 "definition": {
-                    "val": "A vaping device that produces vapour or aerosol for inhalation by electrically heating a sourcestance.",
+                    "val": "A vaping device that produces vapour or aerosol for inhalation by electrically heating a substance.",
                     "xrefs": []
                 }
             }
@@ -730,7 +676,7 @@
                     "xrefs": []
                 },
                 "comments": [
-                    "This class includes products that contain or consist of parts of the tobacco plant that have been sourceject to some form of processing. This class does not contain products that only contain nicotine. These are dealt with separately as 'nicotine-containing products'."
+                    "This class includes products that contain or consist of parts of the tobacco plant that have been subject to some form of processing. This class does not contain products that only contain nicotine. These are dealt with separately as 'nicotine-containing products'."
                 ],
                 "basicPropertyValues": [
                     {
@@ -1047,7 +993,7 @@
             "label": "vaping device",
             "meta": {
                 "definition": {
-                    "val": "A product that produces for inhalation by a person a vapour or aerosol by heating a sourcestance that may be either liquid or solid.",
+                    "val": "A product that produces for inhalation by a person a vapour or aerosol by heating a substance that may be either liquid or solid.",
                     "xrefs": []
                 }
             }
@@ -1263,7 +1209,7 @@
                     },
                     {
                         "pred": "OBO:http://addictovocab.org/addicto.owl#curator_notes",
-                        "val": "Original definition says 'An object or sourcestance' but sourcestance would be an object aggregate in BFO so we have just used object"
+                        "val": "Original definition says 'An object or substance' but substance would be an object aggregate in BFO so we have just used object"
                     }
                 ]
             }
@@ -1282,7 +1228,7 @@
                 "basicPropertyValues": [
                     {
                         "pred": "OBO:http://addictovocab.org/addicto.owl#curator_notes",
-                        "val": "People often confuse oral snuff with snus and it is important to recognise that snus is a sourceclass of oral snuff and not the same as it."
+                        "val": "People often confuse oral snuff with snus and it is important to recognise that snus is a subclass of oral snuff and not the same as it."
                     },
                     {
                         "pred": "IAO:0000118",
@@ -1315,493 +1261,493 @@
     "edges": [
         {
             "source": "OBO:ADDICTO_0000250",
-            "obj": "OBO:ADDICTO_0000224",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000224",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000232",
-            "obj": "OBO:ADDICTO_0000536",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000536",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000854",
-            "obj": "OBO:ADDICTO_0000536",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000536",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000300",
-            "obj": "OBO:ADDICTO_0000855",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000855",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000743",
-            "obj": "OBO:ADDICTO_0000200",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000200",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000267",
-            "obj": "OBO:ADDICTO_0000301",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000301",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000237",
-            "obj": "OBO:ADDICTO_0000213",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000213",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000190",
-            "obj": "OBO:ADDICTO_0000213",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000213",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000282",
-            "obj": "OBO:ADDICTO_0000213",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000213",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000624",
-            "obj": "OBO:ADDICTO_0000239",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000239",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000312",
-            "obj": "OBO:ADDICTO_0000239",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000239",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000240",
-            "obj": "OBO:ADDICTO_0000239",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000239",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000626",
-            "obj": "OBO:ADDICTO_0000239",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000239",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000625",
-            "obj": "OBO:ADDICTO_0000239",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000239",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000535",
-            "obj": "OBO:ADDICTO_0000827",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000827",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000317",
-            "obj": "OBO:ADDICTO_0000827",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000827",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000311",
-            "obj": "OBO:ADDICTO_0000303",
+            "target": "OBO:ADDICTO_0000303",
             "pred": "BFO:0000051"
         },
         {
             "source": "OBO:ADDICTO_0000200",
-            "obj": "OBO:ADDICTO_0000303",
+            "target": "OBO:ADDICTO_0000303",
             "pred": "BFO:0000051"
         },
         {
             "source": "OBO:ADDICTO_0000201",
-            "obj": "OBO:ADDICTO_0000303",
+            "target": "OBO:ADDICTO_0000303",
             "pred": "BFO:0000051"
         },
         {
             "source": "OBO:ADDICTO_0000205",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000287",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000299",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000224",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000221",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000285",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000284",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000315",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000230",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000256",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000268",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000199",
-            "obj": "OBO:ADDICTO_0000212",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000212",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000200",
-            "obj": "OBO:ADDICTO_0000207",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000207",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000201",
-            "obj": "OBO:ADDICTO_0000207",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000207",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000271",
-            "obj": "OBO:ADDICTO_0000207",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000207",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000316",
-            "obj": "OBO:ADDICTO_0000317",
+            "target": "OBO:ADDICTO_0000317",
             "pred": "BFO:0000051"
         },
         {
             "source": "OBO:ADDICTO_0000855",
-            "obj": "OBO:ADDICTO_0000317",
+            "target": "OBO:ADDICTO_0000317",
             "pred": "BFO:0000051"
         },
         {
             "source": "OBO:ADDICTO_0000223",
-            "obj": "OBO:ADDICTO_0000317",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000317",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000245",
-            "obj": "OBO:ADDICTO_0000304",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000304",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000851",
-            "obj": "OBO:ADDICTO_0000201",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000201",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000254",
-            "obj": "OBO:ADDICTO_0000201",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000201",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000753",
-            "obj": "OBO:ADDICTO_0000201",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000201",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000288",
-            "obj": "OBO:ADDICTO_0000231",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000231",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000212",
-            "obj": "OBO:ADDICTO_0000231",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000231",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000207",
-            "obj": "OBO:ADDICTO_0000311",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000311",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000292",
-            "obj": "OBO:ADDICTO_0000311",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000311",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000538",
-            "obj": "OBO:ADDICTO_0000311",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000311",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000246",
-            "obj": "OBO:ADDICTO_0000311",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000311",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000737",
-            "obj": "OBO:ADDICTO_0000311",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000311",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000858",
-            "obj": "OBO:ADDICTO_0000866",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000866",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000882",
-            "obj": "OBO:ADDICTO_0000866",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000866",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000249",
-            "obj": "OBO:ADDICTO_0000245",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000245",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000817",
-            "obj": "OBO:ADDICTO_0000865",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000865",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000852",
-            "obj": "OBO:ADDICTO_0000865",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000865",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000813",
-            "obj": "OBO:ADDICTO_0000865",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000865",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000216",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000812",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000214",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000218",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000227",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000213",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000225",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000212",
-            "obj": "OBO:ADDICTO_0000223",
+            "target": "OBO:ADDICTO_0000223",
             "pred": "BFO:0000051"
         },
         {
             "source": "OBO:ADDICTO_0000220",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000222",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000296",
-            "obj": "OBO:ADDICTO_0000223",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000223",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000866",
-            "obj": "OBO:ADDICTO_0000302",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000302",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000865",
-            "obj": "OBO:ADDICTO_0000302",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000302",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000855",
-            "obj": "OBO:ADDICTO_0000302",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000302",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000853",
-            "obj": "OBO:ADDICTO_0000302",
+            "target": "OBO:ADDICTO_0000302",
             "pred": "RO:0000087"
         },
         {
             "source": "OBO:ADDICTO_0000854",
-            "obj": "OBO:ADDICTO_0000302",
+            "target": "OBO:ADDICTO_0000302",
             "pred": "RO:0000087"
         },
         {
             "source": "OBO:ADDICTO_0000247",
-            "obj": "OBO:ADDICTO_0000826",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000826",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000251",
-            "obj": "OBO:ADDICTO_0000257",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000257",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000210",
-            "obj": "OBO:ADDICTO_0000205",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000205",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000209",
-            "obj": "OBO:ADDICTO_0000205",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000205",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000826",
-            "obj": "OBO:ADDICTO_0000232",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000232",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000239",
-            "obj": "OBO:ADDICTO_0000232",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000232",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000212",
-            "obj": "OBO:ADDICTO_0000232",
+            "target": "OBO:ADDICTO_0000232",
             "pred": "RO:0001019"
         },
         {
             "source": "OBO:ADDICTO_0000266",
-            "obj": "OBO:ADDICTO_0000232",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000232",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000301",
-            "obj": "OBO:ADDICTO_0000232",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000232",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000231",
-            "obj": "OBO:ADDICTO_0000316",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000316",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000302",
-            "obj": "OBO:ADDICTO_0000316",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000316",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000283",
-            "obj": "OBO:ADDICTO_0000199",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000199",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000245",
-            "obj": "OBO:ADDICTO_0000246",
+            "target": "OBO:ADDICTO_0000246",
             "pred": "RO:0001019"
         },
         {
             "source": "OBO:ADDICTO_0000295",
-            "obj": "OBO:ADDICTO_0000292",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000292",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000198",
-            "obj": "OBO:ADDICTO_0000292",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000292",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000294",
-            "obj": "OBO:ADDICTO_0000292",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000292",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000272",
-            "obj": "OBO:ADDICTO_0000271",
+            "target": "OBO:ADDICTO_0000271",
             "pred": "IAO:0000136"
         },
         {
             "source": "OBO:ADDICTO_0000861",
-            "obj": "OBO:ADDICTO_0000271",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000271",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000308",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000859",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000536",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000304",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000303",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000316",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000257",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000311",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000827",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         },
         {
             "source": "OBO:ADDICTO_0000853",
-            "obj": "OBO:ADDICTO_0000279",
-            "pred": "sourceClassOf"
+            "target": "OBO:ADDICTO_0000279",
+            "pred": "subClassOf"
         }
     ]
 }
