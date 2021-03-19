@@ -110,6 +110,17 @@ var nodes = new vis.DataSet([
 
   // var options = {};
   var options = {
+    layout: {
+      hierarchical: {
+        enabled: true,
+        blockShifting: true,
+      edgeMinimization: false,
+      parentCentralization: true,
+      direction: 'UD',        // UD, DU, LR, RL
+      sortMethod: 'directed',  // hubsize, directed
+      shakeTowards: 'leaves',  // roots, leaves
+      },
+    },
     nodes: {
       shape: 'box',
     },
