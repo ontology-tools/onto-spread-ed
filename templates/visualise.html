@@ -215,12 +215,12 @@
         console.log("got dot file");
         var DOTstring = graph;
         console.log(graph);
-        // var graph = ('{{graph | tojson | safe}}');
+        var graph2 = ('{{graph | tojson | safe}}');
         // console.log(graph);
         //dot notation: 
         // var DOTstring = 'dinetwork {2 -- 4; 2 -> 1 }';
         // var DOTstring = 'dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }';
-        // var gephiJSON = JSON.parse(graph); // code in importing_from_gephi.
+        var gephiJSON = JSON.parse(graph2); // code in importing_from_gephi.
         // console.log(DOTstring);
         // var props = ('{{props | tojson}}');
 
@@ -380,23 +380,55 @@
         // };
         // parse the gephi file to receive an object
         // containing nodes and edges in vis format.
-        // var parsed = vis.parseGephiNetwork(gephiJSON, parserOptions);
+        var parserOptions = {
+          edges: {
+            inheritColors: false
+          },
+          nodes: {
+            fixed: true,
+            parseColor: false
+          }
+        }
+        var parsed = vis.parseGephiNetwork(gephiJSON, parserOptions);
         var parsedData = vis.parseDOTNetwork(DOTstring);
         //DOTString:
         var data = {
           nodes: parsedData.nodes,
           edges: parsedData.edges
         };
+        //GEPHINetwork:
+        var data2 = {
+          nodes: parsed.nodes,
+          edges: parsed.edges
+        };
         var options = parsedData.options;
 
         //   layout: {
         //     hierarchical: {
         //       enabled: false,
-        options.layout = {
-          hierarchical: {
-            enabled: true,
-          }
+        options = {
+          layout: {
+            randomSeed: undefined,
+            improvedLayout: true,
+            clusterThreshold: 150,
+            hierarchical: {
+              enabled: true,
+              levelSeparation: 180,
+              nodeSpacing: 250,
+              treeSpacing: 200,
+              blockShifting: true,
+              edgeMinimization: true,
+              parentCentralization: false,
+              direction: 'UD',        // UD, DU, LR, RL
+              sortMethod: 'hubsize',  // hubsize, directed
+              shakeTowards: 'leaves',  // roots, leaves
+            }
+          },
+          physics: {
+          enabled: false,
         }
+        }
+        
         // provide data in the normal fashion
         // var data = {
         //   nodes: parsed.nodes,
@@ -405,7 +437,7 @@
 
         // create a network
         var container = document.getElementById("mynetwork");
-        var network = new vis.Network(container, data, options);
+        var network = new vis.Network(container, data2, options);
       } else {
         console.log("no dot file?");
       }
