@@ -61,7 +61,8 @@
   var graph = ('{{graph | tojson | safe}}');
   console.log(graph);
   //dot notation: 
-  var DOTstring = 'dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }';
+  var DOTstring = 'dinetwork {2 -> 3; 2 -- 4; 2 -> 1 }';
+  // var DOTstring = 'dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }';
   var gephiJSON = JSON.parse(graph); // code in importing_from_gephi.
   // console.log(DOTstring);
   var props = ('{{props | tojson}}');
@@ -116,8 +117,8 @@
       hierarchical: {
         enabled: false,
         levelSeparation: 150,
-      nodeSpacing: 10,
-      treeSpacing: 10,
+        nodeSpacing: 10,
+        treeSpacing: 10,
         blockShifting: true,
         edgeMinimization: true,
         parentCentralization: true,
@@ -150,7 +151,7 @@
       enabled: false
     }
   };
-  
+
   // var options = {
   // processProperties: function (clusterOptions,
   //     childNodes, childEdges) {
@@ -201,17 +202,37 @@
   var container = document.getElementById("mynetwork");
   var network = new vis.Network(container, data, options);
 
-  window.addEventListener("load", function () {
-    // var repo = '{{ repo }}';
-    // console.log("repo is " + repo);
-    // var sheet = '{{ sheet}}';
-    // console.log(sheet);
 
-    // var graph = ('{{graph | tojson}}');
-    // var graph = "{{ url_for('static', filename='example.json')}}";
-    // console.log(graph);
+  window.addEventListener("load", function (graph) {
+
+    getDot().done(function (graph) {
+
+      // console.log("graph: " + graph);
+      if (graph) { // got dot file
+        console.log("got dot file");
+        DOTstring = graph;
+      } else {
+        console.log("no dot file?");
+      }
+    });
+
 
   });
+
+  function getDot() {
+    var dot = "";
+    return $.ajax({
+      url: '/dot',
+      dataType: 'text',
+      type: 'GET',
+      data: { msg: "test" },
+      success: function (graph) {
+        dot = graph;
+      }, error: function () {
+        console.log("dot error: " + graph);
+      }
+    });
+  }
 </script>
 {% endblock %}
 

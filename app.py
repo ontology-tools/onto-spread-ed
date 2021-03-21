@@ -741,6 +741,16 @@ def visualise(repo, sheet):
         props = json.load(data_file)
     return render_template("visualise.html", sheet=sheet, repo=repo, graph=graph, props=props)
 
+@app.route("/dot", methods=["GET"]) 
+@verify_logged_in
+def dot():
+    if request.method == "GET":
+        #DOT:
+        filename = os.path.join(app.static_folder, 'test.dot')
+        with open(filename) as data_file:
+            graph = data_file
+        return ("dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }")
+    return ('failed') #todo: do we need message:success, 200 here? 
 # Internal methods
 
 def get_spreadsheet(repo_detail,folder,spreadsheet):
