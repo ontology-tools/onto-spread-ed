@@ -388,6 +388,15 @@
           edges: parsedData.edges
         };
         var options = parsedData.options;
+
+        //   layout: {
+        //     hierarchical: {
+        //       enabled: false,
+        options.layout = {
+          hierarchical: {
+            enabled: true,
+          }
+        }
         // provide data in the normal fashion
         // var data = {
         //   nodes: parsed.nodes,
