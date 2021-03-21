@@ -748,8 +748,9 @@ def dot():
         #DOT:
         filename = os.path.join(app.static_folder, 'test.dot')
         with open(filename) as data_file:
-            graph = data_file
-        return ("dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }")
+            graph = data_file.read()
+        return (graph)
+        # return ("dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }")
     return ('failed') #todo: do we need message:success, 200 here? 
 # Internal methods
 
