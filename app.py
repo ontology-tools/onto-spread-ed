@@ -724,22 +724,7 @@ def openVisualise():
 @app.route('/visualise/<repo>/<sheet>')
 # @verify_logged_in
 def visualise(repo, sheet):
-    #DOT:
-    # filename = os.path.join(app.static_folder, 'test.dot')
-    #GEPHI:
-    filename = os.path.join(app.static_folder, 'addicto-products.json')
-    # filename = os.path.join(app.static_folder, 'example.json')
-    #DOT:
-    # with open(filename) as data_file:
-    #     graph = data_file
-    #GEPHI:
-    with open(filename) as data_file:
-        graph = json.load(data_file)
-    filename = os.path.join(app.static_folder, 'imageProps.json')
-    # filename = os.path.join(app.static_folder, 'example.json')
-    with open(filename) as data_file:
-        props = json.load(data_file)
-    return render_template("visualise.html", sheet=sheet, repo=repo, graph=graph, props=props)
+    return render_template("visualise.html", sheet=sheet, repo=repo)
 
 @app.route("/dot", methods=["GET"]) 
 @verify_logged_in
@@ -752,6 +737,7 @@ def dot():
         return (graph)
         # return ("dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }")
     return ('failed') #todo: do we need message:success, 200 here? 
+    
 # Internal methods
 
 def get_spreadsheet(repo_detail,folder,spreadsheet):
