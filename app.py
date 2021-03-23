@@ -708,10 +708,9 @@ def openVisualise():
         print("repo is ", repo)
         sheet = json.loads(request.form.get("sheet"))
         print("sheet is ", sheet)
-        rowData = json.loads(request.form.get("rowData"))
         headers = json.loads(request.form.get("headers")) 
-        table = json.loads(request.form.get("table")) 
-        print("table is: ", table)
+        data = json.loads(request.form.get("data")) 
+        print("data is: ", data)
     print("openVisualise method reached");
     # repoStr = repo['repo']
     # sheetStr = sheet['sheet']

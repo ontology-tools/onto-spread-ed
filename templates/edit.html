@@ -609,13 +609,14 @@
             var data = row.getData();
             //show buttons concerning rows:
             $('#delete-rows').show();
+            $('#visualise-selection').show();
             if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
             } else {
                 //show buttons to do with rows and curation status
                 $('#ask-for-review').show();
                 $('#reviewed').show();
-                $('#visualise-selection').show();
+
 
             }
             row.getElement().style.backgroundColor = 'grey';
@@ -1604,27 +1605,49 @@
         var sheet = "testSheet";
         // todo: is rowData up to date?
         jQuery.ajax({
-        url: '/openVisualise',
-        dataType: 'text',
-        type: 'POST',
-        async: 'false',
-        data: { repo: JSON.stringify( repo ), sheet: JSON.stringify( sheet ), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData())},
-        // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
-        success: function (data) {
-            console.log("success");
-            window.open("/visualise/" + repo + "/" + sheet, '_blank');
-            // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
-            // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
-        }, error: function(err){
-            console.log("error" + err);
-        }
-      });
+            url: '/openVisualise',
+            dataType: 'text',
+            type: 'POST',
+            async: 'false',
+            data: { repo: JSON.stringify(repo), sheet: JSON.stringify(sheet), headers: JSON.stringify(headers), data: JSON.stringify(table.getData()) },
+            // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
+            success: function (data) {
+                console.log("success");
+                window.open("/visualise/" + repo + "/" + sheet, '_blank');
+                // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
+                // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
+            }, error: function (err) {
+                console.log("error" + err);
+            }
+        });
 
-    }); 
+    });
 
     $("#visualise-selection").click(function () {
-
-    }); 
+        var repo = "testRepo";
+        var sheet = "testSheet";
+        var selectedRows = table.getSelectedData();
+        // selectedRows.forEach(function (item, index){
+        //     console.log(item);
+        // });
+        // todo: is rowData up to date?
+        jQuery.ajax({
+            url: '/openVisualise',
+            dataType: 'text',
+            type: 'POST',
+            async: 'false',
+            data: { repo: JSON.stringify(repo), sheet: JSON.stringify(sheet), headers: JSON.stringify(headers), data: JSON.stringify(selectedRows) },
+            // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
+            success: function (data) {
+                console.log("success");
+                window.open("/visualise/" + repo + "/" + sheet, '_blank');
+                // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
+                // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
+            }, error: function (err) {
+                console.log("error" + err);
+            }
+        });
+    });
 
     $('#contentTable').ready(function () {
         //warn user if unsaved changes:
@@ -2006,7 +2029,7 @@
                             var rowToScrollTo = table.getRowFromPosition(errorRow);
                             // console.log(rowToScrollTo);
                             var cellToScrollTo = rowToScrollTo.getCell(errorCol);
-                            cellToScrollTo.getElement().focus(); 
+                            cellToScrollTo.getElement().focus();
                         })
                             .catch(function (error) {
                                 console.log("error scrolling to column");
