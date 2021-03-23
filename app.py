@@ -23,6 +23,8 @@ import base64
 import json
 import traceback
 import daff
+import pyhornedowl
+import networkx
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import render_template_string, jsonify, Response
@@ -74,6 +76,7 @@ class FlaskApp(Flask):
 
     def _activate_background_job(self):
         init_db()
+
 
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
@@ -193,6 +196,40 @@ class SpreadsheetSearcher:
         print("Update of index completed.")
 
 searcher = SpreadsheetSearcher()
+
+class OntologyDataStore:
+    def __init__(self):
+        self.release = None
+        self.data = []
+        self.label_to_id = {}
+
+    def parseRelease(self,repo):
+        self.ontofile = app.config['RELEASE_FILES'][repo]
+        if self.ontofile:
+            self.release = pyhornedowl.open_ontology(self.ontofile)
+
+    def parseData(self, data):
+        self.data = data
+        for data_item in self.data:
+            if 'ID' in data_item and 'Label' in data_item:
+                self.label_to_id[data_item['Label']] = data_item['ID']
+
+    def getDotForSheetGraph(self):
+        G = networkx.Graph()
+
+        for data_item in self.data:
+            if 'ID' in data_item and  'Label' in data_item and 'Definition' in data_item and 'Parent' in data_item:
+                if self.label_to_id[data_item['Parent']]:
+                    G.add_node(data_item['ID'], label=data_item['Label'], defn=data_item['Definition'])
+                    G.add_edge(data_item['ID'], self.label_to_id[data_item['Parent']])
+
+        P = networkx.nx_pydot.to_pydot(G)
+        return(P)
+
+
+ontodb = OntologyDataStore()
+
+
 
 
 def verify_logged_in(fn):
@@ -676,6 +713,7 @@ def keep_alive():
     print("Keep alive requested from edit screen")
     return ( json.dumps({"message":"Success"}), 200 )
 
+
 #todo: use this function to compare initial spreadsheet to server version - check for updates?
 @app.route("/checkForUpdates", methods=["POST"])
 def checkForUpdates():
@@ -699,29 +737,24 @@ def checkForUpdates():
             return ( json.dumps({"message":"Fail"}), 200 )
 
 
-
 @app.route('/openVisualise', methods=['POST'])
 @verify_logged_in
 def openVisualise():
     if request.method == "POST":
-        repo = json.loads(request.form.get("repo"))
+        repo = request.form.get("repo")
         print("repo is ", repo)
-        sheet = json.loads(request.form.get("sheet"))
+        sheet = request.form.get("sheet")
         print("sheet is ", sheet)
-        headers = json.loads(request.form.get("headers")) 
-        data = json.loads(request.form.get("data")) 
+        #headers = json.loads(request.form.get("headers"))
+        data = request.form.get("data")
         print("data is: ", data)
-    print("openVisualise method reached");
-    # repoStr = repo['repo']
-    # sheetStr = sheet['sheet']
 
-    # repositories = {k:v for k,v in repositories.items() if k in user_repos}
-    # return('success')
-    # return render_template('visualise.html',
-    #                        login=g.user.github_login,
-    #                        repo=repo)
-    # return render_template("visualise.html", sheet=sheet, repo=repo)
-    return redirect(url_for('visualise', repo=repo, sheet=sheet))
+        ontodb.parseRelease(repo)
+        ontodb.parseData(data)
+        dotStr = ontodb.getDotForSheetGraph()
+        return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
+
+    return ("Only POST allowed.")
 
 
 @app.route('/visualise/<repo>/<sheet>')
@@ -729,16 +762,18 @@ def openVisualise():
 def visualise(repo, sheet):
     return render_template("visualise.html", sheet=sheet, repo=repo)
 
-@app.route("/dot", methods=["GET"]) 
-@verify_logged_in
-def dot():
-    if request.method == "GET":
-        #DOT:
-        filename = os.path.join(app.static_folder, 'test.dot')
-        with open(filename) as data_file:
-            graph = data_file.read()
-        return (graph)
-    return ('failed') #todo: do we need message:success, 200 here? 
+#@app.route("/dot", methods=["GET"])
+#@verify_logged_in
+#def dot():
+#    if request.method == "GET":
+#        #DOT:
+#        filename = os.path.join(app.static_folder, 'test.dot')
+#        with open(filename) as data_file:
+#            graph = data_file.read()
+#        return (graph)
+#    return ('failed') #todo: do we need message:success, 200 here?
+
+
 
 # Internal methods
 
@@ -945,7 +980,6 @@ def searchAcrossSheets(repo_name, search_string):
 if __name__ == "__main__":        # on running python app.py
 
     app.run(debug=app.config["DEBUG"], port=8080)        # run the flask app
-
 
 
 

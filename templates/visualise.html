@@ -24,38 +24,22 @@
 <script src="https://cdn.jsdelivr.net/npm/snapsvg@0.5.1/dist/snap.svg.min.js"></script>
 
 <script>
-  
+
+
   window.addEventListener("load", function (graph) {
+    var dotStr = '{{ dotStr | safe }}';
 
-    getDot().done(function (graph) {
+    console.log(dotStr);
 
-    }).then(function(DOTstring){
-      console.log(DOTstring);
-      
-        
-    });
-
-
-  });
-
-  function getDot() {
-    var dot = "";
-    return $.ajax({
-      url: '/dot',
-      dataType: 'text',
-      type: 'GET',
-      data: { msg: "test" },
-      success: function (graph) {
-        dot = graph;
-        // Asynchronous call to layout
-        hpccWasm.graphviz.layout(dot, "svg", "dot").then(svg => {
+    // Asynchronous call to layout
+        hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
             const div = document.getElementById("placeholder");
             //change size test:
             // $("#svg1").replaceWith(svg);
             // $("#placeholder").children().first().attr({
-            // width:"500%", 
-            //  height:"500%", 
-            //  viewBox:"0 0 1000 1000", 
+            // width:"500%",
+            //  height:"500%",
+            //  viewBox:"0 0 1000 1000",
             // preserveAspectRatio:"xMaxYMax"
             // });
             div.innerHTML = svg;
@@ -65,7 +49,7 @@
             // var s = Snap("#svg");
             // div.innerHTML = s;
 
-            //snap.svg svg manipulation: 
+            //snap.svg svg manipulation:
             // var s = Snap("#svg");
             // var g = s.g();
             // // // var image = g.image(svg, 0, 0, 1000, 800);
@@ -76,7 +60,7 @@
             // s.append(snapSVG);
 
             // div.innerHTML = s;
-            
+
         });
 
         // hpccWasm.graphvizSync().then(graphviz => {
@@ -84,11 +68,9 @@
         //     // Synchronous call to layout
         //     div.innerHTML = graphviz.layout(dot, "svg", "dot");
         // });
-      }, error: function () {
-        console.log("dot error: " + graph);
-      }
-    });
-  }
+
+  });
+
 
   ///////////////////////////////////////////////////////WASM version tester: ///////////////////////////
   /*

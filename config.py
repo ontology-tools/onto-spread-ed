@@ -12,6 +12,8 @@ APP_TITLE = "Ontology Spreadsheet Editor"
 
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
 
+RELEASE_FILES = {"AddictO": "addicto.owx", "BCIO": "bcio.owx"}
+
 if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
     GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
