@@ -210,7 +210,7 @@ class OntologyDataStore:
 
     def parseData(self, data):
         self.data = data
-        for data_item in self.data:
+        for data_item in self.data[1:100]:  #testing with smaller graph
             if 'ID' in data_item and 'Label' in data_item:
                 self.label_to_id[data_item['Label']] = data_item['ID']
 
@@ -218,12 +218,17 @@ class OntologyDataStore:
         G = networkx.Graph()
 
         for data_item in self.data:
-            if 'ID' in data_item and  'Label' in data_item and 'Definition' in data_item and 'Parent' in data_item:
-                if self.label_to_id[data_item['Parent']]:
-                    G.add_node(data_item['ID'], label=data_item['Label'], defn=data_item['Definition'])
-                    G.add_edge(data_item['ID'], self.label_to_id[data_item['Parent']])
+            if 'ID' in data_item and \
+                    'Label' in data_item and \
+                    'Definition' in data_item and \
+                    'Parent' in data_item:
+                if data_item['Parent'] in self.label_to_id:
+                    G.add_node(data_item['ID'].replace(":","_"), label=data_item['Label'], defn=data_item['Definition'])
+                    G.add_edge(data_item['ID'].replace(":","_"), self.label_to_id[data_item['Parent']].replace(":","_"))
 
         P = networkx.nx_pydot.to_pydot(G)
+        print("Built DOT",P)
+        print("From graph",G)
         return(P)
 
 
@@ -746,19 +751,19 @@ def openVisualise():
         sheet = request.form.get("sheet")
         print("sheet is ", sheet)
         #headers = json.loads(request.form.get("headers"))
-        data = request.form.get("data")
-        print("data is: ", data)
+        data = json.loads(request.form.get("data"))
+        #print("data is: ", data)
 
         ontodb.parseRelease(repo)
         ontodb.parseData(data)
-        dotStr = ontodb.getDotForSheetGraph()
+        dotStr = ontodb.getDotForSheetGraph().to_string()
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
 
     return ("Only POST allowed.")
 
 
 @app.route('/visualise/<repo>/<sheet>')
-# @verify_logged_in
+@verify_logged_in
 def visualise(repo, sheet):
     return render_template("visualise.html", sheet=sheet, repo=repo)
 

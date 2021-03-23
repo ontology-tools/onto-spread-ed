@@ -27,7 +27,9 @@
 
 
   window.addEventListener("load", function (graph) {
-    var dotStr = '{{ dotStr | safe }}';
+    var dotStr = `
+        {{ dotStr | safe }}
+        `;
 
     console.log(dotStr);
 
