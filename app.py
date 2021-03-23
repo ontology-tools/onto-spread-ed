@@ -708,6 +708,10 @@ def openVisualise():
         print("repo is ", repo)
         sheet = json.loads(request.form.get("sheet"))
         print("sheet is ", sheet)
+        rowData = json.loads(request.form.get("rowData"))
+        headers = json.loads(request.form.get("headers")) 
+        table = json.loads(request.form.get("table")) 
+        print("table is: ", table)
     print("openVisualise method reached");
     # repoStr = repo['repo']
     # sheetStr = sheet['sheet']
@@ -735,9 +739,8 @@ def dot():
         with open(filename) as data_file:
             graph = data_file.read()
         return (graph)
-        # return ("dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }")
     return ('failed') #todo: do we need message:success, 200 here? 
-    
+
 # Internal methods
 
 def get_spreadsheet(repo_detail,folder,spreadsheet):

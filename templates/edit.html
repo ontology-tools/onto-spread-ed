@@ -1602,17 +1602,18 @@
 
         var repo = "testRepo";
         var sheet = "testSheet";
-
+        // todo: is rowData up to date?
         jQuery.ajax({
         url: '/openVisualise',
         dataType: 'text',
         type: 'POST',
         async: 'false',
-        data: { repo: JSON.stringify( repo ), sheet: JSON.stringify( sheet ) },
+        data: { repo: JSON.stringify( repo ), sheet: JSON.stringify( sheet ), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData())},
         // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
         success: function (data) {
             console.log("success");
-            window.location.href = "/visualise/" + repo + "/" + sheet;
+            window.open("/visualise/" + repo + "/" + sheet, '_blank');
+            // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
             // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
         }, error: function(err){
             console.log("error" + err);

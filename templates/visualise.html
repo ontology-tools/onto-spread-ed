@@ -6,7 +6,10 @@
 
 {% block content %}
 <h1>VISUALISATIONS</h1>
-<div id="placeholder"></div>
+<div id="placeholder" style="width:320px; height:480px;">
+  <svg id="svg" width="1000px" height="800px"></svg>
+  <!-- <svg id="svg1" width="100%" height="100%" viewBox="0 0 640 480" preserveAspectRatio="xMaxYMax"></svg> -->
+</div>
 <div id="placeholder2"></div>
 
 
@@ -15,7 +18,13 @@
     <script>
         var hpccWasm = window["@hpcc-js/wasm"];
     </script>
+
+<!-- snapsvg for manipulating SVG -->
+
+<script src="https://cdn.jsdelivr.net/npm/snapsvg@0.5.1/dist/snap.svg.min.js"></script>
+
 <script>
+  
   window.addEventListener("load", function (graph) {
 
     getDot().done(function (graph) {
@@ -41,7 +50,33 @@
         // Asynchronous call to layout
         hpccWasm.graphviz.layout(dot, "svg", "dot").then(svg => {
             const div = document.getElementById("placeholder");
+            //change size test:
+            // $("#svg1").replaceWith(svg);
+            // $("#placeholder").children().first().attr({
+            // width:"500%", 
+            //  height:"500%", 
+            //  viewBox:"0 0 1000 1000", 
+            // preserveAspectRatio:"xMaxYMax"
+            // });
             div.innerHTML = svg;
+            // $("#placeholder").children().first().attr({
+            //   id:svg
+            // });
+            // var s = Snap("#svg");
+            // div.innerHTML = s;
+
+            //snap.svg svg manipulation: 
+            // var s = Snap("#svg");
+            // var g = s.g();
+            // // // var image = g.image(svg, 0, 0, 1000, 800);
+            // var snapSVG = Snap.load(svg, function(f){
+            // //   var g = s.g();
+            // //   var image = g.image(snapSVG, 0, 0, 1000, 800);
+            // });
+            // s.append(snapSVG);
+
+            // div.innerHTML = s;
+            
         });
 
         // hpccWasm.graphvizSync().then(graphviz => {
