@@ -1652,29 +1652,55 @@
     });
 
     $("#visualise-selection").click(function () {
-        var repo = "testRepo";
-        var sheet = "testSheet";
+        // var repo = "testRepo";
+        // var sheet = "testSheet";
         var selectedRows = table.getSelectedData();
-        // selectedRows.forEach(function (item, index){
-        //     console.log(item);
+
+        window.open('', 'VisualisationWindow');
+
+        var form = document.createElement("form");
+        form.setAttribute("method", "post");
+        form.setAttribute("action", "/openVisualise");
+          form.setAttribute("target",'VisualisationWindow');
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = "sheet";
+          input.value = "{{spreadsheet_name}}";
+          form.appendChild(input);
+          var input2 = document.createElement('input');
+          input2.type = 'hidden';
+          input2.name = "repo";
+          input2.value = "{{repo_name}}";
+          form.appendChild(input2);
+          var input3 = document.createElement('input');
+          input3.type = 'hidden';
+          input3.name = "data";
+          input3.value = JSON.stringify( selectedRows );
+          form.appendChild(input3);
+          document.body.appendChild(form);
+          form.target = 'VisualisationWindow';
+          form.submit();
+          document.body.removeChild(form);
+        // // selectedRows.forEach(function (item, index){
+        // //     console.log(item);
+        // // });
+        // // todo: is rowData up to date?
+        // jQuery.ajax({
+        //     url: '/openVisualise',
+        //     dataType: 'text',
+        //     type: 'POST',
+        //     async: 'false',
+        //     data: { repo: JSON.stringify(repo), sheet: JSON.stringify(sheet), headers: JSON.stringify(headers), data: JSON.stringify(selectedRows) },
+        //     // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
+        //     success: function (data) {
+        //         console.log("success");
+        //         window.open("/visualise/" + repo + "/" + sheet, '_blank');
+        //         // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
+        //         // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
+        //     }, error: function (err) {
+        //         console.log("error" + err);
+        //     }
         // });
-        // todo: is rowData up to date?
-        jQuery.ajax({
-            url: '/openVisualise',
-            dataType: 'text',
-            type: 'POST',
-            async: 'false',
-            data: { repo: JSON.stringify(repo), sheet: JSON.stringify(sheet), headers: JSON.stringify(headers), data: JSON.stringify(selectedRows) },
-            // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
-            success: function (data) {
-                console.log("success");
-                window.open("/visualise/" + repo + "/" + sheet, '_blank');
-                // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
-                // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
-            }, error: function (err) {
-                console.log("error" + err);
-            }
-        });
     });
 
     $('#contentTable').ready(function () {
