@@ -754,7 +754,9 @@ def openVisualise():
         data = json.loads(request.form.get("data"))
         #print("data is: ", data)
         table = json.loads(request.form.get("table"))
-
+        # print("table is: ", table)
+        indices = json.loads(request.form.get("indices"))
+        print("indices are: ", indices)
         ontodb.parseRelease(repo)
         ontodb.parseData(data)
         dotStr = ontodb.getDotForSheetGraph().to_string()

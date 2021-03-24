@@ -1604,6 +1604,7 @@
         //var repo = "testRepo";
         //var sheet = "testSheet";
         // todo: is rowData up to date?
+        var indices = [];
         window.open('', 'VisualisationWindow');
 
         var form = document.createElement("form");
@@ -1630,6 +1631,11 @@
           input4.name = "table";
           input4.value = JSON.stringify( table.getData() );
           form.appendChild(input4);
+          var input5 = document.createElement('input');
+          input5.type = 'hidden';
+          input5.name = "indices";
+          input5.value = JSON.stringify( indices );
+          form.appendChild(input5);
           document.body.appendChild(form);
           form.target = 'VisualisationWindow';
           form.submit();
@@ -1659,8 +1665,16 @@
     $("#visualise-selection").click(function () {
         // var repo = "testRepo";
         // var sheet = "testSheet";
-        var selectedRows = table.getSelectedData();
+        var selectedData = table.getSelectedData();
+        var selectedRows = table.getSelectedRows();
+        var indices = [];
 
+        for (r in selectedRows){
+            // console.log(r);
+            // console.log(selectedRows[r].getIndex());
+            indices.push(selectedRows[r].getIndex());
+        }
+        console.log(indices);
         window.open('', 'VisualisationWindow');
 
         var form = document.createElement("form");
@@ -1680,13 +1694,18 @@
           var input3 = document.createElement('input');
           input3.type = 'hidden';
           input3.name = "data";
-          input3.value = JSON.stringify( selectedRows );
+          input3.value = JSON.stringify( selectedData );
           form.appendChild(input3);
           var input4 = document.createElement('input');
           input4.type = 'hidden';
           input4.name = "table";
           input4.value = JSON.stringify( table.getData() );
           form.appendChild(input4);
+          var input5 = document.createElement('input');
+          input5.type = 'hidden';
+          input5.name = "indices";
+          input5.value = JSON.stringify( indices );
+          form.appendChild(input5);
           document.body.appendChild(form);
           form.target = 'VisualisationWindow';
           form.submit();
