@@ -8,5 +8,5 @@ google-cloud-secret-manager
 google-cloud-storage
 daff
 whoosh
-pyhornedowl
+py_horned_owl
 networkx
