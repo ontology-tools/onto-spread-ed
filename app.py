@@ -753,6 +753,7 @@ def openVisualise():
         #headers = json.loads(request.form.get("headers"))
         data = json.loads(request.form.get("data"))
         #print("data is: ", data)
+        table = json.loads(request.form.get("table"))
 
         ontodb.parseRelease(repo)
         ontodb.parseData(data)

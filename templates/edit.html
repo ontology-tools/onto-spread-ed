@@ -1625,6 +1625,11 @@
           input3.name = "data";
           input3.value = JSON.stringify( table.getData() );
           form.appendChild(input3);
+          var input4 = document.createElement('input');
+          input4.type = 'hidden';
+          input4.name = "table";
+          input4.value = JSON.stringify( table.getData() );
+          form.appendChild(input4);
           document.body.appendChild(form);
           form.target = 'VisualisationWindow';
           form.submit();
@@ -1677,6 +1682,11 @@
           input3.name = "data";
           input3.value = JSON.stringify( selectedRows );
           form.appendChild(input3);
+          var input4 = document.createElement('input');
+          input4.type = 'hidden';
+          input4.name = "table";
+          input4.value = JSON.stringify( table.getData() );
+          form.appendChild(input4);
           document.body.appendChild(form);
           form.target = 'VisualisationWindow';
           form.submit();
