@@ -28,9 +28,9 @@
                 review</button>
             <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i>
                 Reviewed</button>
-            <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-desktop"></i>
+            <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-project-diagram"></i>
                 Visualise sheet</button>
-            <button id=visualise-selection class="btn btn-outline-success btn-sm"><i class="fas fa-desktop"></i>
+            <button id=visualise-selection class="btn btn-outline-success btn-sm"><i class="fab fa-uncharted"></i>
                 Visualise selection</button>
         </div>
     </div>
@@ -1600,138 +1600,92 @@
     });
 
     $("#visualise-sheet").click(function () {
-
-        //var repo = "testRepo";
-        //var sheet = "testSheet";
-        // todo: is rowData up to date?
         var indices = [];
         window.open('', 'VisualisationWindow');
 
         var form = document.createElement("form");
         form.setAttribute("method", "post");
         form.setAttribute("action", "/openVisualise");
-          form.setAttribute("target",'VisualisationWindow');
-          var input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = "sheet";
-          input.value = "{{spreadsheet_name}}";
-          form.appendChild(input);
-          var input2 = document.createElement('input');
-          input2.type = 'hidden';
-          input2.name = "repo";
-          input2.value = "{{repo_name}}";
-          form.appendChild(input2);
-          //todo: this is unneccessary now, use indices instead with table:
-          var input3 = document.createElement('input');
-          input3.type = 'hidden';
-          input3.name = "data";
-          input3.value = JSON.stringify( table.getData() );
-          form.appendChild(input3);
-          var input4 = document.createElement('input');
-          input4.type = 'hidden';
-          input4.name = "table";
-          input4.value = JSON.stringify( table.getData() );
-          form.appendChild(input4);
-          var input5 = document.createElement('input');
-          input5.type = 'hidden';
-          input5.name = "indices";
-          input5.value = JSON.stringify( indices );
-          form.appendChild(input5);
-          document.body.appendChild(form);
-          form.target = 'VisualisationWindow';
-          form.submit();
-          document.body.removeChild(form);
-
-        //jQuery.ajax({
-        //    url: '/openVisualise',
-        //    dataType: 'text',
-        //    type: 'POST',
-        //    async: 'false',
-        //    data: { repo: JSON.stringify(repo), sheet: JSON.stringify(sheet), headers: JSON.stringify(headers), data: JSON.stringify(table.getData()) },
-        //    // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
-        //    success: function (data) {
-        //        console.log("success");
-        //        parsedData = JSON.parse(data);
-        //        dotStr = parsedData.dotStr
-        //        window.open("/visualise/" + repo + "/" + sheet, '_blank');
-        //        // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
-        //        // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
-        //    }, error: function (err) {
-        //        console.log("error" + err);
-        //    }
-        //});
+        form.setAttribute("target", 'VisualisationWindow');
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = "sheet";
+        input.value = "{{spreadsheet_name}}";
+        form.appendChild(input);
+        var input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = "repo";
+        input2.value = "{{repo_name}}";
+        form.appendChild(input2);
+        //todo: this is unneccessary now, use indices instead with table:
+        var input3 = document.createElement('input');
+        input3.type = 'hidden';
+        input3.name = "data";
+        input3.value = JSON.stringify(table.getData());
+        form.appendChild(input3);
+        var input4 = document.createElement('input');
+        input4.type = 'hidden';
+        input4.name = "table";
+        input4.value = JSON.stringify(table.getData());
+        form.appendChild(input4);
+        var input5 = document.createElement('input');
+        input5.type = 'hidden';
+        input5.name = "indices";
+        input5.value = JSON.stringify(indices);
+        form.appendChild(input5);
+        document.body.appendChild(form);
+        form.target = 'VisualisationWindow';
+        form.submit();
+        document.body.removeChild(form);
 
     });
 
     $("#visualise-selection").click(function () {
-        // var repo = "testRepo";
-        // var sheet = "testSheet";
         var selectedData = table.getSelectedData();
         var selectedRows = table.getSelectedRows();
         var indices = [];
 
-        for (r in selectedRows){
-            // console.log(r);
-            // console.log(selectedRows[r].getIndex());
+        for (r in selectedRows) {
             indices.push(selectedRows[r].getIndex());
         }
+        indices.sort(function(a, b){return a-b});
         console.log(indices);
         window.open('', 'VisualisationWindow');
 
         var form = document.createElement("form");
         form.setAttribute("method", "post");
         form.setAttribute("action", "/openVisualise");
-          form.setAttribute("target",'VisualisationWindow');
-          var input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = "sheet";
-          input.value = "{{spreadsheet_name}}";
-          form.appendChild(input);
-          var input2 = document.createElement('input');
-          input2.type = 'hidden';
-          input2.name = "repo";
-          input2.value = "{{repo_name}}";
-          form.appendChild(input2);
-          //todo: this is unneccessary now, use indices instead with table:
-          var input3 = document.createElement('input');
-          input3.type = 'hidden';
-          input3.name = "data";
-          input3.value = JSON.stringify( selectedData );
-          form.appendChild(input3);
-          var input4 = document.createElement('input');
-          input4.type = 'hidden';
-          input4.name = "table";
-          input4.value = JSON.stringify( table.getData() );
-          form.appendChild(input4);
-          var input5 = document.createElement('input');
-          input5.type = 'hidden';
-          input5.name = "indices";
-          input5.value = JSON.stringify( indices );
-          form.appendChild(input5);
-          document.body.appendChild(form);
-          form.target = 'VisualisationWindow';
-          form.submit();
-          document.body.removeChild(form);
-        // // selectedRows.forEach(function (item, index){
-        // //     console.log(item);
-        // // });
-        // // todo: is rowData up to date?
-        // jQuery.ajax({
-        //     url: '/openVisualise',
-        //     dataType: 'text',
-        //     type: 'POST',
-        //     async: 'false',
-        //     data: { repo: JSON.stringify(repo), sheet: JSON.stringify(sheet), headers: JSON.stringify(headers), data: JSON.stringify(selectedRows) },
-        //     // data: { repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
-        //     success: function (data) {
-        //         console.log("success");
-        //         window.open("/visualise/" + repo + "/" + sheet, '_blank');
-        //         // window.location.href = "/visualise/" + repo + "/" + sheet, '_blank';
-        //         // window.location.href = "{{ url_for('visualise', repo='repo', sheet='sheet') }}"; //not working well..
-        //     }, error: function (err) {
-        //         console.log("error" + err);
-        //     }
-        // });
+        form.setAttribute("target", 'VisualisationWindow');
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = "sheet";
+        input.value = "{{spreadsheet_name}}";
+        form.appendChild(input);
+        var input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = "repo";
+        input2.value = "{{repo_name}}";
+        form.appendChild(input2);
+        //todo: this is unneccessary now, use indices instead with table:
+        var input3 = document.createElement('input');
+        input3.type = 'hidden';
+        input3.name = "data";
+        input3.value = JSON.stringify(selectedData);
+        form.appendChild(input3);
+        var input4 = document.createElement('input');
+        input4.type = 'hidden';
+        input4.name = "table";
+        input4.value = JSON.stringify(table.getData());
+        form.appendChild(input4);
+        var input5 = document.createElement('input');
+        input5.type = 'hidden';
+        input5.name = "indices";
+        input5.value = JSON.stringify(indices);
+        form.appendChild(input5);
+        document.body.appendChild(form);
+        form.target = 'VisualisationWindow';
+        form.submit();
+        document.body.removeChild(form);
     });
 
     $('#contentTable').ready(function () {
