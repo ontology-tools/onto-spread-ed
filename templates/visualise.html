@@ -6,8 +6,8 @@
 
 {% block content %}
 <h1>VISUALISATIONS</h1>
-<div id="placeholder" style="width:320px; height:480px;">
-  <svg id="svg" width="1000px" height="800px"></svg>
+<div id="placeholder" style="width:800px; height:800px;">
+  <!-- <svg id="svg" width="1000px" height="800px"></svg> -->
   <!-- <svg id="svg1" width="100%" height="100%" viewBox="0 0 640 480" preserveAspectRatio="xMaxYMax"></svg> -->
 </div>
 <div id="placeholder2"></div>
@@ -21,7 +21,7 @@
 
 <!-- snapsvg for manipulating SVG -->
 
-<script src="https://cdn.jsdelivr.net/npm/snapsvg@0.5.1/dist/snap.svg.min.js"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/snapsvg@0.5.1/dist/snap.svg.min.js"></script> -->
 
 <script>
 
@@ -44,7 +44,9 @@
             //  viewBox:"0 0 1000 1000",
             // preserveAspectRatio:"xMaxYMax"
             // });
+
             div.innerHTML = svg;
+            
             // $("#placeholder").children().first().attr({
             //   id:svg
             // });
