@@ -105,6 +105,7 @@
             // clear canvas
 
             // Asynchronous call to layout
+            //todo: do we need to do all of this again every time? 
             hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                 // const div = document.getElementById("placeholder");
 
@@ -120,7 +121,7 @@
                 var url = DOMURL.createObjectURL(svg);
                 img1.onload = function () {
                     // ctx.drawImage(img1, 25, 70);
-                    context.drawImage(img1, 0, 0, img1.width * scale, img1.height * scale, 0, 0, canvas.width, canvas.height);
+                    context.drawImage(img1, 0, 0, img1.width * scale, img1.height * scale, translatePos.x, translatePos.y, canvas.width, canvas.height);
                     DOMURL.revokeObjectURL(url);
                 }
                 img1.src = url;
@@ -133,13 +134,15 @@
 
 
         }
-
+        //todo: this is the second call to onload() - refactor? 
         window.onload = function () {
             var canvas = document.getElementById("myCanvas");
 
             var translatePos = {
-                x: canvas.width / 2,
-                y: canvas.height / 2
+                // x: canvas.width / 2,
+                // y: canvas.height / 2
+                 x: 0,
+                y: 0
             };
 
             var scale = 1.0;
