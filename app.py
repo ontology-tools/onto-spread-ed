@@ -23,7 +23,7 @@ import base64
 import json
 import traceback
 import daff
-#import pyhornedowl
+import pyhornedowl
 import networkx
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
@@ -205,8 +205,8 @@ class OntologyDataStore:
 
     def parseRelease(self,repo):
         self.ontofile = app.config['RELEASE_FILES'][repo]
-        #if self.ontofile:
-        #    self.release = pyhornedowl.open_ontology(self.ontofile)
+        if self.ontofile:
+           self.release = pyhornedowl.open_ontology(self.ontofile)
 
     def parseData(self, data):
         self.data = data
