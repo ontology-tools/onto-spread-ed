@@ -5,302 +5,197 @@
 {% endblock %}
 
 {% block content %}
+<style>
+    body {
+        margin: 0px;
+        padding: 0px;
+    }
+
+    #wrapper {
+        position: relative;
+        border: 0px;
+        width: 578px;
+        height: 200px;
+    }
+
+    #buttonWrapper {
+        position: relative;
+        width: 30px;
+        top: 2px;
+        right: 2px;
+    }
+
+    input[type="button"] {
+        padding: 5px;
+        width: 30px;
+        margin: 0px 0px 2px 0px;
+    }
+</style>
 <h1>VISUALISATIONS</h1>
-<div id="placeholder" style="width:800px; height:800px;">
+
+<body onmousedown="return false;">
+    <div id="buttonWrapper">
+        <input type="button" id="plus" value="+"><input type="button" id="minus" value="-">
+    </div>
+    <div id="wrapper style="width:1920px; height:1600px;">
+        <canvas id="myCanvas" width="1920" height="1080">
+        </canvas>
+    </div>
+    <!-- <div id="placeholder" style="width:800px; height:800px;">
     <canvas id="myCanvas" style="border:2px solid green;" width="800" height="600"></canvas>
 
-  <!-- <svg id="svg" width="1000px" height="800px"></svg> -->
-  <!-- <svg id="svg1" width="100%" height="100%" viewBox="0 0 640 480" preserveAspectRatio="xMaxYMax"></svg> -->
-</div>
-<div id="placeholder2"></div>
+    <!-- <svg id="svg" width="1000px" height="800px"></svg> -->
+    <!-- <svg id="svg1" width="100%" height="100%" viewBox="0 0 640 480" preserveAspectRatio="xMaxYMax"></svg> -->
+    <!-- </div>  -->
+    <!-- <div id="placeholder2"></div> -->
 
 
-<!-- WASM GRAPHVIZ -->
-<script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.min.js"></script>
+    <!-- WASM GRAPHVIZ -->
+    <script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.min.js"></script>
     <script>
         var hpccWasm = window["@hpcc-js/wasm"];
     </script>
 
-<!-- snapsvg for manipulating SVG -->
-
-<!-- <script src="https://cdn.jsdelivr.net/npm/snapsvg@0.5.1/dist/snap.svg.min.js"></script> -->
-
-<script>
+    <script>
 
 
-  window.addEventListener("load", function (graph) {
-    var dotStr = `
+        window.addEventListener("load", function (graph) {
+            var dotStr = `
         {{ dotStr | safe }}
         `;
 
-    console.log(dotStr);
+            console.log(dotStr);
 
-    // Asynchronous call to layout
-        hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
-            const div = document.getElementById("placeholder");
-            //change size test:
-            // $("#svg1").replaceWith(svg);
-            // $("#placeholder").children().first().attr({
-            // width:"500%",
-            //  height:"500%",
-            //  viewBox:"0 0 1000 1000",
-            // preserveAspectRatio:"xMaxYMax"
+            // Asynchronous call to layout
+            hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
+                // const div = document.getElementById("placeholder");
+
+                var canvas = document.getElementById('myCanvas');
+                var ctx = canvas.getContext('2d');
+                var data = svg;
+                var DOMURL = window.URL || window.webkitURL || window;
+                var img1 = new Image();
+                var svg = new Blob([data], { type: 'image/svg+xml' });
+                var url = DOMURL.createObjectURL(svg);
+                img1.onload = function () {
+                    // ctx.drawImage(img1, 25, 70);
+                    // ctx.drawImage(img1, 0, 0, img1.width, img1.height, 0, 0, 800, 600);
+                    DOMURL.revokeObjectURL(url);
+                }
+                img1.src = url;
+
+
+            });
+
+            // hpccWasm.graphvizSync().then(graphviz => {
+            //     const div = document.getElementById("placeholder2");
+            //     // Synchronous call to layout
+            //     div.innerHTML = graphviz.layout(dot, "svg", "dot");
             // });
-
-            // div.innerHTML = svg;
-            
-            var canvas = document.getElementById('myCanvas');
-         var ctx = canvas.getContext('2d');
-         var data = svg;
-         var DOMURL = window.URL || window.webkitURL || window;
-         var img1 = new Image();
-         var svg = new Blob([data], {type: 'image/svg+xml'});
-         var url = DOMURL.createObjectURL(svg);
-         img1.onload = function() {
-            // ctx.drawImage(img1, 25, 70);
-            ctx.drawImage(img1,0,0,img1.width,img1.height,0,0,800,600);
-            DOMURL.revokeObjectURL(url);
-         }
-         img1.src = url;
-            // $("#placeholder").children().first().attr({
-            //   id:svg
-            // });
-            // var s = Snap("#svg");
-            // div.innerHTML = s;
-
-            //snap.svg svg manipulation:
-            // var s = Snap("#svg");
-            // var g = s.g();
-            // // // var image = g.image(svg, 0, 0, 1000, 800);
-            // var snapSVG = Snap.load(svg, function(f){
-            // //   var g = s.g();
-            // //   var image = g.image(snapSVG, 0, 0, 1000, 800);
-            // });
-            // s.append(snapSVG);
-
-            // div.innerHTML = s;
 
         });
 
-        // hpccWasm.graphvizSync().then(graphviz => {
-        //     const div = document.getElementById("placeholder2");
-        //     // Synchronous call to layout
-        //     div.innerHTML = graphviz.layout(dot, "svg", "dot");
-        // });
-
-  });
-
-
-  ///////////////////////////////////////////////////////WASM version tester: ///////////////////////////
-  /*
-  const dot = `
-            digraph {
-  OBO_ADDICTO_0000272 [label="cigarette\npack\nsize",shape=box,font=helvetica]
-  OBO_ADDICTO_0000852 [label=PUFFiT,shape=box,font=helvetica]
-  OBO_ADDICTO_0000224 [label="e-cigarette\npod\ndevice",shape=box,font=helvetica]
-  OBO_ADDICTO_0000536 [label="liquid\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000625 [label="menthol\nflavoured\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000256 [label="mechanical\nmod\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000855 [label="THC\nvaping\ndevice\npart",shape=box,font=helvetica]
-  OBO_ADDICTO_0000535 [label="heated\ntobacco-containing\nproduct\npart",shape=box,font=helvetica]
-  OBO_ADDICTO_0000296 [label=squonker,shape=box,font=helvetica]
-  OBO_ADDICTO_0000227 [label="e-cigarette\ntank",shape=box,font=helvetica]
-  OBO_ADDICTO_0000200 [label=cigar,shape=box,font=helvetica]
-  OBO_ADDICTO_0000301 [label="THC\ncontaining\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000213 [label="e-cigarette\natomiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000285 [label="regulated\nbox\nmod\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000851 [label=Kretek,shape=box,font=helvetica]
-  OBO_ADDICTO_0000239 [label="flavoured\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000299 [label="tank\ntype\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000247 [label="high\nnicotine\nconcentration\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000827 [label="product\npart",shape=box,font=helvetica]
-  OBO_ADDICTO_0000283 [label="rechargeable\ncigalike\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000303 [label=tobacco,shape=box,font=helvetica]
-  OBO_ADDICTO_0000251 [label="licensed\nnicotine\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000882 [label="oil\nbased\ntabletop\nvaporiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000212 [label="e-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000207 [label="combustible\ntobacco-containing\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000737 [label=blunt,shape=box,font=helvetica]
-  OBO_ADDICTO_0000221 [label="e-cigarette\nmod",shape=box,font=helvetica]
-  OBO_ADDICTO_0000294 [label="nasal\nsnuff",shape=box,font=helvetica]
-  OBO_ADDICTO_0000317 [label="vaping\ndevice\npart",shape=box,font=helvetica]
-  OBO_ADDICTO_0000308 [label="FDA-defined\ntobacco\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000304 [label="processed\ntobacco",shape=box,font=helvetica]
-  OBO_ADDICTO_0000210 [label="disposable\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000287 [label="second\ngeneration\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000312 [label="tobacco-flavoured\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000859 [label="e-cigarette\nproduct\nstandard",shape=box,font=helvetica]
-  OBO_ADDICTO_0000216 [label="e-cigarette\ncartridge",shape=box,font=helvetica]
-  OBO_ADDICTO_0000315 [label="vape\npen",shape=box,font=helvetica]
-  OBO_ADDICTO_0000753 [label="menthol\ncigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000284 [label="rechargeable\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000250 [label="juul\npod",shape=box,font=helvetica]
-  OBO_ADDICTO_0000254 [label="manufactured\ncigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000237 [label="fixed\npower\ne-cigarette\natomiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000201 [label=cigarette,shape=box,font=helvetica]
-  OBO_ADDICTO_0000817 [label="dry\nherb\nvaporiser\npen",shape=box,font=helvetica]
-  OBO_ADDICTO_0000858 [label="dry\nherb\ntabletop\nvaporiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000231 [label="electronic\nvaping\ndevice",shape=box,font=helvetica]
-  OBO_ADDICTO_0000190 [label="adjustable\npower\ne-cigarette\natomiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000267 [label="oil\nbased\nTHC\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000218 [label="e-cigarette\nliquid\ncontainer",shape=box,font=helvetica]
-  OBO_ADDICTO_0000230 [label="e-cigarette\nwith\ndripping\natomiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000311 [label="tobacco-containing\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000282 [label="rebuildable\ne-cigarette\natomiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000866 [label="tabletop\nvaporiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000214 [label="e-cigarette\nbattery",shape=box,font=helvetica]
-  OBO_ADDICTO_0000245 [label="heated\ntobacco-containing\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000865 [label="portable\ncannabis\nvaporiser",shape=box,font=helvetica]
-  OBO_ADDICTO_0000223 [label="e-cigarette\npart",shape=box,font=helvetica]
-  OBO_ADDICTO_0000198 [label="chewing\ntobacco",shape=box,font=helvetica]
-  OBO_ADDICTO_0000302 [label="THC\nvaping\ndevice",shape=box,font=helvetica]
-  OBO_ADDICTO_0000812 [label="CE4\ne-cigarette\ntank",shape=box,font=helvetica]
-  OBO_ADDICTO_0000249 [label=iQOS,shape=box,font=helvetica]
-  OBO_ADDICTO_0000826 [label="nicotine\ncontaining\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000266 [label="unflavoured\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000257 [label="nicotine\ndelivery\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000624 [label="mint\nflavoured\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000205 [label="closed\ne-cigarette\nsystem",shape=box,font=helvetica]
-  OBO_ADDICTO_0000861 [label="fully\nbranded\ncigarette\npack",shape=box,font=helvetica]
-  OBO_ADDICTO_0000209 [label="disposable\ncigalike\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000854 [label="THC\noil",shape=box,font=helvetica]
-  OBO_ADDICTO_0000300 [label="THC\ncart\nvaping\ndevice",shape=box,font=helvetica]
-  OBO_ADDICTO_0000232 [label="e-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000626 [label="sweet\nflavoured\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000316 [label="vaping\ndevice",shape=box,font=helvetica]
-  OBO_ADDICTO_0000853 [label="THC\nconcentrates",shape=box,font=helvetica]
-  OBO_ADDICTO_0000268 [label="open\ne-cigarette\nsystem",shape=box,font=helvetica]
-  OBO_ADDICTO_0000199 [label="cigalike\ne-cigarette",shape=box,font=helvetica]
-  OBO_ADDICTO_0000743 [label=cigarillo,shape=box,font=helvetica]
-  OBO_ADDICTO_0000222 [label="e-cigarette\nmouthpiece",shape=box,font=helvetica]
-  OBO_ADDICTO_0000246 [label="heated\ntobacco\nstick",shape=box,font=helvetica]
-  OBO_ADDICTO_0000292 [label="smokeless\ntobacco-containing\nproduct",shape=box,font=helvetica]
-  OBO_ADDICTO_0000271 [label="pack\nof\ncigarettes",shape=box,font=helvetica]
-  OBO_ADDICTO_0000813 [label="THC\nvape\npen",shape=box,font=helvetica]
-  OBO_ADDICTO_0000538 [label="tobacco-containing\nproduct\npart",shape=box,font=helvetica]
-  OBO_ADDICTO_0000220 [label="e-cigarette\nmicroprocessor",shape=box,font=helvetica]
-  OBO_ADDICTO_0000288 [label="shisha\npen",shape=box,font=helvetica]
-  OBO_ADDICTO_0000225 [label="e-cigarette\nreplaceable\ncoil",shape=box,font=helvetica]
-  OBO_ADDICTO_0000279 [label=product,shape=box,font=helvetica]
-  OBO_ADDICTO_0000295 [label="oral\nsnuff",shape=box,font=helvetica]
-  OBO_ADDICTO_0000240 [label="fruit\nflavoured\ne-liquid",shape=box,font=helvetica]
-  OBO_ADDICTO_0000250 -> OBO_ADDICTO_0000224 [label=subClassOf]
-  OBO_ADDICTO_0000232 -> OBO_ADDICTO_0000536 [label=subClassOf]
-  OBO_ADDICTO_0000854 -> OBO_ADDICTO_0000536 [label=subClassOf]
-  OBO_ADDICTO_0000300 -> OBO_ADDICTO_0000855 [label=subClassOf]
-  OBO_ADDICTO_0000743 -> OBO_ADDICTO_0000200 [label=subClassOf]
-  OBO_ADDICTO_0000267 -> OBO_ADDICTO_0000301 [label=subClassOf]
-  OBO_ADDICTO_0000237 -> OBO_ADDICTO_0000213 [label=subClassOf]
-  OBO_ADDICTO_0000190 -> OBO_ADDICTO_0000213 [label=subClassOf]
-  OBO_ADDICTO_0000282 -> OBO_ADDICTO_0000213 [label=subClassOf]
-  OBO_ADDICTO_0000624 -> OBO_ADDICTO_0000239 [label=subClassOf]
-  OBO_ADDICTO_0000312 -> OBO_ADDICTO_0000239 [label=subClassOf]
-  OBO_ADDICTO_0000240 -> OBO_ADDICTO_0000239 [label=subClassOf]
-  OBO_ADDICTO_0000626 -> OBO_ADDICTO_0000239 [label=subClassOf]
-  OBO_ADDICTO_0000625 -> OBO_ADDICTO_0000239 [label=subClassOf]
-  OBO_ADDICTO_0000535 -> OBO_ADDICTO_0000827 [label=subClassOf]
-  OBO_ADDICTO_0000317 -> OBO_ADDICTO_0000827 [label=subClassOf]
-  OBO_ADDICTO_0000311 -> OBO_ADDICTO_0000303 [label="BFO:0000051"]
-  OBO_ADDICTO_0000200 -> OBO_ADDICTO_0000303 [label="BFO:0000051"]
-  OBO_ADDICTO_0000201 -> OBO_ADDICTO_0000303 [label="BFO:0000051"]
-  OBO_ADDICTO_0000205 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000287 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000299 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000224 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000221 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000285 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000284 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000315 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000230 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000256 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000268 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000199 -> OBO_ADDICTO_0000212 [label=subClassOf]
-  OBO_ADDICTO_0000200 -> OBO_ADDICTO_0000207 [label=subClassOf]
-  OBO_ADDICTO_0000201 -> OBO_ADDICTO_0000207 [label=subClassOf]
-  OBO_ADDICTO_0000271 -> OBO_ADDICTO_0000207 [label=subClassOf]
-  OBO_ADDICTO_0000316 -> OBO_ADDICTO_0000317 [label="BFO:0000051"]
-  OBO_ADDICTO_0000855 -> OBO_ADDICTO_0000317 [label="BFO:0000051"]
-  OBO_ADDICTO_0000223 -> OBO_ADDICTO_0000317 [label=subClassOf]
-  OBO_ADDICTO_0000245 -> OBO_ADDICTO_0000304 [label=subClassOf]
-  OBO_ADDICTO_0000851 -> OBO_ADDICTO_0000201 [label=subClassOf]
-  OBO_ADDICTO_0000254 -> OBO_ADDICTO_0000201 [label=subClassOf]
-  OBO_ADDICTO_0000753 -> OBO_ADDICTO_0000201 [label=subClassOf]
-  OBO_ADDICTO_0000288 -> OBO_ADDICTO_0000231 [label=subClassOf]
-  OBO_ADDICTO_0000212 -> OBO_ADDICTO_0000231 [label=subClassOf]
-  OBO_ADDICTO_0000207 -> OBO_ADDICTO_0000311 [label=subClassOf]
-  OBO_ADDICTO_0000292 -> OBO_ADDICTO_0000311 [label=subClassOf]
-  OBO_ADDICTO_0000538 -> OBO_ADDICTO_0000311 [label=subClassOf]
-  OBO_ADDICTO_0000246 -> OBO_ADDICTO_0000311 [label=subClassOf]
-  OBO_ADDICTO_0000737 -> OBO_ADDICTO_0000311 [label=subClassOf]
-  OBO_ADDICTO_0000858 -> OBO_ADDICTO_0000866 [label=subClassOf]
-  OBO_ADDICTO_0000882 -> OBO_ADDICTO_0000866 [label=subClassOf]
-  OBO_ADDICTO_0000249 -> OBO_ADDICTO_0000245 [label=subClassOf]
-  OBO_ADDICTO_0000817 -> OBO_ADDICTO_0000865 [label=subClassOf]
-  OBO_ADDICTO_0000852 -> OBO_ADDICTO_0000865 [label=subClassOf]
-  OBO_ADDICTO_0000813 -> OBO_ADDICTO_0000865 [label=subClassOf]
-  OBO_ADDICTO_0000216 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000812 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000214 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000218 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000227 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000213 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000225 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000212 -> OBO_ADDICTO_0000223 [label="BFO:0000051"]
-  OBO_ADDICTO_0000220 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000222 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000296 -> OBO_ADDICTO_0000223 [label=subClassOf]
-  OBO_ADDICTO_0000866 -> OBO_ADDICTO_0000302 [label=subClassOf]
-  OBO_ADDICTO_0000865 -> OBO_ADDICTO_0000302 [label=subClassOf]
-  OBO_ADDICTO_0000855 -> OBO_ADDICTO_0000302 [label=subClassOf]
-  OBO_ADDICTO_0000853 -> OBO_ADDICTO_0000302 [label="RO:0000087"]
-  OBO_ADDICTO_0000854 -> OBO_ADDICTO_0000302 [label="RO:0000087"]
-  OBO_ADDICTO_0000247 -> OBO_ADDICTO_0000826 [label=subClassOf]
-  OBO_ADDICTO_0000251 -> OBO_ADDICTO_0000257 [label=subClassOf]
-  OBO_ADDICTO_0000210 -> OBO_ADDICTO_0000205 [label=subClassOf]
-  OBO_ADDICTO_0000209 -> OBO_ADDICTO_0000205 [label=subClassOf]
-  OBO_ADDICTO_0000826 -> OBO_ADDICTO_0000232 [label=subClassOf]
-  OBO_ADDICTO_0000239 -> OBO_ADDICTO_0000232 [label=subClassOf]
-  OBO_ADDICTO_0000212 -> OBO_ADDICTO_0000232 [label="RO:0001019"]
-  OBO_ADDICTO_0000266 -> OBO_ADDICTO_0000232 [label=subClassOf]
-  OBO_ADDICTO_0000301 -> OBO_ADDICTO_0000232 [label=subClassOf]
-  OBO_ADDICTO_0000231 -> OBO_ADDICTO_0000316 [label=subClassOf]
-  OBO_ADDICTO_0000302 -> OBO_ADDICTO_0000316 [label=subClassOf]
-  OBO_ADDICTO_0000283 -> OBO_ADDICTO_0000199 [label=subClassOf]
-  OBO_ADDICTO_0000245 -> OBO_ADDICTO_0000246 [label="RO:0001019"]
-  OBO_ADDICTO_0000295 -> OBO_ADDICTO_0000292 [label=subClassOf]
-  OBO_ADDICTO_0000198 -> OBO_ADDICTO_0000292 [label=subClassOf]
-  OBO_ADDICTO_0000294 -> OBO_ADDICTO_0000292 [label=subClassOf]
-  OBO_ADDICTO_0000272 -> OBO_ADDICTO_0000271 [label="IAO:0000136"]
-  OBO_ADDICTO_0000861 -> OBO_ADDICTO_0000271 [label=subClassOf]
-  OBO_ADDICTO_0000308 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000859 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000536 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000304 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000303 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000316 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000257 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000311 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000827 -> OBO_ADDICTO_0000279 [label=subClassOf]
-  OBO_ADDICTO_0000853 -> OBO_ADDICTO_0000279 [label=subClassOf]
-}
+        //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
+        function draw(scale, translatePos) {
+            var canvas = document.getElementById("myCanvas");
+            var context = canvas.getContext("2d");
+            var dotStr = `
+        {{ dotStr | safe }}
         `;
+            // clear canvas
 
-        // Asynchronous call to layout
-        hpccWasm.graphviz.layout(dot, "svg", "dot").then(svg => {
-            const div = document.getElementById("placeholder");
-            div.innerHTML = svg;
-        });
+            // Asynchronous call to layout
+            hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
+                // const div = document.getElementById("placeholder");
 
-        hpccWasm.graphvizSync().then(graphviz => {
-            const div = document.getElementById("placeholder2");
-            // Synchronous call to layout
-            div.innerHTML = graphviz.layout(dot, "svg", "dot");
-        });
-        
-*/
-</script>
-{% endblock %}
+                var canvas = document.getElementById('myCanvas');
+                var context = canvas.getContext('2d');
+                context.clearRect(0, 0, canvas.width, canvas.height);
 
-{%block javascript%}
 
-{% endblock %}
+                var data = svg;
+                var DOMURL = window.URL || window.webkitURL || window;
+                var img1 = new Image();
+                var svg = new Blob([data], { type: 'image/svg+xml' });
+                var url = DOMURL.createObjectURL(svg);
+                img1.onload = function () {
+                    // ctx.drawImage(img1, 25, 70);
+                    context.drawImage(img1, 0, 0, img1.width * scale, img1.height * scale, 0, 0, canvas.width, canvas.height);
+                    DOMURL.revokeObjectURL(url);
+                }
+                img1.src = url;
+                context.save();
+                context.translate(translatePos.x, translatePos.y);
+                context.scale(scale, scale);
+                context.restore();
+
+            });
+
+
+        }
+
+        window.onload = function () {
+            var canvas = document.getElementById("myCanvas");
+
+            var translatePos = {
+                x: canvas.width / 2,
+                y: canvas.height / 2
+            };
+
+            var scale = 1.0;
+            var scaleMultiplier = 0.8;
+            var startDragOffset = {};
+            var mouseDown = false;
+
+            // add button event listeners
+            document.getElementById("plus").addEventListener("click", function () {
+                scale *= scaleMultiplier;
+                draw(scale, translatePos);
+            }, false);
+
+            document.getElementById("minus").addEventListener("click", function () {
+                scale /= scaleMultiplier;
+                draw(scale, translatePos);
+            }, false);
+
+            // add event listeners to handle screen drag
+            canvas.addEventListener("mousedown", function (evt) {
+                mouseDown = true;
+                startDragOffset.x = evt.clientX - translatePos.x;
+                startDragOffset.y = evt.clientY - translatePos.y;
+            });
+
+            canvas.addEventListener("mouseup", function (evt) {
+                mouseDown = false;
+            });
+
+            canvas.addEventListener("mouseover", function (evt) {
+                mouseDown = false;
+            });
+
+            canvas.addEventListener("mouseout", function (evt) {
+                mouseDown = false;
+            });
+
+            canvas.addEventListener("mousemove", function (evt) {
+                if (mouseDown) {
+                    translatePos.x = evt.clientX - startDragOffset.x;
+                    translatePos.y = evt.clientY - startDragOffset.y;
+                    draw(scale, translatePos);
+                }
+            });
+
+            draw(scale, translatePos);
+        }
+
+        // jQuery(document).ready(function () {
+        //     $("#wrapper").mouseover(function (e) {
+        //         $('#status').html(e.pageX + ', ' + e.pageY);
+        //     });
+        // })
+    </script>
+    {% endblock %}
+
+    {%block javascript%}
+
+    {% endblock %}
