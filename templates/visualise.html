@@ -14,8 +14,8 @@
     #wrapper {
         position: relative;
         border: 0px;
-        width: 578px;
-        height: 200px;
+        width: 1920px;
+        height: 1080px;
     }
 
     #buttonWrapper {
@@ -35,7 +35,7 @@
 
 <body onmousedown="return false;">
     <!-- todo: move all styles inline, or at least remove redundancies -->
-    <div id="wrapper style=" width:1920px; height:1600px;">
+    <div id="wrapper style=" width:1920px; height:1080px;">
         <canvas id="myCanvas" width="1920" height="1080"></canvas>
         <div id="buttonWrapper">
             <input type="button" id="plus" value="+"><input type="button" id="minus" value="-">
@@ -56,7 +56,7 @@
             var canvas = document.getElementById("myCanvas");
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             //todo: we really shouldn't have to re-do all this every time???
             if (!loaded) {
                 var dotStr = `
@@ -66,18 +66,18 @@
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
                     var DOMURL = window.URL || window.webkitURL || window;
-                    
+
                     var svg = new Blob([data], { type: 'image/svg+xml' });
                     var url = DOMURL.createObjectURL(svg);
                     img1.onload = function () {
-                        context.drawImage(img1, 0, 0, img1.width / scale, img1.height / scale, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+                        context.drawImage(img1, 0, 0, img1.width / scale * 2, img1.height / scale * 2, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
                         // DOMURL.revokeObjectURL(url);
                     }
                     img1.src = url;
                     loaded = true;
                 });
             } else {
-                context.drawImage(img1, 0, 0, img1.width / scale, img1.height / scale, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+                context.drawImage(img1, 0, 0, img1.width / scale * 2, img1.height / scale * 2, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
             }
         }
 
