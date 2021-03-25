@@ -34,8 +34,8 @@
 <h1>VISUALISATIONS</h1>
 
 <body onmousedown="return false;">
-    
-    <div id="wrapper style=" width:1920px; height:1600px;">        
+    <!-- todo: move all styles inline, or at least remove redundancies -->
+    <div id="wrapper style=" width:1920px; height:1600px;">
         <canvas id="myCanvas" width="1920" height="1080"></canvas>
         <div id="buttonWrapper">
             <input type="button" id="plus" value="+"><input type="button" id="minus" value="-">
@@ -49,31 +49,38 @@
     </script>
 
     <script>
+        var loaded = false;
+        var img1 = new Image();
         //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
         function draw(scale, translatePos) {
             var canvas = document.getElementById("myCanvas");
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
-            var dotStr = `
-        {{ dotStr | safe }}
-        `;
-            // Asynchronous call to layout
-            hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
-                var data = svg;
-                var DOMURL = window.URL || window.webkitURL || window;
-                var img1 = new Image();
-                var svg = new Blob([data], { type: 'image/svg+xml' });
-                var url = DOMURL.createObjectURL(svg);
-                img1.onload = function () {
-                    context.drawImage(img1, 0, 0, img1.width * scale, img1.height * scale, translatePos.x, translatePos.y, canvas.width, canvas.height);
-                    DOMURL.revokeObjectURL(url);
-                }
-                img1.src = url;
-            });
-
-
+            
+            //todo: we really shouldn't have to re-do all this every time???
+            if (!loaded) {
+                var dotStr = `
+            {{ dotStr | safe }}
+            `;
+                // Asynchronous call to layout
+                hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
+                    var data = svg;
+                    var DOMURL = window.URL || window.webkitURL || window;
+                    
+                    var svg = new Blob([data], { type: 'image/svg+xml' });
+                    var url = DOMURL.createObjectURL(svg);
+                    img1.onload = function () {
+                        context.drawImage(img1, 0, 0, img1.width / scale, img1.height / scale, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+                        // DOMURL.revokeObjectURL(url);
+                    }
+                    img1.src = url;
+                    loaded = true;
+                });
+            } else {
+                context.drawImage(img1, 0, 0, img1.width / scale, img1.height / scale, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+            }
         }
-        
+
         window.onload = function () {
             var canvas = document.getElementById("myCanvas");
 
@@ -91,12 +98,12 @@
 
             // add button event listeners
             document.getElementById("plus").addEventListener("click", function () {
-                scale *= scaleMultiplier;
+                scale /= scaleMultiplier;
                 draw(scale, translatePos);
             }, false);
 
             document.getElementById("minus").addEventListener("click", function () {
-                scale /= scaleMultiplier;
+                scale *= scaleMultiplier;
                 draw(scale, translatePos);
             }, false);
 
