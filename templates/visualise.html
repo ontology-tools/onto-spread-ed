@@ -25,11 +25,18 @@
         left: 25px
     }
 
-    input[type="button"] {
+    #downloadWrapper {
+        position: fixed;
+        width: 100px;
+        top: 150px;
+        left: 100px
+    }
+
+    /* input[type="button"] {
         padding: 5px;
         width: 30px;
         margin: 0px 0px 2px 0px;
-    }
+    } */
 </style>
 <h1>VISUALISATIONS</h1>
 
@@ -38,7 +45,11 @@
     <div id="wrapper style=" width:1920px; height:1080px;">
         <canvas id="myCanvas" width="1920" height="1080"></canvas>
         <div id="buttonWrapper">
-            <input type="button" id="plus" value="+"><input type="button" id="minus" value="-">
+            <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="plus" value="+">
+            <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="minus" value="-">
+        </div>
+        <div id="downloadWrapper">
+            <input type="button" id="download" class="btn btn-outline-primary btn-sm" value="download">
         </div>
     </div>
 
@@ -87,9 +98,12 @@
                         }
                         context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
                         // DOMURL.revokeObjectURL(url);
+
                     }
                     img1.src = url;
                     loaded = true;
+
+
                 });
             } else {
                 context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
@@ -122,6 +136,8 @@
                 draw(scale, translatePos);
             }, false);
 
+
+
             // add event listeners to handle screen drag
             canvas.addEventListener("mousedown", function (evt) {
                 mouseDown = true;
@@ -150,6 +166,23 @@
             });
 
             draw(scale, translatePos);
+            //    var pic = $("#myCanvas").get(0);
+            //    console.log("pic width: " + pic.width);
+
+            document.getElementById("download").addEventListener("click", function () {
+                var pic = $("#myCanvas").get(0);
+                console.log("download pic width now: " + pic.width);
+
+                let saveImage = (img_name) => {
+                    let a = document.createElement('a');
+                    a.href = pic.toDataURL("image/png");
+                    a.download = img_name;
+                    document.body.appendChild(a);
+                    a.click();
+                }
+                saveImage("{{ sheet }}");
+            }, false);
+
         }
 
         // jQuery(document).ready(function () {
