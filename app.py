@@ -761,10 +761,10 @@ def openVisualise():
         ontodb.parseData(data)
         dotStr = ontodb.getDotForSheetGraph().to_string()
         #test big file:
-        filename = os.path.join(app.static_folder, 'test.dot')
-        with open(filename) as data_file:
-           graph = data_file.read()
-        return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=graph)
+        # filename = os.path.join(app.static_folder, 'test.dot')
+        # with open(filename) as data_file:
+        #    graph = data_file.read()
+        return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
 
     return ("Only POST allowed.")
 

@@ -171,8 +171,14 @@
 
             document.getElementById("download").addEventListener("click", function () {
                 var pic = $("#myCanvas").get(0);
-                console.log("download pic width now: " + pic.width);
-
+                var resetScale = 1.0; 
+                var resetTranslatePos = {
+                x: 0,
+                y: 0
+            };
+            //reset scale and position:
+                draw(resetScale, resetTranslatePos);
+            //download: 
                 let saveImage = (img_name) => {
                     let a = document.createElement('a');
                     a.href = pic.toDataURL("image/png");
