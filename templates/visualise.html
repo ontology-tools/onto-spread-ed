@@ -19,9 +19,9 @@
     }
 
     #buttonWrapper {
-        position: relative;
+        position: fixed;
         width: 30px;
-        top: -1000px;
+        top: 150px;
         left: 25px
     }
 
@@ -70,14 +70,31 @@
                     var svg = new Blob([data], { type: 'image/svg+xml' });
                     var url = DOMURL.createObjectURL(svg);
                     img1.onload = function () {
-                        context.drawImage(img1, 0, 0, img1.width / scale * 2, img1.height / scale * 2, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+                        //resize canvas if image is larger than screen
+                        //or resize canvas to size of screen if image is smaller..
+                        if (this.naturalWidth > window.screen.availWidth && this.naturalHeight > window.screen.availHeight) {
+                            canvas.width = this.naturalWidth*2;
+                            canvas.height = this.naturalHeight*2;
+                        } else {
+                            if (this.naturalWidth > window.screen.availWidth) {
+                                canvas.width = this.naturalWidth*2;
+                            } else if (this.naturalHeight > window.screen.availHeight) {
+                                canvas.height = this.naturalHeight*2;
+                            } else {
+                                canvas.width = window.screen.availWidth;
+                                canvas.height = window.screen.availHeight;
+                            }
+                        }
+                        context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+
+                        // context.drawImage(img1, 0, 0, img1.width / scale * 2, img1.height / scale * 2, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
                         // DOMURL.revokeObjectURL(url);
                     }
                     img1.src = url;
                     loaded = true;
                 });
             } else {
-                context.drawImage(img1, 0, 0, img1.width / scale * 2, img1.height / scale * 2, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+                context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
             }
         }
 
@@ -87,7 +104,7 @@
             var translatePos = {
                 // x: canvas.width / 2,
                 // y: canvas.height / 2
-                x: 0,
+                x: 60,
                 y: 0
             };
 
