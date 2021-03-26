@@ -73,21 +73,19 @@
                         //resize canvas if image is larger than screen
                         //or resize canvas to size of screen if image is smaller..
                         if (this.naturalWidth > window.screen.availWidth && this.naturalHeight > window.screen.availHeight) {
-                            canvas.width = this.naturalWidth*2;
-                            canvas.height = this.naturalHeight*2;
+                            canvas.width = this.naturalWidth * 2;
+                            canvas.height = this.naturalHeight * 2;
                         } else {
                             if (this.naturalWidth > window.screen.availWidth) {
-                                canvas.width = this.naturalWidth*2;
+                                canvas.width = this.naturalWidth * 2;
                             } else if (this.naturalHeight > window.screen.availHeight) {
-                                canvas.height = this.naturalHeight*2;
+                                canvas.height = this.naturalHeight * 2;
                             } else {
                                 canvas.width = window.screen.availWidth;
                                 canvas.height = window.screen.availHeight;
                             }
                         }
                         context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
-
-                        // context.drawImage(img1, 0, 0, img1.width / scale * 2, img1.height / scale * 2, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
                         // DOMURL.revokeObjectURL(url);
                     }
                     img1.src = url;
