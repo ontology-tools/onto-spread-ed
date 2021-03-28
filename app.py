@@ -209,16 +209,23 @@ class OntologyDataStore:
         self.ontofile = app.config['RELEASE_FILES'][repo]
         if self.ontofile:
             self.release = pyhornedowl.open_ontology(self.ontofile)
-            prefixes = app.config['PREFIXES'][repo]
-            self.release.add_prefix_mapping(prefixes[0][0],prefixes[0][1])
+            prefixes = app.config['PREFIXES']
+            for prefix in prefixes:
+                self.release.add_prefix_mapping(prefix[0],prefix[1])
             for classIri in self.release.get_classes():
-                classId = self.release.get_id_for_iri(classIri).replace(":","_")
-                label = self.release.get_annotation(classIri, app.config['RDFSLABEL'])
-                print("Got label",label,"for classIri",classIri)
-                if label:
-                    self.label_to_id[label] = classId
-                    self.graph.add_node(classId,label=label.replace(" ","\n"),
-                                        **OntologyDataStore.node_props)
+                classId = self.release.get_id_for_iri(classIri)
+                if classId:
+                    classId = classId.replace(":","_")
+                    label = self.release.get_annotation(classIri, app.config['RDFSLABEL'])
+                    #print("Got label",label,"for classId",classId)
+                    if label:
+                        self.label_to_id[label] = classId
+                        self.graph.add_node(classId,label=label.replace(" ","\n"),
+                                            **OntologyDataStore.node_props)
+                    else:
+                        print("Could not determine label for IRI",classIri)
+                else:
+                    print("Could not determine ID for IRI",classIri)
 
     def parseSheetData(self, data):
         for entry in data:
@@ -244,12 +251,34 @@ class OntologyDataStore:
         for entry in data:
             if 'ID' in entry and len(entry['ID'])>0:
                 ids.append(entry['ID'].replace(":","_"))
+            if 'Parent' in entry and entry['Parent'] in self.label_to_id:
+                ids.append(self.label_to_id[entry['Parent']])
+
         subgraph = self.graph.subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-        print("Built DOT",P)
-        print("From graph",self.graph)
+
         return(P)
 
+    def getDotForSelection(self, data, selectedIds):
+        # Add all descendents of the selected IDs, the IDs and their parents.
+        ids = []
+        for id in selectedIds:
+            entry = data[id]
+            if 'ID' in entry and len(entry['ID'])>0:
+                ids.append(entry['ID'].replace(":","_"))
+            if 'Parent' in entry and entry['Parent'] in self.label_to_id:
+                ids.append(self.label_to_id[entry['Parent']])
+            entryIri = self.release.get_iri_for_id(entry['ID'])
+            if entryIri:
+                descs = pyhornedowl.get_descendants(self.release,entryIri)
+                for d in descs:
+                    ids.append(self.release.get_id_for_iri(d).replace(":","_"))
+
+        # Then get the subgraph as usual
+        subgraph = self.graph.subgraph(ids)
+        P = networkx.nx_pydot.to_pydot(subgraph)
+
+        return (P)
 
 ontodb = OntologyDataStore()
 
@@ -774,8 +803,12 @@ def openVisualise():
         indices = json.loads(request.form.get("indices"))
         print("indices are: ", indices)
         ontodb.parseRelease(repo)
-        ontodb.parseSheetData(data)
-        dotStr = ontodb.getDotForSheetGraph(data).to_string()
+        if len(indices) > 0:
+            ontodb.parseSheetData(table)
+            dotStr = ontodb.getDotForSelection(table,indices).to_string()
+        else:
+            ontodb.parseSheetData(data)
+            dotStr = ontodb.getDotForSheetGraph(data).to_string()
 
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
 
