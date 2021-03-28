@@ -5,7 +5,6 @@ from google.cloud import secretmanager
 # Connect to Google cloud storage client
 from google.cloud import storage
 
-
 DEBUG = True
 
 APP_TITLE = "Ontology Spreadsheet Editor"
@@ -13,6 +12,9 @@ APP_TITLE = "Ontology Spreadsheet Editor"
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
 
 RELEASE_FILES = {"AddictO": "addicto.owx", "BCIO": "bcio.owx"}
+PREFIXES = {"AddictO": [["ADDICTO","http://addictovocab.org/ADDICTO_"]],
+            "BCIO": [["BCIO","http://humanbehaviourchange.org/BCIO_"]]}
+RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
