@@ -259,6 +259,27 @@ class OntologyDataStore:
 
         return(P)
 
+    def getDotForIDs(self, data, selectedIds):
+        # Add all descendents of the selected IDs, the IDs and their parents.
+        ids = []
+        for id in selectedIds:
+            entry = data[id]
+            if 'ID' in entry and len(entry['ID'])>0:
+                ids.append(entry['ID'].replace(":","_"))
+            if 'Parent' in entry and entry['Parent'] in self.label_to_id:
+                ids.append(self.label_to_id[entry['Parent']])
+            entryIri = self.release.get_iri_for_id(entry['ID'])
+            if entryIri:
+                descs = pyhornedowl.get_descendants(self.release,entryIri)
+                for d in descs:
+                    ids.append(self.release.get_id_for_iri(d).replace(":","_"))
+
+        # Then get the subgraph as usual
+        subgraph = self.graph.subgraph(ids)
+        P = networkx.nx_pydot.to_pydot(subgraph)
+
+        return (P)
+
     def getDotForSelection(self, data, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
         ids = []
@@ -786,6 +807,26 @@ def checkForUpdates():
         else:
             return ( json.dumps({"message":"Fail"}), 200 )
 
+
+@app.route('/openVisualiseAcrossSheets', methods=['POST'])
+@verify_logged_in
+def openVisualiseAcrossSheets():
+    #todo: get rows from sheets
+    #build data we need for dotStr query (new one!)
+    if request.method == "POST":
+        repo = request.form.get("repo")
+        print("repo is ", repo)
+        data = json.loads(request.form.get("data"))
+        #print("data is: ", data)
+        indices = json.loads(request.form.get("indices"))
+        print("indices are: ", indices)
+        ontodb.parseRelease(repo)
+        ontodb.parseSheetData(data)
+        dotStr = ontodb.getDotForIDs(data).to_string()
+
+        return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
+
+    return ("Only POST allowed.")
 
 @app.route('/openVisualise', methods=['POST'])
 @verify_logged_in
