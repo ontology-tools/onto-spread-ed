@@ -820,6 +820,8 @@ def openVisualiseAcrossSheets():
         print("repo is ", repo)
         #data is idList to dict? 
         idList = idString.split()
+        for i in idList:
+            print("i is: ", i)
         # data = json.loads(request.form.get("data"))
         # print("data is: ", data)
         # indices = json.loads(request.form.get("indices"))
