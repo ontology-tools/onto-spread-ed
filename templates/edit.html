@@ -609,7 +609,10 @@
             var data = row.getData();
             //show buttons concerning rows:
             $('#delete-rows').show();
-            $('#visualise-selection').show();
+            if (data['ID'] === undefined) { //for tables without ID
+            } else {
+                $('#visualise-selection').show(); //only for tables with ID column
+            }
             if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
             } else {
@@ -1194,7 +1197,14 @@
             $('#reviewed').hide();
             $('#updates').hide();
             $('#visualise-selection').hide();
+            $('#visualise-sheet').hide();
+            if (data['ID'] === undefined) { //for tables without ID
 
+            } else {
+                if (data['ID'] !== null) {
+                    $('#visualise-sheet').show(); //only for tables with ID
+                }
+            }
             //update highlighting
             if (data[curation_status] === undefined) { //for tables without curation_status
 
@@ -1648,7 +1658,7 @@
         for (r in selectedRows) {
             indices.push(selectedRows[r].getIndex());
         }
-        indices.sort(function(a, b){return a-b});
+        indices.sort(function (a, b) { return a - b });
         console.log(indices);
         window.open('', 'VisualisationWindow');
 
