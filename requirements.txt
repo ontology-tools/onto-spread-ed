@@ -10,3 +10,4 @@ daff
 whoosh
 networkx
 pydot
+py-horned-owl==0.1.4
