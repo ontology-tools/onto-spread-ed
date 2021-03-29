@@ -42,6 +42,7 @@
     </div>
   </div>
 
+
   <!-- //tabulator: -->
   <!-- always up-to-date tabulator CDN? -->
   <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
@@ -96,16 +97,22 @@
   </ul>
   {% endif %}
 
+  <form id="idSubmission">
+    <label class="font-weight-bold" for="idList">Visualise a selection of ID's:</label>
+    <input id="idList" name="idList" value="" placeholder='IDs'>
+    <input id="visualise-IDs" type="submit" class="btn btn-outline-success"></input>
+  </form>
+
   <script type="text/javascript">
     // var searchFor = function (searchTerm) {
     // console.log("searchTerm is: " + searchTerm)
-    
+
 
     window.addEventListener("load", function () {
-    
-      
+
+
       console.log("loaded");
-      
+
       $("#resultsHeader").hide();
 
       function sendData() {
@@ -154,8 +161,85 @@
         sendData();
         $("#resultsHeader").text("SEARCHING...");
         $("#resultsHeader").show();
-        
+
       });
+
+      // Access the form element...
+      const form2 = document.getElementById("idSubmission");
+
+      // ...and take over its submit event.
+      form2.addEventListener("submit", function (event) {
+        event.preventDefault();
+        const FD2 = new FormData(form2);
+        console.log(FD2);
+        console.log("visualise ID's clicked");
+        var data = FD2; //todo: build data from here
+        console.log("submitted " + FD2);
+        form2.setAttribute("method", "post");
+        form2.setAttribute("action", "/openVisualiseAcrossSheets");
+        form2.setAttribute("target", 'VisualisationWindow');
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = "repo";
+        input.value = "{{repo_name}}";
+        form2.appendChild(input);
+        var input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = "data";
+        input2.value = JSON.stringify(data);
+        form2.appendChild(input2);
+        form2.target = 'VisualisationWindow';
+        form2.submit();
+        // document.body.removeChild(form3);
+        /*
+          var selectedData = table.getSelectedData();
+          var selectedRows = table.getSelectedRows();
+          var indices = [];
+  
+          for (r in selectedRows) {
+              indices.push(selectedRows[r].getIndex());
+          }
+          indices.sort(function (a, b) { return a - b });
+          console.log(indices);
+          window.open('', 'VisualisationWindow');
+  
+          var form = document.createElement("form");
+          form.setAttribute("method", "post");
+          form.setAttribute("action", "/openVisualise");
+          form.setAttribute("target", 'VisualisationWindow');
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = "sheet";
+          input.value = "{{spreadsheet_name}}";
+          form.appendChild(input);
+          var input2 = document.createElement('input');
+          input2.type = 'hidden';
+          input2.name = "repo";
+          input2.value = "{{repo_name}}";
+          form.appendChild(input2);
+          //todo: this is unneccessary now, use indices instead with table:
+          var input3 = document.createElement('input');
+          input3.type = 'hidden';
+          input3.name = "data";
+          input3.value = JSON.stringify(selectedData);
+          form.appendChild(input3);
+          var input4 = document.createElement('input');
+          input4.type = 'hidden';
+          input4.name = "table";
+          input4.value = JSON.stringify(table.getData());
+          form.appendChild(input4);
+          var input5 = document.createElement('input');
+          input5.type = 'hidden';
+          input5.name = "indices";
+          input5.value = JSON.stringify(indices);
+          form.appendChild(input5);
+          document.body.appendChild(form);
+          form.target = 'VisualisationWindow';
+          form.submit();
+          document.body.removeChild(form);
+          */
+      });
+
     });
 
     function createTable(responseData) {
@@ -222,6 +306,8 @@
       // , repo: JSON.stringify({repo}) , sheet: JSON.stringify({sheet}) });
       // window.location.href = '/edit/' + repo + '/' + sheet;
     }
+
+
   </script>
 
 

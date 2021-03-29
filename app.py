@@ -814,12 +814,15 @@ def openVisualiseAcrossSheets():
     #todo: get rows from sheets
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
+        idList = request.form.get("idList")
+        print("idList is: ", idList)
         repo = request.form.get("repo")
         print("repo is ", repo)
+        #data is idList to dict? 
         data = json.loads(request.form.get("data"))
-        #print("data is: ", data)
-        indices = json.loads(request.form.get("indices"))
-        print("indices are: ", indices)
+        print("data is: ", data)
+        # indices = json.loads(request.form.get("indices"))
+        # print("indices are: ", indices)
         ontodb.parseRelease(repo)
         ontodb.parseSheetData(data)
         dotStr = ontodb.getDotForIDs(data).to_string()
