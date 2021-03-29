@@ -5,7 +5,6 @@ from google.cloud import secretmanager
 # Connect to Google cloud storage client
 from google.cloud import storage
 
-
 DEBUG = True
 
 APP_TITLE = "Ontology Spreadsheet Editor"
@@ -13,6 +12,28 @@ APP_TITLE = "Ontology Spreadsheet Editor"
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
 
 RELEASE_FILES = {"AddictO": "addicto.owx", "BCIO": "bcio.owx"}
+
+PREFIXES = [ ["ADDICTO","http://addictovocab.org/ADDICTO_"],
+             ["BFO","http://purl.obolibrary.org/obo/BFO_"],
+             ["CHEBI","http://purl.obolibrary.org/obo/CHEBI_"],
+             ["UBERON","http://purl.obolibrary.org/obo/UBERON_"],
+             ["PATO","http://purl.obolibrary.org/obo/PATO_"],
+             ["BCIO","http://humanbehaviourchange.org/ontology/BCIO_"],
+             ["SEPIO","http://purl.obolibrary.org/obo/SEPIO_"],
+             ["OMRSE","http://purl.obolibrary.org/obo/OMRSE_"],
+             ["OBCS","http://purl.obolibrary.org/obo/OBCS_"],
+             ["OGMS","http://purl.obolibrary.org/obo/OGMS_"],
+             ["ENVO","http://purl.obolibrary.org/obo/ENVO_"],
+             ["OBI", "http://purl.obolibrary.org/obo/OBI_"],
+             ["MFOEM","http://purl.obolibrary.org/obo/MFOEM_"],
+             ["MF","http://purl.obolibrary.org/obo/MF_"],
+             ["CHMO","http://purl.obolibrary.org/obo/CHMO_"],
+             ["DOID","http://purl.obolibrary.org/obo/DOID_"],
+             ["IAO","http://purl.obolibrary.org/obo/IAO_"],
+             ["ERO","http://purl.obolibrary.org/obo/ERO_"]
+           ]
+
+RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
