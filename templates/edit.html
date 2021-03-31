@@ -622,11 +622,11 @@
 
 
             }
-            row.getElement().style.backgroundColor = 'grey';
-            rowValue = row.getPosition(true);
+            // row.getElement().style.backgroundColor = 'grey'; //highlight row
         },
 
         rowDeselected: function (row) {
+            console.log("row deselected" + row);
             var data = row.getData();
             var selectedRows = table.getSelectedRows();
             if (selectedRows.length > 0) {
@@ -639,38 +639,44 @@
                 $('#visualise-selection').hide();
             }
 
-            row.getElement().style.backgroundColor = 'white';
+            // row.getElement().style.backgroundColor = 'white'; //un-highlight
             //re-do styling
             //todo: check for curation status failing here..?
-            if (data[curation_status] !== null || data[curation_status] !== undefined) {
-
-                rowColours(row, data);
+            if (data[curation_status] === undefined) { //for tables without curation_status
+                //don't show some buttons if in a table where they are not needed
+            } else {
+                if (data[curation_status] !== null) {
+                    rowColours(row, data);
+                }
             }
+
             rowValue = row.getPosition(true);
+            
         },
 
         rowSelectionChanged: function (data, rows) {
+            
             console.log("ROW SELECTION CHANGED");
             if (rows.length == 0) {
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
                 $('#visualise-selection').hide();
-                for (r in rows) {
-                    // console.log(rows[r]);
-                    var dataR = rows[r].getData();
-                    //todo: if row not selected:
-                    rows[r].getElement().style.backgroundColor = 'white';
-                    //re-do styling
-                    //todo: check for curation status failing here..?
-                    if (dataR[curation_status] !== null || dataR[curation_status] !== undefined) {
+                // for (r in rows) {
+                //     // console.log(rows[r]);
+                //     var dataR = rows[r].getData();
+                //     //todo: if row not selected:
+                //     rows[r].getElement().style.backgroundColor = 'white';
+                //     //re-do styling
+                //     //todo: check for curation status failing here..?
+                //     if (dataR[curation_status] !== null || dataR[curation_status] !== undefined) {
 
-                        rowColours(rows[r], dataR);
-                    }
-                    rowValue = rows[r].getPosition(true);
+                //         rowColours(rows[r], dataR);
+                //     }
+                //     rowValue = rows[r].getPosition(true);
 
 
-                }
+                // }
             } else {
                 $('#delete-rows').show();
                 for (r in rows) {
@@ -688,9 +694,10 @@
                         $('#ask-for-review').show();
                         $('#reviewed').show();
                     }
-                    rows[r].getElement().style.backgroundColor = 'grey';
+                    // rows[r].getElement().style.backgroundColor = 'grey'; //select rows - not working for de-select though
                 }
             }
+            
             /*
             if (table !== undefined) { //is table loaded? 
                 console.log("not undefined");
