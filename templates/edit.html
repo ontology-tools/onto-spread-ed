@@ -672,20 +672,20 @@
 
         rowSelectionChanged: function (data, rows) {
 
-            // if (table) {
-            //     console.log("highlighting now");
-            //     for (var r in table.getRows()) {
-            //         var row3 = table.getRow(r);
-            //         var data3 = row3.getData();
-            //         if (data3[curation_status] === undefined) { //for tables without curation_status
+            if (table) {
+                console.log("highlighting now");
+                for (var r in table.getRows()) {
+                    var row3 = table.getRow(r);
+                    var data3 = row3.getData();
+                    if (data3[curation_status] === undefined) { //for tables without curation_status
 
-            //         } else {
-            //             if (data3[curation_status] !== null) {
-            //                 rowColours(row3, data3); //todo: this is stopping row highlighting from working!
-            //             }
-            //         }
-            //     }
-            // }
+                    } else {
+                        if (data3[curation_status] !== null) {
+                            rowColours(row3, data3); //todo: this is stopping row highlighting from working!
+                        }
+                    }
+                }
+            }
             //no this doesn't work to format on load:
             // if (table) {
             //     for (var r in table.getRows()) {
@@ -1333,15 +1333,15 @@
                 }
             }
             //update highlighting
-            // if (!selected) {
-            //     if (data[curation_status] === undefined) { //for tables without curation_status
+            
+                if (data[curation_status] === undefined) { //for tables without curation_status
 
-            //     } else {
-            //         if (data[curation_status] !== null) {
-            //             rowColours(row, data); //todo: this is stopping row highlighting from working!
-            //         }
-            //     }
-            // }
+                } else {
+                    if (data[curation_status] !== null) {
+                        rowColours(row, data); 
+                    }
+                }
+            
 
 
             if (highlightLogin) {
@@ -1417,30 +1417,34 @@
     });
 
     function rowColours(row, data) {
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
-        }
-        // change all "Ready" to "Published":
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
-            data[curation_status] = "Published";
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'white'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
+        if (!row.isSelected()) {
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+            }
+            // change all "Ready" to "Published":
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
+                data[curation_status] = "Published";
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
+            }
+        } else{
+            row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
         }
     }
     //below recommended for Firefox in particular by Tabulator issue responseText
