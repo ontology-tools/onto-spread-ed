@@ -156,8 +156,7 @@
 
 <script type="text/javascript">
 
-    //todo: does this work? for rowFormatter: 
-    var selected = false;
+
     // todo: delete this test:
     var returnVal = true;
     var initialRowSearch = "";
@@ -584,24 +583,6 @@
         },
 
         renderComplete: function () {
-
-            //update highlighting
-            // console.log(table);
-            // if (table) {
-            //     for (var r in table.getRows()) {
-            //         var row3 = table.getRow(r);
-            //         var data3 = row3.getData();
-            //         if (data3[curation_status] === undefined) { //for tables without curation_status
-
-            //         } else {
-            //             if (data3[curation_status] !== null) {
-            //                 rowColours(row3, data3); //todo: this is stopping row highlighting from working!
-            //             }
-            //         }
-            //     }
-            // }
-
-            // console.log("renderCompleted");
             //todo: why is table undefined here? 
             // initialRowSearch = '{{go_to_row | safe}}';
             // console.log(initialRowSearch);
@@ -624,7 +605,6 @@
             //console.log("resized"); //not triggering on hide, show column dropdown
         },
 
-        //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected: function (row) {
             var data = row.getData();
             //show buttons concerning rows:
@@ -640,11 +620,9 @@
                 $('#ask-for-review').show();
                 $('#reviewed').show();
             }
-            // row.getElement().style.backgroundColor = 'grey'; //highlight row
         },
 
         rowDeselected: function (row) {
-            // console.log("row deselected" + row);
             var data = row.getData();
             var selectedRows = table.getSelectedRows();
             if (selectedRows.length > 0) {
@@ -656,8 +634,6 @@
                 $('#reviewed').hide();
                 $('#visualise-selection').hide();
             }
-
-            // row.getElement().style.backgroundColor = 'white'; //un-highlight
             //re-do styling
             //todo: check for curation status failing here..?
             if (data[curation_status] === undefined) { //for tables without curation_status
@@ -681,55 +657,19 @@
 
                     } else {
                         if (data3[curation_status] !== null) {
-                            rowColours(row3, data3); //todo: this is stopping row highlighting from working!
+                            rowColours(row3, data3);
                         }
                     }
                 }
             }
-            //no this doesn't work to format on load:
-            // if (table) {
-            //     for (var r in table.getRows()) {
-            //         var row2 = table.getRow(r);
-            //         // console.log(row2);
-            //         var data2 = row2.getData();
-            //         rowColours(row2, data2);
-            //     }
-            // }
-
-            console.log("ROW SELECTION CHANGED");
+            // console.log("ROW SELECTION CHANGED");
             if (rows.length == 0) {
-                selected = false; //todo: delete all selected - doesn't work
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
                 $('#visualise-selection').hide();
-
-
-                // for (r in rows) {
-                //     // console.log(rows[r]);
-                //     var dataR = rows[r].getData();
-                //     //todo: if row not selected:
-                //     rows[r].getElement().style.backgroundColor = 'white';
-                //     //re-do styling
-                //     //todo: check for curation status failing here..?
-                //     if (dataR[curation_status] !== null || dataR[curation_status] !== undefined) {
-
-                //         rowColours(rows[r], dataR);
-                //     }
-                //     rowValue = rows[r].getPosition(true);
-
-
-                // }
             } else {
-                selected = true;
                 $('#delete-rows').show();
-                // if (data[curation_status] === undefined) { //for tables without curation_status
-                //     //don't show some buttons if in a table where they are not needed
-                // } else {
-                //     if (data[curation_status] !== null) {
-                //         rowColours(row, data);
-                //     }
-                // }
                 for (r in rows) {
                     var rowData = rows[r].getData();
                     //show buttons concerning rows:
@@ -745,36 +685,8 @@
                         $('#ask-for-review').show();
                         $('#reviewed').show();
                     }
-                    // rows[r].getElement().style.backgroundColor = 'grey'; //select rows - not working for de-select though
                 }
             }
-
-            /*
-            if (table !== undefined) { //is table loaded? 
-                console.log("not undefined");
-                var selectedRows = table.getSelectedRows();
-
-                // let difference = rows.filter(x => !selectedRows.indexOf(x) === -1); //totally not working, do whole table instead??
-
-                for (r in rows) {
-                    // console.log(rows[r]);
-                    var dataR = rows[r].getData();
-                    //todo: if row not selected:
-                    rows[r].getElement().style.backgroundColor = 'white';
-                    //re-do styling
-                    //todo: check for curation status failing here..?
-                    if (dataR[curation_status] !== null || dataR[curation_status] !== undefined) {
-
-                        rowColours(rows[r], dataR);
-                    }
-                    rowValue = rows[r].getPosition(true);
-
-
-                }
-            } else {
-                console.log("table not loaded?");
-            }
-*/
         },
 
         cellClick: function (e, cell) {
@@ -1333,15 +1245,15 @@
                 }
             }
             //update highlighting
-            
-                if (data[curation_status] === undefined) { //for tables without curation_status
 
-                } else {
-                    if (data[curation_status] !== null) {
-                        rowColours(row, data); 
-                    }
+            if (data[curation_status] === undefined) { //for tables without curation_status
+
+            } else {
+                if (data[curation_status] !== null) {
+                    rowColours(row, data);
                 }
-            
+            }
+
 
 
             if (highlightLogin) {
@@ -1443,7 +1355,7 @@
             if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
                 row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
             }
-        } else{
+        } else {
             row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
         }
     }
