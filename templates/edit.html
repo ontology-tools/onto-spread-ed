@@ -156,6 +156,8 @@
 
 <script type="text/javascript">
 
+    //todo: does this work? for rowFormatter: 
+    var selected = false;
     // todo: delete this test:
     var returnVal = true;
     var initialRowSearch = "";
@@ -178,7 +180,7 @@
     var prevCurationStatus = "";
     // For the curation status, the allowed values
     var discussed = "Discussed";
-    var ready = "Ready"; //removing this
+    var ready = "Ready";
     var proposed = "Proposed";
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
@@ -580,7 +582,25 @@
         renderStarted: function () {
             // console.log("renderStarted");
         },
-        renderComplete: function (table) {
+
+        renderComplete: function () {
+
+            //update highlighting
+            // console.log(table);
+            // if (table) {
+            //     for (var r in table.getRows()) {
+            //         var row3 = table.getRow(r);
+            //         var data3 = row3.getData();
+            //         if (data3[curation_status] === undefined) { //for tables without curation_status
+
+            //         } else {
+            //             if (data3[curation_status] !== null) {
+            //                 rowColours(row3, data3); //todo: this is stopping row highlighting from working!
+            //             }
+            //         }
+            //     }
+            // }
+
             // console.log("renderCompleted");
             //todo: why is table undefined here? 
             // initialRowSearch = '{{go_to_row | safe}}';
@@ -619,14 +639,12 @@
                 //show buttons to do with rows and curation status
                 $('#ask-for-review').show();
                 $('#reviewed').show();
-
-
             }
             // row.getElement().style.backgroundColor = 'grey'; //highlight row
         },
 
         rowDeselected: function (row) {
-            console.log("row deselected" + row);
+            // console.log("row deselected" + row);
             var data = row.getData();
             var selectedRows = table.getSelectedRows();
             if (selectedRows.length > 0) {
@@ -649,19 +667,44 @@
                     rowColours(row, data);
                 }
             }
-
             rowValue = row.getPosition(true);
-            
         },
 
         rowSelectionChanged: function (data, rows) {
-            
+
+            // if (table) {
+            //     console.log("highlighting now");
+            //     for (var r in table.getRows()) {
+            //         var row3 = table.getRow(r);
+            //         var data3 = row3.getData();
+            //         if (data3[curation_status] === undefined) { //for tables without curation_status
+
+            //         } else {
+            //             if (data3[curation_status] !== null) {
+            //                 rowColours(row3, data3); //todo: this is stopping row highlighting from working!
+            //             }
+            //         }
+            //     }
+            // }
+            //no this doesn't work to format on load:
+            // if (table) {
+            //     for (var r in table.getRows()) {
+            //         var row2 = table.getRow(r);
+            //         // console.log(row2);
+            //         var data2 = row2.getData();
+            //         rowColours(row2, data2);
+            //     }
+            // }
+
             console.log("ROW SELECTION CHANGED");
             if (rows.length == 0) {
+                selected = false; //todo: delete all selected - doesn't work
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
                 $('#visualise-selection').hide();
+
+
                 // for (r in rows) {
                 //     // console.log(rows[r]);
                 //     var dataR = rows[r].getData();
@@ -678,7 +721,15 @@
 
                 // }
             } else {
+                selected = true;
                 $('#delete-rows').show();
+                // if (data[curation_status] === undefined) { //for tables without curation_status
+                //     //don't show some buttons if in a table where they are not needed
+                // } else {
+                //     if (data[curation_status] !== null) {
+                //         rowColours(row, data);
+                //     }
+                // }
                 for (r in rows) {
                     var rowData = rows[r].getData();
                     //show buttons concerning rows:
@@ -697,7 +748,7 @@
                     // rows[r].getElement().style.backgroundColor = 'grey'; //select rows - not working for de-select though
                 }
             }
-            
+
             /*
             if (table !== undefined) { //is table loaded? 
                 console.log("not undefined");
@@ -1282,13 +1333,16 @@
                 }
             }
             //update highlighting
-            if (data[curation_status] === undefined) { //for tables without curation_status
+            // if (!selected) {
+            //     if (data[curation_status] === undefined) { //for tables without curation_status
 
-            } else {
-                if (data[curation_status] !== null) {
-                    rowColours(row, data);
-                }
-            }
+            //     } else {
+            //         if (data[curation_status] !== null) {
+            //             rowColours(row, data); //todo: this is stopping row highlighting from working!
+            //         }
+            //     }
+            // }
+
 
             if (highlightLogin) {
                 if (data[curator] === undefined) {
@@ -1363,11 +1417,10 @@
     });
 
     function rowColours(row, data) {
-
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
         }
-        //change all "Ready" to "Published":
+        // change all "Ready" to "Published":
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
             data[curation_status] = "Published";
         }
@@ -1389,7 +1442,6 @@
         if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
             row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
         }
-
     }
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
@@ -2250,6 +2302,20 @@
     //todo: use below to update and check for new data: 
     window.onload = setupRefresh;
     function setupRefresh() {
+        // if (table) {
+        //         console.log("highlighting now");
+        //         for (var r in table.getRows()) {
+        //             var row3 = table.getRow(r);
+        //             var data3 = row3.getData();
+        //             if (data3[curation_status] === undefined) { //for tables without curation_status
+
+        //             } else {
+        //                 if (data3[curation_status] !== null) {
+        //                     rowColours(row3, data3); //todo: this is stopping row highlighting from working!
+        //                 }
+        //             }
+        //         }
+        //     }
         setInterval("refreshBlock();", 60000);
     }
 
