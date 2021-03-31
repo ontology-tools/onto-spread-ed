@@ -16,6 +16,8 @@
         border: 0px;
         width: 1920px;
         height: 1080px;
+        top: 108px;
+        left: 0px
     }
 
     #buttonWrapper {
@@ -31,12 +33,6 @@
         top: 150px;
         left: 100px
     }
-
-    /* input[type="button"] {
-        padding: 5px;
-        width: 30px;
-        margin: 0px 0px 2px 0px;
-    } */
 </style>
 
 <h1>VISUALISATIONS</h1>
@@ -45,14 +41,14 @@
 
 <body onmousedown="return false;">
     <!-- todo: move all styles inline, or at least remove redundancies -->
-    <div id="wrapper style=" width:1920px; height:1080px;">
+    <div id="wrapper">
         <canvas id="myCanvas" width="1920" height="1080"></canvas>
         <div id="buttonWrapper">
             <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="plus" value="+">
             <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="minus" value="-">
         </div>
         <div id="downloadWrapper">
-            <input type="button" id="download" class="btn btn-outline-primary btn-sm" value="download">
+            <input type="button" id="download" class="btn btn-outline-primary btn-sm" value="Download">
         </div>
     </div>
 
@@ -71,7 +67,6 @@
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
 
-            //todo: we really shouldn't have to re-do all this every time???
             if (!loaded) {
                 var dotStr = `
             {{ dotStr | safe }}
@@ -85,22 +80,22 @@
                     var url = DOMURL.createObjectURL(svg);
                     img1.onload = function () {
                         //resize canvas if image is larger than screen
-                        //or resize canvas to size of screen if image is smaller..
+                        //or resize canvas to size of screen if image is smaller.. todo: check if this works for all sizes of graph
                         if (this.naturalWidth > window.screen.availWidth && this.naturalHeight > window.screen.availHeight) {
-                            canvas.width = this.naturalWidth * 2;
-                            canvas.height = this.naturalHeight * 2;
+                            canvas.width = this.naturalWidth;
+                            canvas.height = this.naturalHeight;
                         } else {
                             if (this.naturalWidth > window.screen.availWidth) {
-                                canvas.width = this.naturalWidth * 2;
+                                canvas.width = this.naturalWidth;
                             } else if (this.naturalHeight > window.screen.availHeight) {
-                                canvas.height = this.naturalHeight * 2;
+                                canvas.height = this.naturalHeight;
                             } else {
                                 canvas.width = window.screen.availWidth;
                                 canvas.height = window.screen.availHeight;
                             }
                         }
                         context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
-                        // DOMURL.revokeObjectURL(url);
+                        // DOMURL.revokeObjectURL(url); //no we need url for updates to canvas
 
                     }
                     img1.src = url;
@@ -117,9 +112,7 @@
             var canvas = document.getElementById("myCanvas");
 
             var translatePos = {
-                // x: canvas.width / 2,
-                // y: canvas.height / 2
-                x: 60,
+                x: 0,
                 y: 0
             };
 
@@ -169,36 +162,34 @@
             });
 
             draw(scale, translatePos);
-            //    var pic = $("#myCanvas").get(0);
-            //    console.log("pic width: " + pic.width);
 
             document.getElementById("download").addEventListener("click", function () {
-                var pic = $("#myCanvas").get(0);
-                var resetScale = 1.0; 
-                var resetTranslatePos = {
-                x: 0,
-                y: 0
-            };
-            //reset scale and position:
-                draw(resetScale, resetTranslatePos);
-            //download: 
-                let saveImage = (img_name) => {
-                    let a = document.createElement('a');
-                    a.href = pic.toDataURL("image/png");
-                    a.download = img_name;
-                    document.body.appendChild(a);
-                    a.click();
-                }
-                saveImage("{{ sheet }}");
-            }, false);
+                console.log("download clicked");
+                var dotStr2 = `
+                {{ dotStr | safe }}
+                `;
+                // Asynchronous call to layout
+                hpccWasm.graphviz.layout(dotStr2, "svg", "dot").then(svg2 => {
+                    var data2 = svg2;
+                    var DOMURL2 = window.URL || window.webkitURL || window;
+
+                    var svg2 = new Blob([data2], { type: 'image/svg+xml' });
+                    var url2 = DOMURL2.createObjectURL(svg2);
+                    let saveImage = (img_name) => {
+                        let a = document.createElement('a');
+                        a.href = url2;
+                        // a.href = pic.toDataURL("image/png"); //todo: should we convert to png image? needs work..
+                        a.download = img_name;
+                        document.body.appendChild(a);
+                        a.click();
+                    }
+                    saveImage("{{ sheet }}");
+                    DOMURL.revokeObjectURL(url2);
+                });
+            });
 
         }
 
-        // jQuery(document).ready(function () {
-        //     $("#wrapper").mouseover(function (e) {
-        //         $('#status').html(e.pageX + ', ' + e.pageY);
-        //     });
-        // })
     </script>
     {% endblock %}
 
