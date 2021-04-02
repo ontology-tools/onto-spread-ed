@@ -303,15 +303,18 @@ class OntologyDataStore:
         ids = []
         for id in selectedIds:
             entry = data[id]
-            if 'ID' in entry and len(entry['ID'])>0:
-                ids.append(entry['ID'].replace(":","_"))
-            if 'Parent' in entry and entry['Parent'] in self.label_to_id:
-                ids.append(self.label_to_id[entry['Parent']])
-            entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
-            if entryIri:
-                descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
-                for d in descs:
-                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+            if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+                if 'ID' in entry and len(entry['ID'])>0:
+                    ids.append(entry['ID'].replace(":","_"))
+                if 'Parent' in entry and entry['Parent'] in self.label_to_id:
+                    ids.append(self.label_to_id[entry['Parent']])
+                entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
+                if entryIri:
+                    descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
+                    for d in descs:
+                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+            else:
+                print("blank")
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
