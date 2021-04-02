@@ -30,7 +30,7 @@
     #downloadWrapper {
         position: fixed;
         width: 100px;
-        top: 150px;
+        top: 164px;
         left: 100px
     }
 </style>
@@ -44,11 +44,13 @@
     <div id="wrapper">
         <canvas id="myCanvas" width="1920" height="1080"></canvas>
         <div id="buttonWrapper">
-            <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="plus" value="+">
-            <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="minus" value="-">
+            <button id="plus" class="btn btn-outline-dark btn-sm"><i class="fas fa-plus"></i></button>
+            <button id="minus" class="btn btn-outline-dark btn-sm"><i class="fas fa-minus"></i></button>
+            <!-- <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="plus" value=" + "> -->
+            <!-- <input type="button" style="padding: 5px; width: 30px; margin: 0px 0px 2px 0px;" id="minus" value=" - "> -->
         </div>
         <div id="downloadWrapper">
-            <input type="button" id="download" class="btn btn-outline-primary btn-sm" value="Download">
+            <input type="button" id="download" class="btn btn-outline-dark btn-sm" value="Download Visualisation">
         </div>
     </div>
 
