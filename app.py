@@ -313,8 +313,8 @@ class OntologyDataStore:
                     descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
                     for d in descs:
                         ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
-            else:
-                print("blank")
+            else: #todo: remove this test
+                print(entry['ID'], " is blank")
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
@@ -864,7 +864,7 @@ def openVisualise():
         sheet = request.form.get("sheet")
         print("sheet is ", sheet)
         #headers = json.loads(request.form.get("headers"))
-        data = json.loads(request.form.get("data"))
+        data = json.loads(request.form.get("data")) #todo: remove this, it's redundant
         #print("data is: ", data)
         table = json.loads(request.form.get("table"))
         # print("table is: ", table)
@@ -877,8 +877,8 @@ def openVisualise():
             ontodb.parseSheetData(repo,table)
             dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
         else:
-            ontodb.parseSheetData(repo,data)
-            dotStr = ontodb.getDotForSheetGraph(repo,data).to_string()
+            ontodb.parseSheetData(repo,table)
+            dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
 
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
 
