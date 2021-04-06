@@ -203,6 +203,7 @@ searcher = SpreadsheetSearcher()
 
 class OntologyDataStore:
     node_props = {"shape":"box","style":"rounded", "font": "helvetica"}
+    rel_cols = {"has part":"blue","part of":"blue","contains":"green","has role":"darkgreen","is about":"darkgrey"}
 
     def __init__(self):
         self.releases = {}
@@ -226,7 +227,6 @@ class OntologyDataStore:
         ontofile = data.decode('utf-8')
 
         # Parse it
-        # ontofile = app.config['RELEASE_FILES'][repo]
         if ontofile:
             self.releases[repo] = pyhornedowl.open_ontology(ontofile)
             prefixes = app.config['PREFIXES']
@@ -239,7 +239,6 @@ class OntologyDataStore:
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
                         label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL'])
-                        #print("Got label",label,"for classId",classId)
                         if label:
                             self.label_to_id[label.strip()] = classId
                             self.graphs[repo].add_node(classId,
@@ -249,6 +248,15 @@ class OntologyDataStore:
                             print("Could not determine label for IRI",classIri)
                 else:
                     print("Could not determine ID for IRI",classIri)
+            for classIri in self.releases[repo].get_classes():
+                classId = self.releases[repo].get_id_for_iri(classIri)
+                if classId:
+                    parents = self.releases[repo].get_superclasses(classIri)
+                    for p in parents:
+                        plabel = self.releases[repo].get_annotation(p, app.config['RDFSLABEL'])
+                        if plabel and plabel.strip() in self.label_to_id:
+                            self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
+                                                       classId.replace(":", "_"), dir="back")
 
     def parseSheetData(self, repo, data):
         for entry in data:
@@ -270,10 +278,11 @@ class OntologyDataStore:
                     'Definition' in entry and \
                     'Parent' in entry and \
                     len(entry['ID'])>0:
-                if entry['Parent'].strip() in self.label_to_id:
+                if entry['Parent'].strip() in self.label_to_id:  # Subclass relations
                     # Subclass relations must be reversed for layout
                     self.graphs[repo].add_edge(self.label_to_id[entry['Parent'].strip()],
                                                entry['ID'].replace(":", "_"), dir="back")
+                #for relname in
 
     def getDotForSheetGraph(self, repo, data):
         # Get a list of IDs from the sheet graph
