@@ -258,6 +258,25 @@ class OntologyDataStore:
                         if plabel and plabel.strip() in self.label_to_id:
                             self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
                                                        classId.replace(":", "_"), dir="back")
+                    axioms = self.releases[repo].get_axioms_for_iri(classIri) # other relationships
+                    for a in axioms:
+                        # Example: ['SubClassOf', 'http://purl.obolibrary.org/obo/CHEBI_27732', ['ObjectSomeValuesFrom', 'http://purl.obolibrary.org/obo/RO_0000087', 'http://purl.obolibrary.org/obo/CHEBI_60809']]
+                        if len(a) == 3 and a[0]=='SubClassOf' \
+                            and isinstance(a[2], list) and len(a[2])==3 \
+                            and a[2][0]=='ObjectSomeValuesFrom':
+                            relIri = a[2][1]
+                            targetIri = a[2][2]
+                            rel_name = self.releases[repo].get_annotation(relIri, app.config['RDFSLABEL'])
+                            targetLabel = self.releases[repo].get_annotation(targetIri, app.config['RDFSLABEL'])
+                            if targetLabel and targetLabel.strip() in self.label_to_id:
+                                if rel_name in OntologyDataStore.rel_cols:
+                                    rcolour = OntologyDataStore.rel_cols[rel_name]
+                                else:
+                                    rcolour = "orange"
+                                self.graphs[repo].add_edge(classId.replace(":", "_"),
+                                                           self.label_to_id[targetLabel.strip()],
+                                                           color=rcolour,
+                                                           label=rel_name)
 
     def parseSheetData(self, repo, data):
         for entry in data:
