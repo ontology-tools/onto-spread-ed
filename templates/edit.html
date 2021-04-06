@@ -1508,12 +1508,6 @@
         input2.name = "repo";
         input2.value = "{{repo_name}}";
         form.appendChild(input2);
-        //todo: this is unneccessary now, use indices instead with table:
-        var input3 = document.createElement('input');
-        input3.type = 'hidden';
-        input3.name = "data";
-        input3.value = JSON.stringify(table.getData());
-        form.appendChild(input3);
         var input4 = document.createElement('input');
         input4.type = 'hidden';
         input4.name = "table";
@@ -1557,12 +1551,6 @@
         input2.name = "repo";
         input2.value = "{{repo_name}}";
         form.appendChild(input2);
-        //todo: this is unneccessary now, use indices instead with table:
-        var input3 = document.createElement('input');
-        input3.type = 'hidden';
-        input3.name = "data";
-        input3.value = JSON.stringify(selectedData);
-        form.appendChild(input3);
         var input4 = document.createElement('input');
         input4.type = 'hidden';
         input4.name = "table";

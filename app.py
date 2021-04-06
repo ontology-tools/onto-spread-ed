@@ -832,23 +832,18 @@ def checkForUpdates():
 @app.route('/openVisualiseAcrossSheets', methods=['POST'])
 @verify_logged_in
 def openVisualiseAcrossSheets():
-    #todo: get rows from sheets
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
         idString = request.form.get("idList")
         print("idString is: ", idString)
         repo = request.form.get("repo")
         print("repo is ", repo)
-        #data is idList to dict? 
         idList = idString.split()
-        for i in idList:
-            print("i is: ", i)
-        # data = json.loads(request.form.get("data"))
-        # print("data is: ", data)
+        # for i in idList:
+        #     print("i is: ", i)
         # indices = json.loads(request.form.get("indices"))
         # print("indices are: ", indices)
         ontodb.parseRelease(repo)
-        # ontodb.parseSheetData(data)
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
 
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
@@ -863,9 +858,6 @@ def openVisualise():
         print("repo is ", repo)
         sheet = request.form.get("sheet")
         print("sheet is ", sheet)
-        #headers = json.loads(request.form.get("headers"))
-        data = json.loads(request.form.get("data")) #todo: remove this, it's redundant
-        #print("data is: ", data)
         table = json.loads(request.form.get("table"))
         # print("table is: ", table)
         indices = json.loads(request.form.get("indices"))
