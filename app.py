@@ -36,6 +36,8 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from datetime import date
 
+from urllib.request import urlopen
+
 import threading
 
 import whoosh
@@ -218,14 +220,13 @@ class OntologyDataStore:
         ontofilename = app.config['RELEASE_FILES'][repo]
         repositories = app.config['REPOSITORIES']
         repo_detail = repositories[repo]
-        location = f"repos/{repo_detail}/contents/{ontofilename}"
-        print("Would try to fetch release file",location)
-        #response = github.get(location)
-        #ontofile = response['content']
-        #print("Got content: ",ontofile)
+        location = f"https://raw.githubusercontent.com/{repo_detail}/master/{ontofilename}"
+        print("Trying to fetch release file from", location)
+        data = urlopen(location).read()  # bytes
+        ontofile = data.decode('utf-8')
 
         # Parse it
-        ontofile = app.config['RELEASE_FILES'][repo]
+        # ontofile = app.config['RELEASE_FILES'][repo]
         if ontofile:
             self.releases[repo] = pyhornedowl.open_ontology(ontofile)
             prefixes = app.config['PREFIXES']
@@ -240,8 +241,9 @@ class OntologyDataStore:
                         label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL'])
                         #print("Got label",label,"for classId",classId)
                         if label:
-                            self.label_to_id[label] = classId
-                            self.graphs[repo].add_node(classId,label=label.replace(" ","\n"),
+                            self.label_to_id[label.strip()] = classId
+                            self.graphs[repo].add_node(classId,
+                                                       label=label.strip().replace(" ", "\n"),
                                                 **OntologyDataStore.node_props)
                         else:
                             print("Could not determine label for IRI",classIri)
@@ -256,15 +258,15 @@ class OntologyDataStore:
                     'Parent' in entry and \
                     len(entry['ID'])>0:
                 entryId = entry['ID'].replace(":", "_")
-                self.label_to_id[entry['Label']] = entryId
+                self.label_to_id[entry['Label'].strip()] = entryId
                 if entry['Parent'] in self.label_to_id:
                     if entryId in self.graphs[repo].nodes:
                         self.graphs[repo].remove_node(entryId)
                     self.graphs[repo].add_node(entryId,
-                                        label=entry['Label'].replace(" ","\n"),
+                                        label=entry['Label'].strip().replace(" ","\n"),
                                         **OntologyDataStore.node_props)
                     # Subclass relations must be reversed for layout
-                    self.graphs[repo].add_edge(self.label_to_id[entry['Parent']],
+                    self.graphs[repo].add_edge(self.label_to_id[entry['Parent'].strip()],
                                         entry['ID'].replace(":","_"), dir="back")
 
     def getDotForSheetGraph(self, repo, data):
@@ -273,8 +275,8 @@ class OntologyDataStore:
         for entry in data:
             if 'ID' in entry and len(entry['ID'])>0:
                 ids.append(entry['ID'].replace(":","_"))
-            if 'Parent' in entry and entry['Parent'] in self.label_to_id:
-                ids.append(self.label_to_id[entry['Parent']])
+            if 'Parent' in entry and entry['Parent'].strip() in self.label_to_id:
+                ids.append(self.label_to_id[entry['Parent'].strip()])
 
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -304,15 +306,15 @@ class OntologyDataStore:
         for id in selectedIds:
             entry = data[id]
             if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
-                if 'ID' in entry and len(entry['ID'])>0:
-                    ids.append(entry['ID'].replace(":","_"))
-                if 'Parent' in entry and entry['Parent'] in self.label_to_id:
-                    ids.append(self.label_to_id[entry['Parent']])
+                if 'ID' in entry and len(entry['ID']) > 0:
+                    ids.append(entry['ID'].replace(":", "_"))
+                if 'Parent' in entry and entry['Parent'].strip() in self.label_to_id:
+                    ids.append(self.label_to_id[entry['Parent'].strip()])
                 entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
                 if entryIri:
-                    descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
-                    for d in descs:
-                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                for d in descs:
+                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
             else: #todo: remove this test
                 print(entry['ID'], " is blank")
 
