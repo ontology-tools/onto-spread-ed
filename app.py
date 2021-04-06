@@ -259,15 +259,21 @@ class OntologyDataStore:
                     len(entry['ID'])>0:
                 entryId = entry['ID'].replace(":", "_")
                 self.label_to_id[entry['Label'].strip()] = entryId
-                if entry['Parent'] in self.label_to_id:
-                    if entryId in self.graphs[repo].nodes:
-                        self.graphs[repo].remove_node(entryId)
+                if entryId in self.graphs[repo].nodes:
+                    self.graphs[repo].remove_node(entryId)
                     self.graphs[repo].add_node(entryId,
-                                        label=entry['Label'].strip().replace(" ","\n"),
-                                        **OntologyDataStore.node_props)
+                                               label=entry['Label'].strip().replace(" ", "\n"),
+                                               **OntologyDataStore.node_props)
+        for entry in data:
+            if 'ID' in entry and \
+                    'Label' in entry and \
+                    'Definition' in entry and \
+                    'Parent' in entry and \
+                    len(entry['ID'])>0:
+                if entry['Parent'].strip() in self.label_to_id:
                     # Subclass relations must be reversed for layout
                     self.graphs[repo].add_edge(self.label_to_id[entry['Parent'].strip()],
-                                        entry['ID'].replace(":","_"), dir="back")
+                                               entry['ID'].replace(":", "_"), dir="back")
 
     def getDotForSheetGraph(self, repo, data):
         # Get a list of IDs from the sheet graph
@@ -289,6 +295,7 @@ class OntologyDataStore:
         for id in selectedIds:
             ids.append(id.replace(":","_"))
             entryIri = self.releases[repo].get_iri_for_id(id)
+            print("Got IRI",entryIri,"for ID",id)
             if entryIri:
                 descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
                 for d in descs:
