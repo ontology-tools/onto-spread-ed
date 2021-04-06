@@ -18,19 +18,23 @@
     <div class="col-md-9">
         <div class="text-left">
             <button id=add-row class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add Row</button>
-            <button id=delete-rows class="btn btn-outline-danger btn-sm" style="display: none"><i class="fas fa-trash-alt"></i> Delete
+            <button id=delete-rows class="btn btn-outline-danger btn-sm" style="display: none"><i
+                    class="fas fa-trash-alt"></i> Delete
                 Rows</button>
             <button id=highlight-user class="btn btn-outline-warning btn-sm"><i class="fas fa-highlighter"></i>
                 Highlight Your Rows</button>
             <button id=remove-formatting class="btn btn-outline-dark btn-sm"><i class="fas fa-remove-format"></i> Remove
                 all Filters</button>
-            <button id=ask-for-review class="btn btn-outline-primary btn-sm" style="display: none"><i class="fas fa-clipboard"></i> Ask for
+            <button id=ask-for-review class="btn btn-outline-primary btn-sm" style="display: none"><i
+                    class="fas fa-clipboard"></i> Ask for
                 review</button>
-            <button id=reviewed class="btn btn-outline-primary btn-sm" style="display: none"><i class="fas fa-clipboard-check"></i>
+            <button id=reviewed class="btn btn-outline-primary btn-sm" style="display: none"><i
+                    class="fas fa-clipboard-check"></i>
                 Reviewed</button>
             <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-project-diagram"></i>
                 Visualise sheet</button>
-            <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i class="fab fa-uncharted"></i>
+            <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i
+                    class="fab fa-uncharted"></i>
                 Visualise selection</button>
         </div>
     </div>
@@ -76,20 +80,7 @@
 </div>
 
 <div class="row mb-3">
-
     <div id="validation-btns" class="col-md-9" style="display: none">
-
-
-        <!-- <div id="validation-btns" class="btn-group btn-group-lg text-right " style="display: none"> -->
-        <!-- validation-btns go here -->
-        <!-- <button id="merge-overwrite-btn" class="btn btn-success"
-                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
-                SAVE
-            </button>
-            <button id="merge-revert-btn" class="btn btn-dark" onclick="revert_changes()">
-                REVERT
-            </button> -->
-        <!-- </div> -->
     </div>
 </div>
 
@@ -157,8 +148,7 @@
 <script type="text/javascript">
 
 
-    // todo: delete this test:
-    var returnVal = true;
+
     var initialRowSearch = "";
 
     allCookies = document.cookie;
@@ -419,7 +409,7 @@
                 //All rows with empty IDs --> not external. 
                 //Rows with AddictO IDs in AddictO repo or BCIO IDs in BCIO repo --> not external. 
                 //Only rows with  non-empty IDs, that are not matching the project ID template, are external.
-                //adding "External" status 
+                //adding "External" status:
                 if (headers[j] == curation_status) { //column
                     console.log("repo_name is: " + repo_name);
                     if (rowObj["ID"] == undefined) {
@@ -472,7 +462,6 @@
 
     //header menu:
     //define row context menu
-    //todo: resize to header text or initial value per header?
     var headerMenu = [
         {
             label: "Hide Column",
@@ -583,22 +572,7 @@
         },
 
         renderComplete: function () {
-            //todo: why is table undefined here? 
-            // initialRowSearch = '{{go_to_row | safe}}';
-            // console.log(initialRowSearch);
-            // if(initialRowSearch == ""){
-            //     table.scrollToRow(10);
-            // }
-            //todo: remove this try/catch testing code below
-            // try {
-            //     table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
-            //     var row = table.getRowFromPosition(0, true);
-            //     var cell = row.getCell("parent");
-            //     cell.setValue("replaced"); //todo: what is this doing here???
-            //     console.log("what does this do?" + row + " " + cell);
-            // } catch {
-            //console.log("caught"); //this happens on initial load, table loaded twice?
-            // }
+
         },
 
         columnResized: function (column) {
@@ -620,7 +594,7 @@
                 $('#ask-for-review').show();
                 $('#reviewed').show();
             }
-	    rowValue = row.getPosition(true);
+            rowValue = row.getPosition(true);
         },
 
         rowDeselected: function (row) {
@@ -636,7 +610,6 @@
                 $('#visualise-selection').hide();
             }
             //re-do styling
-            //todo: check for curation status failing here..?
             if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
             } else {
@@ -702,99 +675,7 @@
             var data = row.getData();
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
-            console.log("editing row: " + rowValue);
-
-            //todo: is putting validate() here compromising performance? Commented out for now...
-            //promise:
-            /*
-            validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
-                // console.log("validate function reached");
-                // console.log(message);
-
-                // console.log("after validate function");
-                // console.log("message: " + message);
-                if (message == 'success') { //no validation errors
-                    console.log("validate true");
-                    //first remove all old validateErrorMessages for same rows:
-                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                        for (var j = 0; j < headerLength; j++) {
-                            if (row.getCell(headers[j]) == validateErrorMessages[i]) {
-                                validateErrorMessages.splice(i, 2); //remove cell and message
-                                row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
-                            }
-                        }
-
-                    }
-                } else {
-                    var messageJSON = JSON.parse(message);
-                    // var hoverMessage = messageJSON.message;
-                    // console.log("ERROR: " + hoverMessage);
-                    // console.log("validate false");
-                    //set background of cell to light red
-                    // cell.getElement().style.backgroundColor = 'red';
-                    // validateErrorMessages.push(cell);
-                    // validateErrorMessages.push(hoverMessage);
-                    // console.log("messageJSONvalues: " + messageJSON.values);
-
-                    //first remove all old validateErrorMessages for same rows:
-                    for (var i = 0; i < validateErrorMessages.length; i += 2) {
-                        for (var j = 0; j < headerLength; j++) {
-                            if (row.getCell(headers[j]) == validateErrorMessages[i]) {
-                                validateErrorMessages.splice(i, 2); //remove cell and message
-                                row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
-                            }
-                        }
-
-                    }
-
-                    function getOtherErrors(obj) {
-                        for (var k in obj) {
-                            console.log("k is: " + k);
-                            // if (obj[k] instanceof Object) {
-                            //     getOtherErrors(obj[k]);
-                            // } else {
-                            if (k == "message") { //todo: what if there is a "message" column? 
-                                console.log("message is: " + obj[k]);
-                                console.log("done message");
-                            } else if (k == "values") {
-                                for (var v in obj[k]) {
-                                    console.log(v + " is: " + obj[v]);
-                                    //todo: this only one error one at a time... if two it removes both!
-
-                                    //1. turn cell red
-                                    row.getCell(v).getElement().style.backgroundColor = 'red';
-                                    //2. add to validateErrorMessages array
-                                    validateErrorMessages.push(row.getCell(v));
-                                    validateErrorMessages.push("Value should not be empty");
-                                }
-
-                            } else if (k == "unique") { //todo: done up to here
-                                for (var v in obj[k]) {
-                                    row.getCell(v).getElement().style.backgroundColor = 'red';
-                                    validateErrorMessages.push(row.getCell(v));
-                                    validateErrorMessages.push("Value is not unique");
-                                    console.log("new v is: " + obj[v]);
-                                }
-                            }
-
-                            // };
-                        }
-                    };
-                    getOtherErrors(messageJSON);
-                    console.log(validateErrorMessages);
-
-                    // console.log(values);
-                    // if(messageJSON.values == "none"){
-                    //     //no row errors
-                    // } else{
-                    //     //deal with more row values here:
-                    //     console.log(messageJSON.values);
-                    // }
-                    //display message in a pop-up if user hovers over the cell
-                }
-            });*/
-            // console.log(cell.getValue()); //this works
-            // console.log("cellEditing column is: " + column.getDefinition().title)
+            // console.log("editing row: " + rowValue);
             //save backup curation status if "Curation status" column present: 
             if (data[curation_status] === undefined) { //Curation status column not present in table
 
@@ -880,32 +761,7 @@
                         }
                     }
                 }
-
-
-                // }
-
-                // if (data["ID"] === undefined) {
-
-                // } else {
-                //     if (data["ID"].includes("ADDICTO") || data["ID"].includes("BCIO")) {
-                //         if (data[curation_status] == "External") {
-                //             data[curation_status] = "Proposed";
-                //         }
-                //     } else {
-                //         if (data["ID"] == "" || data["ID"] == null) {
-                //             //no change
-                //         } else {
-                //             data[curation_status] = "External";
-                //         }
-
-                //         //colour changed in "rowColours" function
-                //     }
-
-                // }
-
             }
-
-
 
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
@@ -997,7 +853,6 @@
                             //save Fuzzy set column to local storage for backup here
                             //{value, row, columnName}
                             //data[curator], row.getPosition(), "Curator"
-                            // if(data["Fuzzy set"] !== "" && data["Fuzzy set"] !== null){
                             rowValue = row.getPosition();//save absolute row position
                             columnValue = fuzzy_Set; //column name
                             var alreadyChanged = false;
@@ -1016,7 +871,6 @@
                                 changes.push(rowValue);
                                 changes.push(fuzzy_Set);
                             }
-                            // }
                         }
                     }
                 }
@@ -1051,7 +905,7 @@
                             savedCellDiscussed = true;
                         } else {
                             //need to check saved table to see if status for this row was "Discussed" or not: 
-                            //get column number programatically: ///////////////////////////////////////////////
+                            //get column number programatically:
                             var currentColumnNumber = headerLength - 2; //fallback, for now
                             for (var i = 0; i < headerLength; i++) {
                                 if (headers[i] == curation_status) {
@@ -1068,7 +922,6 @@
                                 dValue = rowData[rowValue][headers[currentColumnNumber]];
                             }
 
-                            //////////////////////////////////////////////////////////////////////////////
                             if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
                             }
@@ -1106,7 +959,7 @@
                             bootbox.alert("'Label', 'Definition' and 'Parent' columns all need to be set first");
                             data[curation_status] = prevCurationStatus; //reverting here
                         } else {
-                            console.log("All set. Label, Definition and Parent. Should be Discussed now");
+                            // console.log("All set. Label, Definition and Parent. Should be Discussed now");
                             //this is fine, allow it
                         }
                     }
@@ -1169,25 +1022,13 @@
                             }
                         }
                         validateErrorMessages = newValidateErrorMessages; //replace
-                        //below is a duplicate?
-                        // if ($("#validation-btns").is(":hidden")) {
-                        //     console.log("HIDDEN");
-                        // } else {
-                        //     console.log("NOT HIDDEN");
-                        //     validateButtons();
-                        // }
                     }
 
                     function getOtherErrors(obj) {
                         for (var k in obj) {
-                            // console.log("k is: " + k);
                             if (k == "message") { //todo: what if there is a "message" column? 
-                                // console.log("message is: " + obj[k]);
-                                // console.log("done message");
                             } else if (k == "values") {
                                 for (var v in obj[k]) {
-                                    // console.log(v + " is: " + obj[v]);
-
                                     //1. turn cell red
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
                                     //2. add to validateErrorMessages array
@@ -1199,7 +1040,6 @@
                                     row.getCell(v).getElement().style.backgroundColor = 'red';
                                     validateErrorMessages.push(row.getCell(v));
                                     validateErrorMessages.push("Value is not unique");
-                                    // console.log("new v is: " + obj[v]);
                                 }
                             }
                         }
@@ -1245,8 +1085,8 @@
                     $('#visualise-sheet').show(); //only for tables with ID
                 }
             }
-            //update highlighting
 
+            //update highlighting
             if (data[curation_status] === undefined) { //for tables without curation_status
 
             } else {
@@ -1375,7 +1215,7 @@
         var AOsub_ontologyNames = ["Environmental system", "Human being", "Human behaviour", "Human population",
             "Intervention", "", "Organisation", "Product", "Research activity"];
         var idNum = table.getDataCount();
-        var rowObj = { id: idNum } //add to end of table! todo: check how this change (was 0) affects things 
+        var rowObj = { id: idNum } //add to end of table! 
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
@@ -1417,7 +1257,7 @@
         //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
             var data = row.getData();
-            if (data["ID"] === undefined) {
+            if (data["ID"] === undefined || data[curation_status] === undefined) {
                 table.deleteRow(row);
                 // if (row.getCell("ID") === undefined) {
                 console.log("ID undefined");
@@ -1426,7 +1266,6 @@
                 var cell = row.getCell("ID");
                 if (cell.getValue() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
                     //set to obsolete and show a message here
-                    //todo: check for "Curation status" column here
                     data[curation_status] = "Obsolete";
                     //save change: 
                     var rowValue = row.getPosition();//save absolute row position
@@ -1523,9 +1362,7 @@
     });
 
     $("#ask-for-review").click(function () {
-        //console.log("ask for review");
         var selectedRows = table.getSelectedRows();
-        //console.log(selectedRows);
         if (selectedRows == "") {
             bootbox.alert("No rows selected");
         } else {
@@ -1539,7 +1376,7 @@
                 inputOptions: $(inputArray),
                 callback: function (result) {
                     if (result === null || result === "") { //cancel or no curator selected
-                        // row.deselect(); //probably not a good idea.. maybe they made a mistake and want to do something else.
+                        
                     } else {
                         selectedRows.forEach(function (row) {
                             //logic:
