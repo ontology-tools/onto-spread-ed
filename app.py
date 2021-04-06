@@ -25,6 +25,7 @@ import traceback
 import daff
 import pyhornedowl
 import networkx
+import re
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import render_template_string, jsonify, Response
@@ -282,7 +283,21 @@ class OntologyDataStore:
                     # Subclass relations must be reversed for layout
                     self.graphs[repo].add_edge(self.label_to_id[entry['Parent'].strip()],
                                                entry['ID'].replace(":", "_"), dir="back")
-                #for relname in
+                for header in entry.keys():  # Other relations
+                    if entry[header] and str(entry[header]).strip() and "REL" in header \
+                        and str(entry[header]).strip() in self.label_to_id:
+                        # Get the rel name
+                        rel_names = re.findall(r"'([^']+)'", header)
+                        if len(rel_names) > 0:
+                            rel_name = rel_names[0]
+                            if rel_name in OntologyDataStore.rel_cols:
+                                rcolour = OntologyDataStore.rel_cols[rel_name]
+                            else:
+                                rcolour = "orange"
+                            self.graphs[repo].add_edge(entry['ID'].replace(":", "_"),
+                                                       self.label_to_id[entry[header].strip()],
+                                                       color=rcolour,
+                                                       label=rel_name)
 
     def getDotForSheetGraph(self, repo, data):
         # Get a list of IDs from the sheet graph
