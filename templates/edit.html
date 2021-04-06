@@ -51,7 +51,6 @@
     <div class="col-md-9">
         <div id="conflict-btns" class="btn-group btn-group-lg text-right" style="display: none">
             <button id="merge-btn" class="btn btn-success" onclick="keep_both()">
-                <!-- onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', mergedTable, JSON.stringify(testTableData), 'true')"> -->
                 Try to keep both
             </button>
             <button id="overwrite-btn" class="btn btn-dark"
@@ -1376,7 +1375,7 @@
                 inputOptions: $(inputArray),
                 callback: function (result) {
                     if (result === null || result === "") { //cancel or no curator selected
-                        
+
                     } else {
                         selectedRows.forEach(function (row) {
                             //logic:
@@ -1693,7 +1692,7 @@
 
             var saveValidation = bootbox.dialog({
                 title: "There are validation errors, are you sure you want to save?",
-                message: combinedValidationMessages, //todo: make html message? More info in the message?
+                message: combinedValidationMessages, 
                 buttons: {
                     confirm: {
                         label: 'Submit anyway',
@@ -1711,10 +1710,7 @@
                     },
                     cancel: {
                         label: 'Cancel',
-                        className: 'btn-success', //todo: what colour should this be?
-                        // callback: function () { //todo: does this return anyway without this? Yes
-                        //     return;
-                        // }
+                        className: 'btn-success', 
                     },
                 }
             });
@@ -1756,20 +1752,14 @@
                                 });
 
                                 saveIndicator.init(function () {
-                                    console.log("showing dialog");
+                                    // console.log("showing dialog");
                                     saveIndicator.attr("id", "save_indicator");
                                     setTimeout(() => {
                                         saveIndicator.modal('hide');
                                         // bootbox.alert("Save taking too long, please check your internet connection");
                                     }, 30000);
                                 });
-                                // hide_save_indicator(); //works!
-                                // $("#save_indicator, p").text("doing verifications"); //works
-
-                                // $("#save_indicator, dialog").hide();
-                                // saveIndicator.modal('hide'); //not triggered
-                                // $('#save_indicator').modal('hide');
-                                console.log("indicator text: " + $("#save_indicator, p").text());
+                                // console.log("indicator text: " + $("#save_indicator, p").text());
                                 // Embed the code into a request.
                                 var request = new XMLHttpRequest();
                                 // Define a function to handle a state change of the request:
@@ -1995,8 +1985,6 @@
         $("#saveMessage").removeClass('alert-danger'); //not working!
         $("#saveMessage").text('');
         $("#saveAlert").hide();
-        // $("#saveMessage").hide(); //todo: this is not working
-
         $('#save-btn').show();
     };
 
@@ -2079,10 +2067,8 @@
                 var msg = data.message;
                 console.log(msg);
                 if (msg == "Success") {
-                    // console.log("happy");
+                    
                 } else {
-                    // console.log("sad");
-                    // alert("Someone has made changes on this spreadsheet!");
                     $('#updates').show(); //todo: need to hide on save and keep hidden during merger
                 }
             },
