@@ -881,26 +881,6 @@ def checkForUpdates():
             return ( json.dumps({"message":"Fail"}), 200 )
 
 
-@app.route('/openVisualiseAcrossSheets', methods=['POST'])
-@verify_logged_in
-def openVisualiseAcrossSheets():
-    #build data we need for dotStr query (new one!)
-    if request.method == "POST":
-        idString = request.form.get("idList")
-        print("idString is: ", idString)
-        repo = request.form.get("repo")
-        print("repo is ", repo)
-        idList = idString.split()
-        # for i in idList:
-        #     print("i is: ", i)
-        # indices = json.loads(request.form.get("indices"))
-        # print("indices are: ", indices)
-        ontodb.parseRelease(repo)
-        dotStr = ontodb.getDotForIDs(repo,idList).to_string()
-
-        return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
-
-    return ("Only POST allowed.")
 
 @app.route('/openVisualise', methods=['POST'])
 @verify_logged_in
@@ -933,19 +913,6 @@ def openVisualise():
 @verify_logged_in
 def visualise(repo, sheet):
     return render_template("visualise.html", sheet=sheet, repo=repo)
-
-#todo: delete this test route - returns example graph from local dot file
-#@app.route("/dot", methods=["GET"])
-#@verify_logged_in
-#def dot():
-#    if request.method == "GET":
-#        #DOT:
-#        filename = os.path.join(app.static_folder, 'test.dot')
-#        with open(filename) as data_file:
-#            graph = data_file.read()
-#        return (graph)
-#    return ('failed') #todo: do we need message:success, 200 here?
-
 
 
 # Internal methods

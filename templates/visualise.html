@@ -85,7 +85,7 @@
                     var url = DOMURL.createObjectURL(svg);
                     img1.onload = function () {
                         //resize canvas if image is larger than screen
-                        //or resize canvas to size of screen if image is smaller.. todo: check if this works for all sizes of graph
+                        //or resize canvas to size of screen if image is smaller.. 
                         if (this.naturalWidth > window.screen.availWidth && this.naturalHeight > window.screen.availHeight) {
                             canvas.width = this.naturalWidth;
                             canvas.height = this.naturalHeight;
