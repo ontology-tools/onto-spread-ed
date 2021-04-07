@@ -882,6 +882,7 @@ def openVisualise():
 def visualise(repo, sheet):
     return render_template("visualise.html", sheet=sheet, repo=repo)
 
+#todo: delete this test route - returns example graph from local dot file
 #@app.route("/dot", methods=["GET"])
 #@verify_logged_in
 #def dot():
