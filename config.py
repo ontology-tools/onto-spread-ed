@@ -12,7 +12,7 @@ APP_TITLE = "Ontology Spreadsheet Editor"
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
 
 RELEASE_FILES = {"AddictO": "addicto-merged.owx",
-                 "BCIO": "Upper%20Level%20BCIO/bcio-merged.owl"}
+                 "BCIO": "Upper%20Level%20BCIO/bcio-merged.owx"}
 
 PREFIXES = [ ["ADDICTO","http://addictovocab.org/ADDICTO_"],
              ["BFO","http://purl.obolibrary.org/obo/BFO_"],
@@ -31,7 +31,13 @@ PREFIXES = [ ["ADDICTO","http://addictovocab.org/ADDICTO_"],
              ["CHMO","http://purl.obolibrary.org/obo/CHMO_"],
              ["DOID","http://purl.obolibrary.org/obo/DOID_"],
              ["IAO","http://purl.obolibrary.org/obo/IAO_"],
-             ["ERO","http://purl.obolibrary.org/obo/ERO_"]
+             ["ERO","http://purl.obolibrary.org/obo/ERO_"],
+             ["PO","http://purl.obolibrary.org/obo/PO_"],
+             ["RO","http://purl.obolibrary.org/obo/RO_"],
+             ["APOLLO_SV","http://purl.obolibrary.org/obo/APOLLO_SV_"],
+             ["PDRO","http://purl.obolibrary.org/obo/PDRO_"],
+             ["GAZ","http://purl.obolibrary.org/obo/GAZ_"],
+             ["GSSO","http://purl.obolibrary.org/obo/GSSO_"]
            ]
 
 RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
