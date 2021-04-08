@@ -1,0 +1,134 @@
+{
+    "edges": [
+        {
+            "source": "OBO:ADDICTO_0000240",
+            "target": "OBO:ADDICTO_0000295",
+            "pred": "subClassOf"
+        },
+        {
+            "source": "OBO:ADDICTO_0000295",
+            "target": "OBO:ADDICTO_0000240",
+            "pred": "subClassOf"
+        },
+        {
+            "label": "Edge 1",
+            "source": "1",
+            "target": "2",
+            "id": "1",
+            "attributes": {
+                "title": "Title Edge 1",
+                "Weight": "1.0"
+            },
+            "color": "rgb(74,168,208)",
+            "size": 1
+        },
+        {
+            "label": "Edge 2",
+            "source": "2",
+            "target": "3",
+            "id": "2",
+            "attributes": {
+                "title": "Title Edge 2",
+                "Weight": "2.0"
+            },
+            "color": "rgb(74,168,208)",
+            "size": 4
+        }
+    ],
+    "nodes": [
+        {
+            "label": "Node 1",
+            "x": -545.59228515625,
+            "y": 742.2496337890625,
+            "id": "1",
+            "attributes": {
+                "Modularity Class": "2",
+                "Number of triangles": "0",
+                "contentfile": "node_1",
+                "Degree": "3",
+                "PageRank": "0.0518578989623337",
+                "Clustering Coefficient": "0.0",
+                "Weighted Degree": "3.0"
+            },
+            "color": "rgb(120,40,160)",
+            "size": 8.333333015441895
+        },
+        {
+            "label": "Node 2",
+            "x": 113.09465789794922,
+            "y": 1198.474853515625,
+            "id": "2",
+            "attributes": {
+                "Modularity Class": "4",
+                "Number of triangles": "10",
+                "contentfile": "node_2",
+                "Degree": "10",
+                "PageRank": "0.16873345574200924",
+                "Clustering Coefficient": "0.0",
+                "Weighted Degree": "10.0"
+            },
+            "color": "rgb(179,0,0)",
+            "size": 20
+        },
+        {
+            "label": "Node 3",
+            "x": 113.09465789794922,
+            "y": 1198.474853515625,
+            "id": "3",
+            "attributes": {
+                "Modularity Class": "4",
+                "Number of triangles": "10",
+                "contentfile": "node_3",
+                "Degree": "10",
+                "PageRank": "0.16873345574200924",
+                "Clustering Coefficient": "0.0",
+                "Weighted Degree": "10.0"
+            },
+            "color": "rgb(179,0,200)",
+            "size": 20
+        },
+        {
+            "id": "OBO:ADDICTO_0000295",
+            "label": "oral snuff",
+            "meta": {
+                "definition": {
+                    "val": "A smokeless tobacco-containing product that is composed mainly or exclusively of moist, ground or powdered tobacco that is processed to make it suitable for use by a person placing it in the mouth between the gum and the cheek.",
+                    "xrefs": []
+                },
+                "comments": [
+                    "This class includes snus as well as other oral ground or powdered tobacco products that are not chewed."
+                ],
+                "basicPropertyValues": [
+                    {
+                        "pred": "OBO:http://addictovocab.org/addicto.owl#curator_notes",
+                        "val": "People often confuse oral snuff with snus and it is important to recognise that snus is a subclass of oral snuff and not the same as it."
+                    },
+                    {
+                        "pred": "IAO:0000118",
+                        "val": "moist snuff"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "OBO:ADDICTO_0000240",
+            "label": "fruit flavoured e-liquid",
+            "meta": {
+                "definition": {
+                    "val": "A flavoured e-liquid in which the flavourant has a fruit taste.",
+                    "xrefs": []
+                },
+                "basicPropertyValues": [
+                    {
+                        "pred": "IAO:0000118",
+                        "val": "fruit flavoured e-juice"
+                    },
+                    {
+                        "pred": "IAO:0000118",
+                        "val": " fruit flavoured liquid"
+                    }
+                ]
+            }
+        }
+    ]
+}

@@ -5,4 +5,9 @@ gunicorn
 Flask-SQLAlchemy
 GitHub-Flask
 google-cloud-secret-manager
+google-cloud-storage
 daff
+whoosh
+networkx
+pydot
+py-horned-owl==0.1.4

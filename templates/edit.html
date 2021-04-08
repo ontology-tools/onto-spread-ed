@@ -6,6 +6,8 @@
 {% endblock %}
 {% block content %}
 
+
+
 <div class="row mb-3">
     <div class="col-md-12">
         <h2 id="s-name"> Editing {{spreadsheet_name}} </h2>
@@ -16,26 +18,71 @@
     <div class="col-md-9">
         <div class="text-left">
             <button id=add-row class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add Row</button>
-            <button id=delete-rows class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Delete
+            <button id=delete-rows class="btn btn-outline-danger btn-sm" style="display: none"><i
+                    class="fas fa-trash-alt"></i> Delete
                 Rows</button>
             <button id=highlight-user class="btn btn-outline-warning btn-sm"><i class="fas fa-highlighter"></i>
                 Highlight Your Rows</button>
             <button id=remove-formatting class="btn btn-outline-dark btn-sm"><i class="fas fa-remove-format"></i> Remove
                 all Filters</button>
-            <button id=ask-for-review class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard"></i> Ask for
+            <button id=ask-for-review class="btn btn-outline-primary btn-sm" style="display: none"><i
+                    class="fas fa-clipboard"></i> Ask for
                 review</button>
-            <button id=reviewed class="btn btn-outline-primary btn-sm"><i class="fas fa-clipboard-check"></i>
+            <button id=reviewed class="btn btn-outline-primary btn-sm" style="display: none"><i
+                    class="fas fa-clipboard-check"></i>
                 Reviewed</button>
+            <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-project-diagram"></i>
+                Visualise sheet</button>
+            <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i
+                    class="fab fa-uncharted"></i>
+                Visualise selection</button>
         </div>
     </div>
 
     <div class="col-md-3">
-        <button id="save-btn" class="btn btn-outline-success btn-sm"
-            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ) ) ">
+        <button id="save-btn" class="btn btn-outline-success btn-sm" style="display: none"
+            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) ">
             Save changes to repository
         </button>
     </div>
 </div>
+
+<div class="row mb-3">
+    <div class="col-md-9">
+        <div id="conflict-btns" class="btn-group btn-group-lg text-right" style="display: none">
+            <button id="merge-btn" class="btn btn-success" onclick="keep_both()">
+                Try to keep both
+            </button>
+            <button id="overwrite-btn" class="btn btn-dark"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                Overwrite remote changes
+            </button>
+            <button id="lose-changes-btn" class="btn btn-danger" onclick="lose_changes()">
+                Lose your changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-9">
+        <div id="merge-btns" class="btn-group btn-group-lg text-right " style="display: none">
+            <button id="merge-overwrite-btn" class="btn btn-success"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                SAVE
+            </button>
+            <button id="merge-revert-btn" class="btn btn-dark" onclick="revert_changes()">
+                REVERT
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div id="validation-btns" class="col-md-9" style="display: none">
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-12">
         <div id="saveAlert" class="alert alert-success collapse" role="alert">
@@ -46,6 +93,17 @@
         </div>
     </div>
 </div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div id=updates type="button" class="alert alert-warning text-center" role="alert" style="display: none">
+            <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>UPDATES AVAILABLE
+            <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>
+        </div>
+    </div>
+</div>
+
+
 <div class="row">
     <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-hover table-sm" style="font-size: 0.8em;">
@@ -70,6 +128,9 @@
     </div>
 </div>
 
+<div class="row">
+    <span id="keepAlive"></span>
+</div>
 
 {% endblock %}finish this dropdown and add button functionality
 
@@ -84,6 +145,11 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
+
+
+
+    var initialRowSearch = "";
+
     allCookies = document.cookie;
     console.log("allCookies: " + allCookies);
 
@@ -91,6 +157,9 @@
     var repo_name = '{{repo_name}}';
     //hide save button on load
     $('#save-btn').hide();
+    $('#conflict-btns').hide();
+    $('#merge-btns').hide();
+    $('#validation-btns').hide();
 
 
 
@@ -99,7 +168,7 @@
     var prevCurationStatus = "";
     // For the curation status, the allowed values
     var discussed = "Discussed";
-    var ready = "Ready"; //removing this
+    var ready = "Ready";
     var proposed = "Proposed";
     var toBeDiscussed = "ToBeDiscussed";
     var inDiscussion = "InDiscussion";
@@ -127,11 +196,20 @@
     // array to save changes in backupChanges
     var changes = [];
 
+    //validate error messages array:
+    var validateErrorMessages = [];
+
     //boolean conflict check
     var unsavedChanges = false;
 
+    // merge info array: 
+    var mergedTable = [];
+
     //Get the row data from the Jinja template object "rows"
     var rowData = {{ rows | safe }};
+
+
+
     var rowLength = rowData.length;
 
     var headers = {{ header | safe }};
@@ -145,12 +223,20 @@
     //Build the table row data with field names
     var tableData = [];
     var testTableData = [];
+    var previousData = [];
+
+
 
     //get saved table data, compare to current table:
     for (var i = 0; i < rowLength; i++) {
         var rowObj = { id: i }
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = rowData[i][headers[j]];
+            //replace & and =
+            if (rowObj[headers[j]] !== null) {
+                rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');
+            }
+
         }
         testTableData.push(rowObj);
     }
@@ -272,7 +358,7 @@
                 //Restoring entire array:
                 var newRowLength = previousTableData.length / headerLength;
                 console.log(newRowLength);
-                tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
+                tableData = JSON.parse(previousTableData); //todo: this doesn't take into account changes made on the server!
                 //todo: below needs to block, but we want a bootbox style which is asynchronous?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
@@ -300,6 +386,10 @@
             var rowObj = { id: i }
             for (var j = 0; j < headerLength; j++) {
                 rowObj[headers[j]] = rowData[i][headers[j]];
+                //replace & and =
+                if (rowObj[headers[j]] !== null) {
+                    rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');
+                }
                 //trying to set null values to 0 in checkbox columns here:
                 if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
                     if (rowObj[headers[j]] == null) {
@@ -318,7 +408,7 @@
                 //All rows with empty IDs --> not external. 
                 //Rows with AddictO IDs in AddictO repo or BCIO IDs in BCIO repo --> not external. 
                 //Only rows with  non-empty IDs, that are not matching the project ID template, are external.
-                //adding "External" status 
+                //adding "External" status:
                 if (headers[j] == curation_status) { //column
                     console.log("repo_name is: " + repo_name);
                     if (rowObj["ID"] == undefined) {
@@ -352,6 +442,8 @@
         }
     }
 
+
+
     //login
     var loginInitials = "{{user_initials}}";
     var highlightLogin = false; //highlight user edited tables
@@ -369,7 +461,6 @@
 
     //header menu:
     //define row context menu
-    //todo: resize to header text or initial value per header?
     var headerMenu = [
         {
             label: "Hide Column",
@@ -450,6 +541,23 @@
         scrollToRowPosition: "bottom", //for scrollToRow()
         scrollToRowIfVisible: false, //don't scroll if row already on screen
 
+        //tooltips for validate:
+        tooltips: true,
+        tooltipGenerationMode: "hover", //update on hover
+        tooltips: function (cell) {
+            var tooltipMsg = "ERROR - validation failed";
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                if (cell == validateErrorMessages[i]) {
+                    tooltipMsg = validateErrorMessages[i + 1]; // + (i / 2 + 1); // "+ i" just for testing
+                }
+            }
+            if (cell.getElement().style.backgroundColor == 'red') {
+                //function should return a string for the tooltip of false to hide the tooltip
+                return tooltipMsg;
+            } else {
+                return false;
+            }
+        },
 
         dataSorting: function (sorters) {
             //console.log("sorted");
@@ -460,28 +568,25 @@
 
         },
         renderStarted: function () {
-
+            // console.log("renderStarted");
         },
+
         renderComplete: function () {
-            try {
-                table.scrollToRow(rowValue); // todo: rowValue needs to be updated in several places - is this the best approach?
-                var row = table.getRowFromPosition(0, true);
-                var cell = row.getCell("parent");
-                cell.setValue("replaced");
-            } catch {
-                //console.log("caught"); //this happens on initial load, table loaded twice?
-            }
+
         },
 
         columnResized: function (column) {
             //console.log("resized"); //not triggering on hide, show column dropdown
         },
 
-        //todo: select all checkbox doesn't trigger rowSelected (no highlight, still deletes though...) - maybe it's just slow?
         rowSelected: function (row) {
             var data = row.getData();
             //show buttons concerning rows:
             $('#delete-rows').show();
+            if (data['ID'] === undefined) { //for tables without ID
+            } else {
+                $('#visualise-selection').show(); //only for tables with ID column
+            }
             if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
             } else {
@@ -489,7 +594,6 @@
                 $('#ask-for-review').show();
                 $('#reviewed').show();
             }
-            row.getElement().style.backgroundColor = 'grey';
             rowValue = row.getPosition(true);
         },
 
@@ -503,16 +607,61 @@
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
+                $('#visualise-selection').hide();
             }
-
-            row.getElement().style.backgroundColor = 'white';
             //re-do styling
-            if (data[curation_status] !== null) {
-                rowColours(row, data);
+            if (data[curation_status] === undefined) { //for tables without curation_status
+                //don't show some buttons if in a table where they are not needed
+            } else {
+                if (data[curation_status] !== null) {
+                    rowColours(row, data);
+                }
             }
             rowValue = row.getPosition(true);
         },
 
+        rowSelectionChanged: function (data, rows) {
+
+            if (table) {
+                console.log("highlighting now");
+                for (var r in table.getRows()) {
+                    var row3 = table.getRow(r);
+                    var data3 = row3.getData();
+                    if (data3[curation_status] === undefined) { //for tables without curation_status
+
+                    } else {
+                        if (data3[curation_status] !== null) {
+                            rowColours(row3, data3);
+                        }
+                    }
+                }
+            }
+            // console.log("ROW SELECTION CHANGED");
+            if (rows.length == 0) {
+                $('#delete-rows').hide();
+                $('#ask-for-review').hide();
+                $('#reviewed').hide();
+                $('#visualise-selection').hide();
+            } else {
+                $('#delete-rows').show();
+                for (r in rows) {
+                    var rowData = rows[r].getData();
+                    //show buttons concerning rows:
+                    $('#delete-rows').show();
+                    if (rowData['ID'] === undefined) { //for tables without ID
+                    } else {
+                        $('#visualise-selection').show(); //only for tables with ID column
+                    }
+                    if (rowData[curation_status] === undefined) { //for tables without curation_status
+                        //don't show some buttons if in a table where they are not needed
+                    } else {
+                        //show buttons to do with rows and curation status
+                        $('#ask-for-review').show();
+                        $('#reviewed').show();
+                    }
+                }
+            }
+        },
 
         cellClick: function (e, cell) {
             //WARNING: THIS DOES NOT TRIGGER ON FIREFOX!
@@ -526,15 +675,14 @@
             var data = row.getData();
             var column = cell.getColumn();
             rowValue = row.getPosition(true);
-            // console.log(cell.getValue()); //this works
-            // console.log("cellEditing column is: " + column.getDefinition().title)
+            // console.log("editing row: " + rowValue);
             //save backup curation status if "Curation status" column present: 
             if (data[curation_status] === undefined) { //Curation status column not present in table
 
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     prevCurationStatus = cell.getValue();
-                    console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+                    // console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
                 }
             }
         },
@@ -586,9 +734,9 @@
                     rowValue = row.getPosition();//save absolute row position
                     columnValue = cell.getField(); //column name
                     if (cell.getValue().includes(repo_name.toUpperCase())) {
-                         if (data[curation_status] == "External") { //
+                        if (data[curation_status] == "External") { //
                             data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
-                         }
+                        }
                     }
                 }
                 if (data["ID"] == undefined) {
@@ -613,32 +761,7 @@
                         }
                     }
                 }
-
-
-                // }
-
-                // if (data["ID"] === undefined) {
-
-                // } else {
-                //     if (data["ID"].includes("ADDICTO") || data["ID"].includes("BCIO")) {
-                //         if (data[curation_status] == "External") {
-                //             data[curation_status] = "Proposed";
-                //         }
-                //     } else {
-                //         if (data["ID"] == "" || data["ID"] == null) {
-                //             //no change
-                //         } else {
-                //             data[curation_status] = "External";
-                //         }
-
-                //         //colour changed in "rowColours" function
-                //     }
-
-                // }
-
             }
-
-
 
             //if a field in any column except "Curator" edited
             //check "Curator" column for loginInitials and auto fill
@@ -730,7 +853,6 @@
                             //save Fuzzy set column to local storage for backup here
                             //{value, row, columnName}
                             //data[curator], row.getPosition(), "Curator"
-                            // if(data["Fuzzy set"] !== "" && data["Fuzzy set"] !== null){
                             rowValue = row.getPosition();//save absolute row position
                             columnValue = fuzzy_Set; //column name
                             var alreadyChanged = false;
@@ -749,7 +871,6 @@
                                 changes.push(rowValue);
                                 changes.push(fuzzy_Set);
                             }
-                            // }
                         }
                     }
                 }
@@ -784,7 +905,7 @@
                             savedCellDiscussed = true;
                         } else {
                             //need to check saved table to see if status for this row was "Discussed" or not: 
-                            //get column number programatically: ///////////////////////////////////////////////
+                            //get column number programatically:
                             var currentColumnNumber = headerLength - 2; //fallback, for now
                             for (var i = 0; i < headerLength; i++) {
                                 if (headers[i] == curation_status) {
@@ -801,7 +922,6 @@
                                 dValue = rowData[rowValue][headers[currentColumnNumber]];
                             }
 
-                            //////////////////////////////////////////////////////////////////////////////
                             if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
                             }
@@ -839,13 +959,103 @@
                             bootbox.alert("'Label', 'Definition' and 'Parent' columns all need to be set first");
                             data[curation_status] = prevCurationStatus; //reverting here
                         } else {
-                            console.log("All set. Label, Definition and Parent. Should be Discussed now");
+                            // console.log("All set. Label, Definition and Parent. Should be Discussed now");
                             //this is fine, allow it
                         }
                     }
                 }
             }
-            backupChanges(); //todo: as soon as user starts editing, conflicted save will be overwritten *what did I mean here? 
+
+            backupChanges();
+
+            //promise:
+            validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
+
+                // console.log("message: " + message);
+                if (message == 'success') { //no validation errors
+                    // console.log("validate true");
+                    //first remove all old validateErrorMessages for same rows:
+                    if (validateErrorMessages.length > 0) {
+                        var newValidateErrorMessages = [];
+                        var write = true;
+                        for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                            write = true;
+                            for (var j = 0; j < headerLength; j++) {
+                                if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
+                                    row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                                    write = false;
+                                }
+                            }
+                            if (write) {
+                                newValidateErrorMessages.push(validateErrorMessages[i]);
+                                newValidateErrorMessages.push(validateErrorMessages[i + 1]);
+                            }
+                        }
+                        validateErrorMessages = newValidateErrorMessages; //replace
+                        if ($("#validation-btns").is(":hidden")) {
+                            console.log("HIDDEN");
+                        } else {
+                            console.log("NOT HIDDEN");
+                            validateButtons();
+                            // $("#validation-btns").hide();
+                        }
+                    }
+
+                } else {
+                    var messageJSON = JSON.parse(message);
+
+                    //first remove all old validateErrorMessages for same rows:
+                    if (validateErrorMessages.length > 0) {
+                        var newValidateErrorMessages = [];
+                        var write = true;
+                        for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                            write = true;
+                            for (var j = 0; j < headerLength; j++) {
+                                if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
+                                    row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                                    write = false;
+                                }
+                            }
+                            if (write) {
+                                newValidateErrorMessages.push(validateErrorMessages[i]);
+                                newValidateErrorMessages.push(validateErrorMessages[i + 1]);
+                            }
+                        }
+                        validateErrorMessages = newValidateErrorMessages; //replace
+                    }
+
+                    function getOtherErrors(obj) {
+                        for (var k in obj) {
+                            if (k == "message") { //todo: what if there is a "message" column? 
+                            } else if (k == "values") {
+                                for (var v in obj[k]) {
+                                    //1. turn cell red
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
+                                    //2. add to validateErrorMessages array
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value should not be empty");
+                                }
+                            } else if (k == "unique") {
+                                for (var v in obj[k]) {
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value is not unique");
+                                }
+                            }
+                        }
+                    };
+                    getOtherErrors(messageJSON);
+                    // console.log(validateErrorMessages);
+                    //check if we are dealing with validation errors:
+                    if ($("#validation-btns").is(":hidden")) {
+                        console.log("HIDDEN");
+                    } else {
+                        console.log("NOT HIDDEN");
+                        validateButtons();
+                    }
+                }
+            });
+
         },
 
         cellEditCancelled: function (cell) {
@@ -865,6 +1075,17 @@
             $('#delete-rows').hide();
             $('#ask-for-review').hide();
             $('#reviewed').hide();
+            $('#updates').hide();
+            $('#visualise-selection').hide();
+            $('#visualise-sheet').hide();
+            if (data['ID'] === undefined) { //for tables without ID
+
+            } else {
+                if (data['ID'] !== null) {
+                    $('#visualise-sheet').show(); //only for tables with ID
+                }
+            }
+
             //update highlighting
             if (data[curation_status] === undefined) { //for tables without curation_status
 
@@ -873,6 +1094,8 @@
                     rowColours(row, data);
                 }
             }
+
+
 
             if (highlightLogin) {
                 if (data[curator] === undefined) {
@@ -918,39 +1141,64 @@
             // console.log(pos);
         },
 
+        rowDeleted: function (row) {
+            //remove all old validateErrorMessages for this row:
+            if (validateErrorMessages.length > 0) {
+                var newValidateErrorMessages = [];
+                var write = true;
+                for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                    write = true;
+                    for (var j = 0; j < headerLength; j++) {
+                        if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
+                            row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            write = false;
+                        }
+                    }
+                    if (write) {
+                        newValidateErrorMessages.push(validateErrorMessages[i]);
+                        newValidateErrorMessages.push(validateErrorMessages[i + 1]);
+                    }
+                }
+                validateErrorMessages = newValidateErrorMessages; //replace
+            }
+
+        },
+
         // rowUpdated:function(row){
 
         // },
     });
 
     function rowColours(row, data) {
-
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+        if (!row.isSelected()) {
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+            }
+            // change all "Ready" to "Published":
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
+                data[curation_status] = "Published";
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
+            }
+        } else {
+            row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
         }
-        //change all "Ready" to "Published":
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
-            data[curation_status] = "Published";
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'white'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
-        }
-        if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
-            row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
-        }
-
     }
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
@@ -966,7 +1214,8 @@
             "AddictO_Research_activity_Defs.xlsx"];
         var AOsub_ontologyNames = ["Environmental system", "Human being", "Human behaviour", "Human population",
             "Intervention", "", "Organisation", "Product", "Research activity"];
-        var rowObj = { id: 0 } //todo: what does this actually do? 
+        var idNum = table.getDataCount();
+        var rowObj = { id: idNum } //add to end of table! 
         for (var j = 0; j < headerLength; j++) {
             rowObj[headers[j]] = "";
             if (headers[j] == curation_status) { //column
@@ -1008,16 +1257,76 @@
         //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
             var data = row.getData();
-            if (data["ID"] === undefined) {
+            if (data["ID"] === undefined || data[curation_status] === undefined) {
                 table.deleteRow(row);
                 // if (row.getCell("ID") === undefined) {
                 console.log("ID undefined");
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
-                if (cell.getValue() !== "" && cell.getValue() !== null) {
+                if (cell.getValue() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
+                    //set to obsolete and show a message here
+                    data[curation_status] = "Obsolete";
+                    //save change: 
+                    var rowValue = row.getPosition();//save absolute row position
+                    var columnValue = "Curation status"; //column name
+                    var alreadyChanged = false;
+                    //check for previously edited cell, and overwrite if already changed before
+                    for (var i = 0; i < changes.length; i++) {
+                        if (rowValue == changes[i]) { //matches row number
+                            if (columnValue == changes[i + 1]) { //matches column name as well
+                                console.log("already edited this field");
+                                changes.splice(i - 1, 3, data[curation_status], rowValue, columnValue);
+                                alreadyChanged = true;
+                            }
+                        }
+                    }
+                    if (!alreadyChanged) {
+                        changes.push(data[curation_status]);
+                        changes.push(rowValue);
+                        changes.push(columnValue);
+                    }
 
-                } else {
+                    bootbox.alert("You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead.");
+                    row.deselect();
+
+                    //set initials of "Curator"
+                    if (data[curator] !== null && data[curator] !== "") {
+                        var prevCurator = data[curator];
+                        var nameCheck = prevCurator.indexOf(loginInitials);
+                        if (nameCheck > -1) {
+                            //name exists, don't update
+                        } else {
+                            data[curator] = prevCurator + "; " + loginInitials;
+                        }
+                    } else {
+                        data[curator] = loginInitials;
+                    }
+
+                    //save curator column to local storage for backup here
+                    //{value, row, columnName}
+                    //data[curator], row.getPosition(), "Curator"
+                    if (data[curator] !== "" && data[curator] !== null) {
+                        rowValue = row.getPosition();//save absolute row position
+                        columnValue = "Curator"; //column name
+                        var alreadyChanged = false;
+                        //check for previously edited cell, and overwrite if already changed before
+                        for (var i = 0; i < changes.length; i++) {
+                            if (rowValue == changes[i]) { //matches row number
+                                if (columnValue == changes[i + 1]) { //matches column name as well
+                                    console.log("already edited this field");
+                                    changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                                    alreadyChanged = true;
+                                }
+                            }
+                        }
+                        if (!alreadyChanged) {
+                            changes.push(data[curator]);
+                            changes.push(rowValue);
+                            changes.push(columnValue);
+                        }
+                    }
+                } else { // ID is "" or null, we can delete 
                     table.deleteRow(row);
                 }
             }
@@ -1053,9 +1362,7 @@
     });
 
     $("#ask-for-review").click(function () {
-        //console.log("ask for review");
         var selectedRows = table.getSelectedRows();
-        //console.log(selectedRows);
         if (selectedRows == "") {
             bootbox.alert("No rows selected");
         } else {
@@ -1069,7 +1376,7 @@
                 inputOptions: $(inputArray),
                 callback: function (result) {
                     if (result === null || result === "") { //cancel or no curator selected
-                        // row.deselect(); //probably not a good idea.. maybe they made a mistake and want to do something else.
+
                     } else {
                         selectedRows.forEach(function (row) {
                             //logic:
@@ -1184,6 +1491,83 @@
 
     });
 
+    $("#visualise-sheet").click(function () {
+        var indices = [];
+        window.open('', 'VisualisationWindow');
+
+        var form = document.createElement("form");
+        form.setAttribute("method", "post");
+        form.setAttribute("action", "/openVisualise");
+        form.setAttribute("target", 'VisualisationWindow');
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = "sheet";
+        input.value = "{{spreadsheet_name}}";
+        form.appendChild(input);
+        var input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = "repo";
+        input2.value = "{{repo_name}}";
+        form.appendChild(input2);
+        var input4 = document.createElement('input');
+        input4.type = 'hidden';
+        input4.name = "table";
+        input4.value = JSON.stringify(table.getData());
+        form.appendChild(input4);
+        var input5 = document.createElement('input');
+        input5.type = 'hidden';
+        input5.name = "indices";
+        input5.value = JSON.stringify(indices);
+        form.appendChild(input5);
+        document.body.appendChild(form);
+        form.target = 'VisualisationWindow';
+        form.submit();
+        document.body.removeChild(form);
+
+    });
+
+    $("#visualise-selection").click(function () {
+        var selectedData = table.getSelectedData();
+        var selectedRows = table.getSelectedRows();
+        var indices = [];
+
+        for (r in selectedRows) {
+            indices.push(selectedRows[r].getIndex());
+        }
+        indices.sort(function (a, b) { return a - b });
+        console.log(indices);
+        window.open('', 'VisualisationWindow');
+
+        var form = document.createElement("form");
+        form.setAttribute("method", "post");
+        form.setAttribute("action", "/openVisualise");
+        form.setAttribute("target", 'VisualisationWindow');
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = "sheet";
+        input.value = "{{spreadsheet_name}}";
+        form.appendChild(input);
+        var input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = "repo";
+        input2.value = "{{repo_name}}";
+        form.appendChild(input2);
+        var input4 = document.createElement('input');
+        input4.type = 'hidden';
+        input4.name = "table";
+        input4.value = JSON.stringify(table.getData());
+        form.appendChild(input4);
+        var input5 = document.createElement('input');
+        input5.type = 'hidden';
+        input5.name = "indices";
+        input5.value = JSON.stringify(indices);
+        form.appendChild(input5);
+        document.body.appendChild(form);
+        form.target = 'VisualisationWindow';
+        form.submit();
+        document.body.removeChild(form);
+    });
+
     $('#contentTable').ready(function () {
         //warn user if unsaved changes:
         window.onbeforeunload = function (e) {
@@ -1195,6 +1579,15 @@
                 return message;
             }
         };
+        //scroll to search term if present:
+        initialRowSearch = '{{go_to_row | safe}}';
+        console.log(initialRowSearch);
+        if (initialRowSearch == "" || initialRowSearch == null) {
+
+        } else {
+            //filter by Label:
+            table.setHeaderFilterValue("Label", initialRowSearch);
+        }
 
     });
 
@@ -1268,111 +1661,340 @@
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
     */
-    var save_changes = function (repo_key, folder, spreadsheet, rowData) {
-        $("#commit-msg").attr('value', 'Updating ' + spreadsheet);
 
-        // Get a confirmation from the user:
-        var modal = bootbox.dialog({
-            title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
-            message: $("#message-box").html(),
-            buttons: {
-                confirm: {
-                    label: 'Submit',
-                    className: 'btn-danger',
-                    callback: function () {
-                        var aForm = modal.find(".form");
-                        var formData = aForm.serializeArray(),
-                            dataObj = {};
-                        $(formData).each(function (i, field) {
-                            dataObj[field.name] = field.value;
-                        });
-                        var commit_msg = dataObj["commit-msg"];
-                        var msgBody = dataObj["descr"];
-                        if (commit_msg !== null && commit_msg !== undefined) {
-                            if (!commit_msg || commit_msg.trim() === "") {
-                                bootbox.alert({
-                                    closeButton: false,
-                                    message: "Commit message cannot be empty. Your change has not been submitted."
+    var save_changes = function (repo_key, folder, spreadsheet, rowData, initialData, overwrite) {
+        //check for validate errors:
+        var saveValidationMessage = "";
+        var combinedValidationMessages = "";
+        if (validateErrorMessages.length > 0) {
+            console.log("validate errors!!!");
+
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                var errorCell = validateErrorMessages[i];
+                var errorCol = errorCell.getColumn().getDefinition().title;
+                var errorRow = errorCell.getRow().getPosition(true); //position in filtered data
+                console.log(errorCol + " " + errorRow);
+                combinedValidationMessages += "<p>";
+                saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
+                combinedValidationMessages += saveValidationMessage + "</p>";
+            }
+
+            var saveValidation = bootbox.dialog({
+                title: "There are validation errors, are you sure you want to save?",
+                message: combinedValidationMessages, 
+                buttons: {
+                    confirm: {
+                        label: 'Submit anyway',
+                        className: 'btn-danger',
+                        callback: function () {
+                            submit();
+                        }
+                    },
+                    fix: {
+                        label: 'Show errors in table',
+                        className: 'btn-primary',
+                        callback: function () {
+                            validateButtons();
+                        }
+                    },
+                    cancel: {
+                        label: 'Cancel',
+                        className: 'btn-success', 
+                    },
+                }
+            });
+        } else {
+            submit();
+        }
+
+        function submit() {
+            $("#commit-msg").attr('value', 'Updating ' + spreadsheet);
+
+            // Get a confirmation from the user:
+            var modal = bootbox.dialog({
+                title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
+                message: $("#message-box").html(),
+                buttons: {
+                    confirm: {
+                        label: 'Submit',
+                        className: 'btn-danger',
+                        callback: function () {
+                            var aForm = modal.find(".form");
+                            var formData = aForm.serializeArray(),
+                                dataObj = {};
+                            $(formData).each(function (i, field) {
+                                dataObj[field.name] = field.value;
+                            });
+                            var commit_msg = dataObj["commit-msg"];
+                            var msgBody = dataObj["descr"];
+                            if (commit_msg !== null && commit_msg !== undefined) {
+                                if (!commit_msg || commit_msg.trim() === "") {
+                                    bootbox.alert({
+                                        closeButton: false,
+                                        message: "Commit message cannot be empty. Your change has not been submitted."
+                                    });
+                                    return;
+                                }
+                                var saveIndicator = bootbox.dialog({
+                                    message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SAVING...</p>',
+                                    closeButton: false //true for testing
                                 });
-                                return;
-                            }
 
-                            // Embed the code into a request.
-                            var request = new XMLHttpRequest();
-                            // Define a function to handle a state change of the request:
-                            request.onreadystatechange = function () {
-                                $("*").css("cursor", "default");
-                                if (request.readyState === 4) {
-                                    if (!request.status) {
-                                        bootbox.alert("Problem communicating with server");
-                                    }
-                                    else if (request.status === 200) {
-                                        window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-                                        changes = []; //no changes anymore to save
-                                        backupChanges();
-                                        var response = JSON.parse(request.responseText);
-                                        var new_file_sha = response['file_sha'];
-                                        file_sha = new_file_sha;
-                                        $('#saveAlert').removeClass('alert-danger');
-                                        $('#saveAlert').addClass('alert-success');
-                                        $("#saveMessage").text('Changes were saved successfully to the repository. ');
-                                        $("#saveAlert").dismissed = false;
-                                        $("#saveAlert").show();
-                                        $('#save-btn').hide(); //saved successfully, hide save button
+                                saveIndicator.init(function () {
+                                    // console.log("showing dialog");
+                                    saveIndicator.attr("id", "save_indicator");
+                                    setTimeout(() => {
+                                        saveIndicator.modal('hide');
+                                        // bootbox.alert("Save taking too long, please check your internet connection");
+                                    }, 30000);
+                                });
+                                // console.log("indicator text: " + $("#save_indicator, p").text());
+                                // Embed the code into a request.
+                                var request = new XMLHttpRequest();
+                                // Define a function to handle a state change of the request:
+                                request.onreadystatechange = function () {
+                                    $("*").css("cursor", "default");
+                                    $('#saveDialog').modal('hide');
+                                    console.log("request status is: " + request.status);
+                                    if (request.readyState === 4) {
+                                        if (!request.status) {
+                                            hide_save_indicator();
+                                            bootbox.alert("Problem communicating with server");
+                                        }
+                                        else if (request.status === 200) {
+                                            window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                            changes = []; //no changes anymore to save
+                                            backupChanges();
+                                            var response = JSON.parse(request.responseText);
+                                            var new_file_sha = response['file_sha'];
+                                            file_sha = new_file_sha;
+                                            $('#saveAlert').removeClass('alert-danger');
+                                            $('#saveAlert').addClass('alert-success');
+                                            $("#saveMessage").text('Changes were saved successfully to the repository. ');
+                                            $("#saveAlert").dismissed = false;
+                                            $("#saveAlert").show();
+                                            $('#save-btn').hide(); //saved successfully, hide save button
+                                            $('#updates').hide();
+                                            $('#merge-btns').hide(); //if there was a merge conflict, hide these after saving
+                                            $("#validation-btns").hide(); //if there were validation errors being dealt with, hide these
 
-                                        var rows = table.getRows();
-                                        for (i = 0; i < rows.length; i++) {
-                                            var cells = rows[i].getCells();
-                                            for (j = 0; j < cells.length; j++) {
-                                                cells[j].getElement().style.color = 'black'; //do we want to change all to black?
+                                            //clear validation cell colours: 
+                                            if (validateErrorMessages.lenth > 0) {
+                                                for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                                                    cellToClear = validateErrorMessages[i];
+                                                    cellToClear.getElement().style.backgroundColor = null; //remove style backgroundColor
+                                                }
                                             }
-                                        }
-                                        if (tableEdited) {
-                                            tableEdited = false;
-                                        }
+                                            //delete validation message array: 
+                                            validateErrorMessages = [];
 
+                                            var rows = table.getRows();
+                                            for (i = 0; i < rows.length; i++) {
+                                                var cells = rows[i].getCells();
+                                                for (j = 0; j < cells.length; j++) {
+                                                    cells[j].getElement().style.color = 'black'; //do we want to change all to black?
+                                                }
+                                            }
+                                            if (tableEdited) {
+                                                tableEdited = false;
+                                            }
+                                            //todo: should we re-load spreadsheet like this on every successful save? 
+                                            if (overwrite == 'true') { //true for merge, where there is different data to load in. 
+                                                //re-load here to get updated data - need alert not bootbox (for blocking):
+                                                alert("Changes were saved successfully to the repository. Re-loading data now");
+                                                location.reload(true); //todo: can tabulator just update without re-loading the page? 
+                                            }
+                                            //todo: handle more error codes here and do merge in correct circumstance
+                                        } else if (request.status === 400) { //repo not found error
+                                            var response = JSON.parse(request.responseText);
+                                            var errInfo = response['Error'];
+                                            $("#saveAlert").addClass("alert-danger");
+                                            $("#saveMessage").text('REPO not found - ' + errInfo);
+                                            $("#saveAlert").show();
+                                        } else if (request.status === 300) { //error code for merge
+                                            var response = JSON.parse(request.responseText);
+                                            var errInfo = response['Error'];
+                                            var mergeInfo = response['merge_diff'];
+                                            mergedTable = response['merged_table']
+
+                                            var conflicted = false; // not using this right now..
+
+                                            $('#saveAlert').removeClass('alert-success');
+                                            $('#saveAlert').addClass('alert-danger');
+                                            $("#saveMessage").append(errInfo);
+                                            $("#saveMessage").append('<br> SEE THE BUTTONS ABOVE THIS MESSAGE FOR OPTIONS TO DEAL WITH THIS <br>');
+                                            $("#saveMessage").append('Merge info: ' + mergeInfo);
+                                            // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
+                                            $(".alert").alert() //???
+                                            $("#saveAlert").show();
+                                            $('#save-btn').hide();
+                                            $("#validation-btns").hide(); //I think we don't want these here
+                                            $('#updates').hide();
+                                            $('#conflict-btns').show();
+                                            // $("#saveMessage").text(''); //reset message
+                                            // $("#saveAlert").hide();
+                                            $("tr").each(function () {
+                                                if ($(this).hasClass("remove")) {
+                                                    console.log("REMOVE DETECTED");
+                                                }
+                                                if ($(this).hasClass("add")) {
+                                                    console.log("ADD DETECTED");
+                                                }
+                                            });
+                                            $("td").each(function () {
+                                                if ($(this).hasClass("modify")) {
+                                                    console.log("MODIFY DETECTED");
+                                                }
+                                                if ($(this).hasClass("conflict")) {
+                                                    console.log("CONFLICT DETECTED");
+                                                }
+                                            });
+                                            $("tr.remove").css('background-color', '#DAA520'); //orange
+                                            $("tr.add").css('background-color', '#7CFC00'); //green
+                                            $("td.modify").css('background-color', '#00FF00'); //lighter green
+                                            $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
+                                        } else {
+                                            saveIndicator.modal('hide'); // hide save indicator if no response
+                                            var response = JSON.parse(request.responseText);
+                                            console.log(response);
+                                            var errInfo = response['Error'];
+                                            $("#saveAlert").addClass("alert-danger");
+                                            $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
+                                            $("#saveAlert").show();
+                                        }
                                     } else {
-                                        var response = JSON.parse(request.responseText);
-                                        var errInfo = response['Error'];
-                                        var mergeInfo = response['merge_diff'];
-                                        $('#saveAlert').removeClass('alert-success');
-                                        $('#saveAlert').addClass('alert-danger');
-                                        $("#saveMessage").append('"It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
-                                        $("#saveMessage").append('merge info: ' + mergeInfo); //todo: do we need to show this? 
-                                        // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
-                                        $(".alert").alert()
-                                        $("#saveAlert").show();
+                                        saveIndicator.modal('hide'); //doesn't trigger if there is no internet?!
                                     }
                                 }
+                                // Post the request to the server.
+                                //get rid of ampersands first:
+
+                                rowData = rowData.replaceAll('&', 'and');
+                                initialData = initialData.replaceAll('&', 'and');
+                                // console.log("rowData: " + rowData);
+                                // console.log("initialData: " + initialData);
+                                request.open('POST', '/save', true);
+                                request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                                request.send('repo_key=' + repo_key +
+                                    '&folder=' + folder +
+                                    '&spreadsheet=' + spreadsheet +
+                                    '&rowData=' + rowData +
+                                    '&initialData=' + initialData +
+                                    '&commit_msg=' + commit_msg +
+                                    '&commit_msg_extra=' + msgBody +
+                                    '&file_sha= ' + file_sha +
+                                    '&overwrite=' + overwrite);
+                                $("*").css("cursor", "progress");
                             }
-                            // Post the request to the server.
-                            request.open('POST', '/save', true);
-                            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-                            request.send('repo_key=' + repo_key +
-                                '&folder=' + folder +
-                                '&spreadsheet=' + spreadsheet +
-                                '&rowData=' + rowData +
-                                '&commit_msg=' + commit_msg +
-                                '&commit_msg_extra=' + msgBody +
-                                '&file_sha= ' + file_sha);
-                            $("*").css("cursor", "progress");
                         }
+                    },
+                    cancel: {
+                        label: 'Cancel',
+                        className: 'btn-primary'
                     }
-                },
-                cancel: {
-                    label: 'Cancel',
-                    className: 'btn-primary'
                 }
+            });
+        };
+
+    }
+
+    function validateButtons() {
+        if (validateErrorMessages.length == 0) {
+            $("#validation-btns").hide();
+            console.log("validation buttons lenth 0");
+        } else {
+            $("#validation-btns").empty(); //first remove any old buttons
+            $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
+            //create buttons for each validation error:
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                var filterValidateBtn = "";
+                var errorCell = validateErrorMessages[i];
+                var errorCol = errorCell.getColumn().getDefinition().title;
+                var errorRow = errorCell.getRow().getPosition(); //position 
+                var number = (i / 2 + 1);
+                // console.log(errorCol + " " + errorRow);
+                var btnID = "merge-overwrite-btn" + number;
+                var cellFilter = errorCell.getValue();
+
+                var $filterValidateBtn = $("<button id='" + btnID + "' class='btn btn-sm btn-outline-info' \
+                                >" + number + ": " + errorCol + ", " + errorRow + "</button>");
+
+                // $("#validation-btns").append(filterValidateBtn);
+                //add handler to button:
+                (function (errorCol, cellFilter, errorRow) {
+                    $filterValidateBtn.click(function () {
+                        clearFormatting(); //make sure we are showing the whole table
+                        // table.redraw(); //does nothing for this issue
+                        // alert(cellFilter + " " + errorCol + " " + errorRow);
+
+                        table.scrollToRow(errorRow, "center", true)
+                            .then(function () {
+                                //cool, this works now!
+                            })
+                            .catch(function (error) {
+                                console.log("error scrolling to row");
+                                console.log("number of rows: " + table.getDataCount());
+                            });
+                        table.scrollToColumn(errorCol, "middle", true).then(function () {
+                            var rowToScrollTo = table.getRowFromPosition(errorRow);
+                            // console.log(rowToScrollTo);
+                            var cellToScrollTo = rowToScrollTo.getCell(errorCol);
+                            cellToScrollTo.getElement().focus();
+                        })
+                            .catch(function (error) {
+                                console.log("error scrolling to column");
+                                console.log("supposed to be at : " + errorCol);
+                            });
+                    });
+                }(errorCol, cellFilter, errorRow));
+                $("#validation-btns").append($filterValidateBtn);
             }
-        });
+            $("#validation-btns").show();
+        }
+    }
+
+    function hide_save_indicator() {
+        $("#save_indicator").removeClass("in");
+        $(".modal-backdrop").remove();
+        $("#save_indicator").hide();
+    }
+
+    var keep_both = function () {
+        //backup old data:
+        previousData = table.getData();
+        table.setData(mergedTable);
+        $("#saveMessage").text('IMPORTANT: This is your new Merged Table. You can edit it, and click on SAVE above, or click REVERT to go back. PLEASE CHOOSE NOW');
+        $('#conflict-btns').hide();
+        $('#merge-btns').show();
     };
 
+    var revert_changes = function () {
+        table.setData(previousData);
+        $('#merge-btns').hide();
+        $("#saveMessage").removeClass('alert-danger'); //not working!
+        $("#saveMessage").text('');
+        $("#saveAlert").hide();
+        $('#save-btn').show();
+    };
+
+    var lose_changes = function () {
+        //delete saved changes?
+        unsavedChanges = false;
+        //using tabulator reactive data to update the table. No refresh needed...
+        //remove previous table array?
+        // window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
+        //refresh sheet
+        location.reload(true);
+    };
 
 
 
     /** Hide save results message */
     $("#closeSaveMsgBtn").click(function () {
         $("#saveMessage").text('');
+        $('#conflict-btns').hide();
+        $('#merge-btns').hide();
+        //keep save button though if present? OK no..
         $(this).parent().hide();
     });
 
@@ -1390,6 +2012,83 @@
             return false;
         }
     });
+
+    //validations function: 
+    function validate(cell, column, rowData, headers, table) {
+
+        //todo: handle errors!
+        return $.ajax({
+            url: '/validate',
+            dataType: 'text',
+            type: 'POST',
+            data: { cell: JSON.stringify(cell.getValue()), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
+            success: function (message) {
+                console.log("no validation errors?")
+            }, error: function () {
+                console.log("validate message error: " + message);
+            }
+        });
+
+    }
+    //todo: use below to update and check for new data: 
+    window.onload = setupRefresh;
+    function setupRefresh() {
+        setInterval("refreshBlock();", 60000);
+    }
+
+    function refreshBlock() {
+        // console.log("update every minute ");
+        checkForUpdates('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', file_sha);
+
+    }
+
+    function checkForUpdates(repo_key, folder, spreadsheet_name, file_sha) {
+        // console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
+
+        jQuery.ajax({
+            url: '/checkForUpdates',
+            contentType: "application/x-www-form-urlencoded",
+            dataType: "json",
+            type: 'POST',
+            async: 'false',
+            data: { repo_key: repo_key, folder: folder, spreadsheet: spreadsheet_name, file_sha },
+            success: function (data) {
+                var msg = data.message;
+                console.log(msg);
+                if (msg == "Success") {
+                    
+                } else {
+                    $('#updates').show(); //todo: need to hide on save and keep hidden during merger
+                }
+            },
+            error: function (request, status, error) {
+                console.log(error);
+            }
+        });
+    }
+
+
+    setInterval(function () {
+        $.ajax({
+            type: "POST",
+            url: "/keepalive",
+            data: '{ sendData: "ok" }',
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (result) {
+                var d = new Date();
+                var n = d.toLocaleTimeString();
+                $("#keepAlive").text(n + " | server alive");
+            },
+            error: function (request, status, error) {
+                var d = new Date();
+                var n = d.toLocaleTimeString();
+                $("#keepAlive").text(n + " | server not alive " + status);
+            }
+        });
+    }, 1000 * 60 * 5);
+
+
 </script>
 
 {% endblock %}
