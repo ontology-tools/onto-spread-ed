@@ -594,7 +594,8 @@ def generate():
     if request.method == "POST":
         rowData = json.loads(request.form.get("rowData"))
         print("generate data sent")
-        print(rowData)
+        print("Got ", len(rowData), "rows:", rowData)
+        
         values = {"ID1":"test", "ID2":"test2"}
         return (json.dumps({"message": "idlist", "values": values})) #need to return an array 
     return ('success')  
