@@ -56,6 +56,7 @@ db_session = scoped_session(sessionmaker(autocommit=False,
                                          bind=engine))
 Base = declarative_base()
 
+
 class User(Base):
     __tablename__ = 'users'
 
@@ -66,6 +67,7 @@ class User(Base):
 
     def __init__(self, github_access_token):
         self.github_access_token = github_access_token
+
 
 def init_db():
 
@@ -81,7 +83,6 @@ class FlaskApp(Flask):
 
     def _activate_background_job(self):
         init_db()
-
 
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
@@ -103,20 +104,20 @@ class BucketStorage(whoosh.filedb.filestore.RamStorage):
     def save_to_bucket(self):
         for name in self.files.keys():
             with self.open_file(name) as source:
-                print("Saving file",name)
+                print("Saving file", name)
                 blob = self.bucket.blob(name)
                 blob.upload_from_file(source)
         for name in self.filenameslist:
             if name not in self.files.keys():
                 blob = self.bucket.blob(name)
-                print("Deleting old file",name)
+                print("Deleting old file", name)
                 self.bucket.delete_blob(blob.name)
                 self.filenameslist.remove(name)
 
     def open_from_bucket(self):
         self.filenameslist = []
         for blob in bucket.list_blobs():
-            print("Opening blob",blob.name)
+            print("Opening blob", blob.name)
             self.filenameslist.append(blob.name)
             f = self.create_file(blob.name)
             blob.download_to_file(f)
@@ -133,8 +134,8 @@ class SpreadsheetSearcher:
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
 
-        mparser = MultifieldParser(["class_id","label","definition","parent"],
-                                schema=ix.schema)
+        mparser = MultifieldParser(["class_id", "label", "definition", "parent"],
+                                   schema=ix.schema)
 
         query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
 
@@ -144,7 +145,7 @@ class SpreadsheetSearcher:
             for hit in results:
                 allfields = {}
                 for field in hit:
-                    allfields[field]=hit[field]
+                    allfields[field] = hit[field]
                 resultslist.append(allfields)
 
         ix.close()
@@ -159,7 +160,8 @@ class SpreadsheetSearcher:
         writer = ix.writer()
         mparser = MultifieldParser(["repo", "spreadsheet"],
                                    schema=ix.schema)
-        print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
+        print("About to delete for query string: ", "repo:" +
+              repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
         writer.delete_by_query(
             mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder+"/"+sheet_name+"\""))
         writer.commit()
@@ -168,7 +170,7 @@ class SpreadsheetSearcher:
 
         for r in range(len(sheet_data)):
             row = [v for v in sheet_data[r].values()]
-            del row[0] # Tabulator-added ID column
+            del row[0]  # Tabulator-added ID column
 
             if "ID" in header:
                 class_id = row[header.index("ID")]
@@ -192,7 +194,8 @@ class SpreadsheetSearcher:
                                     spreadsheet=folder+'/'+sheet_name,
                                     class_id=(class_id if class_id else None),
                                     label=(label if label else None),
-                                    definition=(definition if definition else None),
+                                    definition=(
+                                        definition if definition else None),
                                     parent=(parent if parent else None))
         writer.commit(optimize=True)
         self.storage.save_to_bucket()
@@ -200,11 +203,14 @@ class SpreadsheetSearcher:
         self.threadLock.release()
         print("Update of index completed.")
 
+
 searcher = SpreadsheetSearcher()
 
+
 class OntologyDataStore:
-    node_props = {"shape":"box","style":"rounded", "font": "helvetica"}
-    rel_cols = {"has part":"blue","part of":"blue","contains":"green","has role":"darkgreen","is about":"darkgrey"}
+    node_props = {"shape": "box", "style": "rounded", "font": "helvetica"}
+    rel_cols = {"has part": "blue", "part of": "blue",
+                "contains": "green", "has role": "darkgreen", "is about": "darkgrey"}
 
     def __init__(self):
         self.releases = {}
@@ -212,11 +218,11 @@ class OntologyDataStore:
         self.label_to_id = {}
         self.graphs = {}
 
-    def parseRelease(self,repo):
+    def parseRelease(self, repo):
         # Keep track of when you parsed this release
         self.graphs[repo] = networkx.MultiDiGraph()
         self.releasedates[repo] = date.today()
-        print("Release date ",self.releasedates[repo])
+        print("Release date ", self.releasedates[repo])
 
         # Get the ontology from the repository
         ontofilename = app.config['RELEASE_FILES'][repo]
@@ -232,49 +238,55 @@ class OntologyDataStore:
             self.releases[repo] = pyhornedowl.open_ontology(ontofile)
             prefixes = app.config['PREFIXES']
             for prefix in prefixes:
-                self.releases[repo].add_prefix_mapping(prefix[0],prefix[1])
+                self.releases[repo].add_prefix_mapping(prefix[0], prefix[1])
             for classIri in self.releases[repo].get_classes():
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
-                    classId = classId.replace(":","_")
+                    classId = classId.replace(":", "_")
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
-                        label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL'])
+                        label = self.releases[repo].get_annotation(
+                            classIri, app.config['RDFSLABEL'])
                         if label:
                             self.label_to_id[label.strip()] = classId
                             self.graphs[repo].add_node(classId,
                                                        label=label.strip().replace(" ", "\n"),
-                                                **OntologyDataStore.node_props)
+                                                       **OntologyDataStore.node_props)
                         else:
-                            print("Could not determine label for IRI",classIri)
+                            print("Could not determine label for IRI", classIri)
                 else:
-                    print("Could not determine ID for IRI",classIri)
+                    print("Could not determine ID for IRI", classIri)
             for classIri in self.releases[repo].get_classes():
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
                     parents = self.releases[repo].get_superclasses(classIri)
                     for p in parents:
-                        plabel = self.releases[repo].get_annotation(p, app.config['RDFSLABEL'])
+                        plabel = self.releases[repo].get_annotation(
+                            p, app.config['RDFSLABEL'])
                         if plabel and plabel.strip() in self.label_to_id:
                             self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
                                                        classId.replace(":", "_"), dir="back")
-                    axioms = self.releases[repo].get_axioms_for_iri(classIri) # other relationships
+                    axioms = self.releases[repo].get_axioms_for_iri(
+                        classIri)  # other relationships
                     for a in axioms:
                         # Example: ['SubClassOf', 'http://purl.obolibrary.org/obo/CHEBI_27732', ['ObjectSomeValuesFrom', 'http://purl.obolibrary.org/obo/RO_0000087', 'http://purl.obolibrary.org/obo/CHEBI_60809']]
-                        if len(a) == 3 and a[0]=='SubClassOf' \
-                            and isinstance(a[2], list) and len(a[2])==3 \
-                            and a[2][0]=='ObjectSomeValuesFrom':
+                        if len(a) == 3 and a[0] == 'SubClassOf' \
+                                and isinstance(a[2], list) and len(a[2]) == 3 \
+                                and a[2][0] == 'ObjectSomeValuesFrom':
                             relIri = a[2][1]
                             targetIri = a[2][2]
-                            rel_name = self.releases[repo].get_annotation(relIri, app.config['RDFSLABEL'])
-                            targetLabel = self.releases[repo].get_annotation(targetIri, app.config['RDFSLABEL'])
+                            rel_name = self.releases[repo].get_annotation(
+                                relIri, app.config['RDFSLABEL'])
+                            targetLabel = self.releases[repo].get_annotation(
+                                targetIri, app.config['RDFSLABEL'])
                             if targetLabel and targetLabel.strip() in self.label_to_id:
                                 if rel_name in OntologyDataStore.rel_cols:
                                     rcolour = OntologyDataStore.rel_cols[rel_name]
                                 else:
                                     rcolour = "orange"
                                 self.graphs[repo].add_edge(classId.replace(":", "_"),
-                                                           self.label_to_id[targetLabel.strip()],
+                                                           self.label_to_id[targetLabel.strip(
+                                                           )],
                                                            color=rcolour,
                                                            label=rel_name)
 
@@ -284,27 +296,28 @@ class OntologyDataStore:
                     'Label' in entry and \
                     'Definition' in entry and \
                     'Parent' in entry and \
-                    len(entry['ID'])>0:
+                    len(entry['ID']) > 0:
                 entryId = entry['ID'].replace(":", "_")
                 self.label_to_id[entry['Label'].strip()] = entryId
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
                     self.graphs[repo].add_node(entryId,
-                                               label=entry['Label'].strip().replace(" ", "\n"),
+                                               label=entry['Label'].strip().replace(
+                                                   " ", "\n"),
                                                **OntologyDataStore.node_props)
         for entry in data:
             if 'ID' in entry and \
                     'Label' in entry and \
                     'Definition' in entry and \
                     'Parent' in entry and \
-                    len(entry['ID'])>0:
+                    len(entry['ID']) > 0:
                 if entry['Parent'].strip() in self.label_to_id:  # Subclass relations
                     # Subclass relations must be reversed for layout
                     self.graphs[repo].add_edge(self.label_to_id[entry['Parent'].strip()],
                                                entry['ID'].replace(":", "_"), dir="back")
                 for header in entry.keys():  # Other relations
                     if entry[header] and str(entry[header]).strip() and "REL" in header \
-                        and str(entry[header]).strip() in self.label_to_id:
+                            and str(entry[header]).strip() in self.label_to_id:
                         # Get the rel name
                         rel_names = re.findall(r"'([^']+)'", header)
                         if len(rel_names) > 0:
@@ -314,7 +327,8 @@ class OntologyDataStore:
                             else:
                                 rcolour = "orange"
                             self.graphs[repo].add_edge(entry['ID'].replace(":", "_"),
-                                                       self.label_to_id[entry[header].strip()],
+                                                       self.label_to_id[entry[header].strip(
+                                                       )],
                                                        color=rcolour,
                                                        label=rel_name)
 
@@ -322,8 +336,8 @@ class OntologyDataStore:
         # Get a list of IDs from the sheet graph
         ids = []
         for entry in data:
-            if 'ID' in entry and len(entry['ID'])>0:
-                ids.append(entry['ID'].replace(":","_"))
+            if 'ID' in entry and len(entry['ID']) > 0:
+                ids.append(entry['ID'].replace(":", "_"))
             if 'Parent' in entry and entry['Parent'].strip() in self.label_to_id:
                 ids.append(self.label_to_id[entry['Parent'].strip()])
 
@@ -336,13 +350,15 @@ class OntologyDataStore:
         # Add all descendents of the selected IDs, the IDs and their parents.
         ids = []
         for id in selectedIds:
-            ids.append(id.replace(":","_"))
+            ids.append(id.replace(":", "_"))
             entryIri = self.releases[repo].get_iri_for_id(id)
-            print("Got IRI",entryIri,"for ID",id)
+            print("Got IRI", entryIri, "for ID", id)
             if entryIri:
-                descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
+                descs = pyhornedowl.get_descendants(
+                    self.releases[repo], entryIri)
                 for d in descs:
-                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+                    ids.append(self.releases[repo].get_id_for_iri(
+                        d).replace(":", "_"))
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
@@ -355,17 +371,19 @@ class OntologyDataStore:
         ids = []
         for id in selectedIds:
             entry = data[id]
-            if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+            if str(entry['ID']) and str(entry['ID']).strip():  # check for none and blank ID's
                 if 'ID' in entry and len(entry['ID']) > 0:
                     ids.append(entry['ID'].replace(":", "_"))
                 if 'Parent' in entry and entry['Parent'].strip() in self.label_to_id:
                     ids.append(self.label_to_id[entry['Parent'].strip()])
                 entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
                 if entryIri:
-                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                    descs = pyhornedowl.get_descendants(
+                        self.releases[repo], entryIri)
                 for d in descs:
-                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-            else: #todo: remove this test
+                    ids.append(self.releases[repo].get_id_for_iri(
+                        d).replace(":", "_"))
+            else:  # todo: remove this test
                 print(entry['ID'], " is blank")
 
         # Then get the subgraph as usual
@@ -374,7 +392,9 @@ class OntologyDataStore:
 
         return (P)
 
+
 ontodb = OntologyDataStore()
+
 
 def verify_logged_in(fn):
     """
@@ -441,13 +461,15 @@ def authorized(access_token):
 @app.route('/login')
 def login():
     if session.get('user_id', None) is not None:
-        session.pop('user_id',None) # Could be stale
+        session.pop('user_id', None)  # Could be stale
     return github.authorize(scope="user,repo")
+
 
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
     return redirect(url_for('loggedout'))
+
 
 @app.route("/loggedout")
 def loggedout():
@@ -463,7 +485,6 @@ def user():
     return jsonify(github.get('/user'))
 
 
-
 # Pages for the app
 
 
@@ -474,15 +495,15 @@ def search():
     repoName = request.form.get("repoName")
 
     searchResults = searchAcrossSheets(repoName, searchTerm)
-    
+
     searchResultsTable = json.dumps(searchResults)
     # print(f'')
     # print(f'searchResultsTable: ')
     # print(searchResultsTable)
 
-    return ( json.dumps({"message":"Success",
-                             "searchResults": searchResultsTable}), 200 )
-                             
+    return (json.dumps({"message": "Success",
+                        "searchResults": searchResultsTable}), 200)
+
 
 @app.route('/')
 @app.route('/home')
@@ -494,7 +515,7 @@ def home():
     if g.user.github_login in USERS_METADATA:
         user_repos = USERS_METADATA[g.user.github_login]["repositories"]
 
-    repositories = {k:v for k,v in repositories.items() if k in user_repos}
+    repositories = {k: v for k, v in repositories.items() if k in user_repos}
 
     return render_template('index.html',
                            login=g.user.github_login,
@@ -510,13 +531,13 @@ def repo(repo_key, folder_path=""):
     directories = github.get(
         f'repos/{repo_detail}/contents/{folder_path}'
     )
-    #print(directories)
+    # print(directories)
     dirs = []
     spreadsheets = []
     for directory in directories:
-        if directory['type']=='dir':
+        if directory['type'] == 'dir':
             dirs.append(directory['name'])
-        elif directory['type']=='file' and '.xlsx' in directory['name']:
+        elif directory['type'] == 'file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
     if g.user.github_login in USERS_METADATA:
         user_initials = USERS_METADATA[g.user.github_login]["initials"]
@@ -525,13 +546,14 @@ def repo(repo_key, folder_path=""):
         user_initials = g.user.github_login[0:2]
 
     return render_template('repo.html',
-                            login=g.user.github_login,
-                            user_initials=user_initials,
-                            repo_name = repo_key,
-                            folder_path = folder_path,
-                            directories = dirs,
-                            spreadsheets = spreadsheets,
-                            )
+                           login=g.user.github_login,
+                           user_initials=user_initials,
+                           repo_name=repo_key,
+                           folder_path=folder_path,
+                           directories=dirs,
+                           spreadsheets=spreadsheets,
+                           )
+
 
 @app.route("/direct", methods=["POST"])
 @verify_logged_in
@@ -542,58 +564,71 @@ def direct():
         go_to_row = json.loads(request.form.get("go_to_row"))
     repoStr = repo['repo']
     sheetStr = sheet['sheet']
-    url = '/edit' + '/' + repoStr + '/' + sheetStr 
+    url = '/edit' + '/' + repoStr + '/' + sheetStr
     session['label'] = go_to_row['go_to_row']
     session['url'] = url
     return('success')
 
-@app.route("/validate", methods=["POST"]) 
+
+@app.route("/validate", methods=["POST"])
 @verify_logged_in
 def verify():
     if request.method == "POST":
         cell = json.loads(request.form.get("cell"))
         column = json.loads(request.form.get("column"))
         rowData = json.loads(request.form.get("rowData"))
-        headers = json.loads(request.form.get("headers")) 
-        table = json.loads(request.form.get("table")) 
+        headers = json.loads(request.form.get("headers"))
+        table = json.loads(request.form.get("table"))
     # check for blank cells under conditions first:
     blank = {}
     unique = {}
-    returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
+    returnData, uniqueData = checkBlankMulti(
+        1, blank, unique, cell, column, headers, rowData, table)
     if len(returnData) > 0 or len(uniqueData) > 0:
-        return (json.dumps({"message":"fail","values":returnData, "unique":uniqueData}))
-    return ('success') #todo: do we need message:success, 200 here? 
-    
-# validation checks here: 
+        return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
+    return ('success')  # todo: do we need message:success, 200 here?
 
+@app.route("/generate", methods=["POST"])
+@verify_logged_in
+def generate():
+    if request.method == "POST":
+        rowData = json.loads(request.form.get("rowData"))
+        print(rowData)
+        return (json.dumps({"message": "fail", "values": "hello"})) #need to return an array 
+    return ('success')  
+
+# validation checks here:
 # recursive check each cell in rowData:
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
-    for index, (key, value) in enumerate(rowData.items()): # todo: really, we need to loop here, surely there is a faster way?
+    # todo: really, we need to loop here, surely there is a faster way?
+    for index, (key, value) in enumerate(rowData.items()):
         if index == current:
-            if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status" :
+            if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status":
                 if key == "Definition" or key == "Parent":
-                    status = rowData.get("Curation status") #check for "Curation status"
+                    # check for "Curation status"
+                    status = rowData.get("Curation status")
                     if(status):
                         if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
                             pass
                         else:
                             if value.strip() == "":
-                                blank.update({key:value})
+                                blank.update({key: value})
                     else:
-                        pass #no "Curation status" column
-                else:       
-                    if value.strip()=="":
-                        blank.update({key:value})
+                        pass  # no "Curation status" column
+                else:
+                    if value.strip() == "":
+                        blank.update({key: value})
                     else:
                         pass
             if key == "Label" or key == "ID" or key == "Definition":
                 if checkNotUnique(value, key, headers, table):
-                    unique.update({key:value})
+                    unique.update({key: value})
     # go again:
     current = current + 1
-    if current >= len(rowData):   
+    if current >= len(rowData):
         return (blank, unique)
     return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
+
 
 def checkNotUnique(cell, column, headers, table):
     counter = 0
@@ -601,26 +636,27 @@ def checkNotUnique(cell, column, headers, table):
     if cellStr == "":
         return False
     # if Label, ID or Definition column, check cell against all other cells in the same column and return true if same
-    for r in range(len(table)): 
+    for r in range(len(table)):
         row = [v for v in table[r].values()]
-        del row[0] # remove extra numbered "id" column
+        del row[0]  # remove extra numbered "id" column
         for c in range(len(headers)):
             if headers[c] == "ID" and column == "ID":
-                if row[c].strip()==cellStr:
-                    counter += 1 
-                    if counter > 1: #more than one of the same
+                if row[c].strip() == cellStr:
+                    counter += 1
+                    if counter > 1:  # more than one of the same
                         return True
             if headers[c] == "Label" and column == "Label":
-                if row[c].strip()==cellStr:
-                    counter += 1 
-                    if counter > 1: 
+                if row[c].strip() == cellStr:
+                    counter += 1
+                    if counter > 1:
                         return True
             if headers[c] == "Definition" and column == "Definition":
-                if row[c].strip()==cellStr:
-                    counter += 1 
-                    if counter > 1: 
+                if row[c].strip() == cellStr:
+                    counter += 1
+                    if counter > 1:
                         return True
     return False
+
 
 @app.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
@@ -633,7 +669,8 @@ def edit(repo_key, folder, spreadsheet):
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
-    (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
+    (file_sha, rows, header) = get_spreadsheet(
+        repo_detail, folder, spreadsheet)
     if g.user.github_login in USERS_METADATA:
         user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
@@ -641,17 +678,17 @@ def edit(repo_key, folder, spreadsheet):
         user_initials = g.user.github_login[0:2]
 
     return render_template('edit.html',
-                            login=g.user.github_login,
-                            user_initials=user_initials,
-                            all_initials=ALL_USERS_INITIALS,
-                            repo_name = repo_key,
-                            folder = folder,
-                            spreadsheet_name=spreadsheet,
-                            header=json.dumps(header),
-                            rows=json.dumps(rows),
-                            file_sha = file_sha,
-                            go_to_row = go_to_row
-                            )
+                           login=g.user.github_login,
+                           user_initials=user_initials,
+                           all_initials=ALL_USERS_INITIALS,
+                           repo_name=repo_key,
+                           folder=folder,
+                           spreadsheet_name=spreadsheet,
+                           header=json.dumps(header),
+                           rows=json.dumps(rows),
+                           file_sha=file_sha,
+                           go_to_row=go_to_row
+                           )
 
 
 @app.route('/save', methods=['POST'])
@@ -666,7 +703,8 @@ def save():
     commit_msg = request.form.get("commit_msg")
     commit_msg_extra = request.form.get("commit_msg_extra")
     overwrite = False
-    overwriteVal = request.form.get("overwrite") #todo: get actual boolean value True/False here?
+    # todo: get actual boolean value True/False here?
+    overwriteVal = request.form.get("overwrite")
     print(f'overwriteVal is: ' + str(overwriteVal))
     if overwriteVal == "true":
         overwrite = True
@@ -686,9 +724,11 @@ def save():
         # What if 'Label' column not present?
         # todo: is sorting causing a problem with diff?
         if 'Label' in initial_first_row:
-            initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
+            initial_data_parsed = sorted(
+                initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff!
+            # do we need to sort - yes, for diff!
+            print("No Label column present, so not sorting this.")
 
         first_row = row_data_parsed[0]
         header = [k for k in first_row.keys()]
@@ -696,42 +736,52 @@ def save():
         # Sort based on label
         # What if 'Label' column not present?
         if 'Label' in first_row:
-            row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
+            row_data_parsed = sorted(
+                row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
+            # do we need to sort - yes, for diff!
+            print("No Label column present, so not sorting this.")
 
-        print("Got file_sha",file_sha)
+        print("Got file_sha", file_sha)
 
         wb = openpyxl.Workbook()
         sheet = wb.active
 
         for c in range(len(header)):
-            sheet.cell(row=1, column=c+1).value=header[c]
-            sheet.cell(row=1, column=c+1).font = Font(size=12,bold=True)
+            sheet.cell(row=1, column=c+1).value = header[c]
+            sheet.cell(row=1, column=c+1).font = Font(size=12, bold=True)
         for r in range(len(row_data_parsed)):
             row = [v for v in row_data_parsed[r].values()]
-            del row[0] # Tabulator-added ID column
+            del row[0]  # Tabulator-added ID column
             for c in range(len(header)):
-                sheet.cell(row=r+2, column=c+1).value=row[c]
+                sheet.cell(row=r+2, column=c+1).value = row[c]
                 # Set row background colours according to 'Curation status'
                 # These should be kept in sync with those used in edit screen
                 # TODO add to config
                 # What if "Curation status" not present?
                 if 'Curation status' in first_row:
-                    if row[header.index("Curation status")]=="Discussed":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type = "solid")
-                    elif row[header.index("Curation status")]=="Ready": #this is depreciated
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
-                    elif row[header.index("Curation status")]=="Proposed":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffffff", fill_type = "solid")
-                    elif row[header.index("Curation status")]=="To Be Discussed":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
-                    elif row[header.index("Curation status")]=="In Discussion":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")                                
-                    elif row[header.index("Curation status")]=="Published":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type = "solid")
-                    elif row[header.index("Curation status")]=="Obsolete":
-                        sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="2f4f4f", fill_type = "solid")
+                    if row[header.index("Curation status")] == "Discussed":
+                        sheet.cell(
+                            row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type="solid")
+                    # this is depreciated
+                    elif row[header.index("Curation status")] == "Ready":
+                        sheet.cell(
+                            row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type="solid")
+                    elif row[header.index("Curation status")] == "Proposed":
+                        sheet.cell(
+                            row=r+2, column=c+1).fill = PatternFill(fgColor="ffffff", fill_type="solid")
+                    elif row[header.index("Curation status")] == "To Be Discussed":
+                        sheet.cell(
+                            row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type="solid")
+                    elif row[header.index("Curation status")] == "In Discussion":
+                        sheet.cell(
+                            row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type="solid")
+                    elif row[header.index("Curation status")] == "Published":
+                        sheet.cell(
+                            row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type="solid")
+                    elif row[header.index("Curation status")] == "Obsolete":
+                        sheet.cell(
+                            row=r+2, column=c+1).fill = PatternFill(fgColor="2f4f4f", fill_type="solid")
 
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
@@ -744,19 +794,24 @@ def save():
         # Create a new branch to commit the change to (in case of simultaneous updates)
         response = github.get(f"repos/{repo_detail}/git/ref/heads/master")
         if not response or "object" not in response or "sha" not in response["object"]:
-            raise Exception(f"Unable to get SHA for HEAD of master in {repo_detail}")
+            raise Exception(
+                f"Unable to get SHA for HEAD of master in {repo_detail}")
         sha = response["object"]["sha"]
         branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
-        print("About to try to create branch in ",f"repos/{repo_detail}/git/refs")
+        print("About to try to create branch in ",
+              f"repos/{repo_detail}/git/refs")
         response = github.post(
             f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
-            )
+        )
         if not response:
-            raise Exception(f"Unable to create new branch {branch} in {repo_detail}")
+            raise Exception(
+                f"Unable to create new branch {branch} in {repo_detail}")
 
-        print("About to get latest version of the spreadsheet file",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        print("About to get latest version of the spreadsheet file",
+              f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         # Get the sha for the file
-        (new_file_sha, new_rows, new_header) = get_spreadsheet(repo_detail,folder, spreadsheet)
+        (new_file_sha, new_rows, new_header) = get_spreadsheet(
+            repo_detail, folder, spreadsheet)
 
         # Commit changes to branch (replace code with sheet)
         data = {
@@ -765,8 +820,10 @@ def save():
             "branch": branch,
         }
         data["sha"] = new_file_sha
-        print("About to commit file to branch",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
-        response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
+        print("About to commit file to branch",
+              f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        response = github.put(
+            f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
         if not response:
             raise Exception(
                 f"Unable to commit addition of {spreadsheet} to branch {branch} in {repo_detail}"
@@ -784,23 +841,27 @@ def save():
             },
         )
         if not response:
-            raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
+            raise Exception(
+                f"Unable to create PR for branch {branch} in {repo_detail}")
         pr_info = response['html_url']
 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
-        
+
         if new_file_sha != file_sha and not overwrite:
             print("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
+            # getDiff(saving version, latest server version, header for both)
+            merge_diff, merged_table = getDiff(
+                row_data_parsed, new_rows, new_header, initial_data_parsed)
             # update rows for comparison:
-            (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
+            (file_sha3, rows3, header3) = get_spreadsheet(
+                repo_detail, folder, spreadsheet)
             return(
-                json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
-                    + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
-                        "rows3": rows3, "header3": header3}), 300 #400 for missing REPO
-                )
+                json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'
+                            + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch": branch, "merge_diff": merge_diff, "merged_table": json.dumps(merged_table),
+                            "rows3": rows3, "header3": header3}), 300  # 400 for missing REPO
+            )
         else:
             # Merge the created PR
             print("About to merge created PR")
@@ -813,16 +874,19 @@ def save():
                 },
             )
             if not response:
-                raise Exception(f"Unable to merge PR from branch {branch} in {repo_detail}")
+                raise Exception(
+                    f"Unable to merge PR from branch {branch} in {repo_detail}")
 
             # Delete the branch again
-            print ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
+            print("About to delete branch",
+                  f"repos/{repo_detail}/git/refs/heads/{branch}")
             response = github.delete(
                 f"repos/{repo_detail}/git/refs/heads/{branch}")
             if not response:
-                raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
+                raise Exception(
+                    f"Unable to delete branch {branch} in {repo_detail}")
 
-        print ("Save succeeded.")
+        print("Save succeeded.")
         # Update the search index for this file ASYNCHRONOUSLY (don't wait)
         thread = threading.Thread(target=searcher.updateIndex,
                                   args=(repo_key, folder, spreadsheet, header, row_data_parsed))
@@ -830,43 +894,43 @@ def save():
         thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
-        response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        response = github.get(
+            f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         if not response or "sha" not in response:
             raise Exception(
                 f"Unable to get the newly updated SHA value for {spreadsheet} in {repo_detail}/{folder}"
-                )
+            )
         new_file_sha = response['sha']
 
-        return ( json.dumps({"message":"Success",
-                             "file_sha": new_file_sha}), 200 )
+        return (json.dumps({"message": "Success",
+                            "file_sha": new_file_sha}), 200)
 
     except Exception as err:
         print(err)
         traceback.print_exc()
         return (
             json.dumps({"message": "Failed",
-                        "Error":format(err)}),
+                        "Error": format(err)}),
             400,
         )
-
 
 
 @app.route('/keepalive', methods=['POST'])
 @verify_logged_in
 def keep_alive():
     print("Keep alive requested from edit screen")
-    return ( json.dumps({"message":"Success"}), 200 )
+    return (json.dumps({"message": "Success"}), 200)
 
 
-#todo: use this function to compare initial spreadsheet to server version - check for updates?
+# todo: use this function to compare initial spreadsheet to server version - check for updates?
 @app.route("/checkForUpdates", methods=["POST"])
 def checkForUpdates():
     if request.method == "POST":
-        repo_key = request.form.get("repo_key") #todo: fix keyError!
+        repo_key = request.form.get("repo_key")  # todo: fix keyError!
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
-        # initialData = request.form.get("initialData") 
-        old_sha = request.form.get("file_sha")     
+        # initialData = request.form.get("initialData")
+        old_sha = request.form.get("file_sha")
         print(repo_key, folder, spreadsheet, old_sha)
         repositories = app.config['REPOSITORIES']
         repo_detail = repositories[repo_key]
@@ -874,12 +938,11 @@ def checkForUpdates():
             f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
         )
         file_sha = spreadsheet_file['sha']
-        print("Check update - Got file_sha",file_sha)
+        print("Check update - Got file_sha", file_sha)
         if old_sha == file_sha:
-            return ( json.dumps({"message":"Success"}), 200 )
+            return (json.dumps({"message": "Success"}), 200)
         else:
-            return ( json.dumps({"message":"Fail"}), 200 )
-
+            return (json.dumps({"message": "Fail"}), 200)
 
 
 @app.route('/openVisualise', methods=['POST'])
@@ -898,11 +961,12 @@ def openVisualise():
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
         if len(indices) > 0:
-            ontodb.parseSheetData(repo,table)
-            dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
+            ontodb.parseSheetData(repo, table)
+            dotStr = ontodb.getDotForSelection(
+                repo, table, indices).to_string()
         else:
-            ontodb.parseSheetData(repo,table)
-            dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
+            ontodb.parseSheetData(repo, table)
+            dotStr = ontodb.getDotForSheetGraph(repo, table).to_string()
 
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
 
@@ -917,7 +981,7 @@ def visualise(repo, sheet):
 
 # Internal methods
 
-def get_spreadsheet(repo_detail,folder,spreadsheet):
+def get_spreadsheet(repo_detail, folder, spreadsheet):
     spreadsheet_file = github.get(
         f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
     )
@@ -937,15 +1001,15 @@ def get_spreadsheet(repo_detail,folder,spreadsheet):
             rows.append(values)
     # print(f'rows: ')
     # print(json.dumps(rows))
-    return ( (file_sha, rows, header) )
+    return ((file_sha, rows, header))
 
 
-def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server, header, 3initial)
+def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2server, header, 3initial)
 
     # print(f'the type of row_data_3 is: ')
-    # print(type(row_data_3))        
+    # print(type(row_data_3))
 
-    #sort out row_data_1 format to be the same as row_data_2
+    # sort out row_data_1 format to be the same as row_data_2
     new_row_data_1 = []
     for k in row_data_1:
         dictT = {}
@@ -953,12 +1017,12 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
             if(key != "id"):
                 if(val == ""):
                     val = None
-                #add to dictionary:
+                # add to dictionary:
                 dictT[key] = val
-        #add to list:
-        new_row_data_1.append( dictT ) 
+        # add to list:
+        new_row_data_1.append(dictT)
 
-    #sort out row_data_3 format to be the same as row_data_2
+    # sort out row_data_3 format to be the same as row_data_2
     new_row_data_3 = []
     for h in row_data_3:
         dictT3 = {}
@@ -966,20 +1030,21 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
             if(key != "id"):
                 if(val == ""):
                     val = None
-                #add to dictionary:
+                # add to dictionary:
                 dictT3[key] = val
-        #add to list:
-        new_row_data_3.append( dictT3 ) 
+        # add to list:
+        new_row_data_3.append(dictT3)
 
-    row_data_combo_1 = [row_header] 
+    row_data_combo_1 = [row_header]
     row_data_combo_2 = [row_header]
     row_data_combo_3 = [row_header]
 
-    row_data_combo_1.extend([list(r.values()) for r in new_row_data_1]) #row_data_1 has extra "id" column for some reason???!!!
+    # row_data_1 has extra "id" column for some reason???!!!
+    row_data_combo_1.extend([list(r.values()) for r in new_row_data_1])
     row_data_combo_2.extend([list(s.values()) for s in row_data_2])
     row_data_combo_3.extend([list(t.values()) for t in new_row_data_3])
 
-    #checking:
+    # checking:
     # print(f'row_header: ')
     # print(row_header)
     # print(f'row_data_1: ')
@@ -993,21 +1058,23 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # print(f'combined 3: ')
     # print(row_data_combo_3)
 
-    table1 = daff.PythonTableView(row_data_combo_1) #daff needs a header in order to work correctly!
+    # daff needs a header in order to work correctly!
+    table1 = daff.PythonTableView(row_data_combo_1)
     table2 = daff.PythonTableView(row_data_combo_2)
     table3 = daff.PythonTableView(row_data_combo_3)
-    
-    #old version:
+
+    # old version:
     # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
     # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
 
-    alignment = daff.Coopy.compareTables3(table3,table2,table1).align() #3 way: initial vs server vs saving
-    
+    # 3 way: initial vs server vs saving
+    alignment = daff.Coopy.compareTables3(table3, table2, table1).align()
+
     # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
-    alignment2 = daff.Coopy.compareTables(table2,table1).align() #saving vs server
+    alignment2 = daff.Coopy.compareTables(
+        table2, table1).align()  # saving vs server
     # alignment2 = daff.Coopy.compareTables(table1, table2).align() #server vs saving
     # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
-
 
     data_diff = []
     table_diff = daff.PythonTableView(data_diff)
@@ -1018,10 +1085,10 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # flags.allowUpdate()
     # flags.allowInsert()
 
-    highlighter = daff.TableDiff(alignment2,flags)
-    
+    highlighter = daff.TableDiff(alignment2, flags)
+
     highlighter.hilite(table_diff)
-    #hasDifference() should return true - and it does. 
+    # hasDifference() should return true - and it does.
     if highlighter.hasDifference():
         print(f'HASDIFFERENCE')
         print(highlighter.getSummary().row_deletes)
@@ -1034,8 +1101,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
     # print(table_diff_html)
     # print(f'table 1 before patch test: ')
-    # print(table1.toString()) 
-    # patch test: 
+    # print(table1.toString())
+    # patch test:
     # patcher = daff.HighlightPatch(table2,table_diff)
     # patcher.apply()
     # print(f'patch tester: ..................')
@@ -1043,33 +1110,34 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     # print(table1.toString())
     # print(f'table2:')
     # print(table2.toString())
-    # print(table2.toString()) 
+    # print(table2.toString())
     # print(f'table3:')
-    # print(table3.toString()) 
+    # print(table3.toString())
     # table2String = table2.toString().strip() #no
-    #todo: Task 1: turn MergeData into a Dict in order to post it to Github!
-    # - use Janna's sheet builder example? 
-    # - post direct instead of going through Flask front-end? 
+    # todo: Task 1: turn MergeData into a Dict in order to post it to Github!
+    # - use Janna's sheet builder example?
+    # - post direct instead of going through Flask front-end?
     # table2String.strip()
     # table2Json = json.dumps(table2)
     # table2Dict = dict(todo: make this into a dict with id:0++ per row here!)
     # table2String = dict(table2String) #nope
 
-    # merger test: 
-    # print(f'Merger test: ') 
-    merger = daff.Merger(table3,table2,table1,flags) #(3initial, 1saving, 2server, flags)
+    # merger test:
+    # print(f'Merger test: ')
+    # (3initial, 1saving, 2server, flags)
+    merger = daff.Merger(table3, table2, table1, flags)
     merger.apply()
     # print(f'table2:')
     # table2String = table2.toString()
     # print(table2String) #after merger
 
-    data = table2.getData() #merger table in list format
+    data = table2.getData()  # merger table in list format
     # print(f'data: ')
     # print(json.dumps(data)) #it's a list.
     # convert to correct format (list of dicts):
     dataDict = []
     iter = -1
-    for k in data:        
+    for k in data:
         # add "id" value:
         iter = iter + 1
         dictT = {}
@@ -1077,36 +1145,34 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
             pass
             # print(f'header row - not using')
         else:
-            dictT['id'] = iter # add "id" with iteration
-            for key, val in zip(row_header, k):      
-                #deal with conflicting val?
+            dictT['id'] = iter  # add "id" with iteration
+            for key, val in zip(row_header, k):
+                # deal with conflicting val?
 
                 dictT[key] = val
         # add to list:
-        if iter > 0: # not header - now empty dict
-            dataDict.append( dictT ) 
+        if iter > 0:  # not header - now empty dict
+            dataDict.append(dictT)
         # print(f'update: ')
         # print(dataDict)
 
-        
-    
     # print(f'dataDict: ')
     # print(json.dumps(dataDict))
     # print(f'the type of dataDict is: ')
     # print(type(dataDict))
 
     # print(f'merger data:') #none
-    # print(daff.DiffSummary().different) #nothing here? 
+    # print(daff.DiffSummary().different) #nothing here?
     # mergerConflictInfo = merger.getConflictInfos()
-    
+
     # print(f'Merger conflict infos: ')
     # print(f'table1:')
     # print(table1.toString())
     # print(f'table2:')
-    # print(table2.toString()) 
+    # print(table2.toString())
     # print(f'table3:')
-    # print(table3.toString()) 
-   
+    # print(table3.toString())
+
     return (table_diff_html, dataDict)
 
 
@@ -1116,11 +1182,9 @@ def searchAcrossSheets(repo_name, search_string):
     return searcherAllResults
 
 
-
 if __name__ == "__main__":        # on running python app.py
 
     app.run(debug=app.config["DEBUG"], port=8080)        # run the flask app
-
 
 
 # [END gae_python37_app]

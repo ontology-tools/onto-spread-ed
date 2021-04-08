@@ -656,9 +656,8 @@
 
                     } else {
                         $('#visualise-selection').show(); //only for tables with ID column
-                        if (rowData['ID'] === null || rowData['ID'] === "") {
-                            //no change
-                        } else { //has no ID but has Label, Definition and Parent:
+                        if (rowData['ID'] === null || rowData['ID'].trim() === "") {
+                        //has no ID but has Label, Definition and Parent:
                             if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
                                 showGenerateIdentifier = true;
                             }
@@ -1590,18 +1589,24 @@
         console.log("clicked generate-identifier");
         var selectedData = table.getSelectedData();
         var selectedRows = table.getSelectedRows();
+        //array of rows: 
+        var rowsToGenerate = [];
         // var indices = [];
 
         for (r in selectedRows) {
             var rowData = selectedRows[r].getData();
-            if (rowData['ID'] === null || rowData['ID'] === "") {
-                //no change
-            } else { //has no ID but has Label, Definition and Parent:
+            if (rowData['ID'] === null || rowData['ID'].trim === "") {
+             //has no ID but has Label, Definition and Parent:
                 if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
-                    // console.log("Parent is: " + rowData['Parent']);
+                    rowsToGenerate.push(rowData); //add to array
                 }
             }
         }
+        //send rowsToGenerate to generate function:
+        generate(rowsToGenerate).done(function (message) {
+            // var messageJSON = JSON.parse(message); //for returned array
+            console.log(message);
+        });
     });
 
     $('#contentTable').ready(function () {
@@ -2066,6 +2071,24 @@
         });
 
     }
+
+    //generate ID function: 
+    function generate(rowsToGenerate) {
+        //todo: handle errors!
+        return $.ajax({
+            url: '/generate',
+            dataType: 'text',
+            type: 'POST',
+            data: {rowData: JSON.stringify(rowsToGenerate)},
+            success: function (message) {
+                console.log("no generate errors?")
+            }, error: function () {
+                console.log("generate message error: " + message);
+            }
+        });
+
+    }
+
     //todo: use below to update and check for new data: 
     window.onload = setupRefresh;
     function setupRefresh() {
