@@ -36,6 +36,9 @@
             <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i
                     class="fab fa-uncharted"></i>
                 Visualise selection</button>
+            <button id=generate-identifier class="btn btn-outline-dark btn-sm" style="display: none"><i
+                    class="fas fa-marker"></i>
+                Generate identifier</button>
         </div>
     </div>
 
@@ -635,12 +638,13 @@
                     }
                 }
             }
-            // console.log("ROW SELECTION CHANGED");
+             console.log("ROW SELECTION CHANGED");
             if (rows.length == 0) {
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
                 $('#visualise-selection').hide();
+                $('#generate-identifier').hide();
             } else {
                 $('#delete-rows').show();
                 for (r in rows) {
@@ -650,6 +654,8 @@
                     if (rowData['ID'] === undefined) { //for tables without ID
                     } else {
                         $('#visualise-selection').show(); //only for tables with ID column
+                        //todo: need logic here, test: 
+                        $('#generate-identifier').show();
                     }
                     if (rowData[curation_status] === undefined) { //for tables without curation_status
                         //don't show some buttons if in a table where they are not needed
@@ -1680,7 +1686,7 @@
 
             var saveValidation = bootbox.dialog({
                 title: "There are validation errors, are you sure you want to save?",
-                message: combinedValidationMessages, 
+                message: combinedValidationMessages,
                 buttons: {
                     confirm: {
                         label: 'Submit anyway',
@@ -1698,7 +1704,7 @@
                     },
                     cancel: {
                         label: 'Cancel',
-                        className: 'btn-success', 
+                        className: 'btn-success',
                     },
                 }
             });
@@ -2055,7 +2061,7 @@
                 var msg = data.message;
                 console.log(msg);
                 if (msg == "Success") {
-                    
+
                 } else {
                     $('#updates').show(); //todo: need to hide on save and keep hidden during merger
                 }
