@@ -638,7 +638,7 @@
                     }
                 }
             }
-             console.log("ROW SELECTION CHANGED");
+            // console.log("ROW SELECTION CHANGED");
             if (rows.length == 0) {
                 $('#delete-rows').hide();
                 $('#ask-for-review').hide();
@@ -647,15 +647,22 @@
                 $('#generate-identifier').hide();
             } else {
                 $('#delete-rows').show();
+                var showGenerateIdentifier = false;
                 for (r in rows) {
                     var rowData = rows[r].getData();
                     //show buttons concerning rows:
                     $('#delete-rows').show();
                     if (rowData['ID'] === undefined) { //for tables without ID
+
                     } else {
                         $('#visualise-selection').show(); //only for tables with ID column
-                        //todo: need logic here, test: 
-                        $('#generate-identifier').show();
+                        if (rowData['ID'] === null || rowData['ID'] === "") {
+                            //no change
+                        } else { //has no ID but has Label, Definition and Parent:
+                            if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
+                                showGenerateIdentifier = true;
+                            }
+                        }
                     }
                     if (rowData[curation_status] === undefined) { //for tables without curation_status
                         //don't show some buttons if in a table where they are not needed
@@ -666,6 +673,12 @@
                     }
                 }
             }
+            if (showGenerateIdentifier) {
+                $('#generate-identifier').show();
+            } else {
+                $('#generate-identifier').hide();
+            }
+
         },
 
         cellClick: function (e, cell) {
@@ -1571,6 +1584,24 @@
         form.target = 'VisualisationWindow';
         form.submit();
         document.body.removeChild(form);
+    });
+
+    $("#generate-identifier").click(function () {
+        console.log("clicked generate-identifier");
+        var selectedData = table.getSelectedData();
+        var selectedRows = table.getSelectedRows();
+        // var indices = [];
+
+        for (r in selectedRows) {
+            var rowData = selectedRows[r].getData();
+            if (rowData['ID'] === null || rowData['ID'] === "") {
+                //no change
+            } else { //has no ID but has Label, Definition and Parent:
+                if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
+                    // console.log("Parent is: " + rowData['Parent']);
+                }
+            }
+        }
     });
 
     $('#contentTable').ready(function () {
