@@ -510,10 +510,12 @@
         }
         else if (headers[i] == "To be reviewed by") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        } else if (headers[i] == "Parent") {
+            // "autocomplete" editor idea from http://tabulator.info/docs/4.9/edit#masking - this does not enable editing
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: true, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
         else {
-            // "autocomplete" editor idea from http://tabulator.info/docs/4.9/edit#masking - this does not enable editing
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams:{values:true, freetext:true, allowEmpty:true}, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
     }
 
@@ -1681,7 +1683,7 @@
 
             var saveValidation = bootbox.dialog({
                 title: "There are validation errors, are you sure you want to save?",
-                message: combinedValidationMessages, 
+                message: combinedValidationMessages,
                 buttons: {
                     confirm: {
                         label: 'Submit anyway',
@@ -1699,7 +1701,7 @@
                     },
                     cancel: {
                         label: 'Cancel',
-                        className: 'btn-success', 
+                        className: 'btn-success',
                     },
                 }
             });
@@ -2056,7 +2058,7 @@
                 var msg = data.message;
                 console.log(msg);
                 if (msg == "Success") {
-                    
+
                 } else {
                     $('#updates').show(); //todo: need to hide on save and keep hidden during merger
                 }
