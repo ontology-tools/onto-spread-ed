@@ -1595,13 +1595,16 @@
 
         for (r in selectedRows) {
             var rowData = selectedRows[r].getData();
-            if (rowData['ID'] === null || rowData['ID'].trim === "") {
+            if (rowData['ID'] === null || rowData['ID'].trim() === "") {
+                // console.log("no ID found");
              //has no ID but has Label, Definition and Parent:
                 if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
+                    // console.log("should add something here");
                     rowsToGenerate.push(rowData); //add to array
                 }
             }
         }
+        console.log(rowsToGenerate);
         //send rowsToGenerate to generate function:
         generate(rowsToGenerate).done(function (message) {
             // var messageJSON = JSON.parse(message); //for returned array
@@ -2081,9 +2084,9 @@
             type: 'POST',
             data: {rowData: JSON.stringify(rowsToGenerate)},
             success: function (message) {
-                console.log("no generate errors?")
+                console.log("got new ID's?")
             }, error: function () {
-                console.log("generate message error: " + message);
+                console.log("generate error: " + message);
             }
         });
 
