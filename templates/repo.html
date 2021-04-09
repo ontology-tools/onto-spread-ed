@@ -16,7 +16,7 @@
     Show all assigned to me
   </button>
 </form>
-    <br></br>
+<br></br>
 <h4 id="resultsHeader" style="display:none">RESULTS - click on a row to open its spreadsheet:</h2>
 
   <div class="row">
@@ -78,6 +78,41 @@
   </form>
 
   <script type="text/javascript">
+
+    //get all rows with "Show all assigned to me"
+    function sendDataWithLogin() {
+      const form = document.getElementById("submitText");
+      const XHR = new XMLHttpRequest();
+
+      // Bind the FormData object and the form element
+      const FD = new FormData(form);
+      FD.append('initials', '{{user_initials}}');
+      FD.append('repoName', '{{repo_name}}');
+
+      // Define what happens on successful data submission
+      // todo: add error checking to this request
+      XHR.addEventListener("load", function (event) {
+        var response = JSON.parse(event.target.responseText);
+        var message = JSON.stringify(['message']);
+        var results = response['searchResults'];
+        var resultsArray = JSON.parse(results);
+        $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
+        var type = "initials";
+        createTable(resultsArray, type); //todo: make createTable able to handle initials
+      });
+
+      // Define what happens in case of error
+      XHR.addEventListener("error", function (event) {
+        bootbox.alert("Something went wrong");
+        console.log(event);
+      });
+
+      // Set up our request
+      XHR.open("POST", '/searchAssignedToMe', true);
+      XHR.send(FD);
+    }
+
+    //get all rows with search terms
     function sendData() {
       const form = document.getElementById("submitText");
       const XHR = new XMLHttpRequest();
@@ -94,7 +129,8 @@
         var results = response['searchResults'];
         var resultsArray = JSON.parse(results);
         $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
-        createTable(resultsArray);
+        var type = "search";
+        createTable(resultsArray, type);
       });
 
       // Define what happens in case of error
@@ -107,6 +143,7 @@
       XHR.open("POST", '/search', true);
       XHR.send(FD);
     }
+
     function submitForm(button) {
       if (button.value == "search") {
         var dialog = bootbox.dialog({
@@ -119,26 +156,22 @@
       }
       else if (button.value == "show_assigned") {
         console.log("show assigned clicked");
+        var dialog = bootbox.dialog({
+          message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
+          closeButton: true
+        });
+        sendDataWithLogin();
+        $("#resultsHeader").text("SEARCHING...");
+        $("#resultsHeader").show();
       }
 
       return false;
     }
 
     window.addEventListener("load", function () {
-
-
-      console.log("loaded");
-
+      // console.log("loaded");
       $("#resultsHeader").hide();
-
-
-
-
-
-
-      
-
-      // Access the form element...
+      // Access the form2 element...
       const form2 = document.getElementById("idSubmission");
 
       // ...and take over its submit event.
@@ -169,42 +202,50 @@
 
     });
 
-    function createTable(responseData) {
-      bootbox.hideAll();
-      if (responseData.length < 1) {
-        document.getElementById("resultsHeader").innerHTML = "No Results";
+    function createTable(responseData, type) {
+      if (type == "search") {
+        bootbox.hideAll();
+        if (responseData.length < 1) {
+          document.getElementById("resultsHeader").innerHTML = "No Results";
+        } else {
+          document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+        }
+        var table = new Tabulator("#contentTable", {
+          data: responseData,
+
+          columns: [ //Define Table Columns
+            { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
+            { title: "Definition", field: "definition", formatter: "textarea" },
+            { title: "Label", field: "label", formatter: "textarea" },
+            { title: "Parent", field: "parent", formatter: "textarea" },
+            { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
+            { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
+          ],
+
+          layout: "fitColumns",
+          pagination: "local",
+          paginationSize: "5",
+
+          // various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
+
+          rowClick: function (e, row) {
+            var data = row.getData();
+            if (data['label'] != null && data['label'] != "") {
+              openSheet(data["repo"], data["spreadsheet"], data['label']);
+              console.log("label: " + data['label']);
+            } else {
+              openSheet(data["repo"], data["spreadsheet"], '');
+              console.log("no label");
+            }
+          },
+        });
+      } else if (type == "initials") {
+        bootbox.hideAll();
+        console.log(type);
+
       } else {
-        document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+
       }
-      var table = new Tabulator("#contentTable", {
-        data: responseData,
-
-        columns: [ //Define Table Columns
-          { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
-          { title: "Definition", field: "definition", formatter: "textarea" },
-          { title: "Label", field: "label", formatter: "textarea" },
-          { title: "Parent", field: "parent", formatter: "textarea" },
-          { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
-          { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
-        ],
-
-        layout: "fitColumns",
-        pagination: "local",
-        paginationSize: "5",
-
-        // various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
-
-        rowClick: function (e, row) {
-          var data = row.getData();
-          if (data['label'] != null && data['label'] != "") {
-            openSheet(data["repo"], data["spreadsheet"], data['label']);
-            console.log("label: " + data['label']);
-          } else {
-            openSheet(data["repo"], data["spreadsheet"], '');
-            console.log("no label");
-          }
-        },
-      });
     }
 
 

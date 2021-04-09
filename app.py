@@ -472,14 +472,20 @@ def user():
 def search():
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
-
-    searchResults = searchAcrossSheets(repoName, searchTerm)
-    
+    searchResults = searchAcrossSheets(repoName, searchTerm)    
     searchResultsTable = json.dumps(searchResults)
-    # print(f'')
-    # print(f'searchResultsTable: ')
-    # print(searchResultsTable)
+    return ( json.dumps({"message":"Success",
+                             "searchResults": searchResultsTable}), 200 )
 
+@app.route('/searchAssignedToMe', methods=['POST'])
+@verify_logged_in
+def searchAssingedToMe():
+    print("searching for initials")
+    initials = request.form.get("initials")
+    print("initials found: " + initials)
+    repoName = request.form.get("repoName")
+    searchResults = searchAcrossSheets(repoName, initials)    
+    searchResultsTable = json.dumps(searchResults)
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
                              
