@@ -68,6 +68,11 @@ class User(Base):
     def __init__(self, github_access_token):
         self.github_access_token = github_access_token
 
+class NextId(Base):
+    __tablename__ = 'nextids'
+    id = Column(Integer,primary_key=True)
+    repo_name = Column(String(50))
+    next_id = Column(Integer)
 
 def init_db():
 
@@ -202,6 +207,25 @@ class SpreadsheetSearcher:
         ix.close()
         self.threadLock.release()
         print("Update of index completed.")
+
+    def getNextId(self,repo_name):
+        self.threadLock.acquire()
+        next_id_obj = NextId.query.filter_by(repo_name=repo_name).first()
+        if next_id_obj is None:  
+            print("Adding a new nextid")
+            next_id_obj = NextId()
+            next_id_obj.repo_name = repo_name
+            next_id_obj.next_id = 955 if repo_name=="AddictO" else 50000
+            db_session.add(next_id_obj)
+            db_session.commit()
+
+        next_id = next_id_obj.next_id
+        next_id_updated = next_id+1
+        next_id_obj.next_id = next_id_updated
+        db_session.commit()
+
+        self.threadLock.release()
+        return (next_id)
 
 
 searcher = SpreadsheetSearcher()
@@ -588,15 +612,22 @@ def verify():
         return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
     return ('success')  # todo: do we need message:success, 200 here?
 
+
 @app.route("/generate", methods=["POST"])
 @verify_logged_in
 def generate():
     if request.method == "POST":
+        repo_key = request.form.get("repo_key")
         rowData = json.loads(request.form.get("rowData"))
         print("generate data sent")
         print("Got ", len(rowData), "rows:", rowData)
-        
-        values = {"ID1":"test", "ID2":"test2"}
+        values = {}
+        for row in rowData:
+            nextIdStr = str(searcher.getNextId(repo_key))
+            id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
+            print("Row ID is ",row['id'])
+            values["ID"+str(row['id'])] = id
+        print("Got values: ",values)
         return (json.dumps({"message": "idlist", "values": values})) #need to return an array 
     return ('success')  
 
@@ -1188,6 +1219,8 @@ def searchAcrossSheets(repo_name, search_string):
 if __name__ == "__main__":        # on running python app.py
 
     app.run(debug=app.config["DEBUG"], port=8080)        # run the flask app
+
+
 
 
 # [END gae_python37_app]

@@ -42,6 +42,8 @@ PREFIXES = [ ["ADDICTO","http://addictovocab.org/ADDICTO_"],
 
 RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
+DIGIT_COUNT = 7
+
 if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
     GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')

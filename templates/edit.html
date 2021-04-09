@@ -2082,7 +2082,7 @@
             url: '/generate',
             dataType: 'text',
             type: 'POST',
-            data: {rowData: JSON.stringify(rowsToGenerate)},
+            data: {rowData: JSON.stringify(rowsToGenerate),repo_key:'{{repo_name}}' },
             success: function (message) {
                 console.log("got new ID's?")
             }, error: function () {
