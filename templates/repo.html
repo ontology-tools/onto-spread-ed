@@ -5,12 +5,18 @@
 {% endblock %}
 {% block content %}
 
+<label class="font-weight-bold" for="submitText">Search across all spreadsheets:</label>
 <form id="submitText">
-  <label class="font-weight-bold" for="inputText">Search across all spreadsheets:</label>
   <input id="inputText" name="inputText" value="" placeholder='search terms'>
-  <input id="inputBtn" type="submit" class="btn btn-outline-success"></input>
+  <button type="submit" id="inputBtn" name="input" value="search" class="btn btn-outline-success fas fa-search"
+    onclick="return submitForm(this)">Search
+  </button>
+  <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
+    class="btn btn-outline-warning fas fa-search-plus" onclick="return submitForm(this)">
+    Show all assigned to me
+  </button>
 </form>
-
+    <br></br>
 <h4 id="resultsHeader" style="display:none">RESULTS - click on a row to open its spreadsheet:</h2>
 
   <div class="row">
@@ -36,7 +42,7 @@
   <h2> You are in project {{repo_name}} </h2>
 
   {% if folder_path %}
-  <h3> Folder {{folder_path}} </h3>
+  <h3> Folder: {{folder_path}} </h3>
   {% endif %}
 
   {% if directories|length > 0 %}
@@ -53,7 +59,7 @@
   {% endif %}
 
   {% if spreadsheets|length > 0 %}
-  <b>Spreadsheets available for editing: </b><br />
+  <H5>Spreadsheets available for editing: </H5>
   <ul>
     {% for spr in spreadsheets %}
     <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
@@ -63,6 +69,7 @@
   </ul>
   {% endif %}
 
+  <br></br>
   <form id="idSubmission">
     <label class="font-weight-bold" for="idList">Visualise a selection of ID's:</label>
     <textarea id="idList" form="idSubmission" class="form-control" name="idList" value="" placeholder='IDs'
@@ -71,6 +78,51 @@
   </form>
 
   <script type="text/javascript">
+    function sendData() {
+      const form = document.getElementById("submitText");
+      const XHR = new XMLHttpRequest();
+
+      // Bind the FormData object and the form element
+      const FD = new FormData(form);
+      FD.append('repoName', '{{repo_name}}');
+
+      // Define what happens on successful data submission
+      // todo: add error checking to this request
+      XHR.addEventListener("load", function (event) {
+        var response = JSON.parse(event.target.responseText);
+        var message = JSON.stringify(['message']);
+        var results = response['searchResults'];
+        var resultsArray = JSON.parse(results);
+        $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
+        createTable(resultsArray);
+      });
+
+      // Define what happens in case of error
+      XHR.addEventListener("error", function (event) {
+        bootbox.alert("Something went wrong");
+        console.log(event);
+      });
+
+      // Set up our request
+      XHR.open("POST", '/search', true);
+      XHR.send(FD);
+    }
+    function submitForm(button) {
+      if (button.value == "search") {
+        var dialog = bootbox.dialog({
+          message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
+          closeButton: true
+        });
+        sendData();
+        $("#resultsHeader").text("SEARCHING...");
+        $("#resultsHeader").show();
+      }
+      else if (button.value == "show_assigned") {
+        console.log("show assigned clicked");
+      }
+
+      return false;
+    }
 
     window.addEventListener("load", function () {
 
@@ -79,50 +131,12 @@
 
       $("#resultsHeader").hide();
 
-      function sendData() {
-        const XHR = new XMLHttpRequest();
 
-        // Bind the FormData object and the form element
-        const FD = new FormData(form);
-        FD.append('repoName', '{{repo_name}}');
 
-        // Define what happens on successful data submission
-        // todo: add error checking to this request
-        XHR.addEventListener("load", function (event) {
-          var response = JSON.parse(event.target.responseText);
-          var message = JSON.stringify(['message']);
-          var results = response['searchResults'];
-          var resultsArray = JSON.parse(results);
-          $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
-          createTable(resultsArray);
-        });
 
-        // Define what happens in case of error
-        XHR.addEventListener("error", function (event) {
-          bootbox.alert("Something went wrong");
-          console.log(event);
-        });
 
-        // Set up our request
-        XHR.open("POST", '/search', true);
-        XHR.send(FD);
-      }
 
-      // Access the form element...
-      const form = document.getElementById("submitText");
-
-      // ...and take over its submit event.
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
-        var dialog = bootbox.dialog({
-          message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
-          closeButton: true
-        });
-        sendData();
-        $("#resultsHeader").text("SEARCHING...");
-        $("#resultsHeader").show();
-
-      });
+      
 
       // Access the form element...
       const form2 = document.getElementById("idSubmission");
