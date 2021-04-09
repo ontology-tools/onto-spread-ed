@@ -484,6 +484,7 @@ def searchAssingedToMe():
     initials = request.form.get("initials")
     print("initials found: " + initials)
     repoName = request.form.get("repoName")
+    #below is searching in "Label" column? 
     searchResults = searchAcrossSheets(repoName, initials)    
     searchResultsTable = json.dumps(searchResults)
     return ( json.dumps({"message":"Success",
@@ -543,12 +544,14 @@ def repo(repo_key, folder_path=""):
 @verify_logged_in
 def direct():
     if request.method == "POST":
+        type = json.loads(request.form.get("type"))
         repo = json.loads(request.form.get("repo"))
         sheet = json.loads(request.form.get("sheet"))
         go_to_row = json.loads(request.form.get("go_to_row"))
     repoStr = repo['repo']
     sheetStr = sheet['sheet']
     url = '/edit' + '/' + repoStr + '/' + sheetStr 
+    session['type'] = type['type']
     session['label'] = go_to_row['go_to_row']
     session['url'] = url
     return('success')
@@ -637,6 +640,15 @@ def edit(repo_key, folder, spreadsheet):
         go_to_row = session.get('label')
         session.pop('label', None)
 
+    if session.get('type') == None:
+        type = ""
+    else:
+        type = session.get('type')
+        session.pop('type', None)
+    print("type is: ", type)
+    #test values for type: 
+    # type = "initials"
+    # go_to_row = "RW"
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
@@ -656,7 +668,8 @@ def edit(repo_key, folder, spreadsheet):
                             header=json.dumps(header),
                             rows=json.dumps(rows),
                             file_sha = file_sha,
-                            go_to_row = go_to_row
+                            go_to_row = go_to_row,
+                            type = type
                             )
 
 

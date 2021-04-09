@@ -152,6 +152,7 @@
 
 
     var initialRowSearch = "";
+    var initialSearchtype = "";
 
     allCookies = document.cookie;
     console.log("allCookies: " + allCookies);
@@ -657,7 +658,7 @@
                     } else {
                         $('#visualise-selection').show(); //only for tables with ID column
                         if (rowData['ID'] === null || rowData['ID'].trim() === "") {
-                        //has no ID but has Label, Definition and Parent:
+                            //has no ID but has Label, Definition and Parent:
                             if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
                                 showGenerateIdentifier = true;
                             }
@@ -1597,7 +1598,7 @@
             var rowData = selectedRows[r].getData();
             if (rowData['ID'] === null || rowData['ID'].trim() === "") {
                 // console.log("no ID found");
-             //has no ID but has Label, Definition and Parent:
+                //has no ID but has Label, Definition and Parent:
                 if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
                     // console.log("should add something here");
                     rowsToGenerate.push(rowData); //add to array
@@ -1625,13 +1626,24 @@
         };
         //scroll to search term if present:
         initialRowSearch = '{{go_to_row | safe}}';
+        initialSearchtype = '{{type | safe}}';
         console.log(initialRowSearch);
+        console.log("type is: " + initialSearchtype);
         if (initialRowSearch == "" || initialRowSearch == null) {
 
         } else {
-            //filter by Label:
-            table.setHeaderFilterValue("Label", initialRowSearch);
-        }
+            if (initialSearchtype == "" || initialSearchtype == null) {
+
+            } else if (initialSearchtype == "search") {
+                //filter by Label:
+                table.setHeaderFilterValue("Label", initialRowSearch);
+                //todo: setHeaderFilterValue for "Assigned To Me"
+            } else if (initialSearchtype == "initials") {
+                table.setHeaderFilterValue("To be reviewed by", initialRowSearch);
+            } else {
+
+            }
+        };
 
     });
 
@@ -2082,7 +2094,7 @@
             url: '/generate',
             dataType: 'text',
             type: 'POST',
-            data: {rowData: JSON.stringify(rowsToGenerate)},
+            data: { rowData: JSON.stringify(rowsToGenerate) },
             success: function (message) {
                 console.log("got new ID's?")
             }, error: function () {

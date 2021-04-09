@@ -70,15 +70,15 @@
   {% endif %}
 
   <br></br>
+  <label style="color: #1b1a1a;" class="font-weight-bold" for="idList">Visualise a selection of ID's:</label>
   <form id="idSubmission">
-    <label class="font-weight-bold" for="idList">Visualise a selection of ID's:</label>
     <textarea id="idList" form="idSubmission" class="form-control" name="idList" value="" placeholder='IDs'
       rows="3"></textarea>
     <input id="visualise-IDs" type="submit" class="btn btn-outline-success"></input>
   </form>
 
   <script type="text/javascript">
-
+    var initials = '{{user_initials}}';
     //get all rows with "Show all assigned to me"
     function sendDataWithLogin() {
       const form = document.getElementById("submitText");
@@ -89,8 +89,6 @@
       FD.append('initials', '{{user_initials}}');
       FD.append('repoName', '{{repo_name}}');
 
-      // Define what happens on successful data submission
-      // todo: add error checking to this request
       XHR.addEventListener("load", function (event) {
         var response = JSON.parse(event.target.responseText);
         var message = JSON.stringify(['message']);
@@ -98,7 +96,7 @@
         var resultsArray = JSON.parse(results);
         $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
         var type = "initials";
-        createTable(resultsArray, type); //todo: make createTable able to handle initials
+        createTable(resultsArray, type);
       });
 
       // Define what happens in case of error
@@ -121,8 +119,6 @@
       const FD = new FormData(form);
       FD.append('repoName', '{{repo_name}}');
 
-      // Define what happens on successful data submission
-      // todo: add error checking to this request
       XHR.addEventListener("load", function (event) {
         var response = JSON.parse(event.target.responseText);
         var message = JSON.stringify(['message']);
@@ -228,36 +224,61 @@
 
           // various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
 
+          //todo: different rowClick for "initials" type
           rowClick: function (e, row) {
             var data = row.getData();
             if (data['label'] != null && data['label'] != "") {
-              openSheet(data["repo"], data["spreadsheet"], data['label']);
+              openSheet(type, data["repo"], data["spreadsheet"], data['label']);
               console.log("label: " + data['label']);
             } else {
-              openSheet(data["repo"], data["spreadsheet"], '');
+              openSheet(type, data["repo"], data["spreadsheet"], '');
               console.log("no label");
             }
           },
         });
       } else if (type == "initials") {
-        bootbox.hideAll();
         console.log(type);
+        console.log(responseData);
+        bootbox.hideAll();
+        if (responseData.length < 1) {
+          document.getElementById("resultsHeader").innerHTML = "No Results";
+        } else {
+          document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+        }
+        var table = new Tabulator("#contentTable", {
+          data: responseData,
 
-      } else {
+          columns: [ //Define Table Columns
+            { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
+            { title: "Definition", field: "definition", formatter: "textarea" },
+            { title: "Label", field: "label", formatter: "textarea" },
+            { title: "Parent", field: "parent", formatter: "textarea" },
+            { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
+            { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
+          ],
 
+          layout: "fitColumns",
+          pagination: "local",
+          paginationSize: "5",
+
+          //different rowClick for "initials" type
+          rowClick: function (e, row) {
+            var data = row.getData();
+            openSheet(type, data["repo"], data["spreadsheet"], initials);
+          },
+        });
       }
     }
 
-
-    function openSheet(repo, sheet, go_to_row) {
-      console.log(sheet + " " + sheet + " " + go_to_row)
+    function openSheet(type, repo, sheet, go_to_row) {
+      console.log(sheet + " " + sheet + " " + go_to_row + " " + type);
 
       jQuery.ajax({
         url: '/direct',
         dataType: 'text',
         type: 'POST',
         async: 'false',
-        data: { go_to_row: JSON.stringify({ go_to_row }), repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
+        data: { type: JSON.stringify({ type }), go_to_row: JSON.stringify({ go_to_row }), repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
         success: function (data) {
           window.location.href = '/edit/' + repo + '/' + sheet;
         }
