@@ -657,7 +657,7 @@
                     } else {
                         $('#visualise-selection').show(); //only for tables with ID column
                         if (rowData['ID'] === null || rowData['ID'].trim() === "") {
-                        //has no ID but has Label, Definition and Parent:
+                            //has no ID but has Label, Definition and Parent:
                             if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
                                 showGenerateIdentifier = true;
                             }
@@ -1597,7 +1597,7 @@
             var rowData = selectedRows[r].getData();
             if (rowData['ID'] === null || rowData['ID'].trim() === "") {
                 // console.log("no ID found");
-             //has no ID but has Label, Definition and Parent:
+                //has no ID but has Label, Definition and Parent:
                 if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
                     // console.log("should add something here");
                     rowsToGenerate.push(rowData); //add to array
@@ -1607,8 +1607,48 @@
         console.log(rowsToGenerate);
         //send rowsToGenerate to generate function:
         generate(rowsToGenerate).done(function (message) {
-            // var messageJSON = JSON.parse(message); //for returned array
-            console.log(message);
+            // console.log(message);
+            var messageIDValues = message; //JSON.parse(message);
+            // console.log(messageIDValues.values);
+            var messageIDVar = messageIDValues.values
+            var arrReplace = [];
+            $.each(messageIDValues.values, function (index, data) {
+                // console.log("index is: " + index.match(/\d+/));
+                var replaceRow = Number(index.match(/\d+/)); //number after "ID"
+                // console.log("data is: " + data);
+                var replaceData = data;
+                //replace: 
+                var rowToReplace = table.getRow(replaceRow);
+                var rowDataReplacing = rowToReplace.getData();
+                rowDataReplacing["ID"] = data;
+
+                //todo: why does update saved changes not work here: 
+
+                //save "ID" column to local storage for backup here
+                //{value, row, columnName}
+                //data, row.getPosition(), "ID"
+
+                rowValue = replaceRow;//save absolute row position
+                columnValue = "ID"; //column name
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for (var i = 0; i < changes.length; i++) {
+                    if (rowValue == changes[i]) { //matches row number
+                        if (columnValue == changes[i + 1]) { //matches column name as well
+                            console.log("already edited this field");
+                            changes.splice(i - 1, 3, data, rowValue, columnValue);
+                            alreadyChanged = true;
+                        }
+                    }
+                }
+                if (!alreadyChanged) {
+                    changes.push(data);
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                    console.log("changes are: " + changes);
+                }
+
+            });
         });
     });
 
@@ -2080,9 +2120,9 @@
         //todo: handle errors!
         return $.ajax({
             url: '/generate',
-            dataType: 'text',
+            dataType: 'json',
             type: 'POST',
-            data: {rowData: JSON.stringify(rowsToGenerate),repo_key:'{{repo_name}}' },
+            data: { rowData: JSON.stringify(rowsToGenerate), repo_key: '{{repo_name}}' },
             success: function (message) {
                 console.log("got new ID's?")
             }, error: function () {

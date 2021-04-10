@@ -622,13 +622,15 @@ def generate():
         print("generate data sent")
         print("Got ", len(rowData), "rows:", rowData)
         values = {}
+        ids = {}
         for row in rowData:
             nextIdStr = str(searcher.getNextId(repo_key))
             id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
             print("Row ID is ",row['id'])
+            ids["ID"+str(row['id'])] = str(row['id'])
             values["ID"+str(row['id'])] = id
         print("Got values: ",values)
-        return (json.dumps({"message": "idlist", "values": values})) #need to return an array 
+        return (json.dumps({"message": "idlist", "IDs": ids, "values": values})) #need to return an array 
     return ('success')  
 
 # validation checks here:
