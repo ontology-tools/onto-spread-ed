@@ -1622,8 +1622,6 @@
                 var rowDataReplacing = rowToReplace.getData();
                 rowDataReplacing["ID"] = data;
 
-                //todo: why does update saved changes not work here: 
-
                 //save "ID" column to local storage for backup here
                 //{value, row, columnName}
                 //data, row.getPosition(), "ID"
@@ -1649,6 +1647,7 @@
                 }
 
             });
+            backupChanges();
         });
     });
 
