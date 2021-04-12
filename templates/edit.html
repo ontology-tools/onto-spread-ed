@@ -1436,10 +1436,10 @@
                             row.deselect();
                             //backup changes:
                             if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
-                                cellValue = data[to_be_reviewed_by];
+                                cellValueData = data[to_be_reviewed_by];
                                 rowValue = row.getPosition();//save absolute row position
                                 columnValue = "To be reviewed by"; //column name
-                                updateChanges(cellValue, rowValue, columnValue);
+                                updateChanges(cellValueData, rowValue, columnValue);
                                 /*
                                 var alreadyChanged = false;
                                 //check for previously edited cell, and overwrite if already changed before
@@ -1507,10 +1507,10 @@
                 row.deselect(); //triggers rowDeselected()
                 //backup changes
                 if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
-                    cellValue = data[to_be_reviewed_by];
+                    cellValueData = data[to_be_reviewed_by];
                     rowValue = row.getPosition();//save absolute row position
                     columnValue = "To be reviewed by"; //column name
-                    updateChanges(cellValue, rowValue, columnValue);
+                    updateChanges(cellValueData, rowValue, columnValue);
                     /*
                     var alreadyChanged = false;
                     //check for previously edited cell, and overwrite if already changed before
@@ -1733,7 +1733,7 @@
                 cellValue = data[curator];             
                 rowValue = row.getPosition();//save absolute row position
                 columnValue = "Curator"; //column name
-                updateChanges(cell, rowValue, columnValue); //todo: refactored updateChanges, does it work?
+                updateChanges(cellValue, rowValue, columnValue); //todo: refactored updateChanges, does it work?
                 /*
                 var alreadyChanged = false;
                 //check for previously edited cell, and overwrite if already changed before
