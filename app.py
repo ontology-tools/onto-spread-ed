@@ -82,8 +82,6 @@ class FlaskApp(Flask):
     def _activate_background_job(self):
         init_db()
 
-
-
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
 app = FlaskApp(__name__)
@@ -129,14 +127,16 @@ class SpreadsheetSearcher:
         self.storage = BucketStorage(bucket)
         self.threadLock = threading.Lock()
 
-    def searchFor(self, repo_name, search_string):
+    def searchFor(self, repo_name, search_string="", assigned_user=""):
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
 
         mparser = MultifieldParser(["class_id","label","definition","parent"],
                                 schema=ix.schema)
 
-        query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
+        query = mparser.parse("repo:"+repo_name+
+                              (" AND ("+search_string+")" if search_string  else "")+
+                              (" AND tobereviewedby:"+assigned_user if assigned_user else "") )
 
         with ix.searcher() as searcher:
             results = searcher.search(query, limit=100)
@@ -157,6 +157,12 @@ class SpreadsheetSearcher:
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
         writer = ix.writer()
+
+        writer = ix.writer()
+        writer.add_field("tobereviewedby", whoosh.fields.TEXT(stored=True))
+        writer.remove_field("content")
+        writer.commit()
+
         mparser = MultifieldParser(["repo", "spreadsheet"],
                                    schema=ix.schema)
         print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
@@ -186,6 +192,10 @@ class SpreadsheetSearcher:
                 parent = row[header.index("Parent")]
             else:
                 parent = None
+            if "To be reviewed by" in header:
+                tobereviewedby = row[header.index("To be reviewed by")]
+            else:
+                tobereviewedby = None
 
             if class_id or label or definition or parent:
                 writer.add_document(repo=repo_name,
@@ -193,7 +203,8 @@ class SpreadsheetSearcher:
                                     class_id=(class_id if class_id else None),
                                     label=(label if label else None),
                                     definition=(definition if definition else None),
-                                    parent=(parent if parent else None))
+                                    parent=(parent if parent else None),
+                                    tobereviewedby=(tobereviewedby if tobereviewedby else None))
         writer.commit(optimize=True)
         self.storage.save_to_bucket()
         ix.close()
@@ -477,15 +488,16 @@ def search():
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
 
+
 @app.route('/searchAssignedToMe', methods=['POST'])
 @verify_logged_in
-def searchAssingedToMe():
+def searchAssignedToMe():
     print("searching for initials")
     initials = request.form.get("initials")
     print("initials found: " + initials)
     repoName = request.form.get("repoName")
     #below is searching in "Label" column? 
-    searchResults = searchAcrossSheets(repoName, initials)    
+    searchResults = searchAssignedToMe(repoName, initials)
     searchResultsTable = json.dumps(searchResults)
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
@@ -1130,7 +1142,12 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
 
 def searchAcrossSheets(repo_name, search_string):
-    searcherAllResults = searcher.searchFor(repo_name, search_string)
+    searcherAllResults = searcher.searchFor(repo_name, search_string=search_string)
+    # print(searcherAllResults)
+    return searcherAllResults
+
+def searchAssignedTo(repo_name, initials):
+    searcherAllResults = searcher.searchFor(repo_name, assigned_user=initials)
     # print(searcherAllResults)
     return searcherAllResults
 
