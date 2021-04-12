@@ -158,11 +158,6 @@ class SpreadsheetSearcher:
         ix = self.storage.open_index()
         writer = ix.writer()
 
-        writer = ix.writer()
-        writer.add_field("tobereviewedby", whoosh.fields.TEXT(stored=True))
-        writer.remove_field("content")
-        writer.commit()
-
         mparser = MultifieldParser(["repo", "spreadsheet"],
                                    schema=ix.schema)
         print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
@@ -497,7 +492,7 @@ def searchAssignedToMe():
     print("initials found: " + initials)
     repoName = request.form.get("repoName")
     #below is searching in "Label" column? 
-    searchResults = searchAssignedToMe(repoName, initials)
+    searchResults = searchAssignedTo(repoName, initials)
     searchResultsTable = json.dumps(searchResults)
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
