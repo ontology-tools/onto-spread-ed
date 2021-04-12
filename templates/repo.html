@@ -11,7 +11,7 @@
   <input id="inputBtn" type="submit" class="btn btn-outline-success"></input>
 </form>
 
-<h4 id="resultsHeader" style="display:none">RESULTS - click on a row to open its spreadsheet:</h2>
+<h4 id="resultsHeader" style="display:none">RESULTS - click on a row to open its spreadsheet:</h4>
 
   <div class="row">
     <div class="col-md-12">
@@ -56,19 +56,23 @@
   <b>Spreadsheets available for editing: </b><br />
   <ul>
     {% for spr in spreadsheets %}
-    <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
+    
+    <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</a> </li>
     </p>
 
     {% endfor %}
   </ul>
   {% endif %}
-
+  
+<div>
   <form id="idSubmission">
     <label class="font-weight-bold" for="idList">Visualise a selection of ID's:</label>
-    <textarea id="idList" form="idSubmission" class="form-control" name="idList" value="" placeholder='IDs'
-      rows="3"></textarea>
-    <input id="visualise-IDs" type="submit" class="btn btn-outline-success"></input>
-  </form>
+      <textarea id="idList" form="idSubmission" class="form-control" name="idList" value="" placeholder='IDs'
+        rows="3"></textarea>
+      <input id="visualise-IDs" type="submit" class="btn btn-outline-success"></input>
+    </form>
+</div>
+  
 
   <script type="text/javascript">
 
