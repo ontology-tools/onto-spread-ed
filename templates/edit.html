@@ -713,11 +713,15 @@
             console.log("cellEdited: " + cell.getValue() + ", " + row.getPosition() + ", " + column.getDefinition().title);
             // console.log("cellEdited column is: " + column.getDefinition().title);
 
+
             //save changed cell data:
             //{value, row, columnName}
             if (cell.getValue() !== "" && cell.getValue() !== null) {
+                cellValue = cell.getValue();
                 rowValue = row.getPosition();//save absolute row position
                 columnValue = cell.getField(); //column name
+                updateChanges(cellValue, rowValue, columnValue);
+                /*
                 var alreadyChanged = false;
                 //check for previously edited cell, and overwrite if already changed before
                 for (var i = 0; i < changes.length; i++) {
@@ -734,6 +738,7 @@
                     changes.push(rowValue);
                     changes.push(columnValue);
                 }
+                */
             }
 
             //update highlighting:
@@ -806,8 +811,11 @@
                         //{value, row, columnName}
                         //data[curator], row.getPosition(), "Curator"
                         if (data[curator] !== "" && data[curator] !== null) {
+                            cellValue = data[curator];
                             rowValue = row.getPosition();//save absolute row position
                             columnValue = "Curator"; //column name
+                            updateChanges(cellValue, rowValue, columnValue);
+                            /*
                             var alreadyChanged = false;
                             //check for previously edited cell, and overwrite if already changed before
                             for (var i = 0; i < changes.length; i++) {
@@ -824,6 +832,7 @@
                                 changes.push(rowValue);
                                 changes.push(columnValue);
                             }
+                            */
                         }
 
                         //text must be coloured if highlighting login set though..
@@ -870,8 +879,11 @@
                             //save Fuzzy set column to local storage for backup here
                             //{value, row, columnName}
                             //data[curator], row.getPosition(), "Curator"
+                            cellValue = 1;
                             rowValue = row.getPosition();//save absolute row position
                             columnValue = fuzzy_Set; //column name
+                            updateChanges(rowValue, columnValue);
+                            /*
                             var alreadyChanged = false;
                             //check for previously edited cell, and overwrite if already changed before
                             for (var i = 0; i < changes.length; i++) {
@@ -888,6 +900,7 @@
                                 changes.push(rowValue);
                                 changes.push(fuzzy_Set);
                             }
+                            */
                         }
                     }
                 }
@@ -1284,9 +1297,12 @@
                 if (cell.getValue() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
                     //set to obsolete and show a message here
                     data[curation_status] = "Obsolete";
-                    //save change: 
+                    //save change:
+                    cellValue =  data[curation_status];
                     var rowValue = row.getPosition();//save absolute row position
                     var columnValue = "Curation status"; //column name
+                    updateChanges(cellValue, rowValue, columnValue);
+                    /*
                     var alreadyChanged = false;
                     //check for previously edited cell, and overwrite if already changed before
                     for (var i = 0; i < changes.length; i++) {
@@ -1303,7 +1319,7 @@
                         changes.push(rowValue);
                         changes.push(columnValue);
                     }
-
+                    */
                     bootbox.alert("You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead.");
                     row.deselect();
 
@@ -1324,8 +1340,11 @@
                     //{value, row, columnName}
                     //data[curator], row.getPosition(), "Curator"
                     if (data[curator] !== "" && data[curator] !== null) {
+                        cellValue = data[curator];
                         rowValue = row.getPosition();//save absolute row position
                         columnValue = "Curator"; //column name
+                        updateChanges(cellValue, rowValue, columnValue);
+                        /*
                         var alreadyChanged = false;
                         //check for previously edited cell, and overwrite if already changed before
                         for (var i = 0; i < changes.length; i++) {
@@ -1342,6 +1361,7 @@
                             changes.push(rowValue);
                             changes.push(columnValue);
                         }
+                        */
                     }
                 } else { // ID is "" or null, we can delete 
                     table.deleteRow(row);
@@ -1416,8 +1436,11 @@
                             row.deselect();
                             //backup changes:
                             if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
+                                cellValue = data[to_be_reviewed_by];
                                 rowValue = row.getPosition();//save absolute row position
                                 columnValue = "To be reviewed by"; //column name
+                                updateChanges(cellValue, rowValue, columnValue);
+                                /*
                                 var alreadyChanged = false;
                                 //check for previously edited cell, and overwrite if already changed before
                                 for (var i = 0; i < changes.length; i++) {
@@ -1434,6 +1457,7 @@
                                     changes.push(rowValue);
                                     changes.push(columnValue);
                                 }
+                                */
                             }
                             backupChanges();
                         });
@@ -1483,8 +1507,11 @@
                 row.deselect(); //triggers rowDeselected()
                 //backup changes
                 if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
+                    cellValue = data[to_be_reviewed_by];
                     rowValue = row.getPosition();//save absolute row position
                     columnValue = "To be reviewed by"; //column name
+                    updateChanges(cellValue, rowValue, columnValue);
+                    /*
                     var alreadyChanged = false;
                     //check for previously edited cell, and overwrite if already changed before
                     for (var i = 0; i < changes.length; i++) {
@@ -1501,6 +1528,7 @@
                         changes.push(rowValue);
                         changes.push(columnValue);
                     }
+                    */
                 }
                 backupChanges();
             }
@@ -1625,9 +1653,11 @@
                 //save "ID" column to local storage for backup here
                 //{value, row, columnName}
                 //data, row.getPosition(), "ID"
-
+                cellValue = data;
                 rowValue = replaceRow;//save absolute row position
                 columnValue = "ID"; //column name
+                updateChanges(data, rowValue, columnValue);
+                /*
                 var alreadyChanged = false;
                 //check for previously edited cell, and overwrite if already changed before
                 for (var i = 0; i < changes.length; i++) {
@@ -1645,6 +1675,7 @@
                     changes.push(columnValue);
                     console.log("changes are: " + changes);
                 }
+                */
 
             });
             backupChanges();
@@ -1698,9 +1729,12 @@
             //save curator column to local storage for backup here
             //{value, row, columnName}
             //data[curator], row.getPosition(), "Curator"
-            if (data[curator] !== "" && data[curator] !== null) {
+            if (data[curator] !== "" && data[curator] !== null) {   
+                cellValue = data[curator];             
                 rowValue = row.getPosition();//save absolute row position
                 columnValue = "Curator"; //column name
+                updateChanges(cell, rowValue, columnValue); //todo: refactored updateChanges, does it work?
+                /*
                 var alreadyChanged = false;
                 //check for previously edited cell, and overwrite if already changed before
                 for (var i = 0; i < changes.length; i++) {
@@ -1717,7 +1751,8 @@
                     changes.push(rowValue);
                     changes.push(columnValue);
                 }
-            }
+            */
+            }            
         }
 
     }
@@ -1741,6 +1776,28 @@
         table.clearFilter(true); //clear header filters       
     }
 
+    function updateChanges(cellValue, rowValue, columnValue){
+            //{value, row, columnName}            
+                // rowValue = row.getPosition();//save absolute row position
+                // columnValue = cell.getField(); //column name
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for (var i = 0; i < changes.length; i++) {
+                    if (rowValue == changes[i]) { //matches row number
+                        if (columnValue == changes[i + 1]) { //matches column name as well
+                            console.log("already edited this field");
+                            changes.splice(i - 1, 3, cellValue, rowValue, columnValue);
+                            alreadyChanged = true;
+                        }
+                    }
+                }
+                if (!alreadyChanged) {
+                    changes.push(cellValue);
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                }
+            
+    }
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
     */
