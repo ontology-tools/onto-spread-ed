@@ -131,7 +131,7 @@ class SpreadsheetSearcher:
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
 
-        mparser = MultifieldParser(["class_id","label","definition","parent"],
+        mparser = MultifieldParser(["class_id","label","definition","parent","tobereviewedby"],
                                 schema=ix.schema)
 
         query = mparser.parse("repo:"+repo_name+
