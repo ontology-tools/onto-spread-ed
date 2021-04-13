@@ -148,7 +148,6 @@ class SpreadsheetSearcher:
                 resultslist.append(allfields)
 
         ix.close()
-
         return (resultslist)
 
     def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
