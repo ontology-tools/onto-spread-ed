@@ -150,6 +150,9 @@
 <script type="text/javascript">
 
 
+    //for suggestions (autocomplete):
+    var labelSuggestions = [];
+    var suggestValuesArray = [];
 
     var initialRowSearch = "";
     var initialSearchtype = "";
@@ -389,6 +392,10 @@
         for (var i = 0; i < rowLength; i++) {
             var rowObj = { id: i }
             for (var j = 0; j < headerLength; j++) {
+                //add to suggestValuesArray:
+                if(headers[j] == "Label"){
+                    addToSuggestions(rowData[i][headers[j]]);
+                }
                 rowObj[headers[j]] = rowData[i][headers[j]];
                 //replace & and =
                 if (rowObj[headers[j]] !== null) {
@@ -499,6 +506,40 @@
         },
     ]
 
+    
+    //Build array for autocompleting "Parent" column: 
+    
+
+    function addToSuggestions(suggestion){
+        labelSuggestions.push(suggestion);
+    }
+    // console.log("labelSuggestions = " + labelSuggestions);
+    suggestValuesArray = labelSuggestions;
+
+    // var suggestValuesArray = [
+    //     "test1", "test2", "test3"
+    // ];
+
+    //from tabulator example:
+    // var testValuesArray = [
+    //     {
+    //         label:"Steve Boberson",
+    //         value:"steve",
+    //     },
+    //     {
+    //         label:"Bob Jimmerson",
+    //         value:"bob",
+    //     },
+    //     {
+    //         label:"Jenny Jillerson",
+    //         value:"jenny",
+    //     },
+    //     {
+    //         label:"Jill Betterson",
+    //         value:"jill",
+    //     },
+    // ];
+    
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
@@ -516,7 +557,8 @@
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "Parent") {
             // "autocomplete" editor idea from http://tabulator.info/docs/4.9/edit#masking - this does not enable editing
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: true, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: "Label", freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
         else {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
