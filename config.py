@@ -87,7 +87,8 @@ else:
     response = client.access_secret_version(request={"name": name})
     SECRET_KEY = response.payload.data.decode("UTF-8")
 
-USERS_METADATA = {"jannahastings": {"initials":"JH", "repositories":["AddictO","BCIO"]},
+USERS_METADATA = {"tomjuggler": {"initials":"ZZ", "repositories":["AddictO","BCIO"]},
+                  "jannahastings": {"initials":"JH", "repositories":["AddictO","BCIO"]},
                   "robertjwest": {"initials":"RW", "repositories":["AddictO","BCIO"]},
                   "sharoncox":{"initials":"SC", "repositories":["AddictO"]},
                   "ksoar":{"initials":"KS", "repositories":["AddictO"]},

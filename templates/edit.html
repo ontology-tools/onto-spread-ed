@@ -152,6 +152,7 @@
 
 
     var initialRowSearch = "";
+    var initialSearchtype = "";
 
     allCookies = document.cookie;
     console.log("allCookies: " + allCookies);
@@ -653,7 +654,6 @@
                     //show buttons concerning rows:
                     $('#delete-rows').show();
                     if (rowData['ID'] === undefined) { //for tables without ID
-
                     } else {
                         $('#visualise-selection').show(); //only for tables with ID column
                         if (rowData['ID'] === null || rowData['ID'].trim() === "") {
@@ -1664,13 +1664,24 @@
         };
         //scroll to search term if present:
         initialRowSearch = '{{go_to_row | safe}}';
+        initialSearchtype = '{{type | safe}}';
         console.log(initialRowSearch);
+        console.log("type is: " + initialSearchtype);
         if (initialRowSearch == "" || initialRowSearch == null) {
 
         } else {
+            if (initialSearchtype == "" || initialSearchtype == null) {
+
+            } else if (initialSearchtype == "search") {
             //filter by Label:
             table.setHeaderFilterValue("Label", initialRowSearch);
+                //todo: setHeaderFilterValue for "Assigned To Me"
+            } else if (initialSearchtype == "initials") {
+                table.setHeaderFilterValue("To be reviewed by", initialRowSearch);
+            } else {
+
         }
+        };
 
     });
 
@@ -1764,7 +1775,7 @@
 
             var saveValidation = bootbox.dialog({
                 title: "There are validation errors, are you sure you want to save?",
-                message: combinedValidationMessages,
+                message: combinedValidationMessages, 
                 buttons: {
                     confirm: {
                         label: 'Submit anyway',
@@ -1782,7 +1793,7 @@
                     },
                     cancel: {
                         label: 'Cancel',
-                        className: 'btn-success',
+                        className: 'btn-success', 
                     },
                 }
             });
@@ -2157,7 +2168,7 @@
                 var msg = data.message;
                 console.log(msg);
                 if (msg == "Success") {
-
+                    
                 } else {
                     $('#updates').show(); //todo: need to hide on save and keep hidden during merger
                 }
