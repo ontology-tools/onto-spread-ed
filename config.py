@@ -42,6 +42,8 @@ PREFIXES = [ ["ADDICTO","http://addictovocab.org/ADDICTO_"],
 
 RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
+DIGIT_COUNT = 7
+
 if os.environ.get("FLASK_ENV")=='development':
     GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
     GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
@@ -85,7 +87,8 @@ else:
     response = client.access_secret_version(request={"name": name})
     SECRET_KEY = response.payload.data.decode("UTF-8")
 
-USERS_METADATA = {"jannahastings": {"initials":"JH", "repositories":["AddictO","BCIO"]},
+USERS_METADATA = {"tomjuggler": {"initials":"ZZ", "repositories":["AddictO","BCIO"]},
+                  "jannahastings": {"initials":"JH", "repositories":["AddictO","BCIO"]},
                   "robertjwest": {"initials":"RW", "repositories":["AddictO","BCIO"]},
                   "sharoncox":{"initials":"SC", "repositories":["AddictO"]},
                   "ksoar":{"initials":"KS", "repositories":["AddictO"]},

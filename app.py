@@ -67,6 +67,12 @@ class User(Base):
     def __init__(self, github_access_token):
         self.github_access_token = github_access_token
 
+class NextId(Base):
+    __tablename__ = 'nextids'
+    id = Column(Integer,primary_key=True)
+    repo_name = Column(String(50))
+    next_id = Column(Integer)
+
 def init_db():
 
     Base.query = db_session.query_property()
@@ -81,8 +87,6 @@ class FlaskApp(Flask):
 
     def _activate_background_job(self):
         init_db()
-
-
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
@@ -129,14 +133,16 @@ class SpreadsheetSearcher:
         self.storage = BucketStorage(bucket)
         self.threadLock = threading.Lock()
 
-    def searchFor(self, repo_name, search_string):
+    def searchFor(self, repo_name, search_string="", assigned_user=""):
         self.storage.open_from_bucket()
         ix = self.storage.open_index()
 
-        mparser = MultifieldParser(["class_id","label","definition","parent"],
+        mparser = MultifieldParser(["class_id","label","definition","parent","tobereviewedby"],
                                 schema=ix.schema)
 
-        query = mparser.parse("repo:"+repo_name+" AND ("+search_string+")")
+        query = mparser.parse("repo:"+repo_name+
+                              (" AND ("+search_string+")" if search_string  else "")+
+                              (" AND tobereviewedby:"+assigned_user if assigned_user else "") )
 
         with ix.searcher() as searcher:
             results = searcher.search(query, limit=100)
@@ -148,7 +154,6 @@ class SpreadsheetSearcher:
                 resultslist.append(allfields)
 
         ix.close()
-
         return (resultslist)
 
     def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
@@ -186,6 +191,10 @@ class SpreadsheetSearcher:
                 parent = row[header.index("Parent")]
             else:
                 parent = None
+            if "To be reviewed by" in header:
+                tobereviewedby = row[header.index("To be reviewed by")]
+            else:
+                tobereviewedby = None
 
             if class_id or label or definition or parent:
                 writer.add_document(repo=repo_name,
@@ -193,12 +202,33 @@ class SpreadsheetSearcher:
                                     class_id=(class_id if class_id else None),
                                     label=(label if label else None),
                                     definition=(definition if definition else None),
-                                    parent=(parent if parent else None))
+                                    parent=(parent if parent else None),
+                                    tobereviewedby=(tobereviewedby if tobereviewedby else None))
         writer.commit(optimize=True)
         self.storage.save_to_bucket()
         ix.close()
         self.threadLock.release()
         print("Update of index completed.")
+
+    def getNextId(self,repo_name):
+        self.threadLock.acquire()
+        next_id_obj = NextId.query.filter_by(repo_name=repo_name).first()
+        if next_id_obj is None:  
+            print("Adding a new nextid")
+            next_id_obj = NextId()
+            next_id_obj.repo_name = repo_name
+            next_id_obj.next_id = 955 if repo_name=="AddictO" else 50000
+            db_session.add(next_id_obj)
+            db_session.commit()
+
+        next_id = next_id_obj.next_id
+        next_id_updated = next_id+1
+        next_id_obj.next_id = next_id_updated
+        db_session.commit()
+
+        self.threadLock.release()
+        return (next_id)
+
 
 searcher = SpreadsheetSearcher()
 
@@ -472,17 +502,25 @@ def user():
 def search():
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
-
-    searchResults = searchAcrossSheets(repoName, searchTerm)
-    
+    searchResults = searchAcrossSheets(repoName, searchTerm)    
     searchResultsTable = json.dumps(searchResults)
-    # print(f'')
-    # print(f'searchResultsTable: ')
-    # print(searchResultsTable)
-
     return ( json.dumps({"message":"Success",
                              "searchResults": searchResultsTable}), 200 )
-                             
+
+
+@app.route('/searchAssignedToMe', methods=['POST'])
+@verify_logged_in
+def searchAssignedToMe():
+    print("searching for initials")
+    initials = request.form.get("initials")
+    print("initials found: " + initials)
+    repoName = request.form.get("repoName")
+    #below is searching in "Label" column? 
+    searchResults = searchAssignedTo(repoName, initials)
+    searchResultsTable = json.dumps(searchResults)
+    return ( json.dumps({"message":"Success",
+                             "searchResults": searchResultsTable}), 200 )
+                      
 
 @app.route('/')
 @app.route('/home')
@@ -537,12 +575,14 @@ def repo(repo_key, folder_path=""):
 @verify_logged_in
 def direct():
     if request.method == "POST":
+        type = json.loads(request.form.get("type"))
         repo = json.loads(request.form.get("repo"))
         sheet = json.loads(request.form.get("sheet"))
         go_to_row = json.loads(request.form.get("go_to_row"))
     repoStr = repo['repo']
     sheetStr = sheet['sheet']
     url = '/edit' + '/' + repoStr + '/' + sheetStr 
+    session['type'] = type['type']
     session['label'] = go_to_row['go_to_row']
     session['url'] = url
     return('success')
@@ -564,6 +604,27 @@ def verify():
         return (json.dumps({"message":"fail","values":returnData, "unique":uniqueData}))
     return ('success') #todo: do we need message:success, 200 here? 
     
+
+@app.route("/generate", methods=["POST"])
+@verify_logged_in
+def generate():
+    if request.method == "POST":
+        repo_key = request.form.get("repo_key")
+        rowData = json.loads(request.form.get("rowData"))
+        print("generate data sent")
+        print("Got ", len(rowData), "rows:", rowData)
+        values = {}
+        ids = {}
+        for row in rowData:
+            nextIdStr = str(searcher.getNextId(repo_key))
+            id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
+            print("Row ID is ",row['id'])
+            ids["ID"+str(row['id'])] = str(row['id'])
+            values["ID"+str(row['id'])] = id
+        print("Got values: ",values)
+        return (json.dumps({"message": "idlist", "IDs": ids, "values": values})) #need to return an array 
+    return ('success')  
+
 # validation checks here: 
 
 # recursive check each cell in rowData:
@@ -631,6 +692,15 @@ def edit(repo_key, folder, spreadsheet):
         go_to_row = session.get('label')
         session.pop('label', None)
 
+    if session.get('type') == None:
+        type = ""
+    else:
+        type = session.get('type')
+        session.pop('type', None)
+    print("type is: ", type)
+    #test values for type: 
+    # type = "initials"
+    # go_to_row = "RW"
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
@@ -650,7 +720,8 @@ def edit(repo_key, folder, spreadsheet):
                             header=json.dumps(header),
                             rows=json.dumps(rows),
                             file_sha = file_sha,
-                            go_to_row = go_to_row
+                            go_to_row = go_to_row,
+                            type = type
                             )
 
 
@@ -1111,10 +1182,14 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
 
 def searchAcrossSheets(repo_name, search_string):
-    searcherAllResults = searcher.searchFor(repo_name, search_string)
+    searcherAllResults = searcher.searchFor(repo_name, search_string=search_string)
     # print(searcherAllResults)
     return searcherAllResults
 
+def searchAssignedTo(repo_name, initials):
+    searcherAllResults = searcher.searchFor(repo_name, assigned_user=initials)
+    # print(searcherAllResults)
+    return searcherAllResults
 
 
 if __name__ == "__main__":        # on running python app.py

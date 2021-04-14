@@ -5,13 +5,19 @@
 {% endblock %}
 {% block content %}
 
+<label class="font-weight-bold" for="submitText">Search across all spreadsheets:</label>
 <form id="submitText">
-  <label class="font-weight-bold" for="inputText">Search across all spreadsheets:</label>
   <input id="inputText" name="inputText" value="" placeholder='search terms'>
-  <input id="inputBtn" type="submit" class="btn btn-outline-success"></input>
+  <button type="submit" id="inputBtn" name="input" value="search" class="btn btn-outline-success fas fa-search"
+    onclick="return submitForm(this)">Search
+  </button>
+  <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
+    class="btn btn-outline-warning fas fa-search-plus" onclick="return submitForm(this)">
+    Show all assigned to me
+  </button>
 </form>
 
-<h4 id="resultsHeader" style="display:none">RESULTS - click on a row to open its spreadsheet:</h2>
+<h4 id="resultsHeader" style="display:none">RESULTS - click on a row to open its spreadsheet:</h4>
 
   <div class="row">
     <div class="col-md-12">
@@ -36,7 +42,7 @@
   <h2> You are in project {{repo_name}} </h2>
 
   {% if folder_path %}
-  <h3> Folder {{folder_path}} </h3>
+  <h3> Folder: {{folder_path}} </h3>
   {% endif %}
 
   {% if directories|length > 0 %}
@@ -53,18 +59,20 @@
   {% endif %}
 
   {% if spreadsheets|length > 0 %}
-  <b>Spreadsheets available for editing: </b><br />
+  <H5>Spreadsheets available for editing: </H5>
   <ul>
     {% for spr in spreadsheets %}
-    <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</li>
+    <li> <a href="/edit/{{repo_name}}/{{folder_path}}/{{spr}}">{{spr}}</a></li>
+    
     </p>
 
     {% endfor %}
   </ul>
   {% endif %}
 
+  <br></br>
+  <label style="color: #1b1a1a;" class="font-weight-bold" for="idList">Visualise a selection of ID's:</label>
   <form id="idSubmission">
-    <label class="font-weight-bold" for="idList">Visualise a selection of ID's:</label>
     <textarea id="idList" form="idSubmission" class="form-control" name="idList" value="" placeholder='IDs'
       rows="3"></textarea>
     <input id="visualise-IDs" type="submit" class="btn btn-outline-success"></input>
@@ -72,48 +80,71 @@
 
   <script type="text/javascript">
 
-    window.addEventListener("load", function () {
-
-
-      console.log("loaded");
-
-      $("#resultsHeader").hide();
-
-      function sendData() {
-        const XHR = new XMLHttpRequest();
-
-        // Bind the FormData object and the form element
-        const FD = new FormData(form);
-        FD.append('repoName', '{{repo_name}}');
-
-        // Define what happens on successful data submission
-        // todo: add error checking to this request
-        XHR.addEventListener("load", function (event) {
-          var response = JSON.parse(event.target.responseText);
-          var message = JSON.stringify(['message']);
-          var results = response['searchResults'];
-          var resultsArray = JSON.parse(results);
-          $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
-          createTable(resultsArray);
-        });
-
-        // Define what happens in case of error
-        XHR.addEventListener("error", function (event) {
-          bootbox.alert("Something went wrong");
-          console.log(event);
-        });
-
-        // Set up our request
-        XHR.open("POST", '/search', true);
-        XHR.send(FD);
-      }
-
-      // Access the form element...
+  var initials = '{{user_initials}}';
+    //get all rows with "Show all assigned to me"
+    function sendDataWithLogin() {
       const form = document.getElementById("submitText");
+      const XHR = new XMLHttpRequest();
 
-      // ...and take over its submit event.
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
+      // Bind the FormData object and the form element
+      const FD = new FormData(form);
+      // FD.append('initials', 'ZZ'); //test 
+      FD.append('initials', '{{user_initials}}');
+      FD.append('repoName', '{{repo_name}}');
+
+      XHR.addEventListener("load", function (event) {
+        var response = JSON.parse(event.target.responseText);
+        var message = JSON.stringify(['message']);
+        var results = response['searchResults'];
+        var resultsArray = JSON.parse(results);
+        $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
+        var type = "initials";
+        createTable(resultsArray, type);
+      });
+
+      // Define what happens in case of error
+      XHR.addEventListener("error", function (event) {
+        bootbox.alert("Something went wrong");
+        console.log(event);
+      });
+
+      // Set up our request
+      XHR.open("POST", '/searchAssignedToMe', true);
+      XHR.send(FD);
+    }
+
+    //get all rows with search terms
+    function sendData() {
+      const form = document.getElementById("submitText");
+      const XHR = new XMLHttpRequest();
+
+      // Bind the FormData object and the form element
+      const FD = new FormData(form);
+      FD.append('repoName', '{{repo_name}}');
+
+      XHR.addEventListener("load", function (event) {
+        var response = JSON.parse(event.target.responseText);
+        var message = JSON.stringify(['message']);
+        var results = response['searchResults'];
+        var resultsArray = JSON.parse(results);
+        $("#resultsHeader").text("RESULTS - click on a row to open its spreadsheet");
+        var type = "search";
+        createTable(resultsArray, type);
+      });
+
+      // Define what happens in case of error
+      XHR.addEventListener("error", function (event) {
+        bootbox.alert("Something went wrong");
+        console.log(event);
+      });
+
+      // Set up our request
+      XHR.open("POST", '/search', true);
+      XHR.send(FD);
+    }
+
+    function submitForm(button) {
+      if (button.value == "search") {
         var dialog = bootbox.dialog({
           message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
           closeButton: true
@@ -121,10 +152,25 @@
         sendData();
         $("#resultsHeader").text("SEARCHING...");
         $("#resultsHeader").show();
+      }
+      else if (button.value == "show_assigned") {
+        console.log("show assigned clicked");
+        var dialog = bootbox.dialog({
+          message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
+          closeButton: true
+        });
+        sendDataWithLogin();
+        $("#resultsHeader").text("SEARCHING...");
+        $("#resultsHeader").show();
+      }
 
-      });
+      return false;
+    }
 
-      // Access the form element...
+    window.addEventListener("load", function () {
+      // console.log("loaded");
+      $("#resultsHeader").hide();
+      // Access the form2 element...
       const form2 = document.getElementById("idSubmission");
 
       // ...and take over its submit event.
@@ -155,54 +201,87 @@
 
     });
 
-    function createTable(responseData) {
-      bootbox.hideAll();
-      if (responseData.length < 1) {
-        document.getElementById("resultsHeader").innerHTML = "No Results";
-      } else {
-        document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+    function createTable(responseData, type) {
+      if (type == "search") {
+        bootbox.hideAll();
+        if (responseData.length < 1) {
+          document.getElementById("resultsHeader").innerHTML = "No Results";
+        } else {
+          document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+        }
+        var table = new Tabulator("#contentTable", {
+          data: responseData,
+
+          columns: [ //Define Table Columns
+            { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
+            { title: "Definition", field: "definition", formatter: "textarea" },
+            { title: "Label", field: "label", formatter: "textarea" },
+            { title: "Parent", field: "parent", formatter: "textarea" },
+            { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
+            { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
+          ],
+
+          layout: "fitColumns",
+          pagination: "local",
+          paginationSize: "5",
+
+          // various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
+
+          //todo: different rowClick for "initials" type
+          rowClick: function (e, row) {
+            var data = row.getData();
+            if (data['label'] != null && data['label'] != "") {
+              openSheet(type, data["repo"], data["spreadsheet"], data['label']);
+              console.log("label: " + data['label']);
+            } else {
+              openSheet(type, data["repo"], data["spreadsheet"], '');
+              console.log("no label");
+            }
+          },
+        });
+      } else if (type == "initials") {
+        console.log(type);
+        console.log(responseData);
+        bootbox.hideAll();
+        if (responseData.length < 1) {
+          document.getElementById("resultsHeader").innerHTML = "No Results";
+        } else {
+          document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+        }
+        var table = new Tabulator("#contentTable", {
+          data: responseData,
+
+          columns: [ //Define Table Columns
+            { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
+            { title: "Definition", field: "definition", formatter: "textarea" },
+            { title: "Label", field: "label", formatter: "textarea" },
+            { title: "Parent", field: "parent", formatter: "textarea" },
+            { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
+            { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
+          ],
+
+          layout: "fitColumns",
+          pagination: "local",
+          paginationSize: "5",
+
+          //different rowClick for "initials" type
+          rowClick: function (e, row) {
+            var data = row.getData();
+            openSheet(type, data["repo"], data["spreadsheet"], initials);
+          },
+        });
       }
-      var table = new Tabulator("#contentTable", {
-        data: responseData,
-
-        columns: [ //Define Table Columns
-          { title: "Class ID", field: "class_id", formatter: "textarea", width: "120" },
-          { title: "Definition", field: "definition", formatter: "textarea" },
-          { title: "Label", field: "label", formatter: "textarea" },
-          { title: "Parent", field: "parent", formatter: "textarea" },
-          { title: "Repo", field: "repo", formatter: "textarea", width: "80" },
-          { title: "Spreadsheet", field: "spreadsheet", formatter: "textarea", width: "360" },
-        ],
-
-        layout: "fitColumns",
-        pagination: "local",
-        paginationSize: "5",
-
-        // various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
-
-        rowClick: function (e, row) {
-          var data = row.getData();
-          if (data['label'] != null && data['label'] != "") {
-            openSheet(data["repo"], data["spreadsheet"], data['label']);
-            console.log("label: " + data['label']);
-          } else {
-            openSheet(data["repo"], data["spreadsheet"], '');
-            console.log("no label");
-          }
-        },
-      });
     }
 
-
-    function openSheet(repo, sheet, go_to_row) {
-      console.log(sheet + " " + sheet + " " + go_to_row)
+    function openSheet(type, repo, sheet, go_to_row) {
+      console.log(sheet + " " + sheet + " " + go_to_row + " " + type);
 
       jQuery.ajax({
         url: '/direct',
         dataType: 'text',
         type: 'POST',
         async: 'false',
-        data: { go_to_row: JSON.stringify({ go_to_row }), repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
+        data: { type: JSON.stringify({ type }), go_to_row: JSON.stringify({ go_to_row }), repo: JSON.stringify({ repo }), sheet: JSON.stringify({ sheet }) },
         success: function (data) {
           window.location.href = '/edit/' + repo + '/' + sheet;
         }
