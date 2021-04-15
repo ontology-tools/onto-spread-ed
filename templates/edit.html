@@ -396,6 +396,9 @@
                 if (headers[j] == "Label") {
                     addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
                 }
+                if (headers[j] == "Name") {
+                    addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
+                }
                 rowObj[headers[j]] = rowData[i][headers[j]];
                 //replace & and =
                 if (rowObj[headers[j]] !== null) {
@@ -847,9 +850,9 @@
             }
             //change suggestion to remove this row:
             var parent = "Parent";
-            if (data["Label"] === undefined) { //Label column not present in table
+            if (data["Label"] !== undefined || data["Name"] !== undefined) { //if we have a "Label" or "Name" column
 
-            } else {
+            // } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
                     console.log("Parent column");
 
