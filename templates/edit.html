@@ -393,8 +393,8 @@
             var rowObj = { id: i }
             for (var j = 0; j < headerLength; j++) {
                 //add to suggestValuesArray:
-                if(headers[j] == "Label"){
-                    addToSuggestions(rowData[i][headers[j]]);
+                if (headers[j] == "Label") {
+                    addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
                 }
                 rowObj[headers[j]] = rowData[i][headers[j]];
                 //replace & and =
@@ -506,15 +506,58 @@
         },
     ]
 
-    
-    //Build array for autocompleting "Parent" column: 
-    
+    //test custom editor from http://tabulator.info/docs/4.9/edit#edit
+    /*
+    var dateEditor = function (cell, onRendered, success, cancel, editorParams) {
+        //cell - the cell component for the editable cell
+        //onRendered - function to call when the editor has been rendered
+        //success - function to call to pass the successfuly updated value to Tabulator
+        //cancel - function to call to abort the edit and return to a normal cell
+        //editorParams - params object passed into the editorParams column definition property
 
-    function addToSuggestions(suggestion){
-        labelSuggestions.push(suggestion);
+        //create and style editor
+        var editor = document.createElement("input");
+
+        // editor.setAttribute("type", "date");
+        editor.setAttribute("editor", "autocomplete");
+        editor.setAttribute("editorParams", "{ values: suggestValuesArray, freetext: true, allowEmpty: true }");
+        //create and style input
+        editor.style.padding = "3px";
+        editor.style.width = "100%";
+        editor.style.boxSizing = "border-box";
+
+        //Set value of editor to the current value of the cell
+        editor.value = cell.getValue();
+        // editor.value = moment(cell.getValue(), "DD/MM/YYYY").format("YYYY-MM-DD")
+
+        //set focus on the select box when the editor is selected (timeout allows for editor to be added to DOM)
+        onRendered(function () {
+            editor.focus();
+            editor.style.css = "100%";
+        });
+
+        //when the value has been set, trigger the cell to update
+        function successFunc() {
+            success(editor.value + "again");
+            // success(moment(editor.value, "YYYY-MM-DD").format("DD/MM/YYYY"));
+        }
+
+        editor.addEventListener("change", successFunc);
+        editor.addEventListener("blur", successFunc);
+
+        //return the editor element
+        return editor;
+    };
+    */
+    //Build array for autocompleting "Parent" column: 
+
+
+    function addToSuggestions(suggestion) {
+        labelSuggestions.push(suggestion); //original backup
+        suggestValuesArray.push(suggestion); //to change
     }
     // console.log("labelSuggestions = " + labelSuggestions);
-    suggestValuesArray = labelSuggestions;
+    // suggestValuesArray = labelSuggestions;
 
     // var suggestValuesArray = [
     //     "test1", "test2", "test3"
@@ -539,7 +582,7 @@
     //         value:"jill",
     //     },
     // ];
-    
+
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
     //checkbox row selector on the side:
@@ -556,9 +599,61 @@
         else if (headers[i] == "To be reviewed by") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "Parent") {
+            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: dateEditor, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
             // "autocomplete" editor idea from http://tabulator.info/docs/4.9/edit#masking - this does not enable editing
             // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: "Label", freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+
+            /*columnData.push({
+                title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: {
+                    searchFunc: function (term, values) { //search for exact matches
+
+                        //from tabulator autocomplete example http://tabulator.info/docs/4.9/edit#edit                   
+                        var matches = [];
+                        //promise:
+                        // getMatches().done(function (result) { //not working
+                        //     matches = result;
+                        // });
+                        values.forEach(function (value) {
+                            //value - one of the values from the value property
+
+                            if (value == term) {
+                                matches.push("weeewaaaa");
+                                //same don't show
+                            } else {
+
+                                console.log("value is: " + value + ", term is: " + term);
+                                matches.push(value);
+                            }
+                        });
+
+                        return matches;
+                    },
+                    showListOnEmpty: false,
+                    searchingPlaceholder: "Filtering ...", //set the search placeholder
+                    emptyPlaceholder: "(no matching results found)", //set the empty list placeholder
+                    listItemFormatter: function (value, title) { //prefix all titles with the work "Mr"
+                        return "Mr " + title;
+                    },
+                    // listItemFormatter: function (value, title) { //prefix all titles with the work "Mr"
+
+                    // var thisRow = table.getRowFromPosition(rowValue);                    
+                    // var thisData = thisRow.getData();
+                    // console.log("thisData label is: " + thisData["Label"]);
+                    // if(thisData["Label"] === title){
+
+                    //     } else{
+                    //         return title;
+                    //     }
+
+                    // },
+                    values: suggestValuesArray,
+                    freetext: true,
+                    allowEmpty: true,
+                },
+                editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu
+            });
+*/
         }
         else {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
@@ -735,22 +830,50 @@
             var row = cell.getRow();
             rowValue = row.getPosition(true);
             var data = row.getData();
-            var column = cell.getColumn();
-            rowValue = row.getPosition(true);
-            // console.log("editing row: " + rowValue);
+            var column = cell.getColumn(); //todo: this is column object!
+
+            console.log("editing row: " + rowValue);
+            console.log("editing column: " + column.getDefinition().title.toLowerCase().replace(/\s+/g, ''));
             //save backup curation status if "Curation status" column present: 
+            //todo: this may be inaccurate, saving all sorts of things
             if (data[curation_status] === undefined) { //Curation status column not present in table
 
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     prevCurationStatus = cell.getValue();
-                    // console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+                    console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+                }
+            }
+            //change suggestion to remove this row:
+            var parent = "Parent";
+            if (data["Label"] === undefined) { //Label column not present in table
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
+                    console.log("Parent column");
+                    
+                    for (v in suggestValuesArray) {
+                        if (suggestValuesArray[v] === data["Label"]) {
+                            table.blockRedraw();
+                            // console.log("found match: " + suggestValuesArray[v]);
+                            suggestValuesArray.splice(v, 1); //remove for now
+                            // console.log("removing row: " + v + ", data: " + data["Label"]);
+                            // console.log(suggestValuesArray);
+                            column.getDefinition().editorParams.values = suggestValuesArray;
+                            table.restoreRedraw();
+                            table.redraw();
+                            suggestValuesArray = labelSuggestions.slice(); //restore original array
+                        }
+
+                    }
+                    
                 }
             }
         },
 
 
         cellEdited: function (cell) {
+            suggestValuesArray = labelSuggestions.slice(); //restore original suggestions array
             cell.getElement().style.color = "#003399"; //change text colour on edited
             var row = cell.getRow();
             var data = row.getData();
@@ -1718,14 +1841,14 @@
             if (initialSearchtype == "" || initialSearchtype == null) {
 
             } else if (initialSearchtype == "search") {
-            //filter by Label:
-            table.setHeaderFilterValue("Label", initialRowSearch);
+                //filter by Label:
+                table.setHeaderFilterValue("Label", initialRowSearch);
                 //todo: setHeaderFilterValue for "Assigned To Me"
             } else if (initialSearchtype == "initials") {
                 table.setHeaderFilterValue("To be reviewed by", initialRowSearch);
             } else {
 
-        }
+            }
         };
 
     });
@@ -2186,6 +2309,30 @@
         });
 
     }
+
+    //update matches
+    /*
+    function getMatches() {
+        var result = [];
+        var term = "test"; //should be current row "Label" cell value
+        suggestValuesArray.forEach(function (value) {
+            //value - one of the values from the value property
+
+            if (value == term) {
+                //same don't show
+            } else {
+
+                // console.log("value is: " + value + ", term is: " + term);
+                result.push(value);
+            }
+        });
+
+        return result;
+    }
+    */
+
+
+
 
     //todo: use below to update and check for new data: 
     window.onload = setupRefresh;
