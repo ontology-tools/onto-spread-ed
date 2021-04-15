@@ -654,8 +654,9 @@
                 editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu
             });
 */
-        }
-        else {
+        } else if (headers[i].includes("REL")) {
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        } else {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
     }
@@ -851,7 +852,7 @@
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
                     console.log("Parent column");
-                    
+
                     for (v in suggestValuesArray) {
                         if (suggestValuesArray[v] === data["Label"]) {
                             table.blockRedraw();
@@ -866,7 +867,27 @@
                         }
 
                     }
-                    
+
+                }
+
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').includes("rel")) {
+                    console.log("REL column");
+
+                    for (v in suggestValuesArray) {
+                        if (suggestValuesArray[v] === data["Label"]) {
+                            table.blockRedraw();
+                            // console.log("found match: " + suggestValuesArray[v]);
+                            suggestValuesArray.splice(v, 1); //remove for now
+                            // console.log("removing row: " + v + ", data: " + data["Label"]);
+                            // console.log(suggestValuesArray);
+                            column.getDefinition().editorParams.values = suggestValuesArray;
+                            table.restoreRedraw();
+                            table.redraw();
+                            suggestValuesArray = labelSuggestions.slice(); //restore original array
+                        }
+
+                    }
+
                 }
             }
         },
