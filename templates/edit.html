@@ -560,17 +560,10 @@
         autocompleteREL: function (cell, onRendered, success, cancel, editorParams) {
             var self = this,
                 cellEl = cell.getElement(),
-                //todo: only use the part of initialValue after a ";"
                 initialValue = cell.getValue(), //original version all cell
-                // allValues = cell.getValue().split(";").pop(), //not quite - cell contents replaced by this
-                // initialValue = allValues,
-                // initialValue.split(";").pop()
-                
-
-
                 vertNav = editorParams.verticalNavigation || "editor",
                 initialDisplayValue = typeof initialValue !== "undefined" || initialValue === null ? initialValue : (typeof editorParams.defaultValue !== "undefined" ? editorParams.defaultValue : ""),
-                input = document.createElement("input"),
+                input = document.createElement("textarea"), //todo: was input, changed to textarea - is it really this easy?
                 listEl = document.createElement("div"),
                 allItems = [],
                 displayItems = [],
@@ -583,10 +576,17 @@
             input.setAttribute("type", "search");
             input.style.padding = "4px";
             input.style.width = "100%";
+            input.style.height = "100%";
+
+
             input.style.boxSizing = "border-box";
+            input.style.whiteSpace = "pre-wrap";
+            input.style.resize = "none";
+
 
             //todo: does this styling work for cell? Nope
             // cellEl.setAttribute("formatter", "textarea"); doesn't work!
+
 
             if (editorParams.elementAttributes && typeof editorParams.elementAttributes == "object") {
                 for (let key in editorParams.elementAttributes) {
@@ -827,25 +827,15 @@
                 hideList();
 
                 if (currentItem) {
-                    if (initialValue.split(";").pop() !== currentItem.value) { //todo: should be this, right?
-                        // if (initialValue !== currentItem.value) { //original
-                        // initialValue = currentItem.value.split(";").pop();
+                    if (initialValue.split(";").pop() !== currentItem.value) {
                         initialValue = currentItem.value; //original
-                        // input.value = currentItem.title.split(";").pop(); //original
-                        // input.value = currentItem.title; //original
-                        // input.value = "hello";
-                        // input.value = initialValue.split(";").pop() + currentItem.title; //todo: add initial value up to ; to currentItem.title
                         splitIndex = input.value.lastIndexOf(";");
                         if (input.value.substring(0, splitIndex).trim() === "") { //first value
                             result = initialValue + ";";
                         } else { // all other values 
                             result = input.value.substring(0, splitIndex) + "; " + initialValue + ";";
                         }
-                        // result = input.value.split(";").pop() + "; " + initialValue; //not pop!
-                        // result = initialValue.split(";").pop() + currentItem.value;
                         success(result); // value goes here!
-                        // success("hello"); //yes! value goes here!
-                        // success(currentItem.value);///original
                     } else {
                         cancel();
                     }
@@ -1018,6 +1008,9 @@
             onRendered(function () {
                 input.style.height = "100%";
                 input.focus({ preventScroll: true });
+                input.scrollHeight;
+                input.style.height = input.scrollHeight + "px";
+                cell.getRow().normalizeHeight();
             });
 
             if (editorParams.mask) {
@@ -1043,32 +1036,7 @@
         labelSuggestions.push(suggestion); //original backup
         suggestValuesArray.push(suggestion); //to change
     }
-    // console.log("labelSuggestions = " + labelSuggestions);
-    // suggestValuesArray = labelSuggestions;
 
-    // var suggestValuesArray = [
-    //     "test1", "test2", "test3"
-    // ];
-
-    //from tabulator example:
-    // var testValuesArray = [
-    //     {
-    //         label:"Steve Boberson",
-    //         value:"steve",
-    //     },
-    //     {
-    //         label:"Bob Jimmerson",
-    //         value:"bob",
-    //     },
-    //     {
-    //         label:"Jenny Jillerson",
-    //         value:"jenny",
-    //     },
-    //     {
-    //         label:"Jill Betterson",
-    //         value:"jill",
-    //     },
-    // ];
 
     //Build the column data from the Jinja template object "header"
     var columnData = []; //Start with an empty array
@@ -1086,63 +1054,10 @@
         else if (headers[i] == "To be reviewed by") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "Parent") {
-            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: dateEditor, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-            // "autocomplete" editor idea from http://tabulator.info/docs/4.9/edit#masking - this does not enable editing
-            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: "Label", freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu }); //todo: formatter: "textarea" not
-
-            /*columnData.push({
-                title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: {
-                    searchFunc: function (term, values) { //search for exact matches
-
-                        //from tabulator autocomplete example http://tabulator.info/docs/4.9/edit#edit                   
-                        var matches = [];
-                        //promise:
-                        // getMatches().done(function (result) { //not working
-                        //     matches = result;
-                        // });
-                        values.forEach(function (value) {
-                            //value - one of the values from the value property
-
-                            if (value == term) {
-                                matches.push("weeewaaaa");
-                                //same don't show
-                            } else {
-
-                                console.log("value is: " + value + ", term is: " + term);
-                                matches.push(value);
-                            }
-                        });
-
-                        return matches;
-                    },
-                    showListOnEmpty: false,
-                    searchingPlaceholder: "Filtering ...", //set the search placeholder
-                    emptyPlaceholder: "(no matching results found)", //set the empty list placeholder
-                    listItemFormatter: function (value, title) { //prefix all titles with the work "Mr"
-                        return "Mr " + title;
-                    },
-                    // listItemFormatter: function (value, title) { //prefix all titles with the work "Mr"
-
-                    // var thisRow = table.getRowFromPosition(rowValue);                    
-                    // var thisData = thisRow.getData();
-                    // console.log("thisData label is: " + thisData["Label"]);
-                    // if(thisData["Label"] === title){
-
-                    //     } else{
-                    //         return title;
-                    //     }
-
-                    // },
-                    values: suggestValuesArray,
-                    freetext: true,
-                    allowEmpty: true,
-                },
-                editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu
-            });
-*/
+            //todo: formatter: "textarea" not working:
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i].includes("REL")) {
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         }
@@ -1336,7 +1251,6 @@
             var parent = "Parent";
             if (data["Label"] !== undefined || data["Name"] !== undefined) { //if we have a "Label" or "Name" column
 
-                // } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
                     console.log("Parent column");
 
@@ -1352,11 +1266,8 @@
                             table.redraw();
                             suggestValuesArray = labelSuggestions.slice(); //restore original array
                         }
-
                     }
-
                 }
-
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').includes("rel")) {
                     console.log("REL column");
 
@@ -1372,9 +1283,7 @@
                             table.redraw();
                             suggestValuesArray = labelSuggestions.slice(); //restore original array
                         }
-
                     }
-
                 }
             }
         },
