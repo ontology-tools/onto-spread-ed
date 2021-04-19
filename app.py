@@ -308,6 +308,12 @@ class OntologyDataStore:
                                                            color=rcolour,
                                                            label=rel_name)
 
+    def getReleaseLabels(self, repo):
+        all_labels = []
+        for classIri in self.releases[repo].get_classes():
+            all_labels.append(self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']))
+        return( all_labels )
+
     def parseSheetData(self, repo, data):
         for entry in data:
             if 'ID' in entry and \
@@ -709,8 +715,10 @@ def edit(repo_key, folder, spreadsheet):
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
-    #test suggestions data:
-    suggestions = ["apple", "banana", "cherry"]
+    #Build suggestions data:
+    if repo not in ontodb.releases:
+        ontodb.parseRelease(repo_key)
+    suggestions = ontodb.getReleaseLabels(repo_key)
 
     return render_template('edit.html',
                             login=g.user.github_login,
