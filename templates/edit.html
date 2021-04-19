@@ -318,7 +318,7 @@
                 }
             }
 
-           
+
             if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
@@ -482,7 +482,7 @@
         },
     ]
 
-    
+
     //Build array for autocompleting "Parent" column: 
 
     //extend Tabulator with new Autocomplete module: 
@@ -761,7 +761,7 @@
                             result = initialValue; // + ";"; //changed to no ";" at end
                         } else { // all other values 
                             result = input.value.substring(0, splitIndex) + "; " + initialValue; // + ";"; //changed to no ";" at end
-                        } 
+                        }
                         success(result); // value goes here!
                     } else {
                         cancel();
@@ -1262,7 +1262,18 @@
                 }
                 */
             }
+            //update suggestions:
+            var labelLabel = "Label"
+            if (data["Label"] === undefined) { //no label column
 
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(labelLabel.toLowerCase()) !== -1) {
+                    if (cell.getValue() !== "") {
+                        addToSuggestions(cell.getValue());
+                        console.log("adding " + cell.getValue() + " to suggestions");
+                    }
+                }
+            }
             //update highlighting:
             if (data[curation_status] === undefined) {
 
