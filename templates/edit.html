@@ -318,50 +318,7 @@
                 }
             }
 
-            /*
-            //bootbox dialog - runs callback functions asynchronously, so not waiting for confirmation 
-            //before loading the table. This is bad. todo: how to make bootbox dialog wait?
-            
-                        var dialog = bootbox.dialog({
-                            title: "You have previously unsaved changes \n Press 'Yes' to keep them. \n",
-                            message: changedMessage,
-                            buttons: {
-                                confirm: {
-                                    label: 'Yes',
-                                    className: 'btn-success',
-                                    callback: function () {
-                                        console.log('Custom confirm clicked');
-                                        //unsavedChanges code here, plus save at end
-                                        console.log("confirmed");
-                                        //new method: restoring entire array:
-                                        var newRowLength = previousTableData.length / headerLength;
-                                        console.log(newRowLength);
-                                        tableData = JSON.parse(previousTableData); //nope, its a string. Convert to array
-                                        alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
-                                        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
-                                        $('#save-btn').show();
-                                        //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
-                                    }
-                                },
-                                cancel: {
-                                    label: 'No',
-                                    className: 'btn-danger',
-                                    callback: function () {
-                                        console.log('Custom cancel clicked');
-                                        //discard changes
-                                        for (var i = 0; i < rowLength; i++) {
-                                            var rowObj = { id: i }
-                                            for (var j = 0; j < headerLength; j++) {
-                                                rowObj[headers[j]] = rowData[i][headers[j]];
-                                            }
-                                            tableData.push(rowObj);
-                                        }
-                                        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
-                                    }
-                                }
-                            }
-                        });
-            */
+           
             if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
                 console.log("confirmed");
@@ -525,49 +482,7 @@
         },
     ]
 
-    //test custom editor from http://tabulator.info/docs/4.9/edit#edit
-    /*
-    var dateEditor = function (cell, onRendered, success, cancel, editorParams) {
-        //cell - the cell component for the editable cell
-        //onRendered - function to call when the editor has been rendered
-        //success - function to call to pass the successfuly updated value to Tabulator
-        //cancel - function to call to abort the edit and return to a normal cell
-        //editorParams - params object passed into the editorParams column definition property
-
-        //create and style editor
-        var editor = document.createElement("input");
-
-        // editor.setAttribute("type", "date");
-        editor.setAttribute("editor", "autocomplete");
-        editor.setAttribute("editorParams", "{ values: suggestValuesArray, freetext: true, allowEmpty: true }");
-        //create and style input
-        editor.style.padding = "3px";
-        editor.style.width = "100%";
-        editor.style.boxSizing = "border-box";
-
-        //Set value of editor to the current value of the cell
-        editor.value = cell.getValue();
-        // editor.value = moment(cell.getValue(), "DD/MM/YYYY").format("YYYY-MM-DD")
-
-        //set focus on the select box when the editor is selected (timeout allows for editor to be added to DOM)
-        onRendered(function () {
-            editor.focus();
-            editor.style.css = "100%";
-        });
-
-        //when the value has been set, trigger the cell to update
-        function successFunc() {
-            success(editor.value + "again");
-            // success(moment(editor.value, "YYYY-MM-DD").format("DD/MM/YYYY"));
-        }
-
-        editor.addEventListener("change", successFunc);
-        editor.addEventListener("blur", successFunc);
-
-        //return the editor element
-        return editor;
-    };
-    */
+    
     //Build array for autocompleting "Parent" column: 
 
     //extend Tabulator with new Autocomplete module: 
@@ -579,7 +494,7 @@
                 initialValue = cell.getValue(), //original version all cell
                 vertNav = editorParams.verticalNavigation || "editor",
                 initialDisplayValue = typeof initialValue !== "undefined" || initialValue === null ? initialValue : (typeof editorParams.defaultValue !== "undefined" ? editorParams.defaultValue : ""),
-                input = document.createElement("textarea"), //todo: was input, changed to textarea - is it really this easy?
+                input = document.createElement("textarea"), //was input, changed to textarea - is it really this easy?
                 listEl = document.createElement("div"),
                 allItems = [],
                 displayItems = [],
@@ -598,10 +513,6 @@
             input.style.boxSizing = "border-box";
             input.style.whiteSpace = "pre-wrap";
             input.style.resize = "none";
-
-
-            //todo: does this styling work for cell? Nope
-            // cellEl.setAttribute("formatter", "textarea"); doesn't work!
 
 
             if (editorParams.elementAttributes && typeof editorParams.elementAttributes == "object") {
@@ -847,10 +758,10 @@
                         initialValue = currentItem.value; //original
                         splitIndex = input.value.lastIndexOf(";");
                         if (input.value.substring(0, splitIndex).trim() === "") { //first value
-                            result = initialValue + ";";
+                            result = initialValue; // + ";"; //changed to no ";" at end
                         } else { // all other values 
-                            result = input.value.substring(0, splitIndex) + "; " + initialValue + ";";
-                        }
+                            result = input.value.substring(0, splitIndex) + "; " + initialValue; // + ";"; //changed to no ";" at end
+                        } 
                         success(result); // value goes here!
                     } else {
                         cancel();
