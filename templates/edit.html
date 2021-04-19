@@ -367,10 +367,23 @@
                 console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //todo: this doesn't take into account changes made on the server!
                 //todo: below needs to block, but we want a bootbox style which is asynchronous?
-                alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost!");
+                alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost! \n Some functionality is disabled until you save");
                 window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
                 $('#save-btn').show();
                 //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
+                //generate suggestions - todo: this is based on server version of table for now - data could be incorrect
+                for (var i = 0; i < rowLength; i++) {
+                    var rowObj = { id: i }
+                    for (var j = 0; j < headerLength; j++) {
+                        //add to suggestValuesArray:
+                        if (headers[j] == "Label") {
+                            addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
+                        }
+                        if (headers[j] == "Name") {
+                            addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
+                        }
+                    }
+                }
             } else {
                 //discard changes 
                 populateTable();
@@ -1467,7 +1480,7 @@
                             cellValue = 1;
                             rowValue = row.getPosition();//save absolute row position
                             columnValue = fuzzy_Set; //column name
-                            updateChanges(rowValue, columnValue);
+                            updateChanges(cellValue, rowValue, columnValue);
                             /*
                             var alreadyChanged = false;
                             //check for previously edited cell, and overwrite if already changed before
@@ -1883,7 +1896,7 @@
                     //set to obsolete and show a message here
                     data[curation_status] = "Obsolete";
                     //save change:
-                    cellValue =  data[curation_status];
+                    cellValue = data[curation_status];
                     var rowValue = row.getPosition();//save absolute row position
                     var columnValue = "Curation status"; //column name
                     updateChanges(cellValue, rowValue, columnValue);
@@ -2325,8 +2338,8 @@
             //save curator column to local storage for backup here
             //{value, row, columnName}
             //data[curator], row.getPosition(), "Curator"
-            if (data[curator] !== "" && data[curator] !== null) {   
-                cellValue = data[curator];             
+            if (data[curator] !== "" && data[curator] !== null) {
+                cellValue = data[curator];
                 rowValue = row.getPosition();//save absolute row position
                 columnValue = "Curator"; //column name
                 updateChanges(cellValue, rowValue, columnValue); //todo: refactored updateChanges, does it work?
@@ -2348,7 +2361,7 @@
                     changes.push(columnValue);
                 }
             */
-            }            
+            }
         }
 
     }
@@ -2372,27 +2385,27 @@
         table.clearFilter(true); //clear header filters       
     }
 
-    function updateChanges(cellValue, rowValue, columnValue){
-            //{value, row, columnName}            
-                // rowValue = row.getPosition();//save absolute row position
-                // columnValue = cell.getField(); //column name
-                var alreadyChanged = false;
-                //check for previously edited cell, and overwrite if already changed before
-                for (var i = 0; i < changes.length; i++) {
-                    if (rowValue == changes[i]) { //matches row number
-                        if (columnValue == changes[i + 1]) { //matches column name as well
-                            console.log("already edited this field");
-                            changes.splice(i - 1, 3, cellValue, rowValue, columnValue);
-                            alreadyChanged = true;
-                        }
-                    }
+    function updateChanges(cellValue, rowValue, columnValue) {
+        //{value, row, columnName}            
+        // rowValue = row.getPosition();//save absolute row position
+        // columnValue = cell.getField(); //column name
+        var alreadyChanged = false;
+        //check for previously edited cell, and overwrite if already changed before
+        for (var i = 0; i < changes.length; i++) {
+            if (rowValue == changes[i]) { //matches row number
+                if (columnValue == changes[i + 1]) { //matches column name as well
+                    console.log("already edited this field");
+                    changes.splice(i - 1, 3, cellValue, rowValue, columnValue);
+                    alreadyChanged = true;
                 }
-                if (!alreadyChanged) {
-                    changes.push(cellValue);
-                    changes.push(rowValue);
-                    changes.push(columnValue);
-                }
-            
+            }
+        }
+        if (!alreadyChanged) {
+            changes.push(cellValue);
+            changes.push(rowValue);
+            changes.push(columnValue);
+        }
+
     }
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
