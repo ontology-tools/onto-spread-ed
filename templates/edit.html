@@ -1790,6 +1790,37 @@
                 validateErrorMessages = newValidateErrorMessages; //replace
             }
 
+            //remove suggestion "Label" for this row:
+            var data = row.getData();
+            if (data["Label"] !== undefined) { //if we have a "Label" column
+                for (v in labelSuggestions) {
+                    if (labelSuggestions[v] === data["Label"]) {
+                        table.blockRedraw();
+                        // console.log("found match: " + labelSuggestions[v]);
+                        labelSuggestions.splice(v, 1); //remove for now
+                        // console.log("removing row: " + v + ", data: " + data["Label"]);
+                        // console.log(labelSuggestions);
+                        table.restoreRedraw();
+                        table.redraw();
+                        suggestValuesArray = labelSuggestions.slice(); //update current suggestions
+                    }
+                }
+            }
+            if (data["Name"] !== undefined) { //if we have a "Name" column
+                for (v in labelSuggestions) {
+                    if (labelSuggestions[v] === data["Name"]) {
+                        table.blockRedraw();
+                        // console.log("found match: " + labelSuggestions[v]);
+                        labelSuggestions.splice(v, 1); //remove for now
+                        // console.log("removing row: " + v + ", data: " + data["Label"]);
+                        // console.log(labelSuggestions);
+                        table.restoreRedraw();
+                        table.redraw();
+                        suggestValuesArray = labelSuggestions.slice(); //update current suggestions
+                    }
+                }
+            }
+
         },
 
         // rowUpdated:function(row){
