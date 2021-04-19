@@ -709,6 +709,8 @@ def edit(repo_key, folder, spreadsheet):
     else:
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
+    #test suggestions data:
+    suggestions = ["apple", "banana", "cherry"]
 
     return render_template('edit.html',
                             login=g.user.github_login,
@@ -721,7 +723,8 @@ def edit(repo_key, folder, spreadsheet):
                             rows=json.dumps(rows),
                             file_sha = file_sha,
                             go_to_row = go_to_row,
-                            type = type
+                            type = type, 
+                            suggestions = json.dumps(suggestions)
                             )
 
 

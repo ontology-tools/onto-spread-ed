@@ -151,8 +151,11 @@
 
 
     //for suggestions (autocomplete):
-    var labelSuggestions = [];
-    var suggestValuesArray = [];
+    //get suggestions from server: 
+    var labelSuggestions = {{ suggestions | safe }};
+    var suggestValuesArray = {{ suggestions | safe }};
+    // var labelSuggestions = [];
+    // var suggestValuesArray = [];
 
     var initialRowSearch = "";
     var initialSearchtype = "";
@@ -377,10 +380,10 @@
                     for (var j = 0; j < headerLength; j++) {
                         //add to suggestValuesArray:
                         if (headers[j] == "Label") {
-                            addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
+                            addToSuggestions(rowData[i][headers[j]]);
                         }
                         if (headers[j] == "Name") {
-                            addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
+                            addToSuggestions(rowData[i][headers[j]]);
                         }
                     }
                 }
@@ -1046,8 +1049,18 @@
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     function addToSuggestions(suggestion) {
-        labelSuggestions.push(suggestion); //original backup
-        suggestValuesArray.push(suggestion); //to change
+        // labelSuggestions.push(suggestion); //original backup
+        // suggestValuesArray.push(suggestion); //to change
+        var checkDuplicate = false;
+        for (v in labelSuggestions) {
+            if (labelSuggestions[v] === suggestion) {
+                checkDuplicate = true;
+            }
+        }
+        if (!checkDuplicate) {
+            labelSuggestions.push(suggestion);
+        }
+        suggestValuesArray = labelSuggestions.slice(); //update current suggestions
     }
 
 
