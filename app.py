@@ -795,14 +795,6 @@ def save():
         for r in range(len(row_data_parsed)):
             row = [v for v in row_data_parsed[r].values()]
             del row[0] # Tabulator-added ID column
-
-            # Generate identifiers: 
-            if 'Label' and 'Parent' and 'Definition' in first_row: #make sure we have the right sheet
-                if not row[header.index("ID")]: #blank
-                    if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank?
-                        print("MISSING ID ROW: ", row) # todo: test should be whole row here - need to narrow it down
-                        #generate ID here: 
-
             for c in range(len(header)):
                 sheet.cell(row=r+2, column=c+1).value=row[c]
                 # Set row background colours according to 'Curation status'
@@ -825,6 +817,42 @@ def save():
                     elif row[header.index("Curation status")]=="Obsolete":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="2f4f4f", fill_type = "solid")
 
+            # Generate identifiers:             
+            if not row[header.index("ID")]: #blank
+                if 'Label' and 'Parent' and 'Definition' in first_row: #make sure we have the right sheet
+                    if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank?
+                        print("MISSING ID ROW: ", row) # todo: test should be whole row here - need to narrow it down
+                        #generate ID here: 
+                        new_id = "NEW_ID_NEW_NEW" + str(r)
+                        for c in range(len(header)):
+                            if c==0:
+                                sheet.cell(row=r+2, column=c+1).value=new_id
+                            #todo: do we need below, it is done already, no?
+                            else:
+                                sheet.cell(row=r+2, column=c+1).value=row[c]
+                            # Set row background colours according to 'Curation status'
+                            # These should be kept in sync with those used in edit screen
+                            # TODO add to config
+                            # What if "Curation status" not present?
+                            if 'Curation status' in first_row:
+                                if row[header.index("Curation status")]=="Discussed":
+                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type = "solid")
+                                elif row[header.index("Curation status")]=="Ready": #this is depreciated
+                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
+                                elif row[header.index("Curation status")]=="Proposed":
+                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffffff", fill_type = "solid")
+                                elif row[header.index("Curation status")]=="To Be Discussed":
+                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
+                                elif row[header.index("Curation status")]=="In Discussion":
+                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")                                
+                                elif row[header.index("Curation status")]=="Published":
+                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type = "solid")
+                                elif row[header.index("Curation status")]=="Obsolete":
+                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="2f4f4f", fill_type = "solid")
+
+            
+
+                
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
