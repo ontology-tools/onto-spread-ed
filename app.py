@@ -783,6 +783,7 @@ def save():
         else:
             print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
 
+        
         print("Got file_sha",file_sha)
 
         wb = openpyxl.Workbook()
@@ -794,6 +795,14 @@ def save():
         for r in range(len(row_data_parsed)):
             row = [v for v in row_data_parsed[r].values()]
             del row[0] # Tabulator-added ID column
+
+            # Generate identifiers: 
+            if 'Label' and 'Parent' and 'Definition' in first_row: #make sure we have the right sheet
+                if not row[header.index("ID")]: #blank
+                    if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank?
+                        print("MISSING ID ROW: ", row) # todo: test should be whole row here - need to narrow it down
+                        #generate ID here: 
+
             for c in range(len(header)):
                 sheet.cell(row=r+2, column=c+1).value=row[c]
                 # Set row background colours according to 'Curation status'
