@@ -719,6 +719,7 @@ def edit(repo_key, folder, spreadsheet):
     if repo not in ontodb.releases:
         ontodb.parseRelease(repo_key)
     suggestions = ontodb.getReleaseLabels(repo_key)
+    suggestions = list(dict.fromkeys(suggestions))
 
     return render_template('edit.html',
                             login=g.user.github_login,

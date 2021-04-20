@@ -351,8 +351,20 @@
             }
 
         } else {
-            //no saved changes
+            //no saved change
+
             populateTable();
+            //check for duplicates: 
+            const yourArrayWithoutDuplicates = [...new Set(labelSuggestions)]
+            let duplicates = [...labelSuggestions]
+            yourArrayWithoutDuplicates.forEach((item) => {
+                const i = duplicates.indexOf(item)
+                duplicates = duplicates
+                    .slice(0, i)
+                    .concat(duplicates.slice(i + 1, duplicates.length))
+            })
+
+            console.log("duplicates: " + duplicates) //[ 1, 5 ]
         }
     } catch (err) {
         // alert("an error occurred, unable to restore unsaved changes\n" + err);
@@ -969,7 +981,7 @@
             }
         }
         if (!checkDuplicate) {
-            labelSuggestions.push(suggestion);
+            labelSuggestions.push(suggestion); 
         }
         suggestValuesArray = labelSuggestions.slice(); //update current suggestions
     }
