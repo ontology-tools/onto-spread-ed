@@ -2580,6 +2580,10 @@
                                             $("tr.add").css('background-color', '#7CFC00'); //green
                                             $("td.modify").css('background-color', '#00FF00'); //lighter green
                                             $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
+                                        } else if(request.status === 360){
+                                            alert("Save successful - New ID's were generated, your page will now refresh")
+                                            unsavedChanges = false; //todo: make absolutely sure that this should be here!
+                                            location.reload(true);
                                         } else {
                                             saveIndicator.modal('hide'); // hide save indicator if no response
                                             var response = JSON.parse(request.responseText);

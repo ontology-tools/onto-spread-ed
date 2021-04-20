@@ -757,7 +757,7 @@ def save():
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
-
+    restart = False # for refreshing the sheet (new ID's)
     try:
         initial_data_parsed = json.loads(initial_data)
         row_data_parsed = json.loads(row_data)
@@ -825,10 +825,11 @@ def save():
                         #generate ID here: 
                         nextIdStr = str(searcher.getNextId(repo_key))
                         id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
-                        # new_id = "NEW_NEW_NEW " + id #test
-                        new_id = id
+                        new_id = "NEW_NEW_NEW " + id #test
+                        # new_id = id
                         for c in range(len(header)):
                             if c==0:
+                                restart = True
                                 sheet.cell(row=r+2, column=c+1).value=new_id
                             #todo: do we need below, it is done already, no?
                             else:
@@ -959,9 +960,12 @@ def save():
                 f"Unable to get the newly updated SHA value for {spreadsheet} in {repo_detail}/{folder}"
                 )
         new_file_sha = response['sha']
-
-        return ( json.dumps({"message":"Success",
-                             "file_sha": new_file_sha}), 200 )
+        if restart: #todo: does this need to be anywhere else also?
+            return ( json.dumps({"message":"Success",
+                                "file_sha": new_file_sha}), 360 )
+        else:
+            return ( json.dumps({"message":"Success",
+                                "file_sha": new_file_sha}), 200 )
 
     except Exception as err:
         print(err)
