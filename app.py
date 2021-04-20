@@ -821,9 +821,12 @@ def save():
             if not row[header.index("ID")]: #blank
                 if 'Label' and 'Parent' and 'Definition' in first_row: #make sure we have the right sheet
                     if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank?
-                        print("MISSING ID ROW: ", row) # todo: test should be whole row here - need to narrow it down
+                        print("MISSING ID ROW: ", row) 
                         #generate ID here: 
-                        new_id = "NEW_ID_NEW_NEW" + str(r)
+                        nextIdStr = str(searcher.getNextId(repo_key))
+                        id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
+                        # new_id = "NEW_NEW_NEW " + id #test
+                        new_id = id
                         for c in range(len(header)):
                             if c==0:
                                 sheet.cell(row=r+2, column=c+1).value=new_id
