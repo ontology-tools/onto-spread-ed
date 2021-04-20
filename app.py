@@ -309,9 +309,9 @@ class OntologyDataStore:
                                                            label=rel_name)
 
     def getReleaseLabels(self, repo):
-        all_labels = []
+        all_labels = set()
         for classIri in self.releases[repo].get_classes():
-            all_labels.append(self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']))
+            all_labels.add(self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']))
         return( all_labels )
 
     def parseSheetData(self, repo, data):
