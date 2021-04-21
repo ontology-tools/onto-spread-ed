@@ -2583,7 +2583,7 @@
                                             $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
                                         } else if(request.status === 360){ //same as 200 only with restart to show new ID's
                                             window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-                                            bootbox.alert("Save successful - new ID's were generated.\nThe page will now refresh to load new data.");
+                                            bootbox.alert("Save successful - new ID's were generated.<br>The page will now refresh to load new data.");
                                             tableEdited = false; //stops page from warning about unsaved changes
                                             // table.reload();
                                             location.reload(true);
