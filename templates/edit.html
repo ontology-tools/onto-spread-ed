@@ -1004,7 +1004,9 @@
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "Parent") {
             //todo: formatter: "textarea" not working:
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+
+            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i].includes("REL")) {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else {
@@ -1202,7 +1204,8 @@
 
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
                     console.log("Parent column");
-
+                    //todo: big error after this with AddictO_Not_yet_classified_Defs.xlsx
+                    //unable to edit "Parent" column. Fix!!
                     for (v in suggestValuesArray) {
                         if (suggestValuesArray[v] === data["Label"]) {
                             table.blockRedraw();
