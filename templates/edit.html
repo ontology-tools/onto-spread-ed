@@ -2506,7 +2506,7 @@
                                             $("#validation-btns").hide(); //if there were validation errors being dealt with, hide these
 
                                             //clear validation cell colours: 
-                                            if (validateErrorMessages.lenth > 0) {
+                                            if (validateErrorMessages.length > 0) {
                                                 for (var i = 0; i < validateErrorMessages.length; i += 2) {
                                                     cellToClear = validateErrorMessages[i];
                                                     cellToClear.getElement().style.backgroundColor = null; //remove style backgroundColor
@@ -2580,9 +2580,10 @@
                                             $("tr.add").css('background-color', '#7CFC00'); //green
                                             $("td.modify").css('background-color', '#00FF00'); //lighter green
                                             $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
-                                        } else if(request.status === 360){
-                                            alert("Save successful - New ID's were generated, your page will now refresh")
-                                            unsavedChanges = false; //todo: make absolutely sure that this should be here!
+                                        } else if(request.status === 360){ //same as 200 only with restart
+                                            window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                            alert("Save successful - new ID's were generated.\nPlease allow page refresh to load new data.");
+                                            // table.reload();
                                             location.reload(true);
                                         } else {
                                             saveIndicator.modal('hide'); // hide save indicator if no response
