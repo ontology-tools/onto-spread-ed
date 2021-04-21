@@ -322,11 +322,12 @@ class OntologyDataStore:
                     'Parent' in entry and \
                     len(entry['ID'])>0:
                 entryId = entry['ID'].replace(":", "_")
-                self.label_to_id[entry['Label'].strip()] = entryId
+                entryLabel = entry['Label'].strip()
+                self.label_to_id[entryLabel] = entryId
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
                     self.graphs[repo].add_node(entryId,
-                                               label=entry['Label'].strip().replace(" ", "\n"),
+                                               label=entryLabel.replace(" ", "\n"),
                                                **OntologyDataStore.node_props)
         for entry in data:
             if 'ID' in entry and \
@@ -334,13 +335,13 @@ class OntologyDataStore:
                     'Definition' in entry and \
                     'Parent' in entry and \
                     len(entry['ID'])>0:
-                if entry['Parent'].strip() in self.label_to_id:  # Subclass relations
+                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                if entryParent in self.label_to_id:  # Subclass relations
                     # Subclass relations must be reversed for layout
-                    self.graphs[repo].add_edge(self.label_to_id[entry['Parent'].strip()],
+                    self.graphs[repo].add_edge(self.label_to_id[entryParent],
                                                entry['ID'].replace(":", "_"), dir="back")
                 for header in entry.keys():  # Other relations
-                    if entry[header] and str(entry[header]).strip() and "REL" in header \
-                        and str(entry[header]).strip() in self.label_to_id:
+                    if entry[header] and str(entry[header]).strip() and "REL" in header:
                         # Get the rel name
                         rel_names = re.findall(r"'([^']+)'", header)
                         if len(rel_names) > 0:
@@ -349,10 +350,14 @@ class OntologyDataStore:
                                 rcolour = OntologyDataStore.rel_cols[rel_name]
                             else:
                                 rcolour = "orange"
-                            self.graphs[repo].add_edge(entry['ID'].replace(":", "_"),
-                                                       self.label_to_id[entry[header].strip()],
-                                                       color=rcolour,
-                                                       label=rel_name)
+
+                            relValues = entry[header].split(";")
+                            for relValue in relValues:
+                                if relValue.strip() in self.label_to_id:
+                                    self.graphs[repo].add_edge(entry['ID'].replace(":", "_"),
+                                                               self.label_to_id[relValue.strip()],
+                                                               color=rcolour,
+                                                               label=rel_name)
 
     def getDotForSheetGraph(self, repo, data):
         # Get a list of IDs from the sheet graph
@@ -360,8 +365,11 @@ class OntologyDataStore:
         for entry in data:
             if 'ID' in entry and len(entry['ID'])>0:
                 ids.append(entry['ID'].replace(":","_"))
-            if 'Parent' in entry and entry['Parent'].strip() in self.label_to_id:
-                ids.append(self.label_to_id[entry['Parent'].strip()])
+
+            if 'Parent' in entry:
+                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                if entryParent in self.label_to_id:
+                    ids.append(self.label_to_id[entryParent])
 
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -394,8 +402,10 @@ class OntologyDataStore:
             if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
                 if 'ID' in entry and len(entry['ID']) > 0:
                     ids.append(entry['ID'].replace(":", "_"))
-                if 'Parent' in entry and entry['Parent'].strip() in self.label_to_id:
-                    ids.append(self.label_to_id[entry['Parent'].strip()])
+                if 'Parent' in entry:
+                    entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                    if entryParent in self.label_to_id:
+                        ids.append(self.label_to_id[entryParent])
                 entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
                 if entryIri:
                     descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
