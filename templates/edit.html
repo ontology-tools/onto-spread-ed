@@ -379,10 +379,10 @@
             for (var j = 0; j < headerLength; j++) {
                 //add to suggestValuesArray:
                 if (headers[j] == "Label") {
-                    addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
+                        addToSuggestions(rowData[i][headers[j]]);                     
                 }
                 if (headers[j] == "Name") {
-                    addToSuggestions(rowData[i][headers[j]]); //todo: this doesn't run when savedChanges are accepted!
+                    addToSuggestions(rowData[i][headers[j]]); 
                 }
                 rowObj[headers[j]] = rowData[i][headers[j]];
                 //replace & and =
@@ -977,16 +977,18 @@
     function addToSuggestions(suggestion) {
         // labelSuggestions.push(suggestion); //original backup
         // suggestValuesArray.push(suggestion); //to change
-        var checkDuplicate = false;
-        for (v in labelSuggestions) {
-            if (labelSuggestions[v] === suggestion) {
-                checkDuplicate = true;
+        if(suggestion !== null){        
+            var checkDuplicate = false;
+            for (v in labelSuggestions) {
+                if (labelSuggestions[v] === suggestion) {
+                    checkDuplicate = true;
+                }
             }
-        }
-        if (!checkDuplicate) {
-            labelSuggestions.push(suggestion); 
-        }
-        suggestValuesArray = labelSuggestions.slice(); //update current suggestions
+            if (!checkDuplicate) {
+                labelSuggestions.push(suggestion); 
+            }
+            suggestValuesArray = labelSuggestions.slice(); //update current suggestions
+        }        
     }
 
 
@@ -1008,9 +1010,9 @@
         } else if (headers[i] == "Parent") {
             //todo: formatter: "textarea" not working:
             // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
 
-            //  columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i].includes("REL")) {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else {
