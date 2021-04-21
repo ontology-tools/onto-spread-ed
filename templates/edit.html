@@ -2528,7 +2528,8 @@
                                             //todo: should we re-load spreadsheet like this on every successful save? 
                                             if (overwrite == 'true') { //true for merge, where there is different data to load in. 
                                                 //re-load here to get updated data - need alert not bootbox (for blocking):
-                                                alert("Changes were saved successfully to the repository. Re-loading data now");
+                                                bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
+                                                tableEdited = false; //stops page from warning about unsaved changes
                                                 location.reload(true); //todo: can tabulator just update without re-loading the page? 
                                             }
                                             //todo: handle more error codes here and do merge in correct circumstance
@@ -2580,9 +2581,10 @@
                                             $("tr.add").css('background-color', '#7CFC00'); //green
                                             $("td.modify").css('background-color', '#00FF00'); //lighter green
                                             $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
-                                        } else if(request.status === 360){ //same as 200 only with restart
+                                        } else if(request.status === 360){ //same as 200 only with restart to show new ID's
                                             window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-                                            alert("Save successful - new ID's were generated.\nPlease allow page refresh to load new data.");
+                                            bootbox.alert("Save successful - new ID's were generated.\nThe page will now refresh to load new data.");
+                                            tableEdited = false; //stops page from warning about unsaved changes
                                             // table.reload();
                                             location.reload(true);
                                         } else {
