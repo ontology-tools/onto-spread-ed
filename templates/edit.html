@@ -669,7 +669,9 @@
 
                 if (Array.isArray(inputValues)) {
                     inputValues.forEach(function (value) {
-
+                        if(value == null){
+                            console.log("gotcha null!");
+                        } else{
                         var item = {};
 
                         if (typeof value === "object") {
@@ -681,6 +683,7 @@
                         }
 
                         itemList.push(item);
+                    }
                     });
                 } else {
                     for (var key in inputValues) {
@@ -1004,9 +1007,10 @@
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "Parent") {
             //todo: formatter: "textarea" not working:
+            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
 
-            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            //  columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i].includes("REL")) {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else {
