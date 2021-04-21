@@ -759,7 +759,7 @@ def save():
     commit_msg = request.form.get("commit_msg")
     commit_msg_extra = request.form.get("commit_msg_extra")
     overwrite = False
-    overwriteVal = request.form.get("overwrite") #todo: get actual boolean value True/False here?
+    overwriteVal = request.form.get("overwrite") 
     print(f'overwriteVal is: ' + str(overwriteVal))
     if overwriteVal == "true":
         overwrite = True
@@ -777,7 +777,6 @@ def save():
         del initial_header[0]
         # Sort based on label
         # What if 'Label' column not present?
-        # todo: is sorting causing a problem with diff?
         if 'Label' in initial_first_row:
             initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
@@ -830,43 +829,16 @@ def save():
             # Generate identifiers:             
             if not row[header.index("ID")]: #blank
                 if 'Label' and 'Parent' and 'Definition' in first_row: #make sure we have the right sheet
-                    if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank?
-                        print("MISSING ID ROW: ", row) 
+                    if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank
                         #generate ID here: 
                         nextIdStr = str(searcher.getNextId(repo_key))
                         id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
-                        new_id = "NEW_NEW_NEW " + id #test
-                        # new_id = id
+                        new_id = id
                         for c in range(len(header)):
                             if c==0:
                                 restart = True
                                 sheet.cell(row=r+2, column=c+1).value=new_id
-                            #todo: do we need below, it is done already, no?
-                            else:
-                                sheet.cell(row=r+2, column=c+1).value=row[c]
-                            # Set row background colours according to 'Curation status'
-                            # These should be kept in sync with those used in edit screen
-                            # TODO add to config
-                            # What if "Curation status" not present?
-                            if 'Curation status' in first_row:
-                                if row[header.index("Curation status")]=="Discussed":
-                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffe4b5", fill_type = "solid")
-                                elif row[header.index("Curation status")]=="Ready": #this is depreciated
-                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="98fb98", fill_type = "solid")
-                                elif row[header.index("Curation status")]=="Proposed":
-                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="ffffff", fill_type = "solid")
-                                elif row[header.index("Curation status")]=="To Be Discussed":
-                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="eee8aa", fill_type = "solid")
-                                elif row[header.index("Curation status")]=="In Discussion":
-                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="fffacd", fill_type = "solid")                                
-                                elif row[header.index("Curation status")]=="Published":
-                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="7fffd4", fill_type = "solid")
-                                elif row[header.index("Curation status")]=="Obsolete":
-                                    sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="2f4f4f", fill_type = "solid")
 
-            
-
-                
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
