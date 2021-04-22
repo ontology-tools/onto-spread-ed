@@ -1008,11 +1008,8 @@
         else if (headers[i] == "To be reviewed by") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "Parent") {
-            //todo: formatter: "textarea" not working:
-            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-            // columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-
-             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            //  columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i].includes("REL")) {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else {
