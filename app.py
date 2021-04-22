@@ -234,7 +234,8 @@ searcher = SpreadsheetSearcher()
 
 class OntologyDataStore:
     node_props = {"shape":"box","style":"rounded", "font": "helvetica"}
-    rel_cols = {"has part":"blue","part of":"blue","contains":"green","has role":"darkgreen","is about":"darkgrey"}
+    rel_cols = {"has part":"blue","part of":"blue","contains":"green",
+                "has role":"darkgreen","is about":"darkgrey", "participates in":"darkblue"}
 
     def __init__(self):
         self.releases = {}
@@ -246,14 +247,14 @@ class OntologyDataStore:
         # Keep track of when you parsed this release
         self.graphs[repo] = networkx.MultiDiGraph()
         self.releasedates[repo] = date.today()
-        print("Release date ",self.releasedates[repo])
+        #print("Release date ",self.releasedates[repo])
 
         # Get the ontology from the repository
         ontofilename = app.config['RELEASE_FILES'][repo]
         repositories = app.config['REPOSITORIES']
         repo_detail = repositories[repo]
         location = f"https://raw.githubusercontent.com/{repo_detail}/master/{ontofilename}"
-        print("Trying to fetch release file from", location)
+        print("Fetching release file from", location)
         data = urlopen(location).read()  # bytes
         ontofile = data.decode('utf-8')
 
@@ -382,7 +383,7 @@ class OntologyDataStore:
         for id in selectedIds:
             ids.append(id.replace(":","_"))
             entryIri = self.releases[repo].get_iri_for_id(id)
-            print("Got IRI",entryIri,"for ID",id)
+            #print("Got IRI",entryIri,"for ID",id)
             if entryIri:
                 descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
                 for d in descs:
@@ -527,9 +528,9 @@ def search():
 @app.route('/searchAssignedToMe', methods=['POST'])
 @verify_logged_in
 def searchAssignedToMe():
-    print("searching for initials")
+    #print("searching for initials")
     initials = request.form.get("initials")
-    print("initials found: " + initials)
+    print("Searching for initials: " + initials)
     repoName = request.form.get("repoName")
     #below is searching in "Label" column? 
     searchResults = searchAssignedTo(repoName, initials)
@@ -627,17 +628,17 @@ def generate():
     if request.method == "POST":
         repo_key = request.form.get("repo_key")
         rowData = json.loads(request.form.get("rowData"))
-        print("generate data sent")
-        print("Got ", len(rowData), "rows:", rowData)
+        #print("generate data sent")
+        #print("Got ", len(rowData), "rows:", rowData)
         values = {}
         ids = {}
         for row in rowData:
             nextIdStr = str(searcher.getNextId(repo_key))
             id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
-            print("Row ID is ",row['id'])
+            #print("Row ID is ",row['id'])
             ids["ID"+str(row['id'])] = str(row['id'])
             values["ID"+str(row['id'])] = id
-        print("Got values: ",values)
+        #print("Got values: ",values)
         return (json.dumps({"message": "idlist", "IDs": ids, "values": values})) #need to return an array 
     return ('success')  
 
@@ -713,7 +714,7 @@ def edit(repo_key, folder, spreadsheet):
     else:
         type = session.get('type')
         session.pop('type', None)
-    print("type is: ", type)
+    #print("type is: ", type)
     #test values for type: 
     # type = "initials"
     # go_to_row = "RW"
@@ -726,7 +727,7 @@ def edit(repo_key, folder, spreadsheet):
         print(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
     #Build suggestions data:
-    if repo not in ontodb.releases:
+    if repo_key not in ontodb.releases or date.today() > ontodb.releasedates[repo_key]:
         ontodb.parseRelease(repo_key)
     suggestions = ontodb.getReleaseLabels(repo_key)
     suggestions = list(dict.fromkeys(suggestions))
@@ -760,10 +761,10 @@ def save():
     commit_msg_extra = request.form.get("commit_msg_extra")
     overwrite = False
     overwriteVal = request.form.get("overwrite") 
-    print(f'overwriteVal is: ' + str(overwriteVal))
+    #print(f'overwriteVal is: ' + str(overwriteVal))
     if overwriteVal == "true":
         overwrite = True
-        print(f'overwrite True here')
+        #print(f'overwrite True here')
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
@@ -963,7 +964,7 @@ def save():
 @app.route('/keepalive', methods=['POST'])
 @verify_logged_in
 def keep_alive():
-    print("Keep alive requested from edit screen")
+    #print("Keep alive requested from edit screen")
     return ( json.dumps({"message":"Success"}), 200 )
 
 
@@ -976,14 +977,14 @@ def checkForUpdates():
         spreadsheet = request.form.get("spreadsheet")
         # initialData = request.form.get("initialData") 
         old_sha = request.form.get("file_sha")     
-        print(repo_key, folder, spreadsheet, old_sha)
+        #print(repo_key, folder, spreadsheet, old_sha)
         repositories = app.config['REPOSITORIES']
         repo_detail = repositories[repo_key]
         spreadsheet_file = github.get(
             f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
         )
         file_sha = spreadsheet_file['sha']
-        print("Check update - Got file_sha",file_sha)
+        #print("Check update - Got file_sha",file_sha)
         if old_sha == file_sha:
             return ( json.dumps({"message":"Success"}), 200 )
         else:
@@ -996,13 +997,13 @@ def checkForUpdates():
 def openVisualise():
     if request.method == "POST":
         repo = request.form.get("repo")
-        print("repo is ", repo)
+        #print("repo is ", repo)
         sheet = request.form.get("sheet")
-        print("sheet is ", sheet)
+        #print("sheet is ", sheet)
         table = json.loads(request.form.get("table"))
         # print("table is: ", table)
         indices = json.loads(request.form.get("indices"))
-        print("indices are: ", indices)
+        #print("indices are: ", indices)
 
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
