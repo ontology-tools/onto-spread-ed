@@ -902,6 +902,13 @@ def save():
             merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
             # update rows for comparison:
             (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
+            #todo: delete transient branch here? Github delete code is a test for now. 
+            # Delete the branch again
+            print ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
+            response = github.delete(
+                f"repos/{repo_detail}/git/refs/heads/{branch}")
+            if not response:
+                raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
             return(
                 json.dumps({'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'\
                     + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha, "file_sha_2": new_file_sha, "pr_branch":branch, "merge_diff":merge_diff, "merged_table":json.dumps(merged_table),\
