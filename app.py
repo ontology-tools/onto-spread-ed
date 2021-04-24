@@ -827,18 +827,19 @@ def save():
                     elif row[header.index("Curation status")]=="Obsolete":
                         sheet.cell(row=r+2, column=c+1).fill = PatternFill(fgColor="2f4f4f", fill_type = "solid")
 
-            # Generate identifiers:             
-            if not row[header.index("ID")]: #blank
-                if 'Label' and 'Parent' and 'Definition' in first_row: #make sure we have the right sheet
-                    if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank
-                        #generate ID here: 
-                        nextIdStr = str(searcher.getNextId(repo_key))
-                        id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
-                        new_id = id
-                        for c in range(len(header)):
-                            if c==0:
-                                restart = True
-                                sheet.cell(row=r+2, column=c+1).value=new_id
+            # Generate identifiers:
+            if 'ID' in first_row:             
+                if not row[header.index("ID")]: #blank
+                    if 'Label' and 'Parent' and 'Definition' in first_row: #make sure we have the right sheet
+                        if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank
+                            #generate ID here: 
+                            nextIdStr = str(searcher.getNextId(repo_key))
+                            id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
+                            new_id = id
+                            for c in range(len(header)):
+                                if c==0:
+                                    restart = True
+                                    sheet.cell(row=r+2, column=c+1).value=new_id
 
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
