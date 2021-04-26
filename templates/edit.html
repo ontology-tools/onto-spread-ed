@@ -254,7 +254,7 @@
     //check for #saveMessage after location.reload:
     var showSaveMessageMessage = "";
     if (localStorage.getItem("showSaveMessage" + thisSheet) !== null) {
-        showSaveMessageMessage = JSON.stringify(localStorage.getItem("showSaveMessage" + thisSheet));
+        showSaveMessageMessage = localStorage.getItem("showSaveMessage" + thisSheet);
         console.log("showSaveMessageMessage is: " + showSaveMessageMessage);
         $('#saveAlert').removeClass('alert-danger');
         $('#saveAlert').addClass('alert-success');
