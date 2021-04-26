@@ -251,6 +251,24 @@
         testTableData.push(rowObj);
     }
 
+    //check for #saveMessage after location.reload:
+    var showSaveMessageMessage = "";
+    if (localStorage.getItem("showSaveMessage" + thisSheet) !== null) {
+        showSaveMessageMessage = JSON.stringify(localStorage.getItem("showSaveMessage" + thisSheet));
+        console.log("showSaveMessageMessage is: " + showSaveMessageMessage);
+        $('#saveAlert').removeClass('alert-danger');
+        $('#saveAlert').addClass('alert-success');
+        $("#saveMessage").text(showSaveMessageMessage);
+        // $("#saveMessage").text('Changes were saved successfully to the repository. ');
+        $("#saveAlert").dismissed = false;
+        $("#saveAlert").show();
+        showSaveMessageMessage = "";
+        localStorage.removeItem("showSaveMessage" + thisSheet);
+    } else{
+        //test:
+        // localStorage.setItem("showSaveMessage" + thisSheet, "hello"); //works!
+    }
+
     //todo: save login name as well as sheet name?.
     var previousTableData = localStorage.getItem("savedTableData" + thisSheet);
     if (JSON.stringify(testTableData) === previousTableData) {
@@ -379,10 +397,10 @@
             for (var j = 0; j < headerLength; j++) {
                 //add to suggestValuesArray:
                 if (headers[j] == "Label") {
-                        addToSuggestions(rowData[i][headers[j]]);                     
+                    addToSuggestions(rowData[i][headers[j]]);
                 }
                 if (headers[j] == "Name") {
-                    addToSuggestions(rowData[i][headers[j]]); 
+                    addToSuggestions(rowData[i][headers[j]]);
                 }
                 rowObj[headers[j]] = rowData[i][headers[j]];
                 //replace & and =
@@ -669,21 +687,21 @@
 
                 if (Array.isArray(inputValues)) {
                     inputValues.forEach(function (value) {
-                        if(value == null){
+                        if (value == null) {
                             console.log("gotcha null!");
-                        } else{
-                        var item = {};
-
-                        if (typeof value === "object") {
-                            item.title = editorParams.listItemFormatter ? editorParams.listItemFormatter(value.value, value.label) : value.label;
-                            item.value = value.value;
                         } else {
-                            item.title = editorParams.listItemFormatter ? editorParams.listItemFormatter(value, value) : value;
-                            item.value = value;
-                        }
+                            var item = {};
 
-                        itemList.push(item);
-                    }
+                            if (typeof value === "object") {
+                                item.title = editorParams.listItemFormatter ? editorParams.listItemFormatter(value.value, value.label) : value.label;
+                                item.value = value.value;
+                            } else {
+                                item.title = editorParams.listItemFormatter ? editorParams.listItemFormatter(value, value) : value;
+                                item.value = value;
+                            }
+
+                            itemList.push(item);
+                        }
                     });
                 } else {
                     for (var key in inputValues) {
@@ -977,7 +995,7 @@
     function addToSuggestions(suggestion) {
         // labelSuggestions.push(suggestion); //original backup
         // suggestValuesArray.push(suggestion); //to change
-        if(suggestion !== null){        
+        if (suggestion !== null) {
             var checkDuplicate = false;
             for (v in labelSuggestions) {
                 if (labelSuggestions[v] === suggestion) {
@@ -985,10 +1003,10 @@
                 }
             }
             if (!checkDuplicate) {
-                labelSuggestions.push(suggestion); 
+                labelSuggestions.push(suggestion);
             }
             suggestValuesArray = labelSuggestions.slice(); //update current suggestions
-        }        
+        }
     }
 
 
@@ -2536,6 +2554,9 @@
                                                 //re-load here to get updated data - need alert not bootbox (for blocking):
                                                 bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
                                                 tableEdited = false; //stops page from warning about unsaved changes
+                                                //showSaveMessage localStorage for reload: 
+                                                showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
+                                                localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
                                                 location.reload(true); //todo: can tabulator just update without re-loading the page? 
                                             }
                                             //todo: handle more error codes here and do merge in correct circumstance
@@ -2587,11 +2608,12 @@
                                             $("tr.add").css('background-color', '#7CFC00'); //green
                                             $("td.modify").css('background-color', '#00FF00'); //lighter green
                                             $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
-                                        } else if(request.status === 360){ //same as 200 only with restart to show new ID's
+                                        } else if (request.status === 360) { //same as 200 only with restart to show new ID's
                                             window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
                                             bootbox.alert("Save successful - new ID's were generated.<br>The page will now refresh to load new data.");
                                             tableEdited = false; //stops page from warning about unsaved changes
-                                            // table.reload();
+                                            showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
+                                            localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
                                             location.reload(true);
                                         } else {
                                             saveIndicator.modal('hide'); // hide save indicator if no response
@@ -2724,6 +2746,9 @@
         //remove previous table array?
         // window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
         //refresh sheet
+        //todo: show another message?
+        // showSaveMessageMessage = 'Your changes have been reverted. ';
+        // localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
         location.reload(true);
     };
 
