@@ -264,7 +264,7 @@
         $("#saveAlert").show();
         showSaveMessageMessage = "";
         localStorage.removeItem("showSaveMessage" + thisSheet);
-    } else{
+    } else {
         //test:
         // localStorage.setItem("showSaveMessage" + thisSheet, "hello"); //works!
     }
@@ -1143,8 +1143,9 @@
             if (table) {
                 console.log("highlighting now");
                 for (var r in table.getRows()) {
-                    var row3 = table.getRow(r);
-                    var data3 = row3.getData();
+                    if (table.getRow(r)) { //don't try to check for deleted rows!
+                        var row3 = table.getRow(r);
+                        var data3 = row3.getData();
                     if (data3[curation_status] === undefined) { //for tables without curation_status
 
                     } else {
@@ -1152,6 +1153,7 @@
                             rowColours(row3, data3);
                         }
                     }
+                }
                 }
             }
             // console.log("ROW SELECTION CHANGED");
