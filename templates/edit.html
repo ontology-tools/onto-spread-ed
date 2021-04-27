@@ -1896,7 +1896,7 @@
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
-                if (cell.getValue() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
+                if (cell.getValue().trim() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
                     //set to obsolete and show a message here
                     data[curation_status] = "Obsolete";
                     //save change:
