@@ -362,15 +362,19 @@ class OntologyDataStore:
 
     def getDotForSheetGraph(self, repo, data):
         # Get a list of IDs from the sheet graph
+        print("getDotForSheetGraph here")
         ids = []
         for entry in data:
-            if 'ID' in entry and len(entry['ID'])>0:
-                ids.append(entry['ID'].replace(":","_"))
+            if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
+                print("Obsolete: ", entry)
+            else:
+                if 'ID' in entry and len(entry['ID'])>0:
+                    ids.append(entry['ID'].replace(":","_"))
 
-            if 'Parent' in entry:
-                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
-                if entryParent in self.label_to_id:
-                    ids.append(self.label_to_id[entryParent])
+                if 'Parent' in entry:
+                    entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                    if entryParent in self.label_to_id:
+                        ids.append(self.label_to_id[entryParent])
 
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -397,23 +401,26 @@ class OntologyDataStore:
 
     def getDotForSelection(self, repo, data, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
+        print("getDot")
         ids = []
         for id in selectedIds:
             entry = data[id]
-            if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
-                if 'ID' in entry and len(entry['ID']) > 0:
-                    ids.append(entry['ID'].replace(":", "_"))
-                if 'Parent' in entry:
-                    entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
-                    if entryParent in self.label_to_id:
-                        ids.append(self.label_to_id[entryParent])
-                entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
-                if entryIri:
-                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                for d in descs:
-                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-            else: #todo: remove this test
-                print(entry['ID'], " is blank")
+            # don't visualise rows which are set to "Obsolete":
+            if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
+                print("Obsolete: ", id)
+            else:
+                if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+                    if 'ID' in entry and len(entry['ID']) > 0:
+                        ids.append(entry['ID'].replace(":", "_"))
+                    if 'Parent' in entry:
+                        entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                        if entryParent in self.label_to_id:
+                            ids.append(self.label_to_id[entryParent])
+                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
+                    if entryIri:
+                        descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                    for d in descs:
+                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
@@ -1005,13 +1012,13 @@ def checkForUpdates():
 def openVisualise():
     if request.method == "POST":
         repo = request.form.get("repo")
-        #print("repo is ", repo)
+        # print("repo is ", repo)
         sheet = request.form.get("sheet")
-        #print("sheet is ", sheet)
+        # print("sheet is ", sheet)
         table = json.loads(request.form.get("table"))
         # print("table is: ", table)
         indices = json.loads(request.form.get("indices"))
-        #print("indices are: ", indices)
+        # print("indices are: ", indices)
 
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
