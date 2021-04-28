@@ -357,9 +357,6 @@
                         if (headers[j] == "Label") {
                             addToSuggestions(rowData[i][headers[j]]);
                         }
-                        if (headers[j] == "Name") {
-                            addToSuggestions(rowData[i][headers[j]]);
-                        }
                     }
                 }
             } else {
@@ -397,9 +394,6 @@
             for (var j = 0; j < headerLength; j++) {
                 //add to suggestValuesArray:
                 if (headers[j] == "Label") {
-                    addToSuggestions(rowData[i][headers[j]]);
-                }
-                if (headers[j] == "Name") {
                     addToSuggestions(rowData[i][headers[j]]);
                 }
                 rowObj[headers[j]] = rowData[i][headers[j]];
@@ -1146,14 +1140,14 @@
                     if (table.getRow(r)) { //don't try to check for deleted rows!
                         var row3 = table.getRow(r);
                         var data3 = row3.getData();
-                    if (data3[curation_status] === undefined) { //for tables without curation_status
+                        if (data3[curation_status] === undefined) { //for tables without curation_status
 
-                    } else {
-                        if (data3[curation_status] !== null) {
-                            rowColours(row3, data3);
+                        } else {
+                            if (data3[curation_status] !== null) {
+                                rowColours(row3, data3);
+                            }
                         }
                     }
-                }
                 }
             }
             // console.log("ROW SELECTION CHANGED");
@@ -1223,7 +1217,7 @@
             }
             //change suggestion to remove this row:
             var parent = "Parent";
-            if (data["Label"] !== undefined || data["Name"] !== undefined) { //if we have a "Label" or "Name" column
+            if (data["Label"] !== undefined) { //if we have a "Label" column
 
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
                     console.log("Parent column");
@@ -1779,21 +1773,6 @@
                     }
                 }
             }
-            if (data["Name"] !== undefined) { //if we have a "Name" column
-                for (v in labelSuggestions) {
-                    if (labelSuggestions[v] === data["Name"]) {
-                        table.blockRedraw();
-                        // console.log("found match: " + labelSuggestions[v]);
-                        labelSuggestions.splice(v, 1); //remove for now
-                        // console.log("removing row: " + v + ", data: " + data["Label"]);
-                        // console.log(labelSuggestions);
-                        table.restoreRedraw();
-                        table.redraw();
-                        suggestValuesArray = labelSuggestions.slice(); //update current suggestions
-                    }
-                }
-            }
-
         },
 
         // rowUpdated:function(row){
