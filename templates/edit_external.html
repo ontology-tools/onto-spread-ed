@@ -11,10 +11,14 @@
         <h1 id="import_header"> EXTERNAL IMPORTS</h1>
     </div>
 </div>
+<script type="text/javascript">
+    console.log("start");
+    var spreadsheets = {{ spreadsheets | safe}};
+    console.log(spreadsheets);
+</script>
 
-   
-    {% endblock %}
+{% endblock %}
 
-    {%block javascript%}
+{%block javascript%}
 
-    {% endblock %}
+{% endblock %}

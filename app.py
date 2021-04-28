@@ -572,17 +572,16 @@ def repo(repo_key, folder_path=""):
     directories = github.get(
         f'repos/{repo_detail}/contents/{folder_path}'
     )
-    #print(directories)
     dirs = []
     spreadsheets = []
+    #go to edit_external: 
+    if folder_path == 'imports': 
+        return redirect(url_for('edit_external', repo_key=repo_key, folder_path=folder_path))
     for directory in directories:
         if directory['type']=='dir':
             dirs.append(directory['name'])
         elif directory['type']=='file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
-            #test go to edit_external: 
-            if directory['name'] == 'External_Imports.xlsx':
-                return render_template('edit_external.html', login=g.user.github_login)
     if g.user.github_login in USERS_METADATA:
         user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
@@ -1040,12 +1039,28 @@ def openVisualise():
 @app.route('/visualise/<repo>/<sheet>')
 @verify_logged_in
 def visualise(repo, sheet):
+    print("reached visualise")
     return render_template("visualise.html", sheet=sheet, repo=repo)
 
-@app.route('/edit_external')
+@app.route('/edit_external/<repo_key>/<path:folder_path>')
 @verify_logged_in
-def edit_external(login):
-    return render_template('edit_external.html', login=g.user.github_login)
+def edit_external(repo_key, folder_path):
+    print("edit_external reached") 
+    repositories = app.config['REPOSITORIES']
+    repo_detail = repositories[repo_key]
+    spreadsheets = []
+    directories = github.get(
+        f'repos/{repo_detail}/contents/imports/'
+    )   
+    for directory in directories:
+        spreadsheets.append(directory['name'])
+    print("got spreadsheets: ", spreadsheets)
+    return render_template('edit_external.html', 
+                            login=g.user.github_login, 
+                            repo_name = repo_key,
+                            folder_path = folder_path,
+                            spreadsheets=spreadsheets
+                            )
 
 # Internal methods
 
