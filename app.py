@@ -1048,18 +1048,28 @@ def edit_external(repo_key, folder_path):
     print("edit_external reached") 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
+    folder=folder_path
     spreadsheets = []
     directories = github.get(
-        f'repos/{repo_detail}/contents/imports/'
+        f'repos/{repo_detail}/contents/{folder_path}' 
     )   
     for directory in directories:
         spreadsheets.append(directory['name'])
-    print("got spreadsheets: ", spreadsheets)
+    for spreadsheet in spreadsheets:
+        print("spreadsheet: ", spreadsheet)
+        #need unique name for each? Or do we append to big array? 
+    sheet1, sheet2, sheet3 = spreadsheets
+    # sheet1 = "External_Imports.xlsx" #test
+    (file_sha1,rows1,header1) = get_spreadsheet(repo_detail,folder,sheet1)
+    #todo: below don't work - not a spreadsheet but a csv file!
+    # (file_sha2,rows2,header2) = get_spreadsheet(repo_detail,folder,sheet2) 
+    # (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,sheet3)
     return render_template('edit_external.html', 
                             login=g.user.github_login, 
                             repo_name = repo_key,
                             folder_path = folder_path,
-                            spreadsheets=spreadsheets
+                            spreadsheets=spreadsheets, #todo: delete, just for test
+                            rows1=json.dumps(rows1)
                             )
 
 # Internal methods
