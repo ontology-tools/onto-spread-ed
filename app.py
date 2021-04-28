@@ -580,6 +580,9 @@ def repo(repo_key, folder_path=""):
             dirs.append(directory['name'])
         elif directory['type']=='file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
+            #test go to edit_external: 
+            if directory['name'] == 'External_Imports.xlsx':
+                return render_template('edit_external.html', login=g.user.github_login)
     if g.user.github_login in USERS_METADATA:
         user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
@@ -1041,7 +1044,7 @@ def visualise(repo, sheet):
 
 @app.route('/edit_external')
 @verify_logged_in
-def edit_external():
+def edit_external(login):
     return render_template('edit_external.html', login=g.user.github_login)
 
 # Internal methods
