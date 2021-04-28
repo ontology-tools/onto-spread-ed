@@ -1039,6 +1039,10 @@ def openVisualise():
 def visualise(repo, sheet):
     return render_template("visualise.html", sheet=sheet, repo=repo)
 
+@app.route('/edit_external')
+@verify_logged_in
+def edit_external():
+    return render_template('edit_external.html', login=g.user.github_login)
 
 # Internal methods
 
