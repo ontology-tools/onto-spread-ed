@@ -1009,7 +1009,26 @@ def checkForUpdates():
         else:
             return ( json.dumps({"message":"Fail"}), 200 )
 
+@app.route('/openVisualiseAcrossSheets', methods=['POST'])
+@verify_logged_in
+def openVisualiseAcrossSheets():
+    #build data we need for dotStr query (new one!)
+    if request.method == "POST":
+        idString = request.form.get("idList")
+        print("idString is: ", idString)
+        repo = request.form.get("repo")
+        print("repo is ", repo)
+        idList = idString.split()
+        # for i in idList:
+        #     print("i is: ", i)
+        # indices = json.loads(request.form.get("indices"))
+        # print("indices are: ", indices)
+        ontodb.parseRelease(repo)
+        dotStr = ontodb.getDotForIDs(repo,idList).to_string()
 
+        return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
+
+    return ("Only POST allowed.")
 
 @app.route('/openVisualise', methods=['POST'])
 @verify_logged_in
