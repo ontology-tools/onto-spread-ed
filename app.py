@@ -19,6 +19,8 @@ import functools
 import openpyxl
 from openpyxl.styles import Font
 from openpyxl.styles import PatternFill
+import pandas as pd
+import csv
 import base64
 import json
 import traceback
@@ -1062,17 +1064,97 @@ def edit_external(repo_key, folder_path):
     # sheet1 = "External_Imports.xlsx" #test
     (file_sha1,rows1,header1) = get_spreadsheet(repo_detail,folder,sheet1)
     #todo: below don't work - not a spreadsheet but a csv file!
-    # (file_sha2,rows2,header2) = get_spreadsheet(repo_detail,folder,sheet2) 
+    (file_sha2,rows2,header2) = get_csv(repo_detail,folder,sheet2) 
     # (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,sheet3)
     return render_template('edit_external.html', 
                             login=g.user.github_login, 
                             repo_name = repo_key,
                             folder_path = folder_path,
                             spreadsheets=spreadsheets, #todo: delete, just for test
-                            rows1=json.dumps(rows1)
+                            rows1=json.dumps(rows1),
+                            rows2=json.dumps(rows2)
                             )
 
 # Internal methods
+
+def get_csv(repo_detail,folder,spreadsheet):
+    print("github.get: ", f'repos/{repo_detail}/contents/{folder}/{spreadsheet}')
+    csv_file = github.get(
+        f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
+    )
+    file_sha = csv_file['sha']
+    
+
+    #use csv approach: 
+    # csv_reader = csv.reader(io.StringIO(csv_file.decode('utf-8')))
+    # print("csv_reader type: ", type(csv_reader))
+
+    #using Pandas:
+    csv_file = github.get(
+        f'https://raw.githubusercontent.com/jannahastings/addiction-ontology/master/imports/External_Imports_New_Labels.csv'
+    ).content
+    #use csv approach: 
+    csv_reader = csv.reader(io.StringIO(csv_file.decode('utf-8')))
+    print("csv_reader type: ", type(csv_reader))
+    print(csv_reader)
+
+    csv_io = pd.read_csv(io.StringIO(csv_file.decode('utf-8')))
+
+    # base64_bytes = csv_file['content'].encode('utf-8')
+    # decoded_data = base64.decodebytes(base64_bytes)
+    rows = []
+    header = []
+    # csv_io = pd.read_csv(decoded_data)
+    # csv_io = io.StringIO(decoded_data)
+    print("csv_io type: ", type(csv_io))
+    print("csv_io: ", csv_io)
+
+    # csv_list = csv_io.values.tolist()
+    # header = csv_list[0:1]
+    # print("csv_list", csv_list)
+    # i = 0
+    # for row in csv_list[1:]:
+    #     values = {}
+    #     for key in header:
+    #         values[key] = row[i].value
+    #     rows.append(values)
+    #     i = i+1
+
+
+
+        # for key, cell in zip(header, row):
+        #     values[key] = cell.value
+        # if any(values.values()):
+        #     rows.append(values)
+    # rows = csv_list[1:]
+    print("header: ", header)
+    print("rows: ", rows)
+    # with open(csv_io, 'r') as read_obj:
+    # csv_reader = reader(csv_io)
+    # header = next(csv_reader)
+    # # Check file as empty
+    # if header != None:
+    #     # Iterate over each row after the header in the csv
+    #     for row in csv_reader:
+    #         rows.append(row)
+    #         # row variable is a list that represents a row in csv
+    #         print(row)
+
+
+    # wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
+    # sheet = wb.active
+
+    # header = [cell.value for cell in sheet[1] if cell.value]
+    # rows = []
+    # for row in sheet[2:sheet.max_row]:
+    #     values = {}
+    #     for key, cell in zip(header, row):
+    #         values[key] = cell.value
+    #     if any(values.values()):
+    #         rows.append(values)
+    # print(f'rows: ')
+    # print(json.dumps(rows))
+    return ( (file_sha, rows, header) )
 
 def get_spreadsheet(repo_detail,folder,spreadsheet):
     spreadsheet_file = github.get(
