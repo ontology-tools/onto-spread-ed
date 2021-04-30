@@ -302,38 +302,65 @@
         }
     }
 
+    changesArrayReplace = changesArray;
 
     // unsavedChanges = false; //un-comment this line to disable restoring backup functionality. 
 
     //restore unsaved changes if needed:
     try {
         if (unsavedChanges) {
+            console.log("changesArray is: " + changesArray);
             //build array of data which will be replaced: 
             var tableChangedArray = [];
             for (var i = 0; i < rowLength; i++) {
-                var rowObj = { id: i }
+                var rowObj = { id: i };
                 for (var j = 0; j < headerLength; j++) {
-                    for (var a = 0; a < changesArray.length; a++) {
-                        if (i == changesArray[a + 1]) { //row
-                            if (headers[j] == changesArray[a + 2]) { //column
-                                if (testTableData[i * j] == undefined || testTableData[i * j] == null) {
-                                    tableChangedArray.push("");
-                                } else {
-                                    tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
-                                }
-                            }
+                    //every cell here
+                    for (var a = 0; a < changesArray.length; a += 3) {
+                        if (i == changesArray[a + 1] && headers[j] == changesArray[a + 2]) {
+                            console.log("cell to change is: " + testTableData[i][changesArray[a + 2]]);
+                            console.log("cell replacing is: " + changesArray[a]);
+                            tableChangedArray.push(testTableData[i][changesArray[a + 2]]); //correct now
+                            tableChangedArray.push(changesArray[a + 1]); //row
+                            tableChangedArray.push(changesArray[a + 2]); //column                            
                         }
+                        // if (i == changesArray[a + 1]) { //row
+                        //     if (headers[j] == changesArray[a + 2]) { //column
+                        //         console.log("cell to change is: " + testTableData[i][changesArray[a+2]]);
+                        //         // // if (testTableData[i * j][changesArray[a + 2]] == undefined || testTableData[i * j][changesArray[a + 2]] == null) {
+                        //         // //     tableChangedArray.push("");
+                        //         // //     console.log("Pushing to tableChangedArray: BLANK");
+                        //         // // } else {
+                        //         //     var testTableDataX = JSON.stringify(testTableData[i * j][changesArray[a + 2]]);
+                        //         //     tableChangedArray.push(JSON.stringify(testTableData[i * j][changesArray[a + 2]]));
+                        //         //     console.log("Pushing to tableChangedArray: " + testTableDataX);
+                        //         // // }
+                        //     }
+                        // }
                     }
                 }
             }
 
+            console.log("tableChangedArray complete is: " + tableChangedArray); //correct
+
             var changedMessage = "";
             for (var i = 0; i < changesArray.length; i += 3) {
-                if (tableChangedArray[i] == "null" || tableChangedArray[i] == undefined) {
-                    changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + "\"\"" + "=>" + JSON.stringify(changesArray[i]) + "\n";
-                } else {
-                    changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + tableChangedArray[i] + "=>" + JSON.stringify(changesArray[i]) + "\n";
+                //do a check first!
+                for (var j = 0; j < tableChangedArray.length; j += 3) {
+                    if (tableChangedArray[j + 1] == changesArray[i + 1] && tableChangedArray[j + 2] == changesArray[i + 2]) {
+                        if (tableChangedArray[j] == "null" || tableChangedArray[j] == undefined) {
+                            changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + "\"\"" + "=>" + changesArray[i] + "\n";
+                        } else {
+                        changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + tableChangedArray[j] + "=>" + changesArray[i] + "\n";
+                        } 
+                    }
                 }
+
+                // if (tableChangedArray[i/3] == "null" || tableChangedArray[i/3] == undefined) {
+                //     changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + "\"\"" + "=>" + JSON.stringify(changesArray[i]) + "\n";
+                // } else {
+                // changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + tableChangedArray[i / 3] + "=>" + JSON.stringify(changesArray[i]) + "\n";
+                // }
             }
 
 
