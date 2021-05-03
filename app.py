@@ -1098,31 +1098,17 @@ def edit_external(repo_key, folder_path):
 # Internal methods
 
 def get_csv(repo_detail,folder,spreadsheet):
-    # print("github.get: ", f'repos/{repo_detail}/contents/{folder}/{spreadsheet}')
+
     csv_file = github.get(
         f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
     )
     file_sha = csv_file['sha']
-    
-    csv_file = github.get(
-        f'https://raw.githubusercontent.com/{repo_detail}/master/{folder}/{spreadsheet}'
-        # f'https://raw.githubusercontent.com/jannahastings/addiction-ontology/master/imports/External_Imports_New_Labels.csv' #test
-    ).content
-    #use csv approach: 
-    csv_reader = csv.reader(io.StringIO(csv_file.decode('utf-8')))
-    # print("csv_reader type: ", type(csv_reader))
-    # print(next(csv_reader))
+    csv_content = csv_file['content']
+    print(csv_content)
+    decoded_data = str(base64.b64decode(csv_content),'utf-8')
+    print(decoded_data)
+    csv_reader = csv.reader(io.StringIO(decoded_data))
     csv_data = list(csv_reader)
-    # print("csv list: ", csv_data)
-
-    #using Pandas:
-    csv_io = pd.read_csv(io.StringIO(csv_file.decode('utf-8')))
-    # print("csv_io type: ", type(csv_io))
-    print("csv_io: ", csv_io)
-
-    rows = []
-    header = []    
-    
     header = csv_data[0:1]
     rows = csv_data[1:]
     
