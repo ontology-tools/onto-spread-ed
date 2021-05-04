@@ -17,7 +17,7 @@
 <label class="font-weight-bold" for="submitText">Ontology:</label>
 
 <div class="btn-group" role="group" aria-label="Basic example">
-    <div class="dropdown">
+    <div class="dropright">
         <button class="btn btn-outline-success dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown"
             aria-haspopup="true" aria-expanded="false">
             Choose Ontology
@@ -67,14 +67,8 @@
         ontologyIDs.push(newID);
         console.log("new ontologyIDs: " + ontologyIDs);
         createInput(ontologyIDs);
-        // var dialog = bootbox.dialog({
-        //     message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
-        //     closeButton: true
-        // });
-        // sendData();
-        // $("#resultsHeader").text("SEARCHING...");
-        // $("#resultsHeader").show();
-
+        $("#inputText").val("");
+        $("#dropdownMenu2").click();
         return false; //todo: is this necessary
     }
 
