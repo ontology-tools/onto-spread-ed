@@ -11,18 +11,71 @@
         <h1 id="import_header"> EXTERNAL IMPORTS</h1>
     </div>
 </div>
+
+<h4 id="resultsHeader" style="display:none">RESULTS:</h4>
+
+<label class="font-weight-bold" for="submitText">Ontology:</label>
+
+<div class="btn-group" role="group" aria-label="Basic example">
+<div class="dropdown">
+    <button class="btn btn-outline-success dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown"
+        aria-haspopup="true" aria-expanded="false">
+        Choose Ontology
+    </button>
+    <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+        <button class="dropdown-item" type="button">Action</button>
+        <button class="dropdown-item" type="button">Another action</button>
+        <button class="dropdown-item" type="button">Something else here</button>
+    </div>
+</div>
+
+<form id="submitText" class="form-inline">
+    <input id="inputText" name="inputText" value="" placeholder='new Ontology ID'>
+    <!-- <button type="submit" id="inputBtn" name="input" value="search" class="btn btn-outline-success fas fa-search"
+        onclick="return submitForm(this)">Choose Ontology
+    </button> -->
+    <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
+        class="btn btn-outline-warning fas fa-plus" onclick="return submitForm(this)">
+        Submit New Ontology
+    </button>
+</form>
+</div>
+
 <script type="text/javascript">
     console.log("start");
     var spreadsheets = {{ spreadsheets | safe}};
     console.log(spreadsheets);
 
-    var rowData1 = {{rows1 | safe}};
-    var rowData2 = {{rows2 | safe}};
-    var rowData3 = {{rows3 | safe}};
-    console.log(rowData1);
-    console.log(rowData2);
-    console.log(rowData3);
-    
+    var externalImportsRowData = {{ rows1 | safe}};
+    var newLabelsRowData = {{ rows2 | safe}};
+    var newParentsRowData = {{ rows3 | safe}};
+    console.log(externalImportsRowData);
+    console.log(newLabelsRowData);
+    console.log(newParentsRowData);
+
+    var rowLength = externalImportsRowData.length;
+    var headerLength = 6;
+    var ontologyIDs = [];
+    for (var i = 0; i < rowLength; i++) {
+        ontologyIDs.push(externalImportsRowData[i]["Ontology ID"]);        
+    }
+    console.log("Ontology IDs: " + ontologyIDs); //correct
+
+    //from rep.html:
+    function submitForm(button) {
+        var newID = $("#inputText").val();
+        ontologyIDs.push(newID);
+        console.log("new ontologyIDs: " + ontologyIDs);
+            // var dialog = bootbox.dialog({
+            //     message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
+            //     closeButton: true
+            // });
+            // sendData();
+            // $("#resultsHeader").text("SEARCHING...");
+            // $("#resultsHeader").show();
+
+        return false; //todo: is this necessary
+    }
 </script>
 
 {% endblock %}
