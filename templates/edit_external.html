@@ -52,16 +52,27 @@
 <br></br>
 <div class="row">
     <div class="col-md-12">
+        <div id="newOntologyTable" class="table table-bordered table-striped table-hover table-sm"
+            style="font-size: 0.8em; display:none;">
+        </div>
+    </div>
+</div>
+<!-- todo: add a submit button for newOntologyTable, and a way to submit-->
+<div class="row">
+    <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
             style="font-size: 0.8em; display:none;">
         </div>
     </div>
 </div>
+<!-- todo: add a submit button for contentTable, and a way to submit-->
 
 
 <script type="text/javascript">
     console.log("start");
-    var table;
+    var table; //main table
+    var newOntologyTable; //for new ontology
+
     var spreadsheets = {{ spreadsheets | safe}};
     console.log(spreadsheets);
 
@@ -89,7 +100,18 @@
         console.log("new ontologyIDs: " + ontologyIDs);
         createInput(ontologyIDs);
         $("#inputText").val("");
-        $("#dropdownMenu2").click();
+        $("#dropdownMenu2").click();//not necessary, does nothing..
+
+        //todo: for new ontologyIDs, fill and show form to input ontology ID, Purl, root ID, intermediates adn Prefix:
+        //also change header to show what to do
+        updateOntologyDataArray = [
+            { ontology_id: currentOntology },
+        ];
+        table.replaceData(updateOntologyDataArray);
+        $("#table_name").text("EDITING " + currentOntology + ":");
+        $("#table_name").show();
+        $("#contentTable").hide();
+        $('createOntologyTable').show();
         return false; //todo: is this necessary
     }
 
@@ -105,12 +127,15 @@
         $(".dropdown-item").click(function () {
             $("#table_name").text(currentOntology + ":");
             $("#table_name").show();
+            
             console.log(currentOntology); //got it!
             //update table test:
             // testDataArray = [
             //     { id: 1, ontology: currentOntology },
             // ];
             // table.replaceData(testDataArray);
+            $('createOntologyTable').hide();
+            $("#contentTable").show();            
         });
 
     }
@@ -119,7 +144,7 @@
     function createTable(inputData) {
         table = new Tabulator("#contentTable", {
             data: inputData,
-
+            //todo: make fields editable
             columns: [ //Define Table Columns
                 { title: "Label", field: "label", formatter: "textarea", width: "120" },
                 { title: "ID", field: "id", formatter: "textarea", width: "120" },
@@ -131,9 +156,25 @@
             pagination: "local",
             paginationSize: "50",
         });
+    }
 
-
-
+    function createNewOntologyTable(inputData) {
+        newOntologyTable = new Tabulator("#newOntologyTable", {
+            data: inputData,
+            //ontology ID, Purl, root ID, intermediates adn Prefix:
+            //todo: make fields editable
+            columns: [ //Define Table Columns
+                { title: "Ontology ID", field: "ontology_id", formatter: "textarea", width: "120" },
+                { title: "PURL", field: "purl", formatter: "textarea", width: "120" },
+                { title: "root ID", field: "root_id", formatter: "textarea", width: "120" },
+                { title: "intermediates", field: "intermediates", formatter: "textarea", width: "120" },
+                { title: "Prefix", field: "prefix", formatter: "textarea", width: "120" },
+            ],
+            // height: window.innerHeight / 3 * 2,
+            layout: "fitColumns",
+            pagination: "local",
+            paginationSize: "50",
+        });
     }
 
     window.addEventListener("load", function () {
@@ -151,9 +192,11 @@
         // testDataArray = [
         //     { id: 1, ontology: currentOntology },
         // ];
-        createTable(testDataArray);
-
-
+        createTable(testDataArray); //blank table
+        //hide table for now: 
+        $("#contentTable").hide();
+        createNewOntologyTable(testDataArray); //blank table
+        $('createOntologyTable').hide();
     })
 
 </script>
