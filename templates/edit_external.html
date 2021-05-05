@@ -6,6 +6,17 @@
 
 {% block content %}
 
+<!-- //tabulator: -->
+<!-- always up-to-date tabulator CDN -->
+<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
+
+
+<!-- bootstrap 4 theme -->
+<link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+
+
+
 <div class="row mb-3">
     <div class="col-md-12">
         <h1 id="import_header"> EXTERNAL IMPORTS</h1>
@@ -40,6 +51,15 @@
         </button>
     </form>
 </div>
+<br></br>
+<div class="row">
+    <div class="col-md-12">
+        <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
+            style="font-size: 0.8em; display:none;">
+        </div>
+    </div>
+</div>
+
 
 <script type="text/javascript">
     console.log("start");
@@ -54,13 +74,14 @@
     console.log(newParentsRowData);
 
     var rowLength = externalImportsRowData.length;
-    var headerLength = 6;
+    var headerLength = 6; //todo: get this from back end?
     var ontologyIDs = [];
     for (var i = 0; i < rowLength; i++) {
         ontologyIDs.push(externalImportsRowData[i]["Ontology ID"]);
     }
     console.log("Ontology IDs: " + ontologyIDs); //correct
 
+    var currentOntology = "BCIO";
     //from rep.html:
     function submitForm(button) {
         var newID = $("#inputText").val();
@@ -75,19 +96,60 @@
     function createInput(inputArray) {
         $(".dropdown-item").remove(); //first remove all 
         for (item in inputArray) {
-            var $input = $("<a href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' onclick=\"function hi(){alert('" + inputArray[item] + "')};hi(); return false;\"" + " >" + inputArray[item] + "</a>");
+            var $input = $("<a href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' onclick=\"function hi(){currentOntology = '" + inputArray[item] + "';};hi(); return false;\"" + " >" + inputArray[item] + "</a>");
 
-            // var $input = $("<input href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' onclick='function hi(){alert('Hi!')};hi(); return false;'" + " />");
+            // var $input = $("<input href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' />");
             $input.appendTo($("#ontology_selection_menu"));
         }
 
     }
 
+    // function createTable(responseData, type) {
+    function createTable(inputData) {
+        // bootbox.hideAll();
+        // if (responseData.length < 1) {
+        //   document.getElementById("resultsHeader").innerHTML = "No Results";
+        // } else {
+        //   document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
+        // }
+        var table = new Tabulator("#contentTable", {
+            data: inputData,
+
+            columns: [ //Define Table Columns
+                { title: "Ontology", field: "ontology", formatter: "textarea", width: "120" },
+            ],
+            // height: window.innerHeight / 3 * 2,
+            layout: "fitColumns",
+            pagination: "local",
+            paginationSize: "50",
+        });
+    }
+
     window.addEventListener("load", function () {
         createInput(ontologyIDs);
-        // $(".dropdown-item").click(function () {
-        //     alert("Clicked on: " + $(".dropdown-item :selected").text());
-        // });
+        var testDataArray = [];
+        //below works, to build table data:
+        // for(i in ontologyIDs){
+        //     let item = {
+        //         "id": i,
+        //         "ontology": ontologyIDs[i]
+        //     }
+        //     testDataArray.push(item);
+      
+
+        var testDataArray = [
+        {id:1, ontology:currentOntology},
+        ];
+         
+        createTable(testDataArray);
+        $(".dropdown-item").click(function () {
+            console.log(currentOntology); //got it!
+            var testDataArray = [
+        {id:1, ontology:currentOntology},
+        ];         
+        createTable(testDataArray);
+        // alert("Clicked on: " + $(".dropdown-item :selected").text());
+        });
     })
 
 </script>
