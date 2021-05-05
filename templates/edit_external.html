@@ -63,6 +63,7 @@
 
 <script type="text/javascript">
     console.log("start");
+    var table;
     var spreadsheets = {{ spreadsheets | safe}};
     console.log(spreadsheets);
 
@@ -87,7 +88,7 @@
         var newID = $("#inputText").val();
         ontologyIDs.push(newID);
         console.log("new ontologyIDs: " + ontologyIDs);
-        createInput(ontologyIDs);
+        createInput(ontologyIDs); // is this working?
         $("#inputText").val("");
         $("#dropdownMenu2").click();
         return false; //todo: is this necessary
@@ -102,6 +103,16 @@
             $input.appendTo($("#ontology_selection_menu"));
         }
 
+        $(".dropdown-item").click(function () {
+            console.log(currentOntology); //got it!
+            testDataArray = [
+                { id: 1, ontology: currentOntology },
+            ];
+            table.replaceData(testDataArray);
+            // createTable(testDataArray); //todo: new table not accessible anymore, as the old one is still present somewhere...
+           
+        });
+
     }
 
     // function createTable(responseData, type) {
@@ -112,17 +123,21 @@
         // } else {
         //   document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
         // }
-        var table = new Tabulator("#contentTable", {
-            data: inputData,
+        
+            table = new Tabulator("#contentTable", {
+                data: inputData,
 
-            columns: [ //Define Table Columns
-                { title: "Ontology", field: "ontology", formatter: "textarea", width: "120" },
-            ],
-            // height: window.innerHeight / 3 * 2,
-            layout: "fitColumns",
-            pagination: "local",
-            paginationSize: "50",
-        });
+                columns: [ //Define Table Columns
+                    { title: "Ontology", field: "ontology", formatter: "textarea", width: "120" },
+                ],
+                // height: window.innerHeight / 3 * 2,
+                layout: "fitColumns",
+                pagination: "local",
+                paginationSize: "50",
+            });
+
+            
+        
     }
 
     window.addEventListener("load", function () {
@@ -135,21 +150,22 @@
         //         "ontology": ontologyIDs[i]
         //     }
         //     testDataArray.push(item);
-      
 
+        //initialise table:
         var testDataArray = [
-        {id:1, ontology:currentOntology},
+            { id: 1, ontology: currentOntology },
         ];
-         
         createTable(testDataArray);
-        $(".dropdown-item").click(function () {
-            console.log(currentOntology); //got it!
-            var testDataArray = [
-        {id:1, ontology:currentOntology},
-        ];         
-        createTable(testDataArray);
-        // alert("Clicked on: " + $(".dropdown-item :selected").text());
-        });
+        
+        // $(".dropdown-item").click(function () {
+        //     console.log(currentOntology); //got it!
+        //     testDataArray = [
+        //         { id: 1, ontology: currentOntology },
+        //     ];
+        //     // table.replaceData(testDataArray);
+        //     // createTable(testDataArray); //todo: new table not accessible anymore, as the old one is still present somewhere...
+           
+        // });
     })
 
 </script>
