@@ -75,7 +75,9 @@
     function createInput(inputArray) {
         $(".dropdown-item").remove(); //first remove all 
         for (item in inputArray) {
-            var $input = $("<input class='dropdown-item' type='button' value='" + inputArray[item] + "' />");
+            var $input = $("<a href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' onclick=\"function hi(){alert('" + inputArray[item] + "')};hi(); return false;\"" + " >" + inputArray[item] + "</a>");
+
+            // var $input = $("<input href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' onclick='function hi(){alert('Hi!')};hi(); return false;'" + " />");
             $input.appendTo($("#ontology_selection_menu"));
         }
 
@@ -83,6 +85,9 @@
 
     window.addEventListener("load", function () {
         createInput(ontologyIDs);
+        // $(".dropdown-item").click(function () {
+        //     alert("Clicked on: " + $(".dropdown-item :selected").text());
+        // });
     })
 
 </script>
