@@ -34,22 +34,20 @@
             Choose Ontology
         </button>
         <div id="ontology_selection_menu" class="dropdown-menu" aria-labelledby="dropdownMenu2">
-            <!-- <button class="dropdown-item" type="button">Action</button>
-        <button class="dropdown-item" type="button">Another action</button>
-        <button class="dropdown-item" type="button">Something else here</button> -->
         </div>
     </div>
 
     <form id="submitText" class="form-inline">
         <input id="inputText" name="inputText" value="" placeholder='new Ontology ID'>
-        <!-- <button type="submit" id="inputBtn" name="input" value="search" class="btn btn-outline-success fas fa-search"
-        onclick="return submitForm(this)">Choose Ontology
-    </button> -->
         <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
             class="btn btn-outline-warning fas fa-plus" onclick="return submitForm(this)">
             Submit New Ontology
         </button>
     </form>
+</div>
+<br></br>
+<div class="row">
+    <h4 id="table_name" style="display:none">BCIO:</h4>
 </div>
 <br></br>
 <div class="row">
@@ -83,12 +81,13 @@
     console.log("Ontology IDs: " + ontologyIDs); //correct
 
     var currentOntology = "BCIO";
-    //from rep.html:
+
+    //from repo.html:
     function submitForm(button) {
         var newID = $("#inputText").val();
         ontologyIDs.push(newID);
         console.log("new ontologyIDs: " + ontologyIDs);
-        createInput(ontologyIDs); // is this working?
+        createInput(ontologyIDs);
         $("#inputText").val("");
         $("#dropdownMenu2").click();
         return false; //todo: is this necessary
@@ -104,40 +103,37 @@
         }
 
         $(".dropdown-item").click(function () {
+            $("#table_name").text(currentOntology + ":");
+            $("#table_name").show();
             console.log(currentOntology); //got it!
-            testDataArray = [
-                { id: 1, ontology: currentOntology },
-            ];
-            table.replaceData(testDataArray);
-            // createTable(testDataArray); //todo: new table not accessible anymore, as the old one is still present somewhere...
-           
+            //update table test:
+            // testDataArray = [
+            //     { id: 1, ontology: currentOntology },
+            // ];
+            // table.replaceData(testDataArray);
         });
 
     }
 
     // function createTable(responseData, type) {
     function createTable(inputData) {
-        // bootbox.hideAll();
-        // if (responseData.length < 1) {
-        //   document.getElementById("resultsHeader").innerHTML = "No Results";
-        // } else {
-        //   document.getElementById("resultsHeader").innerHTML = "RESULTS - click on a row to open its spreadsheet:";
-        // }
-        
-            table = new Tabulator("#contentTable", {
-                data: inputData,
+        table = new Tabulator("#contentTable", {
+            data: inputData,
 
-                columns: [ //Define Table Columns
-                    { title: "Ontology", field: "ontology", formatter: "textarea", width: "120" },
-                ],
-                // height: window.innerHeight / 3 * 2,
-                layout: "fitColumns",
-                pagination: "local",
-                paginationSize: "50",
-            });
+            columns: [ //Define Table Columns
+                { title: "Label", field: "label", formatter: "textarea", width: "120" },
+                { title: "ID", field: "id", formatter: "textarea", width: "120" },
+                { title: "New parent", field: "new_parent", formatter: "textarea", width: "120" },
+                { title: "New label", field: "new_label", formatter: "textarea", width: "120" },
+            ],
+            // height: window.innerHeight / 3 * 2,
+            layout: "fitColumns",
+            pagination: "local",
+            paginationSize: "50",
+        });
 
-            
-        
+
+
     }
 
     window.addEventListener("load", function () {
@@ -152,20 +148,12 @@
         //     testDataArray.push(item);
 
         //initialise table:
-        var testDataArray = [
-            { id: 1, ontology: currentOntology },
-        ];
+        // testDataArray = [
+        //     { id: 1, ontology: currentOntology },
+        // ];
         createTable(testDataArray);
-        
-        // $(".dropdown-item").click(function () {
-        //     console.log(currentOntology); //got it!
-        //     testDataArray = [
-        //         { id: 1, ontology: currentOntology },
-        //     ];
-        //     // table.replaceData(testDataArray);
-        //     // createTable(testDataArray); //todo: new table not accessible anymore, as the old one is still present somewhere...
-           
-        // });
+
+
     })
 
 </script>
