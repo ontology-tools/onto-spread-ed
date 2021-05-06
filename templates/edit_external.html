@@ -187,7 +187,7 @@
             //todo: make fields editable
             columns: [ //Define Table Columns
 
-                { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea", width: "500" },
+                { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
 
             ],
             // height: window.innerHeight / 3 * 2,
@@ -203,16 +203,16 @@
             //ontology ID, Purl, root ID, intermediates adn Prefix:
             //todo: make fields editable
             columns: [ //Define Table Columns
-                { title: "Ontology ID", field: "ontology_id", formatter: "textarea", width: "120" },
-                { title: "PURL", field: "purl", formatter: "textarea", width: "120" },
-                { title: "root ID", field: "root_id", formatter: "textarea", width: "120" },
-                { title: "intermediates", field: "intermediates", formatter: "textarea", width: "120" },
-                { title: "Prefix", field: "prefix", formatter: "textarea", width: "120" },
+                { title: "Ontology ID", field: "ontology_id", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "PURL", field: "purl", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "root ID", field: "root_id", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "intermediates", field: "intermediates", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "Prefix", field: "prefix", editor: "textarea", editable: true, formatter: "textarea" },
             ],
             // height: window.innerHeight / 3 * 2,
             layout: "fitColumns",
-            pagination: "local",
-            paginationSize: "50",
+            // pagination: "local",
+            // paginationSize: "50",
         });
     }
 
@@ -229,7 +229,7 @@
         //     }
         //     testDataArray.push(item);
 
-        //initialise table:
+        //initialise table test data:
         testDataArray = [
             { ontology_id: "hi" },
         ];
