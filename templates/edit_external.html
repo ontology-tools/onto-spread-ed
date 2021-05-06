@@ -180,17 +180,20 @@
     // function createTable(responseData, type) {
     function createTable(inputData) {
         table = new Tabulator("#contentTable", {
+            height: window.innerHeight / 3 * 2,
+            groupToggleElement: "header",
+            layout: "fitColumns",
             data: inputData,
             //todo: make fields editable
             columns: [ //Define Table Columns
 
-                { title: "ID", field: "id", formatter: "textarea", width: "120" },
+                { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea", width: "500" },
 
             ],
             // height: window.innerHeight / 3 * 2,
-            layout: "fitColumns",
-            pagination: "local",
-            paginationSize: "50",
+    
+            // pagination: "false",
+            // paginationSize: "50",
         });
     }
 
