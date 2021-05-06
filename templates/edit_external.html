@@ -186,21 +186,23 @@
             data: inputData,
             //todo: make fields editable
             columns: [ //Define Table Columns
-
+                { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true },
                 { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
-
             ],
-            // height: window.innerHeight / 3 * 2,
-    
-            // pagination: "false",
-            // paginationSize: "50",
+
+            rowAdded: function (row) {
+                table.scrollToRow(row, "bottom", false);
+                var cell = row.getCell("id");
+                cell.getElement().focus(); //todo: not focusing..
+            },
+            
         });
     }
 
     function createNewOntologyTable(inputData) {
         editOntologyTable = new Tabulator("#editOntologyTable", {
             data: inputData,
-            //ontology ID, Purl, root ID, intermediates adn Prefix:
+            //ontology ID, Purl, root ID, intermediates and Prefix:
             //todo: make fields editable
             columns: [ //Define Table Columns
                 { title: "Ontology ID", field: "ontology_id", editor: "textarea", editable: true, formatter: "textarea" },
@@ -215,6 +217,28 @@
             // paginationSize: "50",
         });
     }
+
+    $("#add-id").click(function () {
+        console.log("add-id clicked");
+        table.addRow();
+    });
+
+    $("#remove-id").click(function () {
+        console.log("remove-id clicked");
+        var selectedRows = table.getSelectedRows();
+        if (selectedRows.length > 1) {
+            if (!confirm("Do you really want to delete these ID's?")) { return; }
+        } else if (selectedRows.length == 1) {
+            if (!confirm("Do you really want to delete this ID?")) { return; }
+        } else {
+            bootbox.alert("No rows selected");
+            return;
+        }
+        //if selectedRows ID column is not null and "" then don't delete!
+        selectedRows.forEach(function (row) {
+            table.deleteRow(row);
+        });
+    });
 
     window.addEventListener("load", function () {
         $("#action_buttons").hide();
