@@ -41,7 +41,7 @@
         <input id="inputText" name="inputText" value="" placeholder='new Ontology ID'>
         <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
             class="btn btn-outline-warning fas fa-plus" onclick="return submitForm(this)">
-            Submit New Ontology
+            Create New Ontology
         </button>
     </form>
 </div>
@@ -61,8 +61,9 @@
 <div class="row mb-3" id="action_buttons">
     <div class="col-md-9">
         <div class="text-left">
-            <button id=add-id class="btn btn-outline-info btn-sm" ><i class="fas fa-plus"></i> Add ID</button>
-            <button id=remove-id class="btn btn-outline-danger btn-sm" ><i class="fas fa-trash-alt"></i> Remove ID</button>
+            <button id=add-id class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add ID</button>
+            <button id=remove-id class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Remove
+                ID</button>
         </div>
     </div>
 </div>
@@ -104,26 +105,24 @@
 
     //from repo.html:
     function submitForm(button) { //for submit new omtology
+        //todo: handle blank input, maybe a pop-up, "please input a new Ontology ID"?
         var newID = $("#inputText").val();
         ontologyIDs.push(newID);
         console.log("new ontologyIDs: " + ontologyIDs);
         createInput(ontologyIDs);
         $("#inputText").val("");
         $("#dropdownMenu2").click();//not necessary, does nothing..
-
-        //todo: for new ontologyIDs, fill and show form to input ontology ID, Purl, root ID, intermediates and Prefix:
-        //also change header to show what to do
         var updateOntologyDataArray = [
-            {ontology_id:newID },
-        ]; 
+            { ontology_id: newID },
+        ];
         //test:
         // var updateOntologyDataArray = [
         //     { ontology_id: "hi" },
         // ];
-        
+
         // testDataArray = [
-            //     { id: 1, ontology: currentOntology },
-            // ];
+        //     { id: 1, ontology: currentOntology },
+        // ];
         console.log("updateOntologyDataArray is: " + updateOntologyDataArray);
         editOntologyTable.replaceData(updateOntologyDataArray);
         $("#table_name").text("EDITING " + newID + ":");
@@ -138,7 +137,6 @@
         $(".dropdown-item").remove(); //first remove all 
         for (item in inputArray) {
             var $input = $("<a href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' onclick=\"function hi(){currentOntology = '" + inputArray[item] + "';};hi(); return false;\"" + " >" + inputArray[item] + "</a>");
-
             // var $input = $("<input href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' />");
             $input.appendTo($("#ontology_selection_menu"));
         }
@@ -148,11 +146,30 @@
             $("#table_name").show();
 
             console.log(currentOntology); //got it!
+            //todo: fill ID's with ; separated values from externalImportsRowData:
+            var selectedIDs = [];
+            for (var i = 0; i < rowLength; i++) {
+                if (externalImportsRowData[i]["Ontology ID"] == currentOntology) {
+                    var listOfIDs = externalImportsRowData[i]["IDs"];
+                    console.log("list of ID's is: " + listOfIDs);
+                    selectedIDs = listOfIDs.split(';');
+                    // selectedIDs.push(externalImportsRowData[i]["Ontology ID"]); //this is all values ;;;;;;
+                }
+            }
+            var selectedIDsArray = []; //actual array to populate table
+            for(i in selectedIDs){
+                let item = {
+                    "id": selectedIDs[i]
+                }
+                selectedIDsArray.push(item);
+            }
+
+            // console.log("Ontology IDs: " + ontologyIDs); //correct
             //update table test:
             // testDataArray = [
             //     { id: 1, ontology: currentOntology },
             // ];
-            // table.replaceData(testDataArray);
+            table.replaceData(selectedIDsArray);
             $("#editOntologyTable").hide();
             $("#contentTable").show();
             $("#action_buttons").show();
@@ -166,9 +183,9 @@
             data: inputData,
             //todo: make fields editable
             columns: [ //Define Table Columns
-                
+
                 { title: "ID", field: "id", formatter: "textarea", width: "120" },
-                
+
             ],
             // height: window.innerHeight / 3 * 2,
             layout: "fitColumns",
@@ -218,7 +235,7 @@
 
         //hide tables:
         $("#contentTable").hide();
-        $("#editOntologyTable").hide(); 
+        $("#editOntologyTable").hide();
 
 
 
