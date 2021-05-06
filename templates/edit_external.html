@@ -58,6 +58,16 @@
     </div>
 </div>
 <!-- todo: add a submit button for editOntologyTable, and a way to submit-->
+<!-- todo: save buttons need to align right -->
+<div class="row mb-3">
+    <div class="col-md-9">
+        <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right" 
+        onclick="save_table()">
+            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+            Save changes to table
+        </button>
+    </div>
+</div>
 <div class="row mb-3" id="action_buttons">
     <div class="col-md-9">
         <div class="text-left">
@@ -74,8 +84,17 @@
         </div>
     </div>
 </div>
-<!-- todo: add a submit button for contentTable, and a way to submit-->
-
+<!-- todo: add a saveChanges method for contentTable, and a way to submit-->
+<!-- todo: save buttons need to align right -->
+<div class="row mb-3">
+    <div class="col-md-9">
+        <button id="save-contenttable-btn" class="btn btn-outline-success btn-sm text-right" 
+        onclick="save_contenttable()">
+            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+            Save changes to content
+        </button>
+    </div>
+</div>
 
 
 <script type="text/javascript">
@@ -104,7 +123,7 @@
     var currentOntology = "BCIO";
 
     //from repo.html:
-    function submitForm(button) { //for submit new omtology
+    function submitForm(button) { //for submit new ontology
         //todo: handle blank input, maybe a pop-up, "please input a new Ontology ID"?
         var newID = $("#inputText").val();
         ontologyIDs.push(newID);
@@ -184,7 +203,7 @@
             groupToggleElement: "header",
             layout: "fitColumns",
             data: inputData,
-            //todo: make fields editable
+
             columns: [ //Define Table Columns
                 { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true },
                 { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
@@ -195,15 +214,20 @@
                 var cell = row.getCell("id");
                 cell.getElement().focus(); //todo: not focusing..
             },
-            
+
+            cellEdited: function (cell) {
+                //show save-table-btn here
+                $("#save-table-btn").show();
+                $("#save-contenttable-btn").hide();                
+            },
         });
     }
 
     function createNewOntologyTable(inputData) {
         editOntologyTable = new Tabulator("#editOntologyTable", {
             data: inputData,
-            //ontology ID, Purl, root ID, intermediates and Prefix:
-            //todo: make fields editable
+            layout: "fitColumns",
+
             columns: [ //Define Table Columns
                 { title: "Ontology ID", field: "ontology_id", editor: "textarea", editable: true, formatter: "textarea" },
                 { title: "PURL", field: "purl", editor: "textarea", editable: true, formatter: "textarea" },
@@ -211,10 +235,13 @@
                 { title: "intermediates", field: "intermediates", editor: "textarea", editable: true, formatter: "textarea" },
                 { title: "Prefix", field: "prefix", editor: "textarea", editable: true, formatter: "textarea" },
             ],
-            // height: window.innerHeight / 3 * 2,
-            layout: "fitColumns",
-            // pagination: "local",
-            // paginationSize: "50",
+
+            cellEdited: function (cell) {
+                //show save-contenttable-btn here
+                $("#save-table-btn").hide();
+                $("#save-contenttable-btn").show();
+            },
+            
         });
     }
 
@@ -231,14 +258,23 @@
         } else if (selectedRows.length == 1) {
             if (!confirm("Do you really want to delete this ID?")) { return; }
         } else {
-            bootbox.alert("No rows selected");
+            bootbox.alert("No ID's selected");
             return;
         }
-        //if selectedRows ID column is not null and "" then don't delete!
         selectedRows.forEach(function (row) {
             table.deleteRow(row);
         });
     });
+
+    var save_contenttable = function (){
+        console.log("save_contenttable here");
+        //todo: save changes
+    }
+
+    var save_table = function (){
+        console.log("save_table here");
+        //todo: save changes
+    }
 
     window.addEventListener("load", function () {
         $("#action_buttons").hide();
@@ -263,9 +299,8 @@
         //hide tables:
         $("#contentTable").hide();
         $("#editOntologyTable").hide();
-
-
-
+        $("#save-table-btn").hide();
+        $("#save-contenttable-btn").hide();
     })
 
 </script>
