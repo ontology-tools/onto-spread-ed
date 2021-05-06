@@ -50,15 +50,23 @@
     <h4 id="table_name" style="display:none">BCIO:</h4>
 </div>
 <br></br>
-<div class="row">
+<div class="row" id="table1">
     <div class="col-md-12">
-        <div id="newOntologyTable" class="table table-bordered table-striped table-hover table-sm"
+        <div id="editOntologyTable" class="table table-bordered table-striped table-hover table-sm"
             style="font-size: 0.8em; display:none;">
         </div>
     </div>
 </div>
-<!-- todo: add a submit button for newOntologyTable, and a way to submit-->
-<div class="row">
+<!-- todo: add a submit button for editOntologyTable, and a way to submit-->
+<div class="row mb-3" id="action_buttons">
+    <div class="col-md-9">
+        <div class="text-left">
+            <button id=add-id class="btn btn-outline-info btn-sm" ><i class="fas fa-plus"></i> Add ID</button>
+            <button id=remove-id class="btn btn-outline-danger btn-sm" ><i class="fas fa-trash-alt"></i> Remove ID</button>
+        </div>
+    </div>
+</div>
+<div class="row" id="table2">
     <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
             style="font-size: 0.8em; display:none;">
@@ -68,10 +76,11 @@
 <!-- todo: add a submit button for contentTable, and a way to submit-->
 
 
+
 <script type="text/javascript">
     console.log("start");
     var table; //main table
-    var newOntologyTable; //for new ontology
+    var editOntologyTable; //for new ontology
 
     var spreadsheets = {{ spreadsheets | safe}};
     console.log(spreadsheets);
@@ -94,7 +103,7 @@
     var currentOntology = "BCIO";
 
     //from repo.html:
-    function submitForm(button) {
+    function submitForm(button) { //for submit new omtology
         var newID = $("#inputText").val();
         ontologyIDs.push(newID);
         console.log("new ontologyIDs: " + ontologyIDs);
@@ -102,16 +111,26 @@
         $("#inputText").val("");
         $("#dropdownMenu2").click();//not necessary, does nothing..
 
-        //todo: for new ontologyIDs, fill and show form to input ontology ID, Purl, root ID, intermediates adn Prefix:
+        //todo: for new ontologyIDs, fill and show form to input ontology ID, Purl, root ID, intermediates and Prefix:
         //also change header to show what to do
-        updateOntologyDataArray = [
-            { ontology_id: currentOntology },
-        ];
-        table.replaceData(updateOntologyDataArray);
-        $("#table_name").text("EDITING " + currentOntology + ":");
+        var updateOntologyDataArray = [
+            {ontology_id:newID },
+        ]; 
+        //test:
+        // var updateOntologyDataArray = [
+        //     { ontology_id: "hi" },
+        // ];
+        
+        // testDataArray = [
+            //     { id: 1, ontology: currentOntology },
+            // ];
+        console.log("updateOntologyDataArray is: " + updateOntologyDataArray);
+        editOntologyTable.replaceData(updateOntologyDataArray);
+        $("#table_name").text("EDITING " + newID + ":");
         $("#table_name").show();
         $("#contentTable").hide();
-        $('createOntologyTable').show();
+        $("#action_buttons").hide();
+        $("#editOntologyTable").show();
         return false; //todo: is this necessary
     }
 
@@ -127,15 +146,16 @@
         $(".dropdown-item").click(function () {
             $("#table_name").text(currentOntology + ":");
             $("#table_name").show();
-            
+
             console.log(currentOntology); //got it!
             //update table test:
             // testDataArray = [
             //     { id: 1, ontology: currentOntology },
             // ];
             // table.replaceData(testDataArray);
-            $('createOntologyTable').hide();
-            $("#contentTable").show();            
+            $("#editOntologyTable").hide();
+            $("#contentTable").show();
+            $("#action_buttons").show();
         });
 
     }
@@ -146,10 +166,9 @@
             data: inputData,
             //todo: make fields editable
             columns: [ //Define Table Columns
-                { title: "Label", field: "label", formatter: "textarea", width: "120" },
+                
                 { title: "ID", field: "id", formatter: "textarea", width: "120" },
-                { title: "New parent", field: "new_parent", formatter: "textarea", width: "120" },
-                { title: "New label", field: "new_label", formatter: "textarea", width: "120" },
+                
             ],
             // height: window.innerHeight / 3 * 2,
             layout: "fitColumns",
@@ -159,7 +178,7 @@
     }
 
     function createNewOntologyTable(inputData) {
-        newOntologyTable = new Tabulator("#newOntologyTable", {
+        editOntologyTable = new Tabulator("#editOntologyTable", {
             data: inputData,
             //ontology ID, Purl, root ID, intermediates adn Prefix:
             //todo: make fields editable
@@ -178,8 +197,10 @@
     }
 
     window.addEventListener("load", function () {
+        $("#action_buttons").hide();
         createInput(ontologyIDs);
-        var testDataArray = [];
+        var initialDataArray = [];
+        var initialDataArray2 = [];
         //below works, to build table data:
         // for(i in ontologyIDs){
         //     let item = {
@@ -189,14 +210,18 @@
         //     testDataArray.push(item);
 
         //initialise table:
-        // testDataArray = [
-        //     { id: 1, ontology: currentOntology },
-        // ];
-        createTable(testDataArray); //blank table
-        //hide table for now: 
+        testDataArray = [
+            { ontology_id: "hi" },
+        ];
+        createTable(initialDataArray); //blank table        
+        createNewOntologyTable(initialDataArray2); //test table
+
+        //hide tables:
         $("#contentTable").hide();
-        createNewOntologyTable(testDataArray); //blank table
-        $('createOntologyTable').hide();
+        $("#editOntologyTable").hide(); 
+
+
+
     })
 
 </script>
