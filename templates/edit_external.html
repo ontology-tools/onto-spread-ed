@@ -49,7 +49,42 @@
 <div class="row">
     <h4 id="table_name" style="display:none">BCIO:</h4>
 </div>
-<br></br>
+<!-- todo: add a submit button for editOntologyTable, and a way to submit-->
+<!-- todo: save buttons need to align right -->
+<!-- <div class="row mb-3"> -->
+<!-- <div class="col-md-9"> -->
+<!-- <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right"  -->
+<!-- onclick="save_table()"> -->
+<!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+<!-- Save changes to ID's -->
+<!-- </button> -->
+<!-- </div> -->
+<!-- </div> -->
+<div class="row mb-3" id="action_buttons">
+    <div class="col-md-9">
+        <!-- <div class="text-left"> -->
+            <button id=add-id class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add ID</button>
+            <button id=remove-id class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Remove
+                ID</button>
+            <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right float-right" onclick="save_table()">
+                <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+                Save changes to ID's
+            </button>
+        <!-- </div> -->
+    </div>
+</div>
+<!-- todo: add a saveChanges method for contentTable, and a way to submit-->
+<!-- todo: save buttons need to align right -->
+<div class="row mb-3">
+    <div class="col-md-9">
+        <button id="save-contenttable-btn" class="btn btn-outline-success btn-sm text-right float-right"
+            onclick="save_contenttable()">
+            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+            Save new Ontology
+        </button>
+    </div>
+</div>
+
 <div class="row" id="table1">
     <div class="col-md-12">
         <div id="editOntologyTable" class="table table-bordered table-striped table-hover table-sm"
@@ -57,26 +92,8 @@
         </div>
     </div>
 </div>
-<!-- todo: add a submit button for editOntologyTable, and a way to submit-->
-<!-- todo: save buttons need to align right -->
-<div class="row mb-3">
-    <div class="col-md-9">
-        <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right" 
-        onclick="save_table()">
-            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
-            Save changes to table
-        </button>
-    </div>
-</div>
-<div class="row mb-3" id="action_buttons">
-    <div class="col-md-9">
-        <div class="text-left">
-            <button id=add-id class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add ID</button>
-            <button id=remove-id class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Remove
-                ID</button>
-        </div>
-    </div>
-</div>
+
+
 <div class="row" id="table2">
     <div class="col-md-12">
         <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
@@ -84,17 +101,7 @@
         </div>
     </div>
 </div>
-<!-- todo: add a saveChanges method for contentTable, and a way to submit-->
-<!-- todo: save buttons need to align right -->
-<div class="row mb-3">
-    <div class="col-md-9">
-        <button id="save-contenttable-btn" class="btn btn-outline-success btn-sm text-right" 
-        onclick="save_contenttable()">
-            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
-            Save changes to content
-        </button>
-    </div>
-</div>
+
 
 
 <script type="text/javascript">
@@ -149,6 +156,8 @@
         $("#contentTable").hide();
         $("#action_buttons").hide();
         $("#editOntologyTable").show();
+        $("#save-table-btn").hide();
+        $("#save-contenttable-btn").hide();
         return false; //todo: is this necessary
     }
 
@@ -163,7 +172,8 @@
         $(".dropdown-item").click(function () {
             $("#table_name").text(currentOntology + ":");
             $("#table_name").show();
-
+            $("#save-table-btn").hide();
+             $("#save-contenttable-btn").hide();
             console.log(currentOntology); //got it!
             //todo: fill ID's with ; separated values from externalImportsRowData:
             var selectedIDs = [];
@@ -176,7 +186,7 @@
                 }
             }
             var selectedIDsArray = []; //actual array to populate table
-            for(i in selectedIDs){
+            for (i in selectedIDs) {
                 let item = {
                     "id": selectedIDs[i]
                 }
@@ -218,7 +228,7 @@
             cellEdited: function (cell) {
                 //show save-table-btn here
                 $("#save-table-btn").show();
-                $("#save-contenttable-btn").hide();                
+                $("#save-contenttable-btn").hide();
             },
         });
     }
@@ -241,13 +251,14 @@
                 $("#save-table-btn").hide();
                 $("#save-contenttable-btn").show();
             },
-            
+
         });
     }
 
     $("#add-id").click(function () {
         console.log("add-id clicked");
         table.addRow();
+        $("#save-table-btn").show();
     });
 
     $("#remove-id").click(function () {
@@ -263,15 +274,16 @@
         }
         selectedRows.forEach(function (row) {
             table.deleteRow(row);
+            $("#save-table-btn").show();
         });
     });
 
-    var save_contenttable = function (){
+    var save_contenttable = function () {
         console.log("save_contenttable here");
         //todo: save changes
     }
 
-    var save_table = function (){
+    var save_table = function () {
         console.log("save_table here");
         //todo: save changes
     }
