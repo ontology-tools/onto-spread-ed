@@ -63,13 +63,14 @@
 <div class="row mb-3" id="action_buttons">
     <div class="col-md-9">
         <!-- <div class="text-left"> -->
-            <button id=add-id class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add ID</button>
-            <button id=remove-id class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Remove
-                ID</button>
-            <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right float-right" onclick="save_table()">
-                <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
-                Save changes to ID's
-            </button>
+        <button id=add-id class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add ID</button>
+        <button id=remove-id class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Remove
+            ID</button>
+        <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right float-right"
+            onclick="save_table()">
+            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+            Save changes to ID's
+        </button>
         <!-- </div> -->
     </div>
 </div>
@@ -118,6 +119,8 @@
     console.log(externalImportsRowData);
     console.log(newLabelsRowData);
     console.log(newParentsRowData);
+
+
 
     var rowLength = externalImportsRowData.length;
     var headerLength = 6; //todo: get this from back end?
@@ -173,7 +176,7 @@
             $("#table_name").text(currentOntology + ":");
             $("#table_name").show();
             $("#save-table-btn").hide();
-             $("#save-contenttable-btn").hide();
+            $("#save-contenttable-btn").hide();
             console.log(currentOntology); //got it!
             //todo: fill ID's with ; separated values from externalImportsRowData:
             var selectedIDs = [];
@@ -281,11 +284,20 @@
     var save_contenttable = function () {
         console.log("save_contenttable here");
         //todo: save changes
+        //For each ontology, we have five pieces of information: 
+        //The ontology ID, the PURL, the "root id", "intermediates" and "Prefix". 
+        //When we add a new ontology, we need to specify these (although Prefix can be blank).
+        var data1 = editOntologyTable.getData();
+        var jsonData = JSON.stringify(data1[0]);
+        console.log("data is: " + jsonData); //got it!
     }
 
     var save_table = function () {
         console.log("save_table here");
         //todo: save changes
+        var data1 = table.getData();
+        var jsonData = JSON.stringify(data1);
+        console.log("data is: " + jsonData); //got it!
     }
 
     window.addEventListener("load", function () {
