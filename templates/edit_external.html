@@ -135,9 +135,10 @@
     function submitForm(button) { //for submit new ontology
         //todo: handle blank input, maybe a pop-up, "please input a new Ontology ID"?
         var newID = $("#inputText").val();
-        ontologyIDs.push(newID);
-        console.log("new ontologyIDs: " + ontologyIDs);
-        createInput(ontologyIDs);
+        //:only add this once all information is submitted. ID's should be tied to the ID's sheet?
+        // ontologyIDs.push(newID); 
+        // console.log("new ontologyIDs: " + ontologyIDs);
+        // createInput(ontologyIDs);
         $("#inputText").val("");
         $("#dropdownMenu2").click();//not necessary, does nothing..
         var updateOntologyDataArray = [
@@ -313,6 +314,14 @@
 
         if(save_contenttable_data_checked == true){
             console.log("send data here");
+            //todo: update ID when data send confirmed: 
+            var newID = row1["ontology_id"];
+            ontologyIDs.push(newID); 
+            console.log("new ontologyIDs: " + ontologyIDs);
+            createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
+            $("#save-contenttable-btn").hide(); //todo: reload page rather here? Hide sheet? 
+            $("#editOntologyTable").hide(); //todo: need a "saved" message to indicate saving
+            alert("New Ontology ID saved"); //todo: bootstrap message here?
         } else{
             alert("Only Prefix is allowed to be blank.. ");
         }
@@ -336,6 +345,7 @@
         if(save_table_data_checked == true){
             console.log("send data here");
             //todo: save changes
+            alert("ID table has been updated"); //todo: bootbox message here on confirmation of saved changes
         } else{
             alert("ID's cannot be blank ");
         }
