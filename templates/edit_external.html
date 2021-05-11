@@ -96,7 +96,7 @@
 
 <div class="row" id="table2">
     <div class="col-md-12">
-        <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
+        <div id="contentTable" class="table table-bordered table-striped table-hover table-sm thead-dark"
             style="font-size: 0.8em; display:none;">
         </div>
     </div>
@@ -231,6 +231,7 @@
             },
 
             cellEdited: function (cell) {
+                console.log("cell edited in contentTable");
                 //show save-table-btn here
                 $("#save-table-btn").show();
                 $("#save-contenttable-btn").hide();
@@ -321,6 +322,7 @@
             createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
             $("#save-contenttable-btn").hide(); //todo: reload page rather here? Hide sheet? 
             $("#editOntologyTable").hide(); //todo: need a "saved" message to indicate saving
+            $("#table_name").hide();
             bootbox.alert("New Ontology ID saved"); 
         } else{
             bootbox.alert("Only Prefix is allowed to be blank.. ");
@@ -353,6 +355,8 @@
     }
 
     window.addEventListener("load", function () {
+        //set header colour: 
+        
         $("#action_buttons").hide();
         createInput(ontologyIDs);
         var initialDataArray = [];
