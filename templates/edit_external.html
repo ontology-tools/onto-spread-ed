@@ -75,7 +75,6 @@
     </div>
 </div>
 <!-- todo: add a saveChanges method for contentTable, and a way to submit-->
-<!-- todo: save buttons need to align right -->
 <div class="row mb-3">
     <div class="col-md-9">
         <button id="save-contenttable-btn" class="btn btn-outline-success btn-sm text-right float-right"
@@ -142,7 +141,7 @@
         $("#inputText").val("");
         $("#dropdownMenu2").click();//not necessary, does nothing..
         var updateOntologyDataArray = [
-            { ontology_id: newID },
+            { ontology_id: newID,  purl: "", root_id: "", intermediates: "",  prefix: ""},
         ];
         //test:
         // var updateOntologyDataArray = [
@@ -177,6 +176,7 @@
             $("#table_name").show();
             $("#save-table-btn").hide();
             $("#save-contenttable-btn").hide();
+            console.log(".dropdown-item clicked");
             console.log(currentOntology); //got it!
             //todo: fill ID's with ; separated values from externalImportsRowData:
             var selectedIDs = [];
@@ -191,9 +191,10 @@
             var selectedIDsArray = []; //actual array to populate table
             for (i in selectedIDs) {
                 let item = {
-                    "id": selectedIDs[i]
+                    "id": selectedIDs[i]                    
                 }
                 selectedIDsArray.push(item);
+                console.log("added item: " + selectedIDs[i]);
             }
 
             // console.log("Ontology IDs: " + ontologyIDs); //correct
@@ -282,14 +283,39 @@
     });
 
     var save_contenttable = function () {
+        var save_contenttable_data_checked = true; //check if we can send
         console.log("save_contenttable here");
         //todo: save changes
         //For each ontology, we have five pieces of information: 
         //The ontology ID, the PURL, the "root id", "intermediates" and "Prefix". 
         //When we add a new ontology, we need to specify these (although Prefix can be blank).
+        // var row1 = editOntologyTable.getRows();
+        // var data1 = row1.getData();
         var data1 = editOntologyTable.getData();
-        var jsonData = JSON.stringify(data1[0]);
+        var row1 = data1[0];    
+        var jsonData = JSON.stringify(data1[0]); //data to send
         console.log("data is: " + jsonData); //got it!
+
+        //check for blank data:
+        if(row1["ontology_id"].trim() == "" || row1["ontology_id"] == null){ 
+            save_contenttable_data_checked = false;
+        } 
+        if(row1["purl"].trim() == "" || row1["purl"] == null){ 
+            save_contenttable_data_checked = false;
+        } 
+        if(row1["root_id"].trim() == "" || row1["root_id"] == null){ 
+            save_contenttable_data_checked = false;
+        } 
+        if(row1["intermediates"].trim() == "" || row1["intermediates"] == null){ 
+            save_contenttable_data_checked = false;
+        } 
+        
+
+        if(save_contenttable_data_checked == true){
+            console.log("send data here")
+        } else{
+            alert("Only Prefix is allowed to be blank.. ");
+        }
     }
 
     var save_table = function () {
