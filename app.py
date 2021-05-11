@@ -237,7 +237,8 @@ searcher = SpreadsheetSearcher()
 class OntologyDataStore:
     node_props = {"shape":"box","style":"rounded", "font": "helvetica"}
     rel_cols = {"has part":"blue","part of":"blue","contains":"green",
-                "has role":"darkgreen","is about":"darkgrey", "participates in":"darkblue"}
+                "has role":"darkgreen","is about":"darkgrey",
+                "has participant":"darkblue"}
 
     def __init__(self):
         self.releases = {}
@@ -394,6 +395,13 @@ class OntologyDataStore:
                 descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
                 for d in descs:
                     ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+            if self.graphs[repo]:
+                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
+                                                                  id.replace(":", "_"))
+                # print("Got descs from graph",graph_descs)
+                for g in graph_descs:
+                    if g not in ids:
+                        ids.append(g)
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
@@ -403,7 +411,7 @@ class OntologyDataStore:
 
     def getDotForSelection(self, repo, data, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        print("getDot")
+        #print("getDot")
         ids = []
         for id in selectedIds:
             entry = data[id]
@@ -423,6 +431,12 @@ class OntologyDataStore:
                         descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                     for d in descs:
                         ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                    if self.graphs[repo]:
+                        graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                        #print("Got descs from graph",graph_descs)
+                        for g in graph_descs:
+                            if g not in ids:
+                                ids.append(g)
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
