@@ -218,7 +218,7 @@
             layout: "fitColumns",
             data: inputData,
 
-            columns: [ //Define Table Columns
+            columns: [ 
                 { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true },
                 { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
             ],
@@ -242,7 +242,7 @@
             data: inputData,
             layout: "fitColumns",
 
-            columns: [ //Define Table Columns
+            columns: [ 
                 { title: "Ontology ID", field: "ontology_id", editor: "textarea", editable: true, formatter: "textarea" },
                 { title: "PURL", field: "purl", editor: "textarea", editable: true, formatter: "textarea" },
                 { title: "root ID", field: "root_id", editor: "textarea", editable: true, formatter: "textarea" },
@@ -297,33 +297,48 @@
         console.log("data is: " + jsonData); //got it!
 
         //check for blank data:
-        if(row1["ontology_id"].trim() == "" || row1["ontology_id"] == null){ 
+        if(row1["ontology_id"].trim() == "" || row1["ontology_id"] == null || row1["ontology_id"] == undefined){ 
             save_contenttable_data_checked = false;
         } 
-        if(row1["purl"].trim() == "" || row1["purl"] == null){ 
+        if(row1["purl"].trim() == "" || row1["purl"] == null || row1["purl"] == undefined){ 
             save_contenttable_data_checked = false;
         } 
-        if(row1["root_id"].trim() == "" || row1["root_id"] == null){ 
+        if(row1["root_id"].trim() == "" || row1["root_id"] == null || row1["root_id"] == undefined){ 
             save_contenttable_data_checked = false;
         } 
-        if(row1["intermediates"].trim() == "" || row1["intermediates"] == null){ 
+        if(row1["intermediates"].trim() == "" || row1["intermediates"] == null || row1["intermediates"] == undefined){ 
             save_contenttable_data_checked = false;
         } 
         
 
         if(save_contenttable_data_checked == true){
-            console.log("send data here")
+            console.log("send data here");
         } else{
             alert("Only Prefix is allowed to be blank.. ");
         }
     }
 
     var save_table = function () {
+        var save_table_data_checked = true;
         console.log("save_table here");
-        //todo: save changes
+        
         var data1 = table.getData();
+        //check for 
+        for(row in data1){
+            console.log(data1[row]["id"]);
+            if(data1[row]["id"] === undefined || data1[row]["id"] === null || data1[row]["id"].trim() == ""){
+                save_table_data_checked = false;
+            }
+        }
         var jsonData = JSON.stringify(data1);
         console.log("data is: " + jsonData); //got it!
+
+        if(save_table_data_checked == true){
+            console.log("send data here");
+            //todo: save changes
+        } else{
+            alert("ID's cannot be blank ");
+        }
     }
 
     window.addEventListener("load", function () {
