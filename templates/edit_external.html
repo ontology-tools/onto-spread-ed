@@ -321,9 +321,9 @@
             createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
             $("#save-contenttable-btn").hide(); //todo: reload page rather here? Hide sheet? 
             $("#editOntologyTable").hide(); //todo: need a "saved" message to indicate saving
-            alert("New Ontology ID saved"); //todo: bootstrap message here?
+            bootbox.alert("New Ontology ID saved"); 
         } else{
-            alert("Only Prefix is allowed to be blank.. ");
+            bootbox.alert("Only Prefix is allowed to be blank.. ");
         }
     }
 
@@ -346,9 +346,9 @@
             console.log("send data here");
             //todo: save changes
             $("#save-table-btn").hide(); //todo: after confirmatino of save
-            alert("ID table has been updated"); //todo: bootbox message here on confirmation of saved changes
+            bootbox.alert("ID table has been updated"); //todo: only on confirmation of saved changes
         } else{
-            alert("ID's cannot be blank ");
+            bootbox.alert("ID's cannot be blank ");
         }
     }
 
