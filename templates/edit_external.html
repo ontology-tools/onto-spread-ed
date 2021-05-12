@@ -191,8 +191,18 @@
             }
             var selectedIDsArray = []; //actual array to populate table
             for (i in selectedIDs) {
+                //todo: test if below has any edge cases where it doesn't work:
+                var ids = selectedIDs[i].split("[");
+                var lbl = ids[0];
+                var id = ids[1].replace("]", "");
+
+
                 let item = {
-                    "id": selectedIDs[i]
+                    // "id": selectedIDs[i]
+                    "id": id, 
+                    "label": lbl,
+                    "new_label": "",
+                    "new_parent": ""
                 }
                 selectedIDsArray.push(item);
                 console.log("added item: " + selectedIDs[i]);
@@ -222,6 +232,9 @@
             columns: [
                 { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true },
                 { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
+                { title: "Label", field: "label", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
+                { title: "New Label", field: "new_label", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
+                { title: "New Parent", field: "new_parent", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
             ],
 
             rowAdded: function (row) {
