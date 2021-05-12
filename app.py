@@ -1112,10 +1112,19 @@ def edit_external(repo_key, folder_path):
 @app.route('/save_new_ontology', methods=['POST'])
 @verify_logged_in
 def save_new_ontology():
-    #print("searching for initials")
-
     new_ontology = request.form.get("new_ontology")
     print("Received new Ontology: " + new_ontology)
+    response = "test"
+    return ( json.dumps({"message":"Success",
+                             "response": response}), 200 )
+
+@app.route('/update_ids', methods=['POST'])
+@verify_logged_in
+def update_ids():
+    current_ontology=request.form.get("current_ontology")
+    new_IDs=request.form.get("new_IDs")
+    print("Received new IDs from : "+ current_ontology)
+    print("data is: ", new_IDs)
     response = "test"
     return ( json.dumps({"message":"Success",
                              "response": response}), 200 )
