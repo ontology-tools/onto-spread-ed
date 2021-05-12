@@ -1109,6 +1109,17 @@ def edit_external(repo_key, folder_path):
                             rows3=json.dumps(rows3)
                             )
 
+@app.route('/save_new_ontology', methods=['POST'])
+@verify_logged_in
+def save_new_ontology():
+    #print("searching for initials")
+
+    new_ontology = request.form.get("new_ontology")
+    print("Received new Ontology: " + new_ontology)
+    response = "test"
+    return ( json.dumps({"message":"Success",
+                             "response": response}), 200 )
+
 # Internal methods
 
 def get_csv(repo_detail,folder,spreadsheet):

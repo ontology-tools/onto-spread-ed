@@ -142,7 +142,7 @@
         $("#inputText").val("");
         $("#dropdownMenu2").click();//not necessary, does nothing..
         var updateOntologyDataArray = [
-            { ontology_id: newID,  purl: "", root_id: "", intermediates: "",  prefix: ""},
+            { ontology_id: newID, purl: "", root_id: "", intermediates: "", prefix: "" },
         ];
         //test:
         // var updateOntologyDataArray = [
@@ -192,7 +192,7 @@
             var selectedIDsArray = []; //actual array to populate table
             for (i in selectedIDs) {
                 let item = {
-                    "id": selectedIDs[i]                    
+                    "id": selectedIDs[i]
                 }
                 selectedIDsArray.push(item);
                 console.log("added item: " + selectedIDs[i]);
@@ -219,7 +219,7 @@
             layout: "fitColumns",
             data: inputData,
 
-            columns: [ 
+            columns: [
                 { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true },
                 { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
             ],
@@ -244,7 +244,7 @@
             data: inputData,
             layout: "fitColumns",
 
-            columns: [ 
+            columns: [
                 { title: "Ontology ID", field: "ontology_id", editor: "textarea", editable: true, formatter: "textarea" },
                 { title: "PURL", field: "purl", editor: "textarea", editable: true, formatter: "textarea" },
                 { title: "root ID", field: "root_id", editor: "textarea", editable: true, formatter: "textarea" },
@@ -294,37 +294,55 @@
         // var row1 = editOntologyTable.getRows();
         // var data1 = row1.getData();
         var data1 = editOntologyTable.getData();
-        var row1 = data1[0];    
+        var row1 = data1[0];
         var jsonData = JSON.stringify(data1[0]); //data to send
         console.log("data is: " + jsonData); //got it!
 
         //check for blank data:
-        if(row1["ontology_id"].trim() == "" || row1["ontology_id"] == null || row1["ontology_id"] == undefined){ 
+        if (row1["ontology_id"].trim() == "" || row1["ontology_id"] == null || row1["ontology_id"] == undefined) {
             save_contenttable_data_checked = false;
-        } 
-        if(row1["purl"].trim() == "" || row1["purl"] == null || row1["purl"] == undefined){ 
+        }
+        if (row1["purl"].trim() == "" || row1["purl"] == null || row1["purl"] == undefined) {
             save_contenttable_data_checked = false;
-        } 
-        if(row1["root_id"].trim() == "" || row1["root_id"] == null || row1["root_id"] == undefined){ 
+        }
+        if (row1["root_id"].trim() == "" || row1["root_id"] == null || row1["root_id"] == undefined) {
             save_contenttable_data_checked = false;
-        } 
-        if(row1["intermediates"].trim() == "" || row1["intermediates"] == null || row1["intermediates"] == undefined){ 
+        }
+        if (row1["intermediates"].trim() == "" || row1["intermediates"] == null || row1["intermediates"] == undefined) {
             save_contenttable_data_checked = false;
-        } 
-        
+        }
 
-        if(save_contenttable_data_checked == true){
+
+        if (save_contenttable_data_checked == true) {
             console.log("send data here");
-            //todo: update ID when data send confirmed: 
-            var newID = row1["ontology_id"];
-            ontologyIDs.push(newID); 
-            console.log("new ontologyIDs: " + ontologyIDs);
-            createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
-            $("#save-contenttable-btn").hide(); //todo: reload page rather here? Hide sheet? 
-            $("#editOntologyTable").hide(); //todo: need a "saved" message to indicate saving
-            $("#table_name").hide();
-            bootbox.alert("New Ontology ID saved"); 
-        } else{
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function () {
+                if (request.readyState === 4) {
+                    if (!request.status) {
+                        bootbox.alert("Problem communicating with server");
+                    } else if (request.status === 200) {
+                        //update ID when data send confirmed: 
+                        var newID = row1["ontology_id"];
+                        ontologyIDs.push(newID);
+                        console.log("new ontologyIDs: " + ontologyIDs);
+                        createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
+                        $("#save-contenttable-btn").hide(); //todo: reload page rather here? Hide sheet? 
+                        $("#editOntologyTable").hide(); //todo: need a "saved" message to indicate saving
+                        $("#table_name").hide();
+                        bootbox.alert("New Ontology ID saved: " + newID);
+                    } else if (request.status === 400) {
+                        bootbox.alert("error saving new Ontology, try again");
+                    } else{
+                        console.log("other response for: " + request.status);
+                        //handle other responses?
+                    }
+                }
+            }
+            request.open('POST', '/save_new_ontology', true);
+            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            request.send('new_ontology=' + jsonData);
+
+        } else {
             bootbox.alert("Only Prefix is allowed to be blank.. ");
         }
     }
@@ -332,31 +350,31 @@
     var save_table = function () {
         var save_table_data_checked = true;
         console.log("save_table here");
-        
+
         var data1 = table.getData();
         //check for 
-        for(row in data1){
+        for (row in data1) {
             console.log(data1[row]["id"]);
-            if(data1[row]["id"] === undefined || data1[row]["id"] === null || data1[row]["id"].trim() == ""){
+            if (data1[row]["id"] === undefined || data1[row]["id"] === null || data1[row]["id"].trim() == "") {
                 save_table_data_checked = false;
             }
         }
         var jsonData = JSON.stringify(data1);
         console.log("data is: " + jsonData); //got it!
 
-        if(save_table_data_checked == true){
+        if (save_table_data_checked == true) {
             console.log("send data here");
             //todo: save changes
             $("#save-table-btn").hide(); //todo: after confirmatino of save
             bootbox.alert("ID table has been updated"); //todo: only on confirmation of saved changes
-        } else{
+        } else {
             bootbox.alert("ID's cannot be blank ");
         }
     }
 
     window.addEventListener("load", function () {
         //set header colour: 
-        
+
         $("#action_buttons").hide();
         createInput(ontologyIDs);
         var initialDataArray = [];
