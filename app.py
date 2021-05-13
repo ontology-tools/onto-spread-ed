@@ -1080,7 +1080,7 @@ def visualise(repo, sheet):
 @app.route('/edit_external/<repo_key>/<path:folder_path>')
 @verify_logged_in
 def edit_external(repo_key, folder_path):
-    print("edit_external reached") 
+    # print("edit_external reached") 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     folder=folder_path
@@ -1138,7 +1138,7 @@ def get_csv(repo_detail,folder,spreadsheet):
     )
     file_sha = csv_file['sha']
     csv_content = csv_file['content']
-    print(csv_content)
+    # print(csv_content)
     decoded_data = str(base64.b64decode(csv_content),'utf-8')
     print(decoded_data)
     csv_reader = csv.reader(io.StringIO(decoded_data))

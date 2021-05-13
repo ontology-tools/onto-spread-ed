@@ -38,7 +38,7 @@
     </div>
 
     <form id="submitText" class="form-inline">
-        <input id="inputText" name="inputText" value="" placeholder='new Ontology ID'>
+        <!-- <input id="inputText" name="inputText" value="" placeholder='new Ontology ID'> -->
         <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
             class="btn btn-outline-warning fas fa-plus" onclick="return submitForm(this)">
             Create New Ontology
@@ -96,7 +96,7 @@
 
 <div class="row" id="table2">
     <div class="col-md-12">
-        <div id="contentTable" class="table table-bordered table-striped table-hover table-sm thead-dark"
+        <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
             style="font-size: 0.8em; display:none;">
         </div>
     </div>
@@ -134,15 +134,15 @@
     //from repo.html:
     function submitForm(button) { //for submit new ontology
         //todo: handle blank input, maybe a pop-up, "please input a new Ontology ID"?
-        var newID = $("#inputText").val();
+        // var newID = $("#inputText").val();
         //:only add this once all information is submitted. ID's should be tied to the ID's sheet?
         // ontologyIDs.push(newID); 
         // console.log("new ontologyIDs: " + ontologyIDs);
         // createInput(ontologyIDs);
-        $("#inputText").val("");
-        $("#dropdownMenu2").click();//not necessary, does nothing..
+        // $("#inputText").val("");
+        // $("#dropdownMenu2").click();//not necessary, does nothing..
         var updateOntologyDataArray = [
-            { ontology_id: newID, purl: "", root_id: "", intermediates: "", prefix: "" },
+            { ontology_id: "", purl: "", root_id: "", intermediates: "", prefix: "" },
         ];
         //test:
         // var updateOntologyDataArray = [
@@ -154,14 +154,15 @@
         // ];
         console.log("updateOntologyDataArray is: " + updateOntologyDataArray);
         editOntologyTable.replaceData(updateOntologyDataArray);
-        $("#table_name").text("EDITING " + newID + ":");
+        $("#table_name").text("EDITING NEW ID:");
         $("#table_name").show();
         $("#contentTable").hide();
         $("#action_buttons").hide();
         $("#editOntologyTable").show();
         $("#save-table-btn").hide();
         $("#save-contenttable-btn").hide();
-        return false; //todo: is this necessary
+        //todo: automatically show Ontology screen here? 
+        return false;
     }
 
     function createInput(inputArray) {
@@ -199,7 +200,7 @@
 
                 let item = {
                     // "id": selectedIDs[i]
-                    "id": id, 
+                    "id": id,
                     "label": lbl,
                     "new_label": "",
                     "new_parent": ""
@@ -230,11 +231,11 @@
             data: inputData,
 
             columns: [
-                { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true },
-                { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
-                { title: "Label", field: "label", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
-                { title: "New Label", field: "new_label", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
-                { title: "New Parent", field: "new_parent", sorter: "string", editor: "textarea", editable: true, headerFilter: "input", formatter: "textarea" },
+                { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", frozen: true },
+                { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "Label", field: "label", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "New Label", field: "new_label", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "New Parent", field: "new_parent", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
             ],
 
             rowAdded: function (row) {
@@ -276,7 +277,7 @@
 
     $("#add-id").click(function () {
         console.log("add-id clicked");
-        table.addRow();
+        table.addRow(); //todo: need to make blank fields here? 
         $("#save-table-btn").show();
     });
 
@@ -326,35 +327,44 @@
         }
 
 
-        if (save_contenttable_data_checked == true) {
-            console.log("send data here");
-            var request = new XMLHttpRequest();
-            request.onreadystatechange = function () {
-                if (request.readyState === 4) {
-                    if (!request.status) {
-                        bootbox.alert("Problem communicating with server");
-                    } else if (request.status === 200) {
-                        //update ID when data send confirmed: 
-                        var newID = row1["ontology_id"];
-                        ontologyIDs.push(newID);
-                        console.log("new ontologyIDs: " + ontologyIDs);
-                        createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
-                        $("#save-contenttable-btn").hide(); //todo: reload page rather here? 
-                        $("#editOntologyTable").hide(); 
-                        $("#table_name").hide();
-                        bootbox.alert("New Ontology ID saved: " + newID);
-                    } else if (request.status === 400) {
-                        bootbox.alert("error saving new Ontology, try again");
-                    } else {
-                        console.log("other response for: " + request.status);
-                        //handle other responses?
-                    }
+        if (save_contenttable_data_checked) {
+            var idUnique = true;
+            //todo: check for unique ontology_id:
+            for (uniqueID in ontologyIDs) {
+                if (row1["ontology_id"].trim() === ontologyIDs[uniqueID]) {
+                    idUnique = false;
+                    bootbox.alert("Ontology ID needs to be unique.. ");
                 }
             }
-            request.open('POST', '/save_new_ontology', true);
-            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-            request.send('new_ontology=' + jsonData);
-
+            if (idUnique) {
+                console.log("send data here");
+                var request = new XMLHttpRequest();
+                request.onreadystatechange = function () {
+                    if (request.readyState === 4) {
+                        if (!request.status) {
+                            bootbox.alert("Problem communicating with server");
+                        } else if (request.status === 200) {
+                            //update ID when data send confirmed: 
+                            var newID = row1["ontology_id"];
+                            ontologyIDs.push(newID);
+                            console.log("new ontologyIDs: " + ontologyIDs);
+                            createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
+                            $("#save-contenttable-btn").hide(); //todo: reload page rather here? 
+                            $("#editOntologyTable").hide();
+                            $("#table_name").hide();
+                            bootbox.alert("New Ontology ID saved: " + newID);
+                        } else if (request.status === 400) {
+                            bootbox.alert("error saving new Ontology, try again");
+                        } else {
+                            console.log("other response for: " + request.status);
+                            //handle other responses?
+                        }
+                    }
+                }
+                request.open('POST', '/save_new_ontology', true);
+                request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                request.send('new_ontology=' + jsonData);
+            }
         } else {
             bootbox.alert("Only Prefix is allowed to be blank.. ");
         }
