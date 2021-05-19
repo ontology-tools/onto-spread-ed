@@ -372,16 +372,36 @@
 
     var save_table = function () {
         var save_table_data_checked = true;
+        var error_saving_message = "";
+        var idArray = [];
         console.log("save_table here");
-
         var data1 = table.getData();
-        //check for 
+        //check for blank ID's:
         for (row in data1) {
-            console.log(data1[row]["id"]);
+            // console.log(data1[row]["id"]);
             if (data1[row]["id"] === undefined || data1[row]["id"] === null || data1[row]["id"].trim() == "") {
                 save_table_data_checked = false;
+                error_saving_message = "ID's cannot be blank ";
+            } else {
+                idArray.push(data1[row]["id"].trim()); //array to check for duplicates
             }
         }
+        //check for duplicate ID's:
+        const yourArrayWithoutDuplicates = [...new Set(idArray)]
+        let duplicates = [...idArray]       
+        yourArrayWithoutDuplicates.forEach((item) => {
+            const i = duplicates.indexOf(item)
+            duplicates = duplicates
+                .slice(0, i)
+                .concat(duplicates.slice(i + 1, duplicates.length))
+        })
+
+        // console.log(duplicates);
+        if (duplicates.length > 0){
+            save_table_data_checked = false;
+            error_saving_message = "Duplicate ID's detected "; //todo: show which ID's rows are duplicates?
+        }
+        
         var jsonData = JSON.stringify(data1);
         console.log("data is: " + jsonData); //got it!
 
@@ -411,7 +431,7 @@
 
 
         } else {
-            bootbox.alert("ID's cannot be blank ");
+            bootbox.alert(error_saving_message);
         }
     }
 
