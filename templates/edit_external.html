@@ -133,7 +133,6 @@
 
     //from repo.html:
     function submitForm(button) { //for submit new ontology
-        //todo: handle blank input, maybe a pop-up, "please input a new Ontology ID"?
         // var newID = $("#inputText").val();
         //:only add this once all information is submitted. ID's should be tied to the ID's sheet?
         // ontologyIDs.push(newID); 
@@ -152,7 +151,7 @@
         // testDataArray = [
         //     { id: 1, ontology: currentOntology },
         // ];
-        console.log("updateOntologyDataArray is: " + updateOntologyDataArray);
+        // console.log("updateOntologyDataArray is: " + updateOntologyDataArray);
         editOntologyTable.replaceData(updateOntologyDataArray);
         $("#table_name").text("EDITING NEW ID:");
         $("#table_name").show();
@@ -178,14 +177,14 @@
             $("#table_name").show();
             $("#save-table-btn").hide();
             $("#save-contenttable-btn").hide();
-            console.log(".dropdown-item clicked");
-            console.log(currentOntology); //got it!
+            // console.log(".dropdown-item clicked");
+            // console.log(currentOntology); //got it!
             //todo: fill ID's with ; separated values from externalImportsRowData:
             var selectedIDs = [];
             for (var i = 0; i < rowLength; i++) {
                 if (externalImportsRowData[i]["Ontology ID"] == currentOntology) {
                     var listOfIDs = externalImportsRowData[i]["IDs"];
-                    console.log("list of ID's is: " + listOfIDs);
+                    // console.log("list of ID's is: " + listOfIDs);
                     selectedIDs = listOfIDs.split(';');
                     // selectedIDs.push(externalImportsRowData[i]["Ontology ID"]); //this is all values ;;;;;;
                 }
@@ -206,7 +205,7 @@
                     "new_parent": ""
                 }
                 selectedIDsArray.push(item);
-                console.log("added item: " + selectedIDs[i]);
+                // console.log("added item: " + selectedIDs[i]);
             }
 
             // console.log("Ontology IDs: " + ontologyIDs); //correct
