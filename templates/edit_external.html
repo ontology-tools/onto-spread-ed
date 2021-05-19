@@ -388,7 +388,7 @@
         }
         //check for duplicate ID's:
         const yourArrayWithoutDuplicates = [...new Set(idArray)]
-        let duplicates = [...idArray]       
+        let duplicates = [...idArray]
         yourArrayWithoutDuplicates.forEach((item) => {
             const i = duplicates.indexOf(item)
             duplicates = duplicates
@@ -397,11 +397,11 @@
         })
 
         // console.log(duplicates);
-        if (duplicates.length > 0){
+        if (duplicates.length > 0) {
             save_table_data_checked = false;
             error_saving_message = "Duplicate ID's detected "; //todo: show which ID's rows are duplicates?
         }
-        
+
         var jsonData = JSON.stringify(data1);
         console.log("data is: " + jsonData); //got it!
 
@@ -463,6 +463,23 @@
         $("#save-table-btn").hide();
         $("#save-contenttable-btn").hide();
     })
+
+    //override ctrl-s save:
+    jQuery(document).keydown(function (event) {
+        // If Control or Command key is pressed and the S key is pressed
+        // run save function. 83 is the key code for S.
+        if ((event.ctrlKey || event.metaKey) && event.which == 83) {
+            // Save Function
+            event.preventDefault();
+            if ($("#save-table-btn").is(":visible")) {
+                $("#save-table-btn").trigger('click');
+            }
+            if ($("#save-contenttable-btn").is(":visible")) {
+                $("#save-contenttable-btn").trigger('click');
+            }
+            return false;
+        }
+    });
 
 </script>
 
