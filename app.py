@@ -669,7 +669,7 @@ def generate():
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
     for index, (key, value) in enumerate(rowData.items()): # todo: really, we need to loop here, surely there is a faster way?
         if index == current:
-            if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status" :
+            if key == "Label" or key == "Definition" or key == "Parent" or key == "Sub-ontology" or key == "Curation status" :
                 if key == "Definition" or key == "Parent":
                     status = rowData.get("Curation status") #check for "Curation status"
                     if(status):
