@@ -1140,14 +1140,14 @@ def get_csv(repo_detail,folder,spreadsheet):
     csv_content = csv_file['content']
     # print(csv_content)
     decoded_data = str(base64.b64decode(csv_content),'utf-8')
-    print(decoded_data)
+    # print(decoded_data)
     csv_reader = csv.reader(io.StringIO(decoded_data))
     csv_data = list(csv_reader)
     header = csv_data[0:1]
     rows = csv_data[1:]
     
-    print(f'{spreadsheet} header: ', header)
-    print(f'{spreadsheet} rows: ', rows)
+    # print(f'{spreadsheet} header: ', header)
+    # print(f'{spreadsheet} rows: ', rows)
 
     return ( (file_sha, rows, header) )
 
