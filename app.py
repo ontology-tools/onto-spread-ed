@@ -330,9 +330,7 @@ class OntologyDataStore:
                 self.label_to_id[entryLabel] = entryId
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
-                    self.graphs[repo].add_node(entryId,
-                                               label=entryLabel.replace(" ", "\n"),
-                                               **OntologyDataStore.node_props)
+                    self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
         for entry in data:
             if 'ID' in entry and \
                     'Label' in entry and \
@@ -378,7 +376,7 @@ class OntologyDataStore:
                     entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                     if entryParent in self.label_to_id:
                         ids.append(self.label_to_id[entryParent])
-
+        # print("got id's for graph here: ", ids)
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
 
@@ -1065,7 +1063,12 @@ def openVisualise():
         else:
             ontodb.parseSheetData(repo,table)
             dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
+            # print("first dotstr is: ", dotStr)
+            #todo: this is a hack: works fine the second time? do it twice!
+            ontodb.parseSheetData(repo,table)
+            dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
 
+        # print("dotStr is: ", dotStr)
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
 
     return ("Only POST allowed.")
