@@ -398,7 +398,7 @@ class OntologyDataStore:
                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
                     # print("Got descs from graph",graph_descs)
                 except networkx.exception.NetworkXError:
-                    print("got networkx exception in getDotForIDs")
+                    print("got networkx exception in getDotForIDs ", id)
 
                 
                 for g in graph_descs:
@@ -438,7 +438,7 @@ class OntologyDataStore:
                         try:
                             graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                         except networkx.exception.NetworkXError:
-                            print("networkx exception error in getDorForSelection")
+                            print("networkx exception error in getDorForSelection", id)
                         #print("Got descs from graph",graph_descs)
                         for g in graph_descs:
                             if g not in ids:
