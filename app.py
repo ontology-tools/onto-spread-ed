@@ -394,9 +394,13 @@ class OntologyDataStore:
                 for d in descs:
                     ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
             if self.graphs[repo]:
-                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
-                                                                  id.replace(":", "_"))
-                # print("Got descs from graph",graph_descs)
+                try:
+                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
+                    # print("Got descs from graph",graph_descs)
+                except networkx.exception.NetworkXError:
+                    print("got networkx exception in getDotForIDs")
+
+                
                 for g in graph_descs:
                     if g not in ids:
                         ids.append(g)
@@ -430,7 +434,11 @@ class OntologyDataStore:
                     for d in descs:
                         ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                     if self.graphs[repo]:
-                        graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                        #todo: does this try except work?
+                        try:
+                            graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                        except networkx.exception.NetworkXError:
+                            print("networkx exception error in getDorForSelection")
                         #print("Got descs from graph",graph_descs)
                         for g in graph_descs:
                             if g not in ids:
@@ -1060,6 +1068,9 @@ def openVisualise():
         if len(indices) > 0:
             ontodb.parseSheetData(repo,table)
             dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
+            #todo: does this work to fix networkx error? loading twice like with getDotForSheetGraph? NO it doesn't
+            # ontodb.parseSheetData(repo,table)
+            # dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
         else:
             ontodb.parseSheetData(repo,table)
             dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
