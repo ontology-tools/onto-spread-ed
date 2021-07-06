@@ -1036,6 +1036,33 @@ def openVisualiseAcrossSheets():
     if request.method == "POST":
         idString = request.form.get("idList")
         print("idString is: ", idString)
+        repo = request.form.get("repo") 
+        print("repo is ", repo)
+        idList = idString.split()
+        # for i in idList:
+        #     print("i is: ", i)
+        # indices = json.loads(request.form.get("indices"))
+        # print("indices are: ", indices)
+        ontodb.parseRelease(repo)
+        dotStr = ontodb.getDotForIDs(repo,idList).to_string()
+        return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
+
+    return ("Only POST allowed.")
+
+
+# api: 
+@app.route('/api/get-json')
+# @verify_logged_in #how to check this?
+def hello():
+  return jsonify(hello='world') # Returns HTTP Response with {"hello": "world"}
+
+@app.route('/api/openVisualiseAcrossSheets', methods=['GET'])
+# @verify_logged_in #todo: how to do this?
+def apiOpenVisualiseAcrossSheets():
+    #build data we need for dotStr query (new one!)
+    if request.method == "GET":
+        idString = request.form.get("idList")
+        print("idString is: ", idString)
         repo = request.form.get("repo")
         print("repo is ", repo)
         idList = idString.split()
@@ -1045,10 +1072,11 @@ def openVisualiseAcrossSheets():
         # print("indices are: ", indices)
         ontodb.parseRelease(repo)
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
-
+        #todo: need to generate dot graph here
+        # return jsonify(dotStr=dotStr)
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
 
-    return ("Only POST allowed.")
+
 
 @app.route('/openVisualise', methods=['POST'])
 @verify_logged_in
@@ -1068,9 +1096,6 @@ def openVisualise():
         if len(indices) > 0:
             ontodb.parseSheetData(repo,table)
             dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
-            #todo: does this work to fix networkx error? loading twice like with getDotForSheetGraph? NO it doesn't
-            # ontodb.parseSheetData(repo,table)
-            # dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
         else:
             ontodb.parseSheetData(repo,table)
             dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
