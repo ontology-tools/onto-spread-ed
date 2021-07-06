@@ -394,21 +394,21 @@ class OntologyDataStore:
                 for d in descs:
                     ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
             if self.graphs[repo]:
+                graph_descs = None
                 try:
                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
                     # print("Got descs from graph",graph_descs)
                 except networkx.exception.NetworkXError:
                     print("got networkx exception in getDotForIDs ", id)
 
-                
-                for g in graph_descs:
-                    if g not in ids:
-                        ids.append(g)
+                if graph_descs is not None:
+                    for g in graph_descs:
+                        if g not in ids:
+                            ids.append(g)
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-
         return (P)
 
     def getDotForSelection(self, repo, data, selectedIds):
