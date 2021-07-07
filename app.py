@@ -1044,6 +1044,7 @@ def openVisualiseAcrossSheets():
         # indices = json.loads(request.form.get("indices"))
         # print("indices are: ", indices)
         ontodb.parseRelease(repo)
+        #todo: do we need to support more than one repo at a time here?
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
 
