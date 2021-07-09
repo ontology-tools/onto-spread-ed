@@ -271,6 +271,19 @@ class OntologyDataStore:
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
                     classId = classId.replace(":","_")
+                    # test: - todo: delete test
+                    # print(classId)
+                    if "466" in classId:
+                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        print(classId, " is here, found it no porblem")
+                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+                    if "463" in classId:
+                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                        print(classId, " is here, why not found?")
+                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    # end test 
+
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
                         label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL'])
@@ -388,7 +401,7 @@ class OntologyDataStore:
         for id in selectedIds:
             ids.append(id.replace(":","_"))
             entryIri = self.releases[repo].get_iri_for_id(id)
-            #print("Got IRI",entryIri,"for ID",id)
+            print("Got IRI",entryIri,"for ID",id)
             if entryIri:
                 descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
                 for d in descs:
@@ -396,8 +409,10 @@ class OntologyDataStore:
             if self.graphs[repo]:
                 graph_descs = None
                 try:
+                    print("repo is: ", repo, " id: ", id)
                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
-                    # print("Got descs from graph",graph_descs)
+                    print("Got descs from graph",graph_descs)
+                    print(type(graph_descs))
                 except networkx.exception.NetworkXError:
                     print("got networkx exception in getDotForIDs ", id)
 
