@@ -44,7 +44,7 @@ from urllib.request import urlopen
 import threading
 
 import whoosh
-from whoosh.qparser import MultifieldParser
+from whoosh.qparser import MultifieldParser,QueryParser
 
 from datetime import datetime
 
@@ -214,22 +214,25 @@ class SpreadsheetSearcher:
 
     def getNextId(self,repo_name):
         self.threadLock.acquire()
-        next_id_obj = NextId.query.filter_by(repo_name=repo_name).first()
-        if next_id_obj is None:  
-            print("Adding a new nextid")
-            next_id_obj = NextId()
-            next_id_obj.repo_name = repo_name
-            next_id_obj.next_id = 955 if repo_name=="AddictO" else 50000
-            db_session.add(next_id_obj)
-            db_session.commit()
+        self.storage.open_from_bucket()
+        ix = self.storage.open_index()
 
-        next_id = next_id_obj.next_id
-        next_id_updated = next_id+1
-        next_id_obj.next_id = next_id_updated
-        db_session.commit()
+        nextId = 0
+
+        mparser = QueryParser("class_id",
+                              schema=ix.schema)
+
+        query = mparser.parse(repo_name.upper()+"*")
+
+        with ix.searcher() as searcher:
+            results = searcher.search(query, sortedby="class_id",reverse=True)
+            tophit = results[0]
+            nextId = int(tophit['class_id'].split(":")[1] )+1
+
+        ix.close()
 
         self.threadLock.release()
-        return (next_id)
+        return (nextId)
 
 
 searcher = SpreadsheetSearcher()
@@ -273,15 +276,15 @@ class OntologyDataStore:
                     classId = classId.replace(":","_")
                     # test: - todo: delete test
                     # print(classId)
-                    if "466" in classId:
-                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                        print(classId, " is here, found it no porblem")
-                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    #if "466" in classId:
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    #    print(classId, " is here, found it no porblem")
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-                    if "463" in classId:
-                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                        print(classId, " is here, why not found?")
-                        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    #if "463" in classId:
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    #    print(classId, " is here, why not found?")
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
                     # end test 
 
                     # is it already in the graph?
