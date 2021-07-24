@@ -1,0 +1,489 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+
+<!-- //tabulator: -->
+<!-- always up-to-date tabulator CDN -->
+<link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
+
+
+<!-- bootstrap 4 theme -->
+<link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+
+
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <h1 id="import_header"> EXTERNAL IMPORTS</h1>
+    </div>
+</div>
+
+<h4 id="resultsHeader" style="display:none">RESULTS:</h4>
+
+<label class="font-weight-bold" for="submitText">Ontology:</label>
+
+<div class="btn-group" role="group" aria-label="Basic example">
+    <div class="dropright">
+        <button class="btn btn-outline-success dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown"
+            aria-haspopup="true" aria-expanded="false">
+            Choose Ontology
+        </button>
+        <div id="ontology_selection_menu" class="dropdown-menu" aria-labelledby="dropdownMenu2">
+        </div>
+    </div>
+
+    <form id="submitText" class="form-inline">
+        <!-- <input id="inputText" name="inputText" value="" placeholder='new Ontology ID'> -->
+        <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
+            class="btn btn-outline-warning fas fa-plus" onclick="return submitForm(this)">
+            Create New Ontology
+        </button>
+    </form>
+</div>
+<br></br>
+<div class="row">
+    <h4 id="table_name" style="display:none">BCIO:</h4>
+</div>
+<!-- todo: add a submit button for editOntologyTable, and a way to submit-->
+<!-- todo: save buttons need to align right -->
+<!-- <div class="row mb-3"> -->
+<!-- <div class="col-md-9"> -->
+<!-- <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right"  -->
+<!-- onclick="save_table()"> -->
+<!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+<!-- Save changes to ID's -->
+<!-- </button> -->
+<!-- </div> -->
+<!-- </div> -->
+<div class="row mb-3" id="action_buttons">
+    <div class="col-md-9">
+        <!-- <div class="text-left"> -->
+        <button id=add-id class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add ID</button>
+        <button id=remove-id class="btn btn-outline-danger btn-sm"><i class="fas fa-trash-alt"></i> Remove
+            ID</button>
+        <button id="save-table-btn" class="btn btn-outline-success btn-sm text-right float-right"
+            onclick="save_table()">
+            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+            Save changes to ID's
+        </button>
+        <!-- </div> -->
+    </div>
+</div>
+<!-- todo: add a saveChanges method for contentTable, and a way to submit-->
+<div class="row mb-3">
+    <div class="col-md-9">
+        <button id="save-contenttable-btn" class="btn btn-outline-success btn-sm text-right float-right"
+            onclick="save_contenttable()">
+            <!-- onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) "> -->
+            Save new Ontology
+        </button>
+    </div>
+</div>
+
+<div class="row" id="table1">
+    <div class="col-md-12">
+        <div id="editOntologyTable" class="table table-bordered table-striped table-hover table-sm"
+            style="font-size: 0.8em; display:none;">
+        </div>
+    </div>
+</div>
+
+
+<div class="row" id="table2">
+    <div class="col-md-12">
+        <div id="contentTable" class="table table-bordered table-striped table-hover table-sm"
+            style="font-size: 0.8em; display:none;">
+        </div>
+    </div>
+</div>
+
+
+
+<script type="text/javascript">
+    console.log("start");
+    var table; //main table
+    var editOntologyTable; //for new ontology
+
+    var spreadsheets = {{ spreadsheets | safe}};
+    console.log(spreadsheets);
+
+    var externalImportsRowData = {{ rows1 | safe}};
+    var newLabelsRowData = {{ rows2 | safe}};
+    var newParentsRowData = {{ rows3 | safe}};
+    console.log(externalImportsRowData);
+    console.log(newLabelsRowData);
+    console.log(newParentsRowData);
+
+
+
+    var rowLength = externalImportsRowData.length;
+    var headerLength = 6; //todo: get this from back end?
+    var ontologyIDs = [];
+    for (var i = 0; i < rowLength; i++) {
+        ontologyIDs.push(externalImportsRowData[i]["Ontology ID"]);
+    }
+    console.log("Ontology IDs: " + ontologyIDs); //correct
+
+    var currentOntology = "BCIO";
+
+    //from repo.html:
+    function submitForm(button) { //for submit new ontology
+        // var newID = $("#inputText").val();
+        //:only add this once all information is submitted. ID's should be tied to the ID's sheet?
+        // ontologyIDs.push(newID); 
+        // console.log("new ontologyIDs: " + ontologyIDs);
+        // createInput(ontologyIDs);
+        // $("#inputText").val("");
+        // $("#dropdownMenu2").click();//not necessary, does nothing..
+        var updateOntologyDataArray = [
+            { ontology_id: "", purl: "", root_id: "", intermediates: "", prefix: "" },
+        ];
+        //test:
+        // var updateOntologyDataArray = [
+        //     { ontology_id: "hi" },
+        // ];
+
+        // testDataArray = [
+        //     { id: 1, ontology: currentOntology },
+        // ];
+        // console.log("updateOntologyDataArray is: " + updateOntologyDataArray);
+        editOntologyTable.replaceData(updateOntologyDataArray);
+        $("#table_name").text("EDITING NEW ID:");
+        $("#table_name").show();
+        $("#contentTable").hide();
+        $("#action_buttons").hide();
+        $("#editOntologyTable").show();
+        $("#save-table-btn").hide();
+        $("#save-contenttable-btn").hide();
+        //todo: automatically show Ontology screen here? 
+        return false;
+    }
+
+    function createInput(inputArray) {
+        $(".dropdown-item").remove(); //first remove all 
+        for (item in inputArray) {
+            var $input = $("<a href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' onclick=\"function hi(){currentOntology = '" + inputArray[item] + "';};hi(); return false;\"" + " >" + inputArray[item] + "</a>");
+            // var $input = $("<input href='#' class='dropdown-item' type='button' value='" + inputArray[item] + "' />");
+            $input.appendTo($("#ontology_selection_menu"));
+        }
+
+        $(".dropdown-item").click(function () {
+            $("#table_name").text(currentOntology + ":");
+            $("#table_name").show();
+            $("#save-table-btn").hide();
+            $("#save-contenttable-btn").hide();
+            // console.log(".dropdown-item clicked");
+            // console.log(currentOntology); //got it!
+            //todo: fill ID's with ; separated values from externalImportsRowData:
+            var selectedIDs = [];
+            for (var i = 0; i < rowLength; i++) {
+                if (externalImportsRowData[i]["Ontology ID"] == currentOntology) {
+                    var listOfIDs = externalImportsRowData[i]["IDs"];
+                    // console.log("list of ID's is: " + listOfIDs);
+                    selectedIDs = listOfIDs.split(';');
+                    // selectedIDs.push(externalImportsRowData[i]["Ontology ID"]); //this is all values ;;;;;;
+                }
+            }
+            var selectedIDsArray = []; //actual array to populate table
+            for (i in selectedIDs) {
+                //todo: test if below has any edge cases where it doesn't work:
+                var ids = selectedIDs[i].split("[");
+                var lbl = ids[0];
+                var id = ids[1].replace("]", "");
+
+
+                let item = {
+                    // "id": selectedIDs[i]
+                    "id": id,
+                    "label": lbl,
+                    "new_label": "",
+                    "new_parent": ""
+                }
+                selectedIDsArray.push(item);
+                // console.log("added item: " + selectedIDs[i]);
+            }
+
+            // console.log("Ontology IDs: " + ontologyIDs); //correct
+            //update table test:
+            // testDataArray = [
+            //     { id: 1, ontology: currentOntology },
+            // ];
+            table.replaceData(selectedIDsArray);
+            $("#editOntologyTable").hide();
+            $("#contentTable").show();
+            $("#action_buttons").show();
+        });
+
+    }
+
+    // function createTable(responseData, type) {
+    function createTable(inputData) {
+        table = new Tabulator("#contentTable", {
+            height: window.innerHeight / 3 * 2,
+            groupToggleElement: "header",
+            layout: "fitColumns",
+            data: inputData,
+
+            columns: [
+                { title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", frozen: true },
+                { title: "ID", field: "id", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "Label", field: "label", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "New Label", field: "new_label", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "New Parent", field: "new_parent", sorter: "string", editor: "textarea", editable: true, formatter: "textarea" },
+            ],
+
+            rowAdded: function (row) {
+                table.scrollToRow(row, "bottom", false);
+                var cell = row.getCell("id");
+                cell.getElement().focus(); //todo: not focusing..
+            },
+
+            cellEdited: function (cell) {
+                console.log("cell edited in contentTable");
+                //show save-table-btn here
+                $("#save-table-btn").show();
+                $("#save-contenttable-btn").hide();
+            },
+        });
+    }
+
+    function createNewOntologyTable(inputData) {
+        editOntologyTable = new Tabulator("#editOntologyTable", {
+            data: inputData,
+            layout: "fitColumns",
+
+            columns: [
+                { title: "Ontology ID", field: "ontology_id", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "PURL", field: "purl", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "root ID", field: "root_id", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "intermediates", field: "intermediates", editor: "textarea", editable: true, formatter: "textarea" },
+                { title: "Prefix", field: "prefix", editor: "textarea", editable: true, formatter: "textarea" },
+            ],
+
+            cellEdited: function (cell) {
+                //show save-contenttable-btn here
+                $("#save-table-btn").hide();
+                $("#save-contenttable-btn").show();
+            },
+
+        });
+    }
+
+    $("#add-id").click(function () {
+        console.log("add-id clicked");
+        table.addRow(); //todo: need to make blank fields here? 
+        $("#save-table-btn").show();
+    });
+
+    $("#remove-id").click(function () {
+        console.log("remove-id clicked");
+        var selectedRows = table.getSelectedRows();
+        if (selectedRows.length > 1) {
+            if (!confirm("Do you really want to delete these ID's?")) { return; }
+        } else if (selectedRows.length == 1) {
+            if (!confirm("Do you really want to delete this ID?")) { return; }
+        } else {
+            bootbox.alert("No ID's selected");
+            return;
+        }
+        selectedRows.forEach(function (row) {
+            table.deleteRow(row);
+            $("#save-table-btn").show();
+        });
+    });
+
+    var save_contenttable = function () {
+        var save_contenttable_data_checked = true; //check if we can send
+        console.log("save_contenttable here");
+        //todo: save changes
+        //For each ontology, we have five pieces of information: 
+        //The ontology ID, the PURL, the "root id", "intermediates" and "Prefix". 
+        //When we add a new ontology, we need to specify these (although Prefix can be blank).
+        // var row1 = editOntologyTable.getRows();
+        // var data1 = row1.getData();
+        var data1 = editOntologyTable.getData();
+        var row1 = data1[0];
+        var jsonData = JSON.stringify(data1[0]); //data to send
+        console.log("data is: " + jsonData); //got it!
+
+        //check for blank data:
+        if (row1["ontology_id"].trim() == "" || row1["ontology_id"] == null || row1["ontology_id"] == undefined) {
+            save_contenttable_data_checked = false;
+        }
+        if (row1["purl"].trim() == "" || row1["purl"] == null || row1["purl"] == undefined) {
+            save_contenttable_data_checked = false;
+        }
+        if (row1["root_id"].trim() == "" || row1["root_id"] == null || row1["root_id"] == undefined) {
+            save_contenttable_data_checked = false;
+        }
+        if (row1["intermediates"].trim() == "" || row1["intermediates"] == null || row1["intermediates"] == undefined) {
+            save_contenttable_data_checked = false;
+        }
+
+
+        if (save_contenttable_data_checked) {
+            var idUnique = true;
+            //todo: check for unique ontology_id:
+            for (uniqueID in ontologyIDs) {
+                if (row1["ontology_id"].trim() === ontologyIDs[uniqueID]) {
+                    idUnique = false;
+                    bootbox.alert("Ontology ID needs to be unique.. ");
+                }
+            }
+            if (idUnique) {
+                console.log("send data here");
+                var request = new XMLHttpRequest();
+                request.onreadystatechange = function () {
+                    if (request.readyState === 4) {
+                        if (!request.status) {
+                            bootbox.alert("Problem communicating with server");
+                        } else if (request.status === 200) {
+                            //update ID when data send confirmed: 
+                            var newID = row1["ontology_id"];
+                            ontologyIDs.push(newID);
+                            console.log("new ontologyIDs: " + ontologyIDs);
+                            createInput(ontologyIDs); //todo: maybe load again from newly saved spreadsheet rather? 
+                            $("#save-contenttable-btn").hide(); //todo: reload page rather here? 
+                            $("#editOntologyTable").hide();
+                            $("#table_name").hide();
+                            bootbox.alert("New Ontology ID saved: " + newID);
+                        } else if (request.status === 400) {
+                            bootbox.alert("error saving new Ontology, try again");
+                        } else {
+                            console.log("other response for: " + request.status);
+                            //handle other responses?
+                        }
+                    }
+                }
+                request.open('POST', '/save_new_ontology', true);
+                request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                request.send('new_ontology=' + jsonData);
+            }
+        } else {
+            bootbox.alert("Only Prefix is allowed to be blank.. ");
+        }
+    }
+
+    var save_table = function () {
+        var save_table_data_checked = true;
+        var error_saving_message = "";
+        var idArray = [];
+        console.log("save_table here");
+        var data1 = table.getData();
+        //check for blank ID's:
+        for (row in data1) {
+            // console.log(data1[row]["id"]);
+            if (data1[row]["id"] === undefined || data1[row]["id"] === null || data1[row]["id"].trim() == "") {
+                save_table_data_checked = false;
+                error_saving_message = "ID's cannot be blank ";
+            } else {
+                idArray.push(data1[row]["id"].trim()); //array to check for duplicates
+            }
+        }
+        //check for duplicate ID's:
+        const yourArrayWithoutDuplicates = [...new Set(idArray)]
+        let duplicates = [...idArray]
+        yourArrayWithoutDuplicates.forEach((item) => {
+            const i = duplicates.indexOf(item)
+            duplicates = duplicates
+                .slice(0, i)
+                .concat(duplicates.slice(i + 1, duplicates.length))
+        })
+
+        // console.log(duplicates);
+        if (duplicates.length > 0) {
+            save_table_data_checked = false;
+            error_saving_message = "Duplicate ID's detected "; //todo: show which ID's rows are duplicates?
+        }
+
+        var jsonData = JSON.stringify(data1);
+        console.log("data is: " + jsonData); //got it!
+
+        if (save_table_data_checked == true) {
+            console.log("send data here");
+            //save changes:
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function () {
+                if (request.readyState === 4) {
+                    if (!request.status) {
+                        bootbox.alert("Problem communicating with server");
+                    } else if (request.status === 200) {
+                        //update ID when data send confirmed: 
+                        $("#save-table-btn").hide();
+                        bootbox.alert("ID table has been updated");
+                    } else if (request.status === 400) {
+                        bootbox.alert("error saving new Ontology, try again");
+                    } else {
+                        console.log("other response for: " + request.status);
+                        //handle other responses?
+                    }
+                }
+            }
+            request.open('POST', '/update_ids', true);
+            request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            request.send('current_ontology=' + currentOntology + '&new_IDs=' + jsonData);
+
+
+        } else {
+            bootbox.alert(error_saving_message);
+        }
+    }
+
+    window.addEventListener("load", function () {
+        //set header colour: 
+
+        $("#action_buttons").hide();
+        createInput(ontologyIDs);
+        var initialDataArray = [];
+        var initialDataArray2 = [];
+        //below works, to build table data:
+        // for(i in ontologyIDs){
+        //     let item = {
+        //         "id": i,
+        //         "ontology": ontologyIDs[i]
+        //     }
+        //     testDataArray.push(item);
+
+        //initialise table test data:
+        testDataArray = [
+            { ontology_id: "hi" },
+        ];
+        createTable(initialDataArray); //blank table        
+        createNewOntologyTable(initialDataArray2); //test table
+
+        //hide tables:
+        $("#contentTable").hide();
+        $("#editOntologyTable").hide();
+        $("#save-table-btn").hide();
+        $("#save-contenttable-btn").hide();
+    })
+
+    //override ctrl-s save:
+    jQuery(document).keydown(function (event) {
+        // If Control or Command key is pressed and the S key is pressed
+        // run save function. 83 is the key code for S.
+        if ((event.ctrlKey || event.metaKey) && event.which == 83) {
+            // Save Function
+            event.preventDefault();
+            if ($("#save-table-btn").is(":visible")) {
+                $("#save-table-btn").trigger('click');
+            }
+            if ($("#save-contenttable-btn").is(":visible")) {
+                $("#save-contenttable-btn").trigger('click');
+            }
+            return false;
+        }
+    });
+
+</script>
+
+{% endblock %}
+
+{%block javascript%}
+
+{% endblock %}

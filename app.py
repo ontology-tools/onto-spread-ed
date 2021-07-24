@@ -19,6 +19,8 @@ import functools
 import openpyxl
 from openpyxl.styles import Font
 from openpyxl.styles import PatternFill
+import pandas as pd
+import csv
 import base64
 import json
 import traceback
@@ -42,7 +44,7 @@ from urllib.request import urlopen
 import threading
 
 import whoosh
-from whoosh.qparser import MultifieldParser
+from whoosh.qparser import MultifieldParser,QueryParser
 
 from datetime import datetime
 
@@ -212,22 +214,25 @@ class SpreadsheetSearcher:
 
     def getNextId(self,repo_name):
         self.threadLock.acquire()
-        next_id_obj = NextId.query.filter_by(repo_name=repo_name).first()
-        if next_id_obj is None:  
-            print("Adding a new nextid")
-            next_id_obj = NextId()
-            next_id_obj.repo_name = repo_name
-            next_id_obj.next_id = 955 if repo_name=="AddictO" else 50000
-            db_session.add(next_id_obj)
-            db_session.commit()
+        self.storage.open_from_bucket()
+        ix = self.storage.open_index()
 
-        next_id = next_id_obj.next_id
-        next_id_updated = next_id+1
-        next_id_obj.next_id = next_id_updated
-        db_session.commit()
+        nextId = 0
+
+        mparser = QueryParser("class_id",
+                              schema=ix.schema)
+
+        query = mparser.parse(repo_name.upper()+"*")
+
+        with ix.searcher() as searcher:
+            results = searcher.search(query, sortedby="class_id",reverse=True)
+            tophit = results[0]
+            nextId = int(tophit['class_id'].split(":")[1] )+1
+
+        ix.close()
 
         self.threadLock.release()
-        return (next_id)
+        return (nextId)
 
 
 searcher = SpreadsheetSearcher()
@@ -235,7 +240,8 @@ searcher = SpreadsheetSearcher()
 class OntologyDataStore:
     node_props = {"shape":"box","style":"rounded", "font": "helvetica"}
     rel_cols = {"has part":"blue","part of":"blue","contains":"green",
-                "has role":"darkgreen","is about":"darkgrey", "participates in":"darkblue"}
+                "has role":"darkgreen","is about":"darkgrey",
+                "has participant":"darkblue"}
 
     def __init__(self):
         self.releases = {}
@@ -268,6 +274,19 @@ class OntologyDataStore:
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
                     classId = classId.replace(":","_")
+                    # test: - todo: delete test
+                    # print(classId)
+                    #if "466" in classId:
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    #    print(classId, " is here, found it no porblem")
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+                    #if "463" in classId:
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    #    print(classId, " is here, why not found?")
+                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                    # end test 
+
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
                         label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL'])
@@ -327,9 +346,7 @@ class OntologyDataStore:
                 self.label_to_id[entryLabel] = entryId
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
-                    self.graphs[repo].add_node(entryId,
-                                               label=entryLabel.replace(" ", "\n"),
-                                               **OntologyDataStore.node_props)
+                    self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
         for entry in data:
             if 'ID' in entry and \
                     'Label' in entry and \
@@ -375,7 +392,7 @@ class OntologyDataStore:
                     entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                     if entryParent in self.label_to_id:
                         ids.append(self.label_to_id[entryParent])
-
+        # print("got id's for graph here: ", ids)
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
 
@@ -387,21 +404,34 @@ class OntologyDataStore:
         for id in selectedIds:
             ids.append(id.replace(":","_"))
             entryIri = self.releases[repo].get_iri_for_id(id)
-            #print("Got IRI",entryIri,"for ID",id)
+            print("Got IRI",entryIri,"for ID",id)
             if entryIri:
                 descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
                 for d in descs:
                     ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+            if self.graphs[repo]:
+                graph_descs = None
+                try:
+                    print("repo is: ", repo, " id: ", id)
+                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
+                    print("Got descs from graph",graph_descs)
+                    print(type(graph_descs))
+                except networkx.exception.NetworkXError:
+                    print("got networkx exception in getDotForIDs ", id)
+
+                if graph_descs is not None:
+                    for g in graph_descs:
+                        if g not in ids:
+                            ids.append(g)
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-
         return (P)
 
     def getDotForSelection(self, repo, data, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        print("getDot")
+        #print("getDot")
         ids = []
         for id in selectedIds:
             entry = data[id]
@@ -421,6 +451,16 @@ class OntologyDataStore:
                         descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                     for d in descs:
                         ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                    if self.graphs[repo]:
+                        #todo: does this try except work?
+                        try:
+                            graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                        except networkx.exception.NetworkXError:
+                            print("networkx exception error in getDorForSelection", id)
+                        #print("Got descs from graph",graph_descs)
+                        for g in graph_descs:
+                            if g not in ids:
+                                ids.append(g)
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
@@ -572,9 +612,11 @@ def repo(repo_key, folder_path=""):
     directories = github.get(
         f'repos/{repo_detail}/contents/{folder_path}'
     )
-    #print(directories)
     dirs = []
     spreadsheets = []
+    #go to edit_external: 
+    if folder_path == 'imports': 
+        return redirect(url_for('edit_external', repo_key=repo_key, folder_path=folder_path))
     for directory in directories:
         if directory['type']=='dir':
             dirs.append(directory['name'])
@@ -655,7 +697,7 @@ def generate():
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
     for index, (key, value) in enumerate(rowData.items()): # todo: really, we need to loop here, surely there is a faster way?
         if index == current:
-            if key == "Label" or key == "Definition" or key == "Parent" or key == "AO sub-ontology" or key == "Curation status" :
+            if key == "Label" or key == "Definition" or key == "Parent" or key == "Sub-ontology" or key == "Curation status" :
                 if key == "Definition" or key == "Parent":
                     status = rowData.get("Curation status") #check for "Curation status"
                     if(status):
@@ -1012,6 +1054,34 @@ def openVisualiseAcrossSheets():
     if request.method == "POST":
         idString = request.form.get("idList")
         print("idString is: ", idString)
+        repo = request.form.get("repo") 
+        print("repo is ", repo)
+        idList = idString.split()
+        # for i in idList:
+        #     print("i is: ", i)
+        # indices = json.loads(request.form.get("indices"))
+        # print("indices are: ", indices)
+        ontodb.parseRelease(repo)
+        #todo: do we need to support more than one repo at a time here?
+        dotStr = ontodb.getDotForIDs(repo,idList).to_string()
+        return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
+
+    return ("Only POST allowed.")
+
+
+# api: 
+@app.route('/api/get-json')
+# @verify_logged_in #how to check this?
+def hello():
+  return jsonify(hello='world') # Returns HTTP Response with {"hello": "world"}
+
+@app.route('/api/openVisualiseAcrossSheets', methods=['GET'])
+# @verify_logged_in #todo: how to do this?
+def apiOpenVisualiseAcrossSheets():
+    #build data we need for dotStr query (new one!)
+    if request.method == "GET":
+        idString = request.form.get("idList")
+        print("idString is: ", idString)
         repo = request.form.get("repo")
         print("repo is ", repo)
         idList = idString.split()
@@ -1021,10 +1091,11 @@ def openVisualiseAcrossSheets():
         # print("indices are: ", indices)
         ontodb.parseRelease(repo)
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
-
+        #todo: need to generate dot graph here
+        # return jsonify(dotStr=dotStr)
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
 
-    return ("Only POST allowed.")
+
 
 @app.route('/openVisualise', methods=['POST'])
 @verify_logged_in
@@ -1047,7 +1118,12 @@ def openVisualise():
         else:
             ontodb.parseSheetData(repo,table)
             dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
+            # print("first dotstr is: ", dotStr)
+            #todo: this is a hack: works fine the second time? do it twice!
+            ontodb.parseSheetData(repo,table)
+            dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
 
+        # print("dotStr is: ", dotStr)
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
 
     return ("Only POST allowed.")
@@ -1056,10 +1132,82 @@ def openVisualise():
 @app.route('/visualise/<repo>/<sheet>')
 @verify_logged_in
 def visualise(repo, sheet):
+    print("reached visualise")
     return render_template("visualise.html", sheet=sheet, repo=repo)
 
+@app.route('/edit_external/<repo_key>/<path:folder_path>')
+@verify_logged_in
+def edit_external(repo_key, folder_path):
+    # print("edit_external reached") 
+    repositories = app.config['REPOSITORIES']
+    repo_detail = repositories[repo_key]
+    folder=folder_path
+    spreadsheets = []
+    directories = github.get(
+        f'repos/{repo_detail}/contents/{folder_path}' 
+    )   
+    for directory in directories:
+        spreadsheets.append(directory['name'])
+    #todo: need unique name for each? Or do we append to big array? 
+    # for spreadsheet in spreadsheets:
+    #     print("spreadsheet: ", spreadsheet)
+        
+    sheet1, sheet2, sheet3 = spreadsheets
+    (file_sha1,rows1,header1) = get_spreadsheet(repo_detail,folder,sheet1)
+    # not a spreadsheet but a csv file:
+    (file_sha2,rows2,header2) = get_csv(repo_detail,folder,sheet2) 
+    (file_sha3,rows3,header3) = get_csv(repo_detail,folder,sheet3)
+    return render_template('edit_external.html', 
+                            login=g.user.github_login, 
+                            repo_name = repo_key,
+                            folder_path = folder_path,
+                            spreadsheets=spreadsheets, #todo: delete, just for test
+                            rows1=json.dumps(rows1),
+                            rows2=json.dumps(rows2),
+                            rows3=json.dumps(rows3)
+                            )
+
+@app.route('/save_new_ontology', methods=['POST'])
+@verify_logged_in
+def save_new_ontology():
+    new_ontology = request.form.get("new_ontology")
+    print("Received new Ontology: " + new_ontology)
+    response = "test"
+    return ( json.dumps({"message":"Success",
+                             "response": response}), 200 )
+
+@app.route('/update_ids', methods=['POST'])
+@verify_logged_in
+def update_ids():
+    current_ontology=request.form.get("current_ontology")
+    new_IDs=request.form.get("new_IDs")
+    print("Received new IDs from : "+ current_ontology)
+    print("data is: ", new_IDs)
+    response = "test"
+    return ( json.dumps({"message":"Success",
+                             "response": response}), 200 )
 
 # Internal methods
+
+def get_csv(repo_detail,folder,spreadsheet):
+
+    csv_file = github.get(
+        f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
+    )
+    file_sha = csv_file['sha']
+    csv_content = csv_file['content']
+    # print(csv_content)
+    decoded_data = str(base64.b64decode(csv_content),'utf-8')
+    # print(decoded_data)
+    csv_reader = csv.reader(io.StringIO(decoded_data))
+    csv_data = list(csv_reader)
+    header = csv_data[0:1]
+    rows = csv_data[1:]
+    
+    # print(f'{spreadsheet} header: ', header)
+    # print(f'{spreadsheet} rows: ', rows)
+
+    return ( (file_sha, rows, header) )
 
 def get_spreadsheet(repo_detail,folder,spreadsheet):
     spreadsheet_file = github.get(
