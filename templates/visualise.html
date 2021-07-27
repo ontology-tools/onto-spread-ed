@@ -33,15 +33,52 @@
         top: 160px;
         left: 100px
     }
+
+    /* #dropdownMenuButton {
+        position: fixed;
+        width: 260px;
+        top: 160px;
+        left: 300px
+    } */
 </style>
 
 <!-- <h1>VISUALISATIONS</h1> -->
 
-<div class="row mb-3">
-    <div class="col-md-12">
-        <h1 id="s-name"> VISUALISATIONS: {{sheet}} </h2>
+
+
+<div class="container-fluid">
+    <div class="row">
+        
+        <div class="col-md-12">
+            <div class="col-8">
+                <h2 id="s-name"> VISUALISATIONS: {{sheet}} </h2>
+            </div class="col-4">
+            
+            
+                <span class="float-right">
+                    <div class="dropdown">
+                        <!-- <input type="button" id="dropdownMenuButton" class="btn btn-outline-dark" value="Filter by curation status"> -->
+                    
+                        <button class="btn btn-outline-dark dropdown-toggle" type="button" id="dropdownMenuButton"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Filter by curation status
+                        </button>
+                        <ul id="dropdown-menu1" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                            <li><a class="dropdown-item" role="button" value="0" href="#">All</a></li>
+                            <li><a class="dropdown-item" role="button" value="1" href="#">External</a></li>
+                            <li><a class="dropdown-item" role="button" value="2" href="#">Proposed</a></li>
+                            <li><a class="dropdown-item" role="button" value="3" href="#">To be discussed</a></li>
+                            <li><a class="dropdown-item" role="button" value="4" href="#">In discussion</a></li>
+                            <li><a class="dropdown-item" role="button" value="5" href="#">Discussed</a></li>
+                            <li><a class="dropdown-item" role="button" value="6" href="#">Published</a></li>
+                            <li><a class="dropdown-item" role="button" value="7" href="#">Obsolete</a></li>
+                        </ul>
+                    </div>
+                </span>
+            </div>
+        </div>
     </div>
-</div>
+
 <!--<p>{{dotStr}}</p> -->
 
 <body onmousedown="return false;">
@@ -55,6 +92,7 @@
         <div id="downloadWrapper">
             <input type="button" id="download" class="btn btn-outline-dark" value="Download Visualisation">
         </div>
+        
     </div>
 
     <!-- WASM GRAPHVIZ -->
@@ -68,21 +106,15 @@
         var img1 = new Image();
 
         //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
-        function draw(scale, translatePos) {
+        function draw(scale, translatePos, dot) { //todo: add another option here for dot
             var canvas = document.getElementById("myCanvas");
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
-            var external_dot = `{{ dotstr_list[0] | safe }}`;
-            var proposed_dot = `{{ dotstr_list[1] | safe }}`;
-            var to_be_discussed_dot = `{{ dotstr_list[2] | safe }}`;
-            var in_discussion_dot = `{{ dotstr_list[3] | safe }}`;
-            var discussed_dot = `{{ dotstr_list[4] | safe }}`;
-            var published_dot = `{{ dotstr_list[5] | safe }}`;
-            var obsolete_dot = `{{ dotstr_list[6] | safe }}`;
-            console.log("proposed dot is: " + proposed_dot);
-            if (!loaded) {
-                var dotStr = proposed_dot;
+            
 
+            if (!loaded) {
+                var dotStr = dot;
+                console.log("got dot: ", dotStr);
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
@@ -121,10 +153,26 @@
         }
 
         window.onload = function () {
+            var current_dot = 0;
+            var dots = [];
+            var all_dot = `{{ dotstr_list[0] | safe }}`;
+            var external_dot = `{{ dotstr_list[1] | safe }}`;
+            var proposed_dot = `{{ dotstr_list[2] | safe }}`;
+            var to_be_discussed_dot = `{{ dotstr_list[3] | safe }}`;
+            var in_discussion_dot = `{{ dotstr_list[4] | safe }}`;
+            var discussed_dot = `{{ dotstr_list[5] | safe }}`;
+            var published_dot = `{{ dotstr_list[6] | safe }}`;
+            var obsolete_dot = `{{ dotstr_list[7] | safe }}`;
 
-            
-
-
+            //add all dotstr_list to dots array 
+            dots.push(all_dot);
+            dots.push(external_dot);
+            dots.push(proposed_dot);
+            dots.push(to_be_discussed_dot);
+            dots.push(in_discussion_dot);
+            dots.push(discussed_dot);
+            dots.push(published_dot);
+            dots.push(obsolete_dot);
 
             var canvas = document.getElementById("myCanvas");
 
@@ -141,12 +189,12 @@
             // add button event listeners
             document.getElementById("plus").addEventListener("click", function () {
                 scale /= scaleMultiplier;
-                draw(scale, translatePos);
+                draw(scale, translatePos, dots[current_dot]);
             }, false);
 
             document.getElementById("minus").addEventListener("click", function () {
                 scale *= scaleMultiplier;
-                draw(scale, translatePos);
+                draw(scale, translatePos, dots[current_dot]);
             }, false);
 
 
@@ -174,11 +222,11 @@
                 if (mouseDown) {
                     translatePos.x = evt.clientX - startDragOffset.x;
                     translatePos.y = evt.clientY - startDragOffset.y;
-                    draw(scale, translatePos);
+                    draw(scale, translatePos, dots[current_dot]);
                 }
             });
 
-            draw(scale, translatePos);
+            draw(scale, translatePos, dots[current_dot]);
 
             document.getElementById("download").addEventListener("click", function () {
                 console.log("download clicked");
@@ -205,6 +253,24 @@
                     saveImage("{{ sheet }}");
                     DOMURL.revokeObjectURL(url2);
                 });
+            });
+
+            document.getElementById("dropdownMenuButton").addEventListener("click", function () {
+                // alert("dropdown button clicked");
+                console.log("dropdown button clicked");
+               
+            });
+
+            
+            
+            
+            $(".dropdown-menu").on("click", "li", function(event){
+                // var linkText = $(event.target).text(); // Get the link text - works
+                var linkVal = $(event.target).attr("value"); // Get the link value 
+                console.log("value is: " + linkVal);
+                loaded = false;
+                current_dot = linkVal;
+                draw(scale, translatePos, dots[current_dot]);
             });
 
         }

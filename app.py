@@ -1196,8 +1196,12 @@ def openVisualise():
         indices = json.loads(request.form.get("indices"))
         # print("indices are: ", indices)
         # filter = "External" #test
-        filter = json.loads(request.form.get("filter"))
-        print("form got filter : ", filter)
+        try: 
+            filter = json.loads(request.form.get("filter"))
+            print("form got filter : ", filter)
+        except Exception as err:
+            filter = ""
+            print(err)
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
         if len(indices) > 0:
@@ -1217,7 +1221,7 @@ def openVisualise():
                 #append dotStr to dotstr_list   
                 dotstr_list.append(dotStr) #all possible graphs
                 # print("dotstr_list: ", dotstr_list)
-                print("dotStr is: ", dotStr)
+                # print("dotStr is: ", dotStr)
             filter = "" #default
             for i in range(0,2):
                     ontodb.parseSheetData(repo,table)
