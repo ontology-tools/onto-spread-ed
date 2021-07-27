@@ -66,16 +66,23 @@
     <script>
         var loaded = false;
         var img1 = new Image();
+
         //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
         function draw(scale, translatePos) {
             var canvas = document.getElementById("myCanvas");
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
-
+            var external_dot = `{{ dotstr_list[0] | safe }}`;
+            var proposed_dot = `{{ dotstr_list[1] | safe }}`;
+            var to_be_discussed_dot = `{{ dotstr_list[2] | safe }}`;
+            var in_discussion_dot = `{{ dotstr_list[3] | safe }}`;
+            var discussed_dot = `{{ dotstr_list[4] | safe }}`;
+            var published_dot = `{{ dotstr_list[5] | safe }}`;
+            var obsolete_dot = `{{ dotstr_list[6] | safe }}`;
+            console.log("proposed dot is: " + proposed_dot);
             if (!loaded) {
-                var dotStr = `
-            {{ dotStr | safe }}
-            `;
+                var dotStr = proposed_dot;
+
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
@@ -114,6 +121,11 @@
         }
 
         window.onload = function () {
+
+            
+
+
+
             var canvas = document.getElementById("myCanvas");
 
             var translatePos = {
@@ -186,7 +198,7 @@
                         // a.href = pic.toDataURL("image/png"); //todo: should we convert to png image? needs work..
                         // a.download = img_name; //this saves as .xlsx in chrome
                         //change to .svg:
-                        a.download = img_name.slice(0, -5)+".svg";                        
+                        a.download = img_name.slice(0, -5) + ".svg";
                         document.body.appendChild(a);
                         a.click();
                     }

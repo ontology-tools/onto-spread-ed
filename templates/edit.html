@@ -2155,11 +2155,17 @@
         input5.name = "indices";
         input5.value = JSON.stringify(indices);
         form.appendChild(input5);
+        var input6 = document.createElement('input');
+        input6.type = 'hidden';
+        input6.name = "filter";
+        //test:
+        var filter = "";
+        input6.value = JSON.stringify(filter);
+        form.appendChild(input6);
         document.body.appendChild(form);
         form.target = 'VisualisationWindow';
         form.submit();
         document.body.removeChild(form);
-
     });
 
     $("#visualise-selection").click(function () {

@@ -1,6 +1,6 @@
 # Copyright 2018 Google LLC
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the Apache License, Version 2.0 (the "License")
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -32,6 +32,7 @@ import re
 from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import render_template_string, jsonify, Response
 from flask_github import GitHub
+from flask_cors import CORS #enable cross origin request?
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -93,6 +94,14 @@ class FlaskApp(Flask):
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
 app = FlaskApp(__name__)
+CORS(app) #cross origin across all - not working (and dangerous)
+app.config['CORS_HEADERS'] = 'Content-Type'
+cors = CORS(app, resources={
+    r"/api/*":{
+        "origins":"*"
+    }
+})
+# cors = CORS(app, resources={r"/api/*": {"origins": "*"}}) #cross origin for /api/
 
 app.config.from_object('config')
 
@@ -274,19 +283,6 @@ class OntologyDataStore:
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
                     classId = classId.replace(":","_")
-                    # test: - todo: delete test
-                    # print(classId)
-                    #if "466" in classId:
-                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #    print(classId, " is here, found it no porblem")
-                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
-                    #if "463" in classId:
-                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    #    print(classId, " is here, why not found?")
-                    #    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-                    # end test 
-
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
                         label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL'])
@@ -376,64 +372,54 @@ class OntologyDataStore:
                                                                self.label_to_id[relValue.strip()],
                                                                color=rcolour,
                                                                label=rel_name)
+ 
+ # todo: re-factoring the following:  
+    
+    # getIDsFromSheet - related ID's from whole sheet
+    # getIDsFromSelection - related ID's from selection in sheet    
+    # getRelatedIds - related ID's from list of ID's
 
-    def getDotForSheetGraph(self, repo, data):
-        # Get a list of IDs from the sheet graph
-        print("getDotForSheetGraph here")
+    # getDotForSheetGraph - graph from whole sheet
+    # getDotForSelection - graph from selection in sheet
+    # getDotForIDs - graph from ID list
+ 
+    #todo: adding filter
+    def getIDsFromSheet(self, repo, data, filter):
+        # list of ids from sheetExternal
+        print("getIDsFromSheet here")
+        print("filter is: ", filter)
         ids = []
         for entry in data:
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
                 print("Obsolete: ", entry)
             else:
-                if 'ID' in entry and len(entry['ID'])>0:
-                    ids.append(entry['ID'].replace(":","_"))
+                if filter != "":
+                    if str(entry['Curation status']) == filter:
+                        # print("got filter: ", filter)
+                        if 'ID' in entry and len(entry['ID'])>0:
+                            ids.append(entry['ID'].replace(":","_"))
 
-                if 'Parent' in entry:
-                    entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
-                    if entryParent in self.label_to_id:
-                        ids.append(self.label_to_id[entryParent])
-        # print("got id's for graph here: ", ids)
-        subgraph = self.graphs[repo].subgraph(ids)
-        P = networkx.nx_pydot.to_pydot(subgraph)
+                        if 'Parent' in entry:
+                            entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                            if entryParent in self.label_to_id:
+                                ids.append(self.label_to_id[entryParent])
+                else:
+                    if 'ID' in entry and len(entry['ID'])>0:
+                            ids.append(entry['ID'].replace(":","_"))
 
-        return(P)
-
-    def getDotForIDs(self, repo, selectedIds):
+                    if 'Parent' in entry:
+                        entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                        if entryParent in self.label_to_id:
+                            ids.append(self.label_to_id[entryParent])
+        return (ids)
+    
+    #todo: add filter here
+    def getIDsFromSelection(self, repo, data, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = []
+        print(selectedIds)
+        ids = [] 
         for id in selectedIds:
-            ids.append(id.replace(":","_"))
-            entryIri = self.releases[repo].get_iri_for_id(id)
-            print("Got IRI",entryIri,"for ID",id)
-            if entryIri:
-                descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
-                for d in descs:
-                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
-            if self.graphs[repo]:
-                graph_descs = None
-                try:
-                    print("repo is: ", repo, " id: ", id)
-                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
-                    print("Got descs from graph",graph_descs)
-                    print(type(graph_descs))
-                except networkx.exception.NetworkXError:
-                    print("got networkx exception in getDotForIDs ", id)
-
-                if graph_descs is not None:
-                    for g in graph_descs:
-                        if g not in ids:
-                            ids.append(g)
-
-        # Then get the subgraph as usual
-        subgraph = self.graphs[repo].subgraph(ids)
-        P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
-
-    def getDotForSelection(self, repo, data, selectedIds):
-        # Add all descendents of the selected IDs, the IDs and their parents.
-        #print("getDot")
-        ids = []
-        for id in selectedIds:
+            print("looking at id: ", id)
             entry = data[id]
             # don't visualise rows which are set to "Obsolete":
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
@@ -449,24 +435,125 @@ class OntologyDataStore:
                     entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
                     if entryIri:
                         descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                    for d in descs:
-                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                        for d in descs:
+                            ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                     if self.graphs[repo]:
-                        #todo: does this try except work?
+                        graph_descs = None
                         try:
                             graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                         except networkx.exception.NetworkXError:
-                            print("networkx exception error in getDorForSelection", id)
-                        #print("Got descs from graph",graph_descs)
-                        for g in graph_descs:
-                            if g not in ids:
-                                ids.append(g)
+                            print("networkx exception error in getIDsFromSelection", id)
+                        
+                        if graph_descs is not None:
+                            for g in graph_descs:
+                                if g not in ids:
+                                    ids.append(g)                        
+        return (ids)
 
+    def getRelatedIDs(self, repo, selectedIds):
+        # Add all descendents of the selected IDs, the IDs and their parents.
+        ids = []
+        for id in selectedIds:
+            ids.append(id.replace(":","_"))
+            entryIri = self.releases[repo].get_iri_for_id(id)
+            print("Got IRI",entryIri,"for ID",id)
+            #todo: get label, definitions, synonyms here?
+
+            if entryIri:
+                descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
+                for d in descs:
+                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+                    #todo: get label, definitions, synonyms here?
+                    
+                superclasses = self.releases[repo].get_superclasses(entryIri)
+                # superclasses = pyhornedowl.get_superclasses(self.releases[repo], entryIri) 
+                for s in superclasses:
+                    ids.append(self.releases[repo].get_id_for_iri(s).replace(":", "_"))
+            if self.graphs[repo]:
+                graph_descs = None
+                try:
+                    print("repo is: ", repo, " id: ", id)
+                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
+                    print("Got descs from graph",graph_descs)
+                    print(type(graph_descs))
+                except networkx.exception.NetworkXError:
+                    print("got networkx exception in getRelatedIDs ", id)
+
+                if graph_descs is not None:
+                    for g in graph_descs:
+                        if g not in ids:
+                            ids.append(g)
+        return (ids)
+
+    def getDotForSheetGraph(self, repo, data, filter):
+        # Get a list of IDs from the sheet graph
+        #todo: add filter to list of arguments below and above
+        ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter) #test works
+        subgraph = self.graphs[repo].subgraph(ids)
+        P = networkx.nx_pydot.to_pydot(subgraph)
+        return (P)
+
+    #todo: add filter to list of arguments below
+    def getDotForSelection(self, repo, data, selectedIds):
+        # Add all descendents of the selected IDs, the IDs and their parents.
+        ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds)
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-
         return (P)
+
+    def getDotForIDs(self, repo, selectedIds):
+        # Add all descendents of the selected IDs, the IDs and their parents.
+        ids = OntologyDataStore.getRelatedIDs(self, repo, selectedIds)
+        # Then get the subgraph as usual
+        subgraph = self.graphs[repo].subgraph(ids)
+        P = networkx.nx_pydot.to_pydot(subgraph)
+        return (P)   
+
+    #todo: get labels, definitions, synonyms to go with ID's here:
+    #need to create a dictionary and add all info to it, in the relevant place
+    def getMetaData(self, repo, allIDS):                    
+        DEFN = "http://purl.obolibrary.org/obo/IAO_0000115"
+        SYN = "http://purl.obolibrary.org/obo/IAO_0000118"
+
+        label = "" 
+        definition = ""
+        synonyms = ""
+        entries = []
+
+        
+        all_labels = set()
+        for classIri in self.releases[repo].get_classes():
+            classId = self.releases[repo].get_id_for_iri(classIri).replace(":", "_")
+            #todo: check for null ID's!
+            for id in allIDS:   
+                if id is not None:         
+                    if classId == id:
+                        # print("GOT A MATCH: ", classId)
+                        label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']) #yes
+                        # print("label for this MATCH is: ", label)
+                        iri = self.releases[repo].get_iri_for_label(label)
+                        #todo: need to get definition and synonyms still below:
+                        if self.releases[repo].get_annotation(classIri, DEFN) is not None:             
+                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace("'", "").replace("\"", "") #.replace("&", "and").replace(":", " ").replace("/", " ").replace(".", " ").replace("-", " ").replace("(", " ").replace(")", " ")    
+                            # definition = self.releases[repo].get_annotation(classIri, app.config['DEFN']) 
+                            # print("definition for this MATCH is: ", definition)
+                        else:
+                            definition = ""
+                        if self.releases[repo].get_annotation(classIri, SYN) is not None:
+                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'", "").replace("\"", "") #.replace("&", "and") #.replace(":", " ").replace("/", " ").replace(".", " ").replace("-", " ").replace("(", " ").replace(")", " ")
+                            # print("synonym for this MATCH is: ", synonyms)
+                        else:
+                            synonyms = ""
+                        entries.append({
+                            "id": id,
+                            "label": label, 
+                            "synonyms": synonyms,
+                            "definition": definition,                      
+                        })
+        return (entries)
+
+
 
 ontodb = OntologyDataStore()
 
@@ -1057,6 +1144,7 @@ def openVisualiseAcrossSheets():
         repo = request.form.get("repo") 
         print("repo is ", repo)
         idList = idString.split()
+        print("idList is: ", idList)
         # for i in idList:
         #     print("i is: ", i)
         # indices = json.loads(request.form.get("indices"))
@@ -1070,16 +1158,12 @@ def openVisualiseAcrossSheets():
 
 
 # api: 
-@app.route('/api/get-json')
-# @verify_logged_in #how to check this?
-def hello():
-  return jsonify(hello='world') # Returns HTTP Response with {"hello": "world"}
 
-@app.route('/api/openVisualiseAcrossSheets', methods=['GET'])
-# @verify_logged_in #todo: how to do this?
+@app.route('/api/openVisualiseAcrossSheets', methods=['POST'])
+# @verify_logged_in # not enabled for /api/
 def apiOpenVisualiseAcrossSheets():
     #build data we need for dotStr query (new one!)
-    if request.method == "GET":
+    if request.method == "POST":
         idString = request.form.get("idList")
         print("idString is: ", idString)
         repo = request.form.get("repo")
@@ -1098,8 +1182,63 @@ def apiOpenVisualiseAcrossSheets():
 
 
 @app.route('/openVisualise', methods=['POST'])
-@verify_logged_in
+@verify_logged_in 
 def openVisualise():
+    curation_status_filters = ["", "External", "Proposed", "To be discussed", "In discussion", "Discussed", "Published", "Obsolete"]
+    dotstr_list = []
+    if request.method == "POST":
+        repo = request.form.get("repo")
+        # print("repo is ", repo)
+        sheet = request.form.get("sheet")
+        # print("sheet is ", sheet)
+        table = json.loads(request.form.get("table"))
+        # print("table is: ", table)
+        indices = json.loads(request.form.get("indices"))
+        # print("indices are: ", indices)
+        # filter = "External" #test
+        filter = json.loads(request.form.get("filter"))
+        print("form got filter : ", filter)
+        if repo not in ontodb.releases:
+            ontodb.parseRelease(repo)
+        if len(indices) > 0:
+            ontodb.parseSheetData(repo,table)
+            dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
+            # print("first dotstr is: ", dotStr)
+            #todo: this is a hack: works fine the second time? do it twice!
+            ontodb.parseSheetData(repo,table)
+            dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
+        else:
+            #todo: many dotstr for filter:
+            for filter in curation_status_filters:
+                #loop this twice to mitigate ID bug:   
+                for i in range(0,2):
+                    ontodb.parseSheetData(repo,table)
+                    dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()
+                #append dotStr to dotstr_list   
+                dotstr_list.append(dotStr) #all possible graphs
+                # print("dotstr_list: ", dotstr_list)
+                print("dotStr is: ", dotStr)
+            filter = "" #default
+            for i in range(0,2):
+                    ontodb.parseSheetData(repo,table)
+                    dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()            
+
+        # print("dotStr is: ", dotStr)
+        return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list)
+
+    return ("Only POST allowed.")
+
+
+# todo: below is never reached? 
+@app.route('/visualise/<repo>/<sheet>')
+@verify_logged_in # todo: does this need to be disabled to allow cross origin requests? apparently not!
+def visualise(repo, sheet):
+    print("reached visualise")
+    return render_template("visualise.html", sheet=sheet, repo=repo)
+
+@app.route('/openPat', methods=['POST'])
+@verify_logged_in
+def openPat():
     if request.method == "POST":
         repo = request.form.get("repo")
         # print("repo is ", repo)
@@ -1112,28 +1251,56 @@ def openVisualise():
 
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
-        if len(indices) > 0:
+        if len(indices) > 0: #selection
+            # ontodb.parseSheetData(repo,table)
+            allIDS = ontodb.getIDsFromSelection(repo,table,indices)
+            # print("got allIDS: ", allIDS)
+        else: # whole sheet..
             ontodb.parseSheetData(repo,table)
-            dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
-        else:
-            ontodb.parseSheetData(repo,table)
-            dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
-            # print("first dotstr is: ", dotStr)
-            #todo: this is a hack: works fine the second time? do it twice!
-            ontodb.parseSheetData(repo,table)
-            dotStr = ontodb.getDotForSheetGraph(repo,table).to_string()
-
+            allIDS = ontodb.getIDsFromSheet(repo, table)
+            #todo: do we need to do above twice? 
+        
+        # print("allIDS: ", allIDS)
+        #remove duplicates from allIDS: 
+        allIDS = list(dict.fromkeys(allIDS))
+        
+        allData = ontodb.getMetaData(repo, allIDS)  
+        # print("allData: ", allData) 
         # print("dotStr is: ", dotStr)
-        return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr)
+        return render_template("pat.html", repo=repo, all_ids=allIDS, all_data=allData) #todo: PAT.html
 
     return ("Only POST allowed.")
 
-
-@app.route('/visualise/<repo>/<sheet>')
+@app.route('/openPatAcrossSheets', methods=['POST'])
 @verify_logged_in
-def visualise(repo, sheet):
-    print("reached visualise")
-    return render_template("visualise.html", sheet=sheet, repo=repo)
+def openPatAcrossSheets():
+    #build data we need for dotStr query (new one!)
+    if request.method == "POST":
+        idString = request.form.get("idList")
+        # print("idString is: ", idString)
+        repo = request.form.get("repo") 
+        print("repo is ", repo)
+        idList = idString.split()
+        print("idList: ", idList)
+        # for i in idList:
+        #     print("i is: ", i)
+        # indices = json.loads(request.form.get("indices"))
+        # print("indices are: ", indices)
+        ontodb.parseRelease(repo)
+        #todo: do we need to support more than one repo at a time here?
+        allIDS = ontodb.getRelatedIDs(repo,idList)
+        # print("allIDS: ", allIDS)
+        #remove duplicates from allIDS: 
+        allIDS = list(dict.fromkeys(allIDS))
+
+        #todo: all experimental from here: 
+        allData = ontodb.getMetaData(repo, allIDS)  
+        # print("TEST allData: ", allData)
+
+        # dotStr = ontodb.getDotForIDs(repo,idList).to_string()
+        return render_template("pat.html", repo=repo, all_ids=allIDS, all_data=allData) #todo: PAT.html
+
+    return ("Only POST allowed.")
 
 @app.route('/edit_external/<repo_key>/<path:folder_path>')
 @verify_logged_in
