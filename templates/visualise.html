@@ -239,9 +239,8 @@
 
             document.getElementById("download").addEventListener("click", function () {
                 console.log("download clicked");
-                var dotStr2 = `
-                {{ dotStr | safe }}
-                `;
+                var dotStr2 = dots[current_dot];
+                
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr2, "svg", "dot").then(svg2 => {
                     var data2 = svg2;
