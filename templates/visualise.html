@@ -48,36 +48,36 @@
 
 <div class="container-fluid">
     <div class="row">
-        
+
         <div class="col-md-12">
             <div class="col-8">
                 <h2 id="s-name"> VISUALISATIONS: {{sheet}} </h2>
             </div class="col-4">
-            
-            
-                <span class="float-right">
-                    <div class="dropdown">
-                        <!-- <input type="button" id="dropdownMenuButton" class="btn btn-outline-dark" value="Filter by curation status"> -->
-                    
-                        <button class="btn btn-outline-dark dropdown-toggle" type="button" id="dropdownMenuButton"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Filter by curation status
-                        </button>
-                        <ul id="dropdown-menu1" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                            <li><a class="dropdown-item" role="button" value="0" href="#">All</a></li>
-                            <li><a class="dropdown-item" role="button" value="1" href="#">External</a></li>
-                            <li><a class="dropdown-item" role="button" value="2" href="#">Proposed</a></li>
-                            <li><a class="dropdown-item" role="button" value="3" href="#">To Be Discussed</a></li>
-                            <li><a class="dropdown-item" role="button" value="4" href="#">In Discussion</a></li>
-                            <li><a class="dropdown-item" role="button" value="5" href="#">Discussed</a></li>
-                            <li><a class="dropdown-item" role="button" value="6" href="#">Published</a></li>
-                            <li><a class="dropdown-item" role="button" value="7" href="#">Obsolete</a></li>
-                        </ul>
-                    </div>
-                </span>
-            </div>
+
+
+            <span class="float-right">
+                <div class="dropdown">
+                    <!-- <input type="button" id="dropdownMenuButton" class="btn btn-outline-dark" value="Filter by curation status"> -->
+
+                    <button class="btn btn-outline-dark dropdown-toggle" type="button" id="dropdownMenuButton"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Filter by curation status
+                    </button>
+                    <ul id="dropdown-menu1" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <li><a class="dropdown-item" role="button" value="0" href="#">All</a></li>
+                        <li><a class="dropdown-item" role="button" value="1" href="#">External</a></li>
+                        <li><a class="dropdown-item" role="button" value="2" href="#">Proposed</a></li>
+                        <li><a class="dropdown-item" role="button" value="3" href="#">To Be Discussed</a></li>
+                        <li><a class="dropdown-item" role="button" value="4" href="#">In Discussion</a></li>
+                        <li><a class="dropdown-item" role="button" value="5" href="#">Discussed</a></li>
+                        <li><a class="dropdown-item" role="button" value="6" href="#">Published</a></li>
+                        <li><a class="dropdown-item" role="button" value="7" href="#">Obsolete</a></li>
+                    </ul>
+                </div>
+            </span>
         </div>
     </div>
+</div>
 
 <!--<p>{{dotStr}}</p> -->
 
@@ -93,7 +93,7 @@
             <input type="button" id="download" class="btn btn-outline-dark" value="Download Visualisation">
             <p id="filterMessage"></p>
         </div>
-        
+
     </div>
 
     <!-- WASM GRAPHVIZ -->
@@ -111,7 +111,7 @@
             var canvas = document.getElementById("myCanvas");
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
-            
+
 
             if (!loaded) {
                 var dotStr = dot;
@@ -175,11 +175,11 @@
             dots.push(discussed_dot);
             dots.push(published_dot);
             dots.push(obsolete_dot);
-            
+
             {% else %}
             // push default to dots array 8 times
             var default_dot = `{{ dotStr | safe}}`
-            for(var i = 0; i < 8; i++){
+            for (var i = 0; i < 8; i++) {
                 dots.push(default_dot);
             }
 
@@ -241,7 +241,7 @@
             document.getElementById("download").addEventListener("click", function () {
                 console.log("download clicked");
                 var dotStr2 = dots[current_dot];
-                
+
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr2, "svg", "dot").then(svg2 => {
                     var data2 = svg2;
@@ -267,18 +267,23 @@
             document.getElementById("dropdownMenuButton").addEventListener("click", function () {
                 // alert("dropdown button clicked");
                 console.log("dropdown button clicked");
-               
+
             });
 
-            
-            
-            
-            $(".dropdown-menu").on("click", "li", function(event){
+
+
+
+            $(".dropdown-menu").on("click", "li", function (event) {
                 var linkText = $(event.target).text(); // Get the link text - works
                 var linkVal = $(event.target).attr("value"); // Get the link value 
                 console.log("value is: " + linkVal);
                 loaded = false;
                 current_dot = linkVal;
+                //reset position:
+                translatePos = {
+                    x: 0,
+                    y: 0
+                };
                 draw(scale, translatePos, dots[current_dot]);
                 $("#filterMessage").text("Filtered by: " + linkText);
             });
