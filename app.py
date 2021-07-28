@@ -1210,7 +1210,7 @@ def apiOpenVisualiseAcrossSheets():
 @app.route('/openVisualise', methods=['POST'])
 @verify_logged_in 
 def openVisualise():
-    curation_status_filters = ["", "External", "Proposed", "To be discussed", "In discussion", "Discussed", "Published", "Obsolete"]
+    curation_status_filters = ["", "External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"]
     dotstr_list = []
     if request.method == "POST":
         repo = request.form.get("repo")
