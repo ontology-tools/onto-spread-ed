@@ -155,6 +155,7 @@
         window.onload = function () {
             var current_dot = 0;
             var dots = [];
+            {% if dotstr_list %}
             var all_dot = `{{ dotstr_list[0] | safe }}`;
             var external_dot = `{{ dotstr_list[1] | safe }}`;
             var proposed_dot = `{{ dotstr_list[2] | safe }}`;
@@ -173,7 +174,15 @@
             dots.push(discussed_dot);
             dots.push(published_dot);
             dots.push(obsolete_dot);
+            
+            {% else %}
+            // push default to dots array 8 times
+            var default_dot = `{{ dotStr | safe}}`
+            for(var i = 0; i < 8; i++){
+                dots.push(default_dot);
+            }
 
+            {% endif %}
             var canvas = document.getElementById("myCanvas");
 
             var translatePos = {
