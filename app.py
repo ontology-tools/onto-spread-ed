@@ -414,40 +414,66 @@ class OntologyDataStore:
         return (ids)
     
     #todo: add filter here
-    def getIDsFromSelection(self, repo, data, selectedIds):
+    def getIDsFromSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
         print(selectedIds)
         ids = [] 
         for id in selectedIds:
-            print("looking at id: ", id)
+            # print("looking at id: ", id)
             entry = data[id]
             # don't visualise rows which are set to "Obsolete":
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
                 print("Obsolete: ", id)
             else:
-                if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
-                    if 'ID' in entry and len(entry['ID']) > 0:
-                        ids.append(entry['ID'].replace(":", "_"))
-                    if 'Parent' in entry:
-                        entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
-                        if entryParent in self.label_to_id:
-                            ids.append(self.label_to_id[entryParent])
-                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
-                    if entryIri:
-                        descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                        for d in descs:
-                            ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                    if self.graphs[repo]:
-                        graph_descs = None
-                        try:
-                            graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                        except networkx.exception.NetworkXError:
-                            print("networkx exception error in getIDsFromSelection", id)
-                        
-                        if graph_descs is not None:
-                            for g in graph_descs:
-                                if g not in ids:
-                                    ids.append(g)                        
+                if filter != "":
+                    if str(entry['Curation status']) == filter:
+                        if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+                            if 'ID' in entry and len(entry['ID']) > 0:
+                                ids.append(entry['ID'].replace(":", "_"))
+                            if 'Parent' in entry:
+                                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                if entryParent in self.label_to_id:
+                                    ids.append(self.label_to_id[entryParent])
+                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
+                            if entryIri:
+                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                for d in descs:
+                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                            if self.graphs[repo]:
+                                graph_descs = None
+                                try:
+                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                                except networkx.exception.NetworkXError:
+                                    print("networkx exception error in getIDsFromSelection", id)
+                                
+                                if graph_descs is not None:
+                                    for g in graph_descs:
+                                        if g not in ids:
+                                            ids.append(g)  
+                else:
+                    if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+                        if 'ID' in entry and len(entry['ID']) > 0:
+                            ids.append(entry['ID'].replace(":", "_"))
+                        if 'Parent' in entry:
+                            entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                            if entryParent in self.label_to_id:
+                                ids.append(self.label_to_id[entryParent])
+                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
+                        if entryIri:
+                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                            for d in descs:
+                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                        if self.graphs[repo]:
+                            graph_descs = None
+                            try:
+                                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                            except networkx.exception.NetworkXError:
+                                print("networkx exception error in getIDsFromSelection", id)
+                            
+                            if graph_descs is not None:
+                                for g in graph_descs:
+                                    if g not in ids:
+                                        ids.append(g)                        
         return (ids)
 
     def getRelatedIDs(self, repo, selectedIds):
@@ -494,9 +520,9 @@ class OntologyDataStore:
         return (P)
 
     #todo: add filter to list of arguments below
-    def getDotForSelection(self, repo, data, selectedIds):
+    def getDotForSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds)
+        ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds, filter)
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -1188,14 +1214,9 @@ def openVisualise():
     dotstr_list = []
     if request.method == "POST":
         repo = request.form.get("repo")
-        # print("repo is ", repo)
         sheet = request.form.get("sheet")
-        # print("sheet is ", sheet)
         table = json.loads(request.form.get("table"))
-        # print("table is: ", table)
         indices = json.loads(request.form.get("indices"))
-        # print("indices are: ", indices)
-        # filter = "External" #test
         try: 
             filter = json.loads(request.form.get("filter"))
             print("form got filter : ", filter)
@@ -1204,15 +1225,21 @@ def openVisualise():
             print(err)
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
-        if len(indices) > 0:
-            ontodb.parseSheetData(repo,table)
-            dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
-            # print("first dotstr is: ", dotStr)
-            #todo: this is a hack: works fine the second time? do it twice!
-            ontodb.parseSheetData(repo,table)
-            dotStr = ontodb.getDotForSelection(repo,table,indices).to_string()
+        if len(indices) > 0: 
+            for filter in curation_status_filters:
+                #loop this twice to mitigate ID bug:   
+                for i in range(0,2):
+                    ontodb.parseSheetData(repo,table)
+                    dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string()
+                #append dotStr to dotstr_list   
+                dotstr_list.append(dotStr) #all possible graphs
+            #calculate default all values:
+            filter = "" #default
+            for i in range(0,2):
+                ontodb.parseSheetData(repo,table)
+                dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string()
+            
         else:
-            #todo: many dotstr for filter:
             for filter in curation_status_filters:
                 #loop this twice to mitigate ID bug:   
                 for i in range(0,2):
@@ -1220,8 +1247,7 @@ def openVisualise():
                     dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()
                 #append dotStr to dotstr_list   
                 dotstr_list.append(dotStr) #all possible graphs
-                # print("dotstr_list: ", dotstr_list)
-                # print("dotStr is: ", dotStr)
+            #calculate default all values:
             filter = "" #default
             for i in range(0,2):
                     ontodb.parseSheetData(repo,table)
