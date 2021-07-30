@@ -17,21 +17,21 @@
         width: 1920px;
         height: 1080px;
         top: 80px;
-        left: 0px
+        left: 0px;
     }
 
     #buttonWrapper {
         position: fixed;
         width: 30px;
-        top: 150px;
-        left: 40px
+        top: 160px;
+        left: 40px;
     }
 
     #downloadWrapper {
         position: fixed;
-        width: 100px;
-        top: 160px;
-        left: 100px
+        width: 500px;
+        top: 170px;
+        left: 100px;
     }
 
     /* #dropdownMenuButton {
@@ -284,8 +284,10 @@
                     x: 0,
                     y: 0
                 };
-                draw(scale, translatePos, dots[current_dot]);
-                $("#filterMessage").text("Filtered by: " + linkText);
+                draw(scale, translatePos, dots[current_dot]);             
+                
+                $("#filterMessage").text("Filtered by: \"" + linkText + "\"");
+                $("#filterMessage").css("font-weight","Bold");
             });
 
         }
