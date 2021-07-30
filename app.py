@@ -416,13 +416,12 @@ class OntologyDataStore:
                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
                     print("Got descs from graph",graph_descs)
                     print(type(graph_descs))
-                except networkx.exception.NetworkXError:
-                    print("got networkx exception in getDotForIDs ", id)
-
-                if graph_descs is not None:
                     for g in graph_descs:
                         if g not in ids:
                             ids.append(g)
+                except networkx.exception.NetworkXError:
+                    print("got networkx exception in getDotForIDs ", id)
+                    
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
@@ -455,12 +454,13 @@ class OntologyDataStore:
                         #todo: does this try except work?
                         try:
                             graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                            #print("Got descs from graph",graph_descs)
+                            for g in graph_descs:
+                                if g not in ids:
+                                    ids.append(g)
                         except networkx.exception.NetworkXError:
                             print("networkx exception error in getDorForSelection", id)
-                        #print("Got descs from graph",graph_descs)
-                        for g in graph_descs:
-                            if g not in ids:
-                                ids.append(g)
+                        
 
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
