@@ -1184,6 +1184,10 @@ def openVisualiseAcrossSheets():
 
 
 # api: 
+@app.route('/api/get-json')
+# @verify_logged_in #how to check this?
+def hello():
+  return jsonify(hello='world') # Returns HTTP Response with {"hello": "world"}
 
 @app.route('/api/openVisualiseAcrossSheets', methods=['POST'])
 # @verify_logged_in # not enabled for /api/
