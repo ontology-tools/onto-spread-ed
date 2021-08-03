@@ -115,7 +115,7 @@
 
             if (!loaded) {
                 var dotStr = dot;
-                console.log("got dot: ", dotStr);
+                // console.log("got dot: ", dotStr);
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
@@ -264,13 +264,13 @@
                 });
             });
 
+            {% if dotstr_list %}
+
             document.getElementById("dropdownMenuButton").addEventListener("click", function () {
                 // alert("dropdown button clicked");
                 console.log("dropdown button clicked");
 
             });
-
-
 
 
             $(".dropdown-menu").on("click", "li", function (event) {
@@ -290,6 +290,7 @@
                 $("#filterMessage").css("font-weight","Bold");
             });
 
+            {% endif %}
         }
 
     </script>
