@@ -54,11 +54,10 @@
                 <h2 id="s-name"> VISUALISATIONS: {{sheet}} </h2>
             </div class="col-4">
 
-
+            {% if dotstr_list %}
             <span class="float-right">
                 <div class="dropdown">
                     <!-- <input type="button" id="dropdownMenuButton" class="btn btn-outline-dark" value="Filter by curation status"> -->
-
                     <button class="btn btn-outline-dark dropdown-toggle" type="button" id="dropdownMenuButton"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Filter by curation status
@@ -75,6 +74,7 @@
                     </ul>
                 </div>
             </span>
+            {% endif %}
         </div>
     </div>
 </div>
