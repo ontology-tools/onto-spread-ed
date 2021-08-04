@@ -386,8 +386,8 @@ class OntologyDataStore:
     #todo: adding filter
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
-        print("getIDsFromSheet here")
-        print("filter is: ", filter)
+        # print("getIDsFromSheet here")
+        # print("filter is: ", filter)
         ids = []
         for entry in data:
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
@@ -423,7 +423,8 @@ class OntologyDataStore:
             entry = data[id]
             # don't visualise rows which are set to "Obsolete":
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
-                print("Obsolete: ", id)
+                pass
+                # print("Obsolete: ", id)
             else:
                 if filter != "":
                     if str(entry['Curation status']) == filter:
@@ -482,7 +483,7 @@ class OntologyDataStore:
         for id in selectedIds:
             ids.append(id.replace(":","_"))
             entryIri = self.releases[repo].get_iri_for_id(id)
-            print("Got IRI",entryIri,"for ID",id)
+            # print("Got IRI",entryIri,"for ID",id)
             #todo: get label, definitions, synonyms here?
 
             if entryIri:
@@ -498,10 +499,10 @@ class OntologyDataStore:
             if self.graphs[repo]:
                 graph_descs = None
                 try:
-                    print("repo is: ", repo, " id: ", id)
+                    # print("repo is: ", repo, " id: ", id)
                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
-                    print("Got descs from graph",graph_descs)
-                    print(type(graph_descs))
+                    # print("Got descs from graph",graph_descs)
+                    # print(type(graph_descs))
                 except networkx.exception.NetworkXError:
                     print("got networkx exception in getRelatedIDs ", id)
 
@@ -1166,11 +1167,11 @@ def openVisualiseAcrossSheets():
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
         idString = request.form.get("idList")
-        print("idString is: ", idString)
+        # print("idString is: ", idString)
         repo = request.form.get("repo") 
-        print("repo is ", repo)
+        # print("repo is ", repo)
         idList = idString.split()
-        print("idList is: ", idList)
+        # print("idList is: ", idList)
         # for i in idList:
         #     print("i is: ", i)
         # indices = json.loads(request.form.get("indices"))
@@ -1223,7 +1224,7 @@ def openVisualise():
         indices = json.loads(request.form.get("indices"))
         try: 
             filter = json.loads(request.form.get("filter"))
-            print("form got filter : ", filter)
+            # print("form got filter : ", filter)
         except Exception as err:
             filter = ""
             print(err)
@@ -1267,7 +1268,7 @@ def openVisualise():
 @app.route('/visualise/<repo>/<sheet>')
 @verify_logged_in # todo: does this need to be disabled to allow cross origin requests? apparently not!
 def visualise(repo, sheet):
-    print("reached visualise")
+    # print("reached visualise")
     return render_template("visualise.html", sheet=sheet, repo=repo)
 
 @app.route('/openPat', methods=['POST'])

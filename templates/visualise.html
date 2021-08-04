@@ -239,7 +239,7 @@
             draw(scale, translatePos, dots[current_dot]);
 
             document.getElementById("download").addEventListener("click", function () {
-                console.log("download clicked");
+                // console.log("download clicked");
                 var dotStr2 = dots[current_dot];
 
                 // Asynchronous call to layout
@@ -268,7 +268,7 @@
 
             document.getElementById("dropdownMenuButton").addEventListener("click", function () {
                 // alert("dropdown button clicked");
-                console.log("dropdown button clicked");
+                // console.log("dropdown button clicked");
 
             });
 
@@ -276,7 +276,7 @@
             $(".dropdown-menu").on("click", "li", function (event) {
                 var linkText = $(event.target).text(); // Get the link text - works
                 var linkVal = $(event.target).attr("value"); // Get the link value 
-                console.log("value is: " + linkVal);
+                // console.log("value is: " + linkVal);
                 loaded = false;
                 current_dot = linkVal;
                 //reset position:
