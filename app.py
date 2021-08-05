@@ -248,7 +248,7 @@ class SpreadsheetSearcher:
             nextId = int(tophit['class_id'].split(":")[1] )+1
 
             # check nextId against cached most recent id:
-            if not(nextId >= mostRecentID):
+            if not(nextId > mostRecentID):
                 print("cached version is higher: ", mostRecentID, " > ", nextId)
                 nextId = cache.get("latestID")+1                
             cache.set("latestID", nextId)
