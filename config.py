@@ -7,6 +7,10 @@ from google.cloud import storage
 
 DEBUG = True
 
+#flask_caching:
+CACHE_TYPE = "SimpleCache"
+CACHE_DEFAULT_TIMEOUT = 300
+
 APP_TITLE = "Ontology Spreadsheet Editor"
 
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'

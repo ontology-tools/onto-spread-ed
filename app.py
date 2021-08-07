@@ -33,6 +33,7 @@ from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import render_template_string, jsonify, Response
 from flask_github import GitHub
 from flask_cors import CORS #enable cross origin request?
+from flask_caching import Cache
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -104,6 +105,9 @@ cors = CORS(app, resources={
 # cors = CORS(app, resources={r"/api/*": {"origins": "*"}}) #cross origin for /api/
 
 app.config.from_object('config')
+cache = Cache(app) #caching
+cache.set("latestID",0) #initialise caching
+print("cache initialised")
 
 github = GitHub(app)
 
@@ -236,7 +240,19 @@ class SpreadsheetSearcher:
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id",reverse=True)
             tophit = results[0]
+            mostRecentID = cache.get("latestID") # check latest ID 
+            if mostRecentID is None: # error check no cache set
+                mostRecentID = 0
+                print("error latestID was None!")
+                cache.set("latestID", 0)
             nextId = int(tophit['class_id'].split(":")[1] )+1
+
+            # check nextId against cached most recent id:
+            if not(nextId > mostRecentID):
+                print("cached version is higher: ", mostRecentID, " > ", nextId)
+                nextId = cache.get("latestID")+1                
+            cache.set("latestID", nextId)
+            
 
         ix.close()
 
