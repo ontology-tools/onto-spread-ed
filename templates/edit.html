@@ -148,7 +148,7 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
-
+    var reloadTable = false; //test if table needs to be reloaded
 
     //for suggestions (autocomplete):
     //get suggestions from server: 
@@ -1506,8 +1506,10 @@
                     // 1.
                     if (cell.getValue() == "Published") {
                         var savedCellDiscussed = false; //for saved version "Discussed" status
-                        if (!tableEdited) {
+                        console.log("savedCellDiscussed set to false here");
+                        if (!tableEdited) { // error, only works once! todo: fix this
                             savedCellDiscussed = true;
+                            console.log("savedCellDiscussed set to true here");
                         } else {
                             //need to check saved table to see if status for this row was "Discussed" or not: 
                             //get column number programatically:
@@ -1529,6 +1531,7 @@
 
                             if (dValue === "Discussed") {
                                 savedCellDiscussed = true;
+                                console.log("savedCellDiscussed set to true here because dValue is: Discussed");
                             }
                         }
                         if (prevCurationStatus == "Discussed" && savedCellDiscussed) {
@@ -1564,6 +1567,7 @@
                             bootbox.alert("'Label', 'Definition' and 'Parent' columns all need to be set first");
                             data[curation_status] = prevCurationStatus; //reverting here
                         } else {
+                            reloadTable = true; //todo: experimental - reload table after saving
                             // console.log("All set. Label, Definition and Parent. Should be Discussed now");
                             //this is fine, allow it
                         }
@@ -2548,6 +2552,16 @@
                                             }
                                             //todo: should we re-load spreadsheet like this on every successful save? 
                                             if (overwrite == 'true') { //true for merge, where there is different data to load in. 
+                                                //re-load here to get updated data - need alert not bootbox (for blocking):
+                                                bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
+                                                tableEdited = false; //stops page from warning about unsaved changes
+                                                //showSaveMessage localStorage for reload: 
+                                                showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
+                                                localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
+                                                location.reload(true); //todo: can tabulator just update without re-loading the page? 
+                                            }
+                                            //for "Discussed" Curation status - need to re-load sheet to avoid new data bug
+                                            if (reloadTable) { //true for "Discussed" Curation status 
                                                 //re-load here to get updated data - need alert not bootbox (for blocking):
                                                 bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
                                                 tableEdited = false; //stops page from warning about unsaved changes
