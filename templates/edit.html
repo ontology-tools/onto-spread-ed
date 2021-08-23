@@ -31,7 +31,7 @@
             <button id=reviewed class="btn btn-outline-primary btn-sm" style="display: none"><i
                     class="fas fa-clipboard-check"></i>
                 Reviewed</button>
-            <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-project-diagram"></i>
+            <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-project-diagram" style="display: none"></i>
                 Visualise sheet</button>
             <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i
                     class="fab fa-uncharted"></i>
@@ -1684,10 +1684,10 @@
             $('#updates').hide();
             $('#visualise-selection').hide();
             $('#visualise-sheet').hide();
-            if (data['ID'] === undefined) { //for tables without ID
+            if (data['ID'] === undefined || data['Curation status'] === undefined) { //for tables without ID or curation status column
 
             } else {
-                if (data['ID'] !== null) {
+                if (data['ID'] !== null && data['Curation status'] !== null) {
                     $('#visualise-sheet').show(); //only for tables with ID
                 }
             }
@@ -2160,7 +2160,8 @@
         input6.type = 'hidden';
         input6.name = "filter";
         //test:
-        var filter = "";
+        var filter = ["External", "Proposed"];
+        // var filter = ""; //ok we can set this here!
         input6.value = JSON.stringify(filter);
         form.appendChild(input6);
         document.body.appendChild(form);

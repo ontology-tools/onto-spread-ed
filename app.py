@@ -399,7 +399,7 @@ class OntologyDataStore:
     # getDotForSelection - graph from selection in sheet
     # getDotForIDs - graph from ID list
  
-    #todo: adding filter
+    #todo: add multi-filter
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
         # print("getIDsFromSheet here")
@@ -429,7 +429,7 @@ class OntologyDataStore:
                             ids.append(self.label_to_id[entryParent])
         return (ids)
     
-    #todo: add filter here
+    
     def getIDsFromSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
         print(selectedIds)
@@ -1240,7 +1240,11 @@ def openVisualise():
         indices = json.loads(request.form.get("indices"))
         try: 
             filter = json.loads(request.form.get("filter"))
-            # print("form got filter : ", filter)
+            # todo: filter should be a list of strings
+            # filter by multi-select!
+            print("form got filter : ", filter)
+            for f in filter:
+                print("f is: ", f)  
         except Exception as err:
             filter = ""
             print(err)
