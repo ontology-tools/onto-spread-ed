@@ -419,24 +419,24 @@ class OntologyDataStore:
                                 entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
-                            #below was missing before...
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'])                    
-                            if entryIri:
-                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                for d in descs:
-                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                            if self.graphs[repo]:
-                                graph_descs = None
-                                try:
-                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                                except networkx.exception.NetworkXError:
-                                    print("NetworkXError: ", entry['ID'])
-                                    # print("networkx exception error in getIDsFromSelection", id)
+                            #below was missing before... do we need to include this?
+                            # entryIri = self.releases[repo].get_iri_for_id(entry['ID'])                    
+                            # if entryIri:
+                            #     descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                            #     for d in descs:
+                            #         ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                            # if self.graphs[repo]:
+                            #     graph_descs = None
+                            #     try:
+                            #         graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                            #     except networkx.exception.NetworkXError:
+                            #         print("NetworkXError: ", entry['ID'])
+                            #         # print("networkx exception error in getIDsFromSelection", id)
                                 
-                                if graph_descs is not None:
-                                    for g in graph_descs:
-                                        if g not in ids:
-                                            ids.append(g)
+                            #     if graph_descs is not None:
+                            #         for g in graph_descs:
+                            #             if g not in ids:
+                            #                 ids.append(g)
                             
                             
         return (ids)
