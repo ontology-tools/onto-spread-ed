@@ -407,8 +407,9 @@ class OntologyDataStore:
                 print("Obsolete: ", entry)
             else:
                 if filter != [""] and filter != []:
+                    print("multi-select filter: ", filter)
                     for f in filter:
-                        print("working out multi-filter ids for f: ", f)
+                        # print("working out multi-filter ids for f: ", f)
                         if str(entry['Curation status']) == f:
                             # print("got filter: ", f)
                             if 'ID' in entry and len(entry['ID'])>0:
@@ -558,12 +559,12 @@ class OntologyDataStore:
 
     def getDotForSheetGraph(self, repo, data, filter):
         # Get a list of IDs from the sheet graph
-        #todo: add filter to list of arguments below and above
-        if len(filter) > 0:
+        #todo: is there a better way to do this? 
+        if hasattr(filter, 'lower'): #check if filter is a string
+            ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter)
+        else: #should be a list then
             print("sending filter to multi select: ", filter)
-            ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter) 
-        else:
-            ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter[0])
+            ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)             
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
         return (P)
@@ -571,7 +572,7 @@ class OntologyDataStore:
     #todo: add filter to list of arguments below
     def getDotForSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds, filter[0])
+        ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds, filter)
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -1271,16 +1272,19 @@ def openVisualise():
         table = json.loads(request.form.get("table"))
         indices = json.loads(request.form.get("indices"))
         try: 
-            # filter = json.loads(request.form.get("filter"))
+            filter = json.loads(request.form.get("filter"))
             # todo: filter should be a list of strings
             # filter by multi-select!
             # test values: 
-            filter = ["External", "Discussed"]
+            # filter = ["External", "Discussed"]
             print("form got filter : ", filter)
-            for f in filter:
-                print("f is: ", f)  
+            if len(filter) > 0:
+                for f in filter:
+                    print("f is: ", f)  
+            else:
+                filter = ""
         except Exception as err:
-            filter = [""]
+            filter = ""
             print(err)
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
@@ -1294,18 +1298,18 @@ def openVisualise():
                 #append dotStr to dotstr_list   
                 dotstr_list.append(dotStr) #all possible graphs
             #calculate default all values:
-            filter = [""] #default
+            filter = "" #default
             for i in range(0,2):
                 ontodb.parseSheetData(repo,table)
                 dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string()
             
         else:
             #check if filter is greater than 1:
-            if len(filter) > 1: #multi-select:
+            if len(filter) > 1 and filter != "": #multi-select:
                 for i in range(0,2):
                         ontodb.parseSheetData(repo,table)
-                        dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()
-                        #todo: fix append dotStr to dotstr_list   
+                        dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string() #filter is a list of strings here
+                        # no dotstr_list here, just one dotStr
                         # dotstr_list.append(dotStr) #all possible graphs
             else:
                 for filter in curation_status_filters: #Visualise sheet
@@ -1316,7 +1320,7 @@ def openVisualise():
                     #append dotStr to dotstr_list   
                     dotstr_list.append(dotStr) #all possible graphs
                 #calculate default all values:
-                filter = [""] #default
+                filter = "" #default
                 for i in range(0,2):
                         ontodb.parseSheetData(repo,table)
                         dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()            
