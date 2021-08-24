@@ -399,6 +399,34 @@ class OntologyDataStore:
     # getDotForSelection - graph from selection in sheet
     # getDotForIDs - graph from ID list
  
+    def getIDsFromSheetMultiSelect(self, repo, data, filter):
+        #todo: 
+        ids = []
+        for entry in data:
+            if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
+                print("Obsolete: ", entry)
+            else:
+                if filter != [""] and filter != []:
+                    for f in filter:
+                        print("working out multi-filter ids for f: ", f)
+                        if str(entry['Curation status']) == f:
+                            # print("got filter: ", f)
+                            if 'ID' in entry and len(entry['ID'])>0:
+                                ids.append(entry['ID'].replace(":","_"))
+                            if 'Parent' in entry:
+                                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                if entryParent in self.label_to_id:
+                                    ids.append(self.label_to_id[entryParent])
+                # else:
+                #     if 'ID' in entry and len(entry['ID'])>0:
+                #             ids.append(entry['ID'].replace(":","_"))
+
+                #     if 'Parent' in entry:
+                #         entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                #         if entryParent in self.label_to_id:
+                #             ids.append(self.label_to_id[entryParent])
+        # print("got multi-select ids: ", ids)
+        return (ids)
     #todo: add multi-filter
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
@@ -531,7 +559,11 @@ class OntologyDataStore:
     def getDotForSheetGraph(self, repo, data, filter):
         # Get a list of IDs from the sheet graph
         #todo: add filter to list of arguments below and above
-        ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter) #test works
+        if len(filter) > 0:
+            print("sending filter to multi select: ", filter)
+            ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter) 
+        else:
+            ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter[0])
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
         return (P)
@@ -539,7 +571,7 @@ class OntologyDataStore:
     #todo: add filter to list of arguments below
     def getDotForSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds, filter)
+        ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds, filter[0])
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -1239,18 +1271,21 @@ def openVisualise():
         table = json.loads(request.form.get("table"))
         indices = json.loads(request.form.get("indices"))
         try: 
-            filter = json.loads(request.form.get("filter"))
+            # filter = json.loads(request.form.get("filter"))
             # todo: filter should be a list of strings
             # filter by multi-select!
+            # test values: 
+            filter = ["External", "Discussed"]
             print("form got filter : ", filter)
             for f in filter:
                 print("f is: ", f)  
         except Exception as err:
-            filter = ""
+            filter = [""]
             print(err)
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
-        if len(indices) > 0: 
+
+        if len(indices) > 0: #visualise selection
             for filter in curation_status_filters:
                 #loop this twice to mitigate ID bug:   
                 for i in range(0,2):
@@ -1259,24 +1294,32 @@ def openVisualise():
                 #append dotStr to dotstr_list   
                 dotstr_list.append(dotStr) #all possible graphs
             #calculate default all values:
-            filter = "" #default
+            filter = [""] #default
             for i in range(0,2):
                 ontodb.parseSheetData(repo,table)
                 dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string()
             
         else:
-            for filter in curation_status_filters:
-                #loop this twice to mitigate ID bug:   
+            #check if filter is greater than 1:
+            if len(filter) > 1: #multi-select:
                 for i in range(0,2):
-                    ontodb.parseSheetData(repo,table)
-                    dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()
-                #append dotStr to dotstr_list   
-                dotstr_list.append(dotStr) #all possible graphs
-            #calculate default all values:
-            filter = "" #default
-            for i in range(0,2):
-                    ontodb.parseSheetData(repo,table)
-                    dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()            
+                        ontodb.parseSheetData(repo,table)
+                        dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()
+                        #todo: fix append dotStr to dotstr_list   
+                        # dotstr_list.append(dotStr) #all possible graphs
+            else:
+                for filter in curation_status_filters: #Visualise sheet
+                    #loop this twice to mitigate ID bug:   
+                    for i in range(0,2):
+                        ontodb.parseSheetData(repo,table)
+                        dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()
+                    #append dotStr to dotstr_list   
+                    dotstr_list.append(dotStr) #all possible graphs
+                #calculate default all values:
+                filter = [""] #default
+                for i in range(0,2):
+                        ontodb.parseSheetData(repo,table)
+                        dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()            
 
         # print("dotStr is: ", dotStr)
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list)
