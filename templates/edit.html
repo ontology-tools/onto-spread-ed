@@ -2203,46 +2203,88 @@
     });
 
     $("#visualise-selection").click(function () {
-        var selectedData = table.getSelectedData();
-        var selectedRows = table.getSelectedRows();
-        var indices = [];
-
-        for (r in selectedRows) {
-            indices.push(selectedRows[r].getIndex());
+        var filterOptions = ["External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published"];
+        // modal multi select using filterOptions    
+        var inputArray = [];
+        for (var i = 0; i < filterOptions.length; i++) {
+            inputArray.push({ text: filterOptions[i], value: filterOptions[i] });
         }
-        indices.sort(function (a, b) { return a - b });
-        // console.log(indices);
-        window.open('', 'VisualisationWindow');
+        bootbox.prompt({
+            title: "Filter by multiple Curation status ?",
+            message: "Choose two or more: \n",
+            inputType: 'checkbox',
+            inputOptions: $(inputArray),  
+            onEscape: function() {
+                console.log("Escape was pressed");
+                f = [""];
+                sendFromModal(f)
+            },
+            callback: function (result) {
+                if (result === null || result === "") {
+                    filter = [""];
+                    console.log("no filter");
+                } else {
+                    filter = result;
+                }
+                console.log("filter is: " + filter);
+                sendFromModal2(filter);                
+            }     
+            
+        });
+      
+        function sendFromModal2(filter) {
+            console.log("sendFromModal2");
+            var selectedData = table.getSelectedData();
+            var selectedRows = table.getSelectedRows();
+            var indices = [];
 
-        var form = document.createElement("form");
-        form.setAttribute("method", "post");
-        form.setAttribute("action", "/openVisualise");
-        form.setAttribute("target", 'VisualisationWindow');
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = "sheet";
-        input.value = "{{spreadsheet_name}}";
-        form.appendChild(input);
-        var input2 = document.createElement('input');
-        input2.type = 'hidden';
-        input2.name = "repo";
-        input2.value = "{{repo_name}}";
-        form.appendChild(input2);
-        var input4 = document.createElement('input');
-        input4.type = 'hidden';
-        input4.name = "table";
-        input4.value = JSON.stringify(table.getData());
-        form.appendChild(input4);
-        var input5 = document.createElement('input');
-        input5.type = 'hidden';
-        input5.name = "indices";
-        input5.value = JSON.stringify(indices);
-        form.appendChild(input5);
-        document.body.appendChild(form);
-        form.target = 'VisualisationWindow';
-        form.submit();
-        document.body.removeChild(form);
+            for (r in selectedRows) {
+                indices.push(selectedRows[r].getIndex());
+            }
+            indices.sort(function (a, b) { return a - b });
+            // console.log(indices);
+            window.open('', 'VisualisationWindow');
+
+            var form = document.createElement("form");
+            form.setAttribute("method", "post");
+            form.setAttribute("action", "/openVisualise");
+            form.setAttribute("target", 'VisualisationWindow');
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = "sheet";
+            input.value = "{{spreadsheet_name}}";
+            form.appendChild(input);
+            var input2 = document.createElement('input');
+            input2.type = 'hidden';
+            input2.name = "repo";
+            input2.value = "{{repo_name}}";
+            form.appendChild(input2);
+            var input4 = document.createElement('input');
+            input4.type = 'hidden';
+            input4.name = "table";
+            input4.value = JSON.stringify(table.getData());
+            form.appendChild(input4);
+            var input5 = document.createElement('input');
+            input5.type = 'hidden';
+            input5.name = "indices";
+            input5.value = JSON.stringify(indices);
+            form.appendChild(input5);
+            var input6 = document.createElement('input');
+            input6.type = 'hidden';
+            input6.name = "filter";
+            //test:
+            // var filter = ["External", "Proposed"];
+            // var filter = ""; //ok we can set this here!
+            input6.value = JSON.stringify(filter);
+            form.appendChild(input6);
+            document.body.appendChild(form);
+            form.target = 'VisualisationWindow';
+            form.submit();
+            console.log("form submitted");
+            document.body.removeChild(form);                                            
+      }
     });
+
 
     $("#generate-identifier").click(function () {
         // console.log("clicked generate-identifier");
