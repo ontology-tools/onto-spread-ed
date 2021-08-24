@@ -2138,7 +2138,7 @@
         }
         bootbox.prompt({
             title: "Filter by multiple Curation status?",
-            message: "Choose two or more: \n",
+            message: "Choose two or more, or just press OK to see all: \n",
             inputType: 'checkbox',
             inputOptions: $(inputArray),  
             onEscape: function() {
@@ -2160,7 +2160,15 @@
         });
 
         function sendFromModal(filter) {
-                var indices = [];
+            var indices = [];
+            //todo: test - trying to add indices for whole table here:
+            var selectedRows = table.getRows();
+            for (r in selectedRows) {
+                indices.push(selectedRows[r].getIndex());
+            }
+            indices.sort(function (a, b) { return a - b });
+            // console.log(indices);
+
                 window.open('', 'VisualisationWindow');
 
                 var form = document.createElement("form");
@@ -2211,7 +2219,7 @@
         }
         bootbox.prompt({
             title: "Filter by multiple Curation status ?",
-            message: "Choose two or more: \n",
+            message: "Choose two or more, or just choose OK to see all: \n",
             inputType: 'checkbox',
             inputOptions: $(inputArray),  
             onEscape: function() {
