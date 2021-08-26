@@ -107,15 +107,15 @@
         var img1 = new Image();
 
         //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
-        function draw(scale, translatePos, dot) { //todo: add another option here for dot
+        function draw(scale, translatePos, dot) { 
             var canvas = document.getElementById("myCanvas");
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
 
-
             if (!loaded) {
                 var dotStr = dot;
-                // console.log("got dot: ", dotStr);
+                console.log("got dot: ", dotStr); 
+               //todo: if dotStr is empty, show a message
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
@@ -177,7 +177,7 @@
             dots.push(obsolete_dot);
 
             {% else %}
-            // push default to dots array 8 times
+            // push default to dots array 8 times - todo: think this is not necessary now?
             var default_dot = `{{ dotStr | safe}}`
             for (var i = 0; i < 8; i++) {
                 dots.push(default_dot);
