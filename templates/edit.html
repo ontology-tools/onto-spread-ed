@@ -2142,18 +2142,18 @@
             inputType: 'checkbox',
             inputOptions: $(inputArray),  
             onEscape: function() {
-                console.log("Escape was pressed");
+                // console.log("Escape was pressed");
                 f = [""];
                 sendFromModal(f)
             },
             callback: function (result) {
                 if (result === null || result === "") {
                     filter = [""];
-                    console.log("no filter");
+                    // console.log("no filter");
                 } else {
                     filter = result;
                 }
-                console.log("filter is: " + filter);
+                // console.log("filter is: " + filter);
                 sendFromModal(filter);                
             }     
             
@@ -2223,25 +2223,25 @@
             inputType: 'checkbox',
             inputOptions: $(inputArray),  
             onEscape: function() {
-                console.log("Escape was pressed");
+                // console.log("Escape was pressed");
                 f = [""];
                 sendFromModal(f)
             },
             callback: function (result) {
                 if (result === null || result === "") {
                     filter = [""];
-                    console.log("no filter");
+                    // console.log("no filter");
                 } else {
                     filter = result;
                 }
-                console.log("filter is: " + filter);
+                // console.log("filter is: " + filter);
                 sendFromModal2(filter);                
             }     
             
         });
       
         function sendFromModal2(filter) {
-            console.log("sendFromModal2");
+            // console.log("sendFromModal2");
             var selectedData = table.getSelectedData();
             var selectedRows = table.getSelectedRows();
             var indices = [];
@@ -2288,7 +2288,7 @@
             document.body.appendChild(form);
             form.target = 'VisualisationWindow';
             form.submit();
-            console.log("form submitted");
+            // console.log("form submitted");
             document.body.removeChild(form);                                            
       }
     });

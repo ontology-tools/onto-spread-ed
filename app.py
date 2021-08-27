@@ -408,7 +408,7 @@ class OntologyDataStore:
                 print("Obsolete: ", entry)
             else:
                 if filter != [""] and filter != []:
-                    print("multi-select filter: ", filter)
+                    # print("multi-select filter: ", filter)
                     for f in filter:
                         # print("working out multi-filter ids for f: ", f)
                         if str(entry['Curation status']) == f:
@@ -656,7 +656,7 @@ class OntologyDataStore:
         if hasattr(filter, 'lower'): #check if filter is a string
             ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter)
         else: #should be a list then
-            print("sending filter to multi select: ", filter)
+            # print("sending filter to multi select: ", filter)
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)             
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -1340,9 +1340,9 @@ def apiOpenVisualiseAcrossSheets():
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
         idString = request.form.get("idList")
-        print("idString is: ", idString)
+        # print("idString is: ", idString)
         repo = request.form.get("repo")
-        print("repo is ", repo)
+        # print("repo is ", repo)
         idList = idString.split()
         # for i in idList:
         #     print("i is: ", i)
@@ -1368,15 +1368,16 @@ def openVisualise():
         indices = json.loads(request.form.get("indices"))
         try: 
             filter = json.loads(request.form.get("filter"))
-            print("got filter: ", filter)
+            # print("got filter: ", filter)
             # todo: filter should be a list of strings
             # filter by multi-select!
             # test values: 
             # filter = ["External", "Discussed"]
-            print("form got filter : ", filter)
+            # print("form got filter : ", filter)
             if len(filter) > 0:
-                for f in filter:
-                    print("f is: ", f)  
+                pass
+                # for f in filter:
+                #     print("f is: ", f)  
             else:
                 filter = ""
         except Exception as err:
@@ -1394,7 +1395,7 @@ def openVisualise():
                     dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string() #filter is a list of strings here
             else:          
                 for filter in curation_status_filters:
-                    print("normal select, filter is: ", filter)
+                    # print("normal select, filter is: ", filter)
                     #loop this twice to mitigate ID bug:   
                     for i in range(0,2):
                         ontodb.parseSheetData(repo,table)
