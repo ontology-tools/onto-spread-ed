@@ -114,7 +114,7 @@
 
             if (!loaded) {
                 var dotStr = dot;
-                console.log("got dot: ", dotStr); 
+                //console.log("got dot: ", dotStr); 
                //todo: if dotStr is empty, show a message
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
