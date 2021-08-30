@@ -1350,9 +1350,12 @@ def apiOpenVisualiseAcrossSheets():
         # print("indices are: ", indices)
         ontodb.parseRelease(repo)
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
+        #NOTE: APP_TITLE2 can't be blank - messes up the spacing  
+        APP_TITLE2 = "VISUALISATION" #could model this on calling url here? Or something else..
+        print("app title should be set to ", APP_TITLE2)
         #todo: need to generate dot graph here
         # return jsonify(dotStr=dotStr)
-        return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
+        return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr, api=True, APP_TITLE2=APP_TITLE2)
 
 
 

@@ -1,0 +1,54 @@
+<html>
+
+<head>
+    <h1>
+        Example of external access to visualisation for ids
+    </h1>
+</head>
+
+<body style="text-align: center;">
+    <h2 style="color: green;">
+        onto-spread-ed
+    </h2>
+    <p>
+        Click on the button to create
+        a form dynamically, then press "Submit" to access the visualisation for the selected ids.
+    </p>
+
+    <button onClick="ID_Fun()">
+        click here
+    </button>
+
+    <script>
+        function ID_Fun() {
+
+            // Create a form dynamically
+            form = document.createElement("FORM");
+            form.name = 'form';
+            form.method = 'POST';
+            // form.action = 'https://onto-spread-ed.ew.r.appspot.com/api/openVisualiseAcrossSheets';            
+
+            form.action = 'http://me.mydomain.com:8080/api/openVisualiseAcrossSheets';            
+            var input = document.createElement('input');            
+            input.name = "idList";
+            input.value = "ADDICTO:0000323 ADDICTO:0000322 ADDICTO:0000324 ADDICTO:0000967 ADDICTO:0000325 ADDICTO:0000326";
+            form.appendChild(input);
+            
+            var input2 = document.createElement('input');            
+            input2.name = "repo";            
+            input2.value = "AddictO";
+            form.appendChild(input2);           
+
+            // Create a submit button
+            var s = document.createElement("input");
+            s.setAttribute("type", "submit");
+            s.setAttribute("value", "Submit");
+            // Append the button to the form
+            form.append(s);
+            // Append the form to the page
+            document.body.appendChild(form);            
+        }
+    </script>
+</body>
+
+</html>
