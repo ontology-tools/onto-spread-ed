@@ -148,7 +148,7 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
-
+    var reloadTable = false; //test if table needs to be reloaded
 
     //for suggestions (autocomplete):
     //get suggestions from server: 
@@ -161,7 +161,7 @@
     var initialSearchtype = "";
 
     allCookies = document.cookie;
-    console.log("allCookies: " + allCookies);
+    // console.log("allCookies: " + allCookies);
 
     var file_sha = '{{file_sha}}';
     var repo_name = '{{repo_name}}';
@@ -228,7 +228,7 @@
 
     //current spreadsheet name    
     var thisSheet = '{{spreadsheet_name | safe}}';
-    console.log("thisSheet is: " + thisSheet);
+    // console.log("thisSheet is: " + thisSheet);
 
     //Build the table row data with field names
     var tableData = [];
@@ -255,7 +255,7 @@
     var showSaveMessageMessage = "";
     if (localStorage.getItem("showSaveMessage" + thisSheet) !== null) {
         showSaveMessageMessage = localStorage.getItem("showSaveMessage" + thisSheet);
-        console.log("showSaveMessageMessage is: " + showSaveMessageMessage);
+        // console.log("showSaveMessageMessage is: " + showSaveMessageMessage);
         $('#saveAlert').removeClass('alert-danger');
         $('#saveAlert').addClass('alert-success');
         $("#saveMessage").text(showSaveMessageMessage);
@@ -272,11 +272,11 @@
     //todo: save login name as well as sheet name?.
     var previousTableData = localStorage.getItem("savedTableData" + thisSheet);
     if (JSON.stringify(testTableData) === previousTableData) {
-        console.log("SAME SAME");
+       //console.log("SAME SAME");
     } else {
         try {
             unsavedChanges = true;
-            console.log("NOT SAME WHY?");
+            // console.log("NOT SAME WHY?");
             var changesArray = [];
             //check saved changes array
             if (window.localStorage.getItem("savedChanges" + thisSheet) !== null) {
@@ -289,7 +289,7 @@
                     unsavedChanges = false;
                 }
             } else { //no saved changes, don't look for them later
-                console.log("savedChanges missing");
+                // console.log("savedChanges missing");
                 unsavedChanges = false;
                 //remove previous table array
                 window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
@@ -307,7 +307,7 @@
     //restore unsaved changes if needed:
     try {
         if (unsavedChanges) {
-            console.log("changesArray is: " + changesArray);
+            // console.log("changesArray is: " + changesArray);
             //build array of data which will be replaced: 
             var tableChangedArray = [];
             for (var i = 0; i < rowLength; i++) {
@@ -349,10 +349,10 @@
 
             if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
                 //unsavedChanges code here, plus save at end
-                console.log("confirmed");
+               //console.log("confirmed");
                 //Restoring entire array:
                 var newRowLength = previousTableData.length / headerLength;
-                console.log(newRowLength);
+               //console.log(newRowLength);
                 tableData = JSON.parse(previousTableData); //todo: this doesn't take into account changes made on the server!
                 //todo: below needs to block, but we want a bootbox style which is asynchronous?
                 alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost! \n Some functionality is disabled until you save");
@@ -389,7 +389,7 @@
                     .concat(duplicates.slice(i + 1, duplicates.length))
             })
 
-            console.log("duplicates: " + duplicates) 
+            // console.log("duplicates: " + duplicates) 
         }
     } catch (err) {
         // alert("an error occurred, unable to restore unsaved changes\n" + err);
@@ -431,7 +431,7 @@
                 //Only rows with  non-empty IDs, that are not matching the project ID template, are external.
                 //adding "External" status:
                 if (headers[j] == curation_status) { //column
-                    console.log("repo_name is: " + repo_name);
+                    // console.log("repo_name is: " + repo_name);
                     if (rowObj["ID"] == undefined) {
                         //no "ID" column
                     } else {
@@ -471,7 +471,7 @@
 
     //all_initials
     var allInitials = {{ all_initials | safe }};
-    console.log("allInitials: " + allInitials);
+    // console.log("allInitials: " + allInitials);
 
     // save changes
     var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
@@ -692,7 +692,7 @@
                 if (Array.isArray(inputValues)) {
                     inputValues.forEach(function (value) {
                         if (value == null) {
-                            console.log("gotcha null!");
+                           //console.log("gotcha null!");
                         } else {
                             var item = {};
 
@@ -821,7 +821,7 @@
             function showList() {
                 if (!listEl.parentNode) {
 
-                    console.log("show", initialDisplayValue)
+                   //console.log("show", initialDisplayValue)
                     while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
 
                     var offset = Tabulator.prototype.helpers.elOffset(cellEl);
@@ -1145,7 +1145,7 @@
         rowSelectionChanged: function (data, rows) {
 
             if (table) {
-                console.log("highlighting now");
+               //console.log("highlighting now");
                 for (var r in table.getRows()) {
                     if (table.getRow(r)) { //don't try to check for deleted rows!
                         var row3 = table.getRow(r);
@@ -1213,8 +1213,8 @@
             var data = row.getData();
             var column = cell.getColumn(); //todo: this is column object!
 
-            console.log("editing row: " + rowValue);
-            console.log("editing column: " + column.getDefinition().title.toLowerCase().replace(/\s+/g, ''));
+            // console.log("editing row: " + rowValue);
+            // console.log("editing column: " + column.getDefinition().title.toLowerCase().replace(/\s+/g, ''));
             //save backup curation status if "Curation status" column present: 
             //todo: this may be inaccurate, saving all sorts of things
             if (data[curation_status] === undefined) { //Curation status column not present in table
@@ -1222,7 +1222,7 @@
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
                     prevCurationStatus = cell.getValue();
-                    console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+                    // console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
                 }
             }
             //change suggestion to remove this row:
@@ -1230,7 +1230,7 @@
             if (data["Label"] !== undefined) { //if we have a "Label" column
 
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
-                    console.log("Parent column");
+                   //console.log("Parent column");
                     //todo: big error after this with AddictO_Not_yet_classified_Defs.xlsx
                     //unable to edit "Parent" column. Fix!!
                     for (v in suggestValuesArray) {
@@ -1248,7 +1248,7 @@
                     }
                 }
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').includes("rel")) {
-                    console.log("REL column");
+                   //console.log("REL column");
 
                     for (v in suggestValuesArray) {
                         if (suggestValuesArray[v] === data["Label"]) {
@@ -1274,7 +1274,7 @@
             var row = cell.getRow();
             var data = row.getData();
             var column = cell.getColumn();
-            console.log("cellEdited: " + cell.getValue() + ", " + row.getPosition() + ", " + column.getDefinition().title);
+            // console.log("cellEdited: " + cell.getValue() + ", " + row.getPosition() + ", " + column.getDefinition().title);
             // console.log("cellEdited column is: " + column.getDefinition().title);
 
 
@@ -1312,7 +1312,7 @@
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(labelLabel.toLowerCase()) !== -1) {
                     if (cell.getValue() !== "") {
                         addToSuggestions(cell.getValue());
-                        console.log("adding " + cell.getValue() + " to suggestions");
+                       //console.log("adding " + cell.getValue() + " to suggestions");
                     }
                 }
             }
@@ -1501,12 +1501,12 @@
 
             } else {
                 if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
-                    console.log(prevCurationStatus + " is now changed to " + cell.getValue()); //before and after values
-                    console.log("column is: " + column.getDefinition().title);
+                    // console.log(prevCurationStatus + " is now changed to " + cell.getValue()); //before and after values
+                    // console.log("column is: " + column.getDefinition().title);
                     // 1.
                     if (cell.getValue() == "Published") {
                         var savedCellDiscussed = false; //for saved version "Discussed" status
-                        if (!tableEdited) {
+                        if (!tableEdited) { // error, only works once! todo: fix this
                             savedCellDiscussed = true;
                         } else {
                             //need to check saved table to see if status for this row was "Discussed" or not: 
@@ -1514,7 +1514,7 @@
                             var currentColumnNumber = headerLength - 2; //fallback, for now
                             for (var i = 0; i < headerLength; i++) {
                                 if (headers[i] == curation_status) {
-                                    console.log("reached correct column" + i);
+                                   //console.log("reached correct column" + i);
                                     currentColumnNumber = i;
                                 }
                             }
@@ -1522,7 +1522,7 @@
                             // console.log("rowData.length : " + rowData.length + "and rowValue is: " + rowValue);
                             //check for new row:                             
                             if (rowValue >= rowData.length) {
-                                console.log("rowData is undefined, must be new row?");
+                               //console.log("rowData is undefined, must be new row?");
                             } else {
                                 dValue = rowData[rowValue][headers[currentColumnNumber]];
                             }
@@ -1538,7 +1538,7 @@
                                 data[curation_status] = prevCurationStatus; //reverting here
                                 //revert to prevCurationStatus and send a message
                             }
-                            console.log("this is fine");
+                            // console.log("this is fine");
                             //this is fine, allow it
                         } else {
                             bootbox.alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
@@ -1553,7 +1553,7 @@
                             data[curation_status] = prevCurationStatus; //reverting here
                             //revert to prevCurationStatus and send a message "are you sure?"
                         } else {
-                            console.log("this is fine");
+                           //console.log("this is fine");
                             //this is fine, allow it
                         }
                     }
@@ -1564,6 +1564,7 @@
                             bootbox.alert("'Label', 'Definition' and 'Parent' columns all need to be set first");
                             data[curation_status] = prevCurationStatus; //reverting here
                         } else {
+                            reloadTable = true; //todo: experimental - reload table after saving
                             // console.log("All set. Label, Definition and Parent. Should be Discussed now");
                             //this is fine, allow it
                         }
@@ -1598,9 +1599,9 @@
                         }
                         validateErrorMessages = newValidateErrorMessages; //replace
                         if ($("#validation-btns").is(":hidden")) {
-                            console.log("HIDDEN");
+                           //console.log("HIDDEN");
                         } else {
-                            console.log("NOT HIDDEN");
+                           //console.log("NOT HIDDEN");
                             validateButtons();
                             // $("#validation-btns").hide();
                         }
@@ -1653,9 +1654,9 @@
                     // console.log(validateErrorMessages);
                     //check if we are dealing with validation errors:
                     if ($("#validation-btns").is(":hidden")) {
-                        console.log("HIDDEN");
+                       //console.log("HIDDEN");
                     } else {
-                        console.log("NOT HIDDEN");
+                       //console.log("NOT HIDDEN");
                         validateButtons();
                     }
                 }
@@ -1881,7 +1882,7 @@
             if (data["ID"] === undefined || data[curation_status] === undefined) {
                 table.deleteRow(row);
                 // if (row.getCell("ID") === undefined) {
-                console.log("ID undefined");
+               //console.log("ID undefined");
             } else {
                 var data = row.getData();
                 var cell = row.getCell("ID");
@@ -2177,7 +2178,7 @@
             indices.push(selectedRows[r].getIndex());
         }
         indices.sort(function (a, b) { return a - b });
-        console.log(indices);
+        // console.log(indices);
         window.open('', 'VisualisationWindow');
 
         var form = document.createElement("form");
@@ -2211,7 +2212,7 @@
     });
 
     $("#generate-identifier").click(function () {
-        console.log("clicked generate-identifier");
+        // console.log("clicked generate-identifier");
         var selectedData = table.getSelectedData();
         var selectedRows = table.getSelectedRows();
         //array of rows: 
@@ -2229,7 +2230,7 @@
                 }
             }
         }
-        console.log(rowsToGenerate);
+        // console.log(rowsToGenerate);
         //send rowsToGenerate to generate function:
         generate(rowsToGenerate).done(function (message) {
             // console.log(message);
@@ -2293,8 +2294,8 @@
         //scroll to search term if present:
         initialRowSearch = '{{go_to_row | safe}}';
         initialSearchtype = '{{type | safe}}';
-        console.log(initialRowSearch);
-        console.log("type is: " + initialSearchtype);
+        // console.log(initialRowSearch);
+        // console.log("type is: " + initialSearchtype);
         if (initialRowSearch == "" || initialRowSearch == null) {
 
         } else {
@@ -2374,9 +2375,9 @@
         if (changes.length > 0) {
             var cellArray = JSON.stringify(changes);
             localStorage.setItem("savedChanges" + thisSheet, cellArray);
-            console.log("changes.length = " + changes.length);
+            // console.log("changes.length = " + changes.length);
         }
-        console.log("changes backed up");
+        // console.log("changes backed up");
     }
 
     function clearFormatting() {
@@ -2393,7 +2394,7 @@
         for (var i = 0; i < changes.length; i++) {
             if (rowValue == changes[i]) { //matches row number
                 if (columnValue == changes[i + 1]) { //matches column name as well
-                    console.log("already edited this field");
+                    // console.log("already edited this field");
                     changes.splice(i - 1, 3, cellValue, rowValue, columnValue);
                     alreadyChanged = true;
                 }
@@ -2503,7 +2504,7 @@
                                 request.onreadystatechange = function () {
                                     $("*").css("cursor", "default");
                                     $('#saveDialog').modal('hide');
-                                    console.log("request status is: " + request.status);
+                                    // console.log("request status is: " + request.status);
                                     if (request.readyState === 4) {
                                         if (!request.status) {
                                             hide_save_indicator();
@@ -2556,6 +2557,16 @@
                                                 localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
                                                 location.reload(true); //todo: can tabulator just update without re-loading the page? 
                                             }
+                                            //for "Discussed" Curation status - need to re-load sheet to avoid new data bug
+                                            if (reloadTable) { //true for "Discussed" Curation status 
+                                                //re-load here to get updated data - need alert not bootbox (for blocking):
+                                                bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
+                                                tableEdited = false; //stops page from warning about unsaved changes
+                                                //showSaveMessage localStorage for reload: 
+                                                showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
+                                                localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
+                                                location.reload(true); //todo: can tabulator just update without re-loading the page? 
+                                            }
                                             //todo: handle more error codes here and do merge in correct circumstance
                                         } else if (request.status === 400) { //repo not found error
                                             var response = JSON.parse(request.responseText);
@@ -2587,18 +2598,18 @@
                                             // $("#saveAlert").hide();
                                             $("tr").each(function () {
                                                 if ($(this).hasClass("remove")) {
-                                                    console.log("REMOVE DETECTED");
+                                                    // console.log("REMOVE DETECTED");
                                                 }
                                                 if ($(this).hasClass("add")) {
-                                                    console.log("ADD DETECTED");
+                                                    // console.log("ADD DETECTED");
                                                 }
                                             });
                                             $("td").each(function () {
                                                 if ($(this).hasClass("modify")) {
-                                                    console.log("MODIFY DETECTED");
+                                                    // console.log("MODIFY DETECTED");
                                                 }
                                                 if ($(this).hasClass("conflict")) {
-                                                    console.log("CONFLICT DETECTED");
+                                                    // console.log("CONFLICT DETECTED");
                                                 }
                                             });
                                             $("tr.remove").css('background-color', '#DAA520'); //orange
@@ -2615,7 +2626,7 @@
                                         } else {
                                             saveIndicator.modal('hide'); // hide save indicator if no response
                                             var response = JSON.parse(request.responseText);
-                                            console.log(response);
+                                           //console.log(response);
                                             var errInfo = response['Error'];
                                             $("#saveAlert").addClass("alert-danger");
                                             $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
@@ -2660,7 +2671,7 @@
     function validateButtons() {
         if (validateErrorMessages.length == 0) {
             $("#validation-btns").hide();
-            console.log("validation buttons lenth 0");
+            // console.log("validation buttons lenth 0");
         } else {
             $("#validation-btns").empty(); //first remove any old buttons
             $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
@@ -2767,7 +2778,7 @@
         if ((event.ctrlKey || event.metaKey) && event.which == 83) {
             // Save Function
             event.preventDefault();
-            console.log("Save!");
+            // console.log("Save!");
             if (tableEdited) {
                 $('#save-btn').trigger('click');
             }
@@ -2785,7 +2796,7 @@
             type: 'POST',
             data: { cell: JSON.stringify(cell.getValue()), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
             success: function (message) {
-                console.log("no validation errors?")
+                // console.log("no validation errors?")
             }, error: function () {
                 console.log("validate message error: " + message);
             }
@@ -2802,7 +2813,7 @@
             type: 'POST',
             data: { rowData: JSON.stringify(rowsToGenerate), repo_key: '{{repo_name}}' },
             success: function (message) {
-                console.log("got new ID's?")
+                // console.log("got new ID's?")
             }, error: function () {
                 console.log("generate error: " + message);
             }
@@ -2858,7 +2869,7 @@
             data: { repo_key: repo_key, folder: folder, spreadsheet: spreadsheet_name, file_sha },
             success: function (data) {
                 var msg = data.message;
-                console.log(msg);
+                // console.log(msg);
                 if (msg == "Success") {
 
                 } else {
