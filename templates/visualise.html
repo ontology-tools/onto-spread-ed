@@ -285,12 +285,16 @@
                     y: 0
                 };
                 draw(scale, translatePos, dots[current_dot]);             
-                
                 $("#filterMessage").text("Filtered by: \"" + linkText + "\"");
                 $("#filterMessage").css("font-weight","Bold");
             });
-
+            {% else %}
+                {% if filter %}
+                    $("#filterMessage").text("Filtered by: \"" + {{filter | safe}} + "\"");
+                    $("#filterMessage").css("font-weight","Bold");
+                {% endif %}
             {% endif %}
+            
         }
 
     </script>

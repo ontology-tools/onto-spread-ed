@@ -1328,11 +1328,7 @@ def openVisualiseAcrossSheets():
     return ("Only POST allowed.")
 
 
-# api: 
-@app.route('/api/get-json')
-# @verify_logged_in #how to check this?
-def hello():
-  return jsonify(hello='world') # Returns HTTP Response with {"hello": "world"}
+#api:
 
 @app.route('/api/openVisualiseAcrossSheets', methods=['POST'])
 # @verify_logged_in # not enabled for /api/
@@ -1372,7 +1368,7 @@ def openVisualise():
         try: 
             filter = json.loads(request.form.get("filter"))
             # print("got filter: ", filter)
-            # todo: filter should be a list of strings
+            # filter is a list of strings
             # filter by multi-select!
             # test values: 
             # filter = ["External", "Discussed"]
@@ -1434,7 +1430,7 @@ def openVisualise():
                     dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()            
 
         # print("dotStr is: ", dotStr)
-        return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list)
+        return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list, filter=filter)
 
     return ("Only POST allowed.")
 
