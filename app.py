@@ -1386,8 +1386,8 @@ def openVisualise():
             ontodb.parseRelease(repo)
 
         if len(indices) > 0: #visualise selection
-            #check if filter is greater than 1:
-            if len(filter) > 1 and filter != "": #multi-select:
+            #check if filter is greater than 0:
+            if len(filter) > 0 and filter != "": #multi-select:
                 print("multi-select, filter is: ", filter)
                 for i in range(0,2):
                     ontodb.parseSheetData(repo,table)
@@ -1408,8 +1408,8 @@ def openVisualise():
                     dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string()
             
         else:
-            #check if filter is greater than 1:
-            if len(filter) > 1 and filter != "": #multi-select:
+            #check if filter is greater than 0:
+            if len(filter) > 0 and filter != "": #multi-select:
                 for i in range(0,2):
                     ontodb.parseSheetData(repo,table)
                     dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string() #filter is a list of strings here
