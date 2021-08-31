@@ -31,12 +31,41 @@
             <button id=reviewed class="btn btn-outline-primary btn-sm" style="display: none"><i
                     class="fas fa-clipboard-check"></i>
                 Reviewed</button>
-            <button id=visualise-sheet class="btn btn-outline-success btn-sm"><i class="fas fa-project-diagram"
-                    style="display: none"></i>
-                Visualise sheet</button>
-            <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i
+            
+            <div class="btn-group">
+                <button id=visualise-sheet class="btn btn-outline-success btn-sm" style="display: none"><i
                     class="fab fa-uncharted"></i>
-                Visualise selection</button>
+                    Visualise sheet
+                </button>                
+                <button id=visualise-sheet-multiselect type="button" class="btn btn-outline-success btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="display: none">
+                    [filter]
+                    <span class="sr-only">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li id="visualise-sheet-checkbox-list" class="dropdown">
+                        <!-- using jquery to add checkbox list items -->
+                           
+                    </li>
+                </ul>
+            </div>
+            
+                <div class="btn-group">
+                    <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i
+                        class="fab fa-uncharted"></i>
+                        Visualise selection
+                    </button>                
+                    <button id=visualise-selection-multiselect type="button" class="btn btn-outline-success btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="display: none">
+                        [filter]
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li id="visualise-selection-checkbox-list" class="dropdown">
+                            <!-- using jquery to add checkbox list items -->
+                               
+                        </li>
+                    </ul>
+                </div>
+    
             <button id=generate-identifier class="btn btn-outline-dark btn-sm" style="display: none"><i
                     class="fas fa-marker"></i>
                 Generate identifier</button>
@@ -149,6 +178,8 @@
 <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
+    var filter = [""]; //for multi-filter
+
     var reloadTable = false; //test if table needs to be reloaded
 
     //for suggestions (autocomplete):
@@ -1109,6 +1140,7 @@
             if (data['ID'] === undefined) { //for tables without ID
             } else {
                 $('#visualise-selection').show(); //only for tables with ID column
+                $('#visualise-selection-multiselect').show();            
             }
             if (data[curation_status] === undefined) { //for tables without curation_status
                 //don't show some buttons if in a table where they are not needed
@@ -1131,6 +1163,7 @@
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
                 $('#visualise-selection').hide();
+                $('#visualise-selection-multiselect').hide();
             }
             //re-do styling
             if (data[curation_status] === undefined) { //for tables without curation_status
@@ -1167,6 +1200,7 @@
                 $('#ask-for-review').hide();
                 $('#reviewed').hide();
                 $('#visualise-selection').hide();
+                $('#visualise-selection-multiselect').hide();
                 $('#generate-identifier').hide();
             } else {
                 $('#delete-rows').show();
@@ -1178,6 +1212,7 @@
                     if (rowData['ID'] === undefined) { //for tables without ID
                     } else {
                         $('#visualise-selection').show(); //only for tables with ID column
+                        $('#visualise-selection-multiselect').show();
                         if (rowData['ID'] === null || rowData['ID'].trim() === "") {
                             //has no ID but has Label, Definition and Parent:
                             if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
@@ -1684,12 +1719,15 @@
             $('#reviewed').hide();
             $('#updates').hide();
             $('#visualise-selection').hide();
+            $('#visualise-selection-multiselect').hide();
             $('#visualise-sheet').hide();
+            $('#visualise-sheet-multiselect').hide();
             if (data['ID'] === undefined || data['Curation status'] === undefined) { //for tables without ID or curation status column
 
             } else {
                 if (data['ID'] !== null && data['Curation status'] !== null) {
                     $('#visualise-sheet').show(); //only for tables with ID
+                    $('#visualise-sheet-multiselect').show();
                 }
             }
 
@@ -2130,39 +2168,65 @@
     });
 
     $("#visualise-sheet").click(function () {
-        var filterOptions = ["External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published"];
-        // modal multi select using filterOptions    
-        var inputArray = [];
-        for (var i = 0; i < filterOptions.length; i++) {
-            inputArray.push({ text: filterOptions[i], value: filterOptions[i] });
-        }
-        bootbox.prompt({
-            title: "Filter by multiple Curation status?",
-            message: "Choose two or more and press OK, or CANCEL to see all: \n",
-            inputType: 'checkbox',
-            inputOptions: $(inputArray),  
-            onEscape: function() {
-                // console.log("Escape was pressed");
-                f = [""];
-                sendFromModal(f)
-            },
-            callback: function (result) {
-                if (result === null || result === "") {
-                    filter = [""];
-                    // console.log("no filter");
-                } else {
-                    filter = result;
-                }
-                // console.log("filter is: " + filter);
-                sendFromModal(filter);                
-            }     
-            
-        });
+        filter=[""];
+        sendVisualisationRequest(filter, "sheet");               
+    });
 
-        function sendFromModal(filter) {
+    $("#visualise-sheet-multiselect").click(function () {
+        var filterOptions = ["External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published"];  
+        $("#visualise-sheet-checkbox-list").empty(); //todo: save state of checkboxes
+        for (var i = 0; i < filterOptions.length; i++) {
+            $("#visualise-sheet-checkbox-list").append("<input type='checkbox' name='" + filterOptions[i] + "' value='" + filterOptions[i] + "'>" + filterOptions[i] + "<br>");
+        }
+        $("#visualise-sheet-checkbox-list").append("<br><button id='visualise-sheet-multiselect-apply'>Apply</button>");
+        $("#visualise-sheet-multiselect-apply").click(function () {
+            var selectedOptions = [];
+            $("#visualise-sheet-checkbox-list input:checked").each(function () {
+                selectedOptions.push($(this).val());
+            });
+           
+            if (selectedOptions.length > 0) {
+                sendVisualisationRequest(selectedOptions, "sheet");
+                
+            }
+        });
+    });
+
+       
+
+    $("#visualise-selection").click(function () {
+        filter=[""];
+        sendVisualisationRequest(filter, "select");               
+    });
+
+    $("#visualise-selection-multiselect").click(function () {
+        var filterOptions = ["External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published"];
+        // use jquery to add checkboxes to visualise-selection-checkbox-list:   
+        $("#visualise-selection-checkbox-list").empty();
+        for (var i = 0; i < filterOptions.length; i++) {
+            $("#visualise-selection-checkbox-list").append("<input type='checkbox' name='" + filterOptions[i] + "' value='" + filterOptions[i] + "'>" + filterOptions[i] + "<br>");
+        }
+        $("#visualise-selection-checkbox-list").append("<br><button id='visualise-selection-multiselect-apply'>Apply</button>");
+        $("#visualise-selection-multiselect-apply").click(function () {
+            var selectedOptions = [];
+            $("#visualise-selection-checkbox-list input:checked").each(function () {
+                selectedOptions.push($(this).val());
+            });
+            if (selectedOptions.length > 0) {
+                sendVisualisationRequest(selectedOptions, "select");
+            }
+        });
+    });
+
+    function sendVisualisationRequest(filter, sendType) {
             var indices = [];
-            //todo: test - trying to add indices for whole table here:
-            var selectedRows = table.getRows();
+            if(sendType == "select"){
+                var selectedData = table.getSelectedData();
+                var selectedRows = table.getSelectedRows();
+            } else{
+                var selectedRows = table.getRows();
+            }
+            
             for (r in selectedRows) {
                 indices.push(selectedRows[r].getIndex());
             }
@@ -2208,90 +2272,10 @@
                 form.submit();
                 document.body.removeChild(form);
             }
-    });
 
-    $("#visualise-selection").click(function () {
-        var filterOptions = ["External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published"];
-        // modal multi select using filterOptions    
-        var inputArray = [];
-        for (var i = 0; i < filterOptions.length; i++) {
-            inputArray.push({ text: filterOptions[i], value: filterOptions[i] });
-        }
-        bootbox.prompt({
-            title: "Filter by multiple Curation status ?",
-            message: "Choose two or more and press OK, or CANCEL to see all: \n",
-            inputType: 'checkbox',
-            inputOptions: $(inputArray),  
-            onEscape: function() {
-                // console.log("Escape was pressed");
-                f = [""];
-                sendFromModal(f)
-            },
-            callback: function (result) {
-                if (result === null || result === "") {
-                    filter = [""];
-                    // console.log("no filter");
-                } else {
-                    filter = result;
-                }
-                // console.log("filter is: " + filter);
-                sendFromModal2(filter);                
-            }     
-            
-        });
-      
-        function sendFromModal2(filter) {
-            // console.log("sendFromModal2");
-            var selectedData = table.getSelectedData();
-            var selectedRows = table.getSelectedRows();
-            var indices = [];
+    
 
-            for (r in selectedRows) {
-                indices.push(selectedRows[r].getIndex());
-            }
-            indices.sort(function (a, b) { return a - b });
-            // console.log(indices);
-            window.open('', 'VisualisationWindow');
-
-            var form = document.createElement("form");
-            form.setAttribute("method", "post");
-            form.setAttribute("action", "/openVisualise");
-            form.setAttribute("target", 'VisualisationWindow');
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = "sheet";
-            input.value = "{{spreadsheet_name}}";
-            form.appendChild(input);
-            var input2 = document.createElement('input');
-            input2.type = 'hidden';
-            input2.name = "repo";
-            input2.value = "{{repo_name}}";
-            form.appendChild(input2);
-            var input4 = document.createElement('input');
-            input4.type = 'hidden';
-            input4.name = "table";
-            input4.value = JSON.stringify(table.getData());
-            form.appendChild(input4);
-            var input5 = document.createElement('input');
-            input5.type = 'hidden';
-            input5.name = "indices";
-            input5.value = JSON.stringify(indices);
-            form.appendChild(input5);
-            var input6 = document.createElement('input');
-            input6.type = 'hidden';
-            input6.name = "filter";
-            //test:
-            // var filter = ["External", "Proposed"];
-            // var filter = ""; //ok we can set this here!
-            input6.value = JSON.stringify(filter);
-            form.appendChild(input6);
-            document.body.appendChild(form);
-            form.target = 'VisualisationWindow';
-            form.submit();
-            // console.log("form submitted");
-            document.body.removeChild(form);                                            
-      }
-    });
+    
 
 
     $("#generate-identifier").click(function () {
