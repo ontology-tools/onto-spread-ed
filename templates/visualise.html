@@ -284,9 +284,16 @@
                     x: 0,
                     y: 0
                 };
-                draw(scale, translatePos, dots[current_dot]);             
-                $("#filterMessage").text("Filtered by: \"" + linkText + "\"");
-                $("#filterMessage").css("font-weight","Bold");
+                draw(scale, translatePos, dots[current_dot]);
+                //if dots[current_dot] is empty, then show "No Data":
+                console.log("got data: ", dots[current_dot].trim());
+                if (dots[current_dot].replace(/\s/g, '').includes("{}")) {
+                    $("#filterMessage").text("No Data");
+                    $("#filterMessage").css("font-weight","Bold");
+                } else {        
+                    $("#filterMessage").text("Filtered by: \"" + linkText + "\"");
+                    $("#filterMessage").css("font-weight","Bold");
+                }
             });
             {% else %}
                 {% if filter %}
