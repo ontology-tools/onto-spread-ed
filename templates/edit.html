@@ -2185,10 +2185,10 @@
                 selectedOptions.push($(this).val());
             });
            
-            if (selectedOptions.length > 0) {
-                sendVisualisationRequest(selectedOptions, "sheet");
-                
-            }
+            if (selectedOptions.length > 1) {
+                sendVisualisationRequest(selectedOptions, "sheet");                
+            } else{
+                bootbox.alert("Please select at least two options");            }
         });
     });
 
@@ -2212,8 +2212,10 @@
             $("#visualise-selection-checkbox-list input:checked").each(function () {
                 selectedOptions.push($(this).val());
             });
-            if (selectedOptions.length > 0) {
+            if (selectedOptions.length > 1) {
                 sendVisualisationRequest(selectedOptions, "select");
+            } else{
+                bootbox.alert("Please select at least two options");
             }
         });
     });

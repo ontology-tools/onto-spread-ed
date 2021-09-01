@@ -1,5 +1,5 @@
 <html>
-
+<meta charset="utf-8">
 <head>
     <h1 style="text-align: center;">
         External access to GraphViz visualisation for a list of ID's
@@ -25,31 +25,35 @@
                 data.append("repo", "AddictO");
     
                 var xhr = new XMLHttpRequest();
-                xhr.withCredentials = true;
+                xhr.withCredentials = false;
     
                 xhr.addEventListener("readystatechange", function() {
                 if(this.readyState === 4) {
-                    console.log(this.responseText);
+                    //render returned html in the same page: 
+                    var newHTML = document.open("text/html");
+                    newHTML.write(this.responseText);
+                    newHTML.close();                                     
                 }
                 });
     
                 xhr.open("POST", "https://onto-spread-ed.ew.r.appspot.com/api/openVisualiseAcrossSheets");
-    
+                
                 xhr.send(data);
             </code>
         </pre>
 
     </figure>
-    
+
 
     <h2>
-        Postman sample: 
+        Postman sample:
     </h2>
     <p>
         We have created a Postman "collection" sample request. When imported into the "Postman" application,
-        this can be used to test out the api. Postman can also be used to generate request code in a number of languages.
+        this can be used to test out the api. Postman can also be used to generate request code in a number of
+        languages.
         The postman application can be found <a href="https://www.getpostman.com/">here</a>.
-        See <a href="https://learning.postman.com/docs/sending-requests/generate-code-snippets/">this article</a> 
+        See <a href="https://learning.postman.com/docs/sending-requests/generate-code-snippets/">this article</a>
         to learn more about how to generate code snippets with Postman.
     </p>
     <h2>
@@ -99,5 +103,8 @@
         }
     </script>
 </body>
+
+
+
 
 </html>

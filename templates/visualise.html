@@ -114,8 +114,7 @@
 
             if (!loaded) {
                 var dotStr = dot;
-                //console.log("got dot: ", dotStr); 
-               //todo: if dotStr is empty, show a message
+                // console.log("got dot: ", dotStr); 
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
@@ -300,6 +299,7 @@
                     $("#filterMessage").text("Filtered by: \"" + {{filter | safe}} + "\"");
                     $("#filterMessage").css("font-weight","Bold");
                 {% endif %}
+                
             {% endif %}
             
         }
