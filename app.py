@@ -234,12 +234,15 @@ class SpreadsheetSearcher:
 
         mparser = QueryParser("class_id",
                               schema=ix.schema)
-
+        if repo_name == "BCIO":
+            # below in order to eliminate "BCIOR" from results:
+            repo_name = "BCIO:" #todo: does this have any unintended consequences? 
         query = mparser.parse(repo_name.upper()+"*")
-
+        print("searching ", repo_name)
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id",reverse=True)
             tophit = results[0]
+            print("top result: ", results[0])
             mostRecentID = cache.get("latestID") # check latest ID 
             if mostRecentID is None: # error check no cache set
                 mostRecentID = 0
@@ -942,7 +945,7 @@ def generate():
         for row in rowData:
             nextIdStr = str(searcher.getNextId(repo_key))
             id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
-            #print("Row ID is ",row['id'])
+            # print("Row ID is ",row['id'])
             ids["ID"+str(row['id'])] = str(row['id'])
             values["ID"+str(row['id'])] = id
         #print("Got values: ",values)
