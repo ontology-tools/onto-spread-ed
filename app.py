@@ -423,7 +423,7 @@ class OntologyDataStore:
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
                             #below was missing before... do we need to include this?
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'])                    
+                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
                             if entryIri:
                                 descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                                 for d in descs:
@@ -464,7 +464,7 @@ class OntologyDataStore:
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
                         #todo: below was missing before... do we need to include this?
-                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'])                    
+                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
                         if entryIri:
                             descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                             for d in descs:
@@ -490,7 +490,7 @@ class OntologyDataStore:
                         if entryParent in self.label_to_id:
                             ids.append(self.label_to_id[entryParent])
                     #todo: below was missing before... do we need to include this? 
-                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'])                    
+                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
                     if entryIri:
                         descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                         for d in descs:
@@ -533,7 +533,7 @@ class OntologyDataStore:
                                     entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                                     if entryParent in self.label_to_id:
                                         ids.append(self.label_to_id[entryParent])
-                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
+                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
                                 if entryIri:
                                     descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                                     for d in descs:
@@ -573,7 +573,7 @@ class OntologyDataStore:
                                 entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
+                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
                             if entryIri:
                                 descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                                 for d in descs:
@@ -598,7 +598,7 @@ class OntologyDataStore:
                             entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
-                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'])
+                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
                         if entryIri:
                             descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                             for d in descs:
@@ -622,7 +622,7 @@ class OntologyDataStore:
         ids = []
         for id in selectedIds:
             ids.append(id.replace(":","_"))
-            entryIri = self.releases[repo].get_iri_for_id(id)
+            entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
             # print("Got IRI",entryIri,"for ID",id)
             #todo: get label, definitions, synonyms here?
 
