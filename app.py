@@ -106,7 +106,10 @@ cors = CORS(app, resources={
 
 app.config.from_object('config')
 cache = Cache(app) #caching
-cache.set("latestID",0) #initialise caching
+# set cache for each prefix in prefixes:    
+for prefix in PREFIXES: 
+    cache.set("latestID" + prefix[0], 0)
+# cache.set("latestID",0) #initialise caching
 print("cache initialised")
 
 github = GitHub(app)
@@ -244,18 +247,18 @@ class SpreadsheetSearcher:
             results = searcher.search(query, sortedby="class_id",reverse=True)
             tophit = results[0]
             # print("top result: ", results[0])
-            mostRecentID = cache.get("latestID") # check latest ID 
+            mostRecentID = cache.get("latestID"+repo_name) # check latest ID 
             if mostRecentID is None: # error check no cache set
                 mostRecentID = 0
-                print("error latestID was None!")
-                cache.set("latestID", 0)
+                print("error latestID",repo_name," was None!")
+                cache.set("latestID"+repo_name, 0)
             nextId = int(tophit['class_id'].split(":")[1] )+1
 
             # check nextId against cached most recent id:
             if not(nextId > mostRecentID):
                 print("cached version is higher: ", mostRecentID, " > ", nextId)
-                nextId = cache.get("latestID")+1                
-            cache.set("latestID", nextId)
+                nextId = cache.get("latestID"+repo_name)+1                
+            cache.set("latestID"+repo_name, nextId)
             
 
         ix.close()
