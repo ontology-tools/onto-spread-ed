@@ -6,16 +6,26 @@
     </h1>
 </head>
 
-<body>
+<body style = "padding-bottom: 150px">
     <h2>
         What is this?
     </h2>
     <p>
         We created an api which allows you to access the GraphViz visualisation for a list of ID's.
         This api is accessed using a post request with the following parameters:
-        1. The list of ID's you want to visualise, separated by spaces or new lines.
-        2. The Ontology (e.g. "AddictO", "BCIO") the ID's belong to.
+    <ol>
+        <li>
+            The list of ID's you want to visualise, separated by spaces or new lines.
+        </li>
+        <li>
+            The Ontology (e.g. "AddictO", "BCIO") the ID's belong to.
+        </li>
+    </ol>
     </p>
+    <p>
+        Using this url: https://onto-spread-ed.ew.r.appspot.com/api/openVisualiseAcrossSheets
+    </p>
+    
     <figure>
         <figcaption>Example - JavaScript (XHR):</figcaption>
         <pre>
