@@ -948,7 +948,12 @@ def generate():
         ids = {}
         for row in rowData:
             nextIdStr = str(searcher.getNextId(repo_key))
-            id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
+            fill_num = app.config['DIGIT_COUNT']
+            if repo_key == "BCIO":
+                fill_num = fill_num-1
+            else:
+                fill_num = fill_num
+            id = repo_key.upper()+":"+nextIdStr.zfill(fill_num)
             # print("Row ID is ",row['id'])
             ids["ID"+str(row['id'])] = str(row['id'])
             values["ID"+str(row['id'])] = id
@@ -1148,7 +1153,12 @@ def save():
                         if row[header.index("Label")] and row[header.index("Parent")] and row[header.index("Definition")]: #not blank
                             #generate ID here: 
                             nextIdStr = str(searcher.getNextId(repo_key))
-                            id = repo_key.upper()+":"+nextIdStr.zfill(app.config['DIGIT_COUNT'])
+                            fill_num = app.config['DIGIT_COUNT']
+                            if repo_key == "BCIO":
+                                fill_num = fill_num-1
+                            else:
+                                fill_num = fill_num
+                            id = repo_key.upper()+":"+nextIdStr.zfill(fill_num)
                             new_id = id
                             for c in range(len(header)):
                                 if c==0:
