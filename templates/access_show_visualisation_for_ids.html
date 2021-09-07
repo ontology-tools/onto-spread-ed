@@ -1,0 +1,120 @@
+<html>
+<meta charset="utf-8">
+<head>
+    <h1 style="text-align: center;">
+        External access to GraphViz visualisation for a list of ID's
+    </h1>
+</head>
+
+<body style = "padding-bottom: 150px">
+    <h2>
+        What is this?
+    </h2>
+    <p>
+        We created an api which allows you to access the GraphViz visualisation for a list of ID's.
+        This api is accessed using a post request with the following parameters:
+    <ol>
+        <li>
+            The list of ID's you want to visualise, separated by spaces or new lines.
+        </li>
+        <li>
+            The Ontology (e.g. "AddictO", "BCIO") the ID's belong to.
+        </li>
+    </ol>
+    </p>
+    <p>
+        Using this url: https://onto-spread-ed.ew.r.appspot.com/api/openVisualiseAcrossSheets
+    </p>
+    
+    <figure>
+        <figcaption>Example - JavaScript (XHR):</figcaption>
+        <pre>
+            <code style="text-align: left;">
+                var data = new FormData(); 
+                data.append("idList", "ADDICTO:0000323 ADDICTO:0000322 ADDICTO:0000324 ADDICTO:0000967 ADDICTO:0000325 ADDICTO:0000326");
+                data.append("repo", "AddictO");
+    
+                var xhr = new XMLHttpRequest();
+                xhr.withCredentials = false;
+    
+                xhr.addEventListener("readystatechange", function() {
+                if(this.readyState === 4) {
+                    //render returned html in the same page: 
+                    var newHTML = document.open("text/html");
+                    newHTML.write(this.responseText);
+                    newHTML.close();                                     
+                }
+                });
+    
+                xhr.open("POST", "https://onto-spread-ed.ew.r.appspot.com/api/openVisualiseAcrossSheets");
+                
+                xhr.send(data);
+            </code>
+        </pre>
+
+    </figure>
+
+
+    <h2>
+        Postman sample:
+    </h2>
+    <p>
+        We have created a Postman "collection" sample request. When imported into the "Postman" application,
+        this can be used to test out the api. Postman can also be used to generate request code in a number of
+        languages.
+        The postman application can be found <a href="https://www.getpostman.com/">here</a>.
+        See <a href="https://learning.postman.com/docs/sending-requests/generate-code-snippets/">this article</a>
+        to learn more about how to generate code snippets with Postman.
+    </p>
+    <h2>
+        Try an example of external access to visualisation for ids here:
+    </h2>
+    <!-- <h2 style="color: green;">
+        onto-spread-ed
+    </h2> -->
+    <div style="text-align: center;">
+        <p>
+            Click on the button to create
+            a form dynamically, then press "Submit" to access the visualisation for the selected ids.
+        </p>
+
+        <button onClick="ID_Fun()">
+            click here
+        </button>
+    </div>
+    <script>
+        function ID_Fun() {
+
+            // Create a form dynamically
+            form = document.createElement("FORM");
+            form.name = 'form';
+            form.method = 'POST';
+            form.action = 'https://onto-spread-ed.ew.r.appspot.com/api/openVisualiseAcrossSheets';
+
+            // form.action = 'http://me.mydomain.com:8080/api/openVisualiseAcrossSheets';            
+            var input = document.createElement('input');
+            input.name = "idList";
+            input.value = "ADDICTO:0000323 ADDICTO:0000322 ADDICTO:0000324 ADDICTO:0000967 ADDICTO:0000325 ADDICTO:0000326";
+            form.appendChild(input);
+
+            var input2 = document.createElement('input');
+            input2.name = "repo";
+            input2.value = "AddictO";
+            form.appendChild(input2);
+
+            // Create a submit button
+            var s = document.createElement("input");
+            s.setAttribute("type", "submit");
+            s.setAttribute("value", "Submit");
+            // Append the button to the form
+            form.append(s);
+            // Append the form to the page
+            document.body.appendChild(form);
+        }
+    </script>
+</body>
+
+
+
+
+</html>

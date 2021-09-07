@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+
 {% block head %}
 {{ super() }}
 {% endblock %}
@@ -70,7 +70,7 @@
                         <li><a class="dropdown-item" role="button" value="4" href="#">In Discussion</a></li>
                         <li><a class="dropdown-item" role="button" value="5" href="#">Discussed</a></li>
                         <li><a class="dropdown-item" role="button" value="6" href="#">Published</a></li>
-                        <li><a class="dropdown-item" role="button" value="7" href="#">Obsolete</a></li>
+                        <!-- <li><a class="dropdown-item" role="button" value="7" href="#">Obsolete</a></li> -->
                     </ul>
                 </div>
             </span>
@@ -107,15 +107,14 @@
         var img1 = new Image();
 
         //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
-        function draw(scale, translatePos, dot) { //todo: add another option here for dot
+        function draw(scale, translatePos, dot) { 
             var canvas = document.getElementById("myCanvas");
             var context = canvas.getContext("2d");
             context.clearRect(0, 0, canvas.width, canvas.height);
 
-
             if (!loaded) {
                 var dotStr = dot;
-                // console.log("got dot: ", dotStr);
+                // console.log("got dot: ", dotStr); 
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
@@ -177,7 +176,7 @@
             dots.push(obsolete_dot);
 
             {% else %}
-            // push default to dots array 8 times
+            // push default to dots array 8 times - todo: think this is not necessary now?
             var default_dot = `{{ dotStr | safe}}`
             for (var i = 0; i < 8; i++) {
                 dots.push(default_dot);
@@ -284,13 +283,25 @@
                     x: 0,
                     y: 0
                 };
-                draw(scale, translatePos, dots[current_dot]);             
-                
-                $("#filterMessage").text("Filtered by: \"" + linkText + "\"");
-                $("#filterMessage").css("font-weight","Bold");
+                draw(scale, translatePos, dots[current_dot]);
+                //if dots[current_dot] is empty, then show "No Data":
+                console.log("got data: ", dots[current_dot].trim());
+                if (dots[current_dot].replace(/\s/g, '').includes("{}")) {
+                    $("#filterMessage").text("No Data");
+                    $("#filterMessage").css("font-weight","Bold");
+                } else {        
+                    $("#filterMessage").text("Filtered by: \"" + linkText + "\"");
+                    $("#filterMessage").css("font-weight","Bold");
+                }
             });
-
+            {% else %}
+                {% if filter %}
+                    $("#filterMessage").text("Filtered by: \"" + {{filter | safe}} + "\"");
+                    $("#filterMessage").css("font-weight","Bold");
+                {% endif %}
+                
             {% endif %}
+            
         }
 
     </script>
