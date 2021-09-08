@@ -426,12 +426,12 @@ class OntologyDataStore:
                                 entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
-                            #below was missing before... do we need to include this?
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                            if entryIri:
-                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                for d in descs:
-                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                            if ":" in entry['ID'] or "_" in entry['ID']:
+                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
+                                if entryIri:
+                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                    for d in descs:
+                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                             if self.graphs[repo]:
                                 graph_descs = None
                                 try:
@@ -467,12 +467,13 @@ class OntologyDataStore:
                             entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
-                        #todo: below was missing before... do we need to include this?
-                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                        if entryIri:
-                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                            for d in descs:
-                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                        
+                        if ":" in entry['ID'] or "_" in entry['ID']:
+                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
+                            if entryIri:
+                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                for d in descs:
+                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                         if self.graphs[repo]:
                             graph_descs = None
                             try:
@@ -493,12 +494,12 @@ class OntologyDataStore:
                         entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                         if entryParent in self.label_to_id:
                             ids.append(self.label_to_id[entryParent])
-                    #todo: below was missing before... do we need to include this? 
-                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                    if entryIri:
-                        descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                        for d in descs:
-                            ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                    if ":" in entry['ID'] or "_" in entry['ID']: 
+                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
+                        if entryIri:
+                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                            for d in descs:
+                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                     if self.graphs[repo]:
                         graph_descs = None
                         try:
@@ -537,11 +538,12 @@ class OntologyDataStore:
                                     entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                                     if entryParent in self.label_to_id:
                                         ids.append(self.label_to_id[entryParent])
-                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                                if entryIri:
-                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                    for d in descs:
-                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                                if ":" in entry['ID'] or "_" in entry['ID']:
+                                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                                    if entryIri:
+                                        descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                        for d in descs:
+                                            ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                                 if self.graphs[repo]:
                                     graph_descs = None
                                     try:
@@ -577,11 +579,12 @@ class OntologyDataStore:
                                 entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                            if entryIri:
-                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                for d in descs:
-                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                            if ":" in entry['ID'] or "_" in entry['ID']:
+                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                                if entryIri:
+                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                    for d in descs:
+                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                             if self.graphs[repo]:
                                 graph_descs = None
                                 try:
@@ -602,11 +605,12 @@ class OntologyDataStore:
                             entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
-                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                        if entryIri:
-                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                            for d in descs:
-                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                        if ":" in entry['ID'] or "_" in entry['ID']:
+                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                            if entryIri:
+                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                for d in descs:
+                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                         if self.graphs[repo]:
                             graph_descs = None
                             try:
@@ -626,20 +630,20 @@ class OntologyDataStore:
         ids = []
         for id in selectedIds:
             ids.append(id.replace(":","_"))
-            entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
-            # print("Got IRI",entryIri,"for ID",id)
-            #todo: get label, definitions, synonyms here?
+            if ":" in id or "_" in id: 
+                entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
+                # print("Got IRI",entryIri,"for ID",id)
+                #todo: get label, definitions, synonyms here?
 
-            if entryIri:
-                descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
-                for d in descs:
-                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
-                    #todo: get label, definitions, synonyms here?
-                    
-                superclasses = self.releases[repo].get_superclasses(entryIri)
-                # superclasses = pyhornedowl.get_superclasses(self.releases[repo], entryIri) 
-                for s in superclasses:
-                    ids.append(self.releases[repo].get_id_for_iri(s).replace(":", "_"))
+                if entryIri:
+                    descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
+                    for d in descs:
+                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+                        #todo: get label, definitions, synonyms here?
+                        
+                    superclasses = self.releases[repo].get_superclasses(entryIri)
+                    for s in superclasses:
+                        ids.append(self.releases[repo].get_id_for_iri(s).replace(":", "_"))
             if self.graphs[repo]:
                 graph_descs = None
                 try:
