@@ -363,6 +363,8 @@ class OntologyDataStore:
                 entryId = entry['ID'].replace(":", "_")
                 entryLabel = entry['Label'].strip()
                 self.label_to_id[entryLabel] = entryId
+                #todo: did below work to add the node? remove if it didn't..
+                self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
                     self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
@@ -372,7 +374,7 @@ class OntologyDataStore:
                     'Definition' in entry and \
                     'Parent' in entry and \
                     len(entry['ID'])>0:
-                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                 if entryParent in self.label_to_id:  # Subclass relations
                     # Subclass relations must be reversed for layout
                     self.graphs[repo].add_edge(self.label_to_id[entryParent],
@@ -622,7 +624,7 @@ class OntologyDataStore:
                                 for g in graph_descs:
                                     if g not in ids:
                                         ids.append(g)   
-                             
+        # print("got ids: ", ids)                    
         return (ids)
 
     def getRelatedIDs(self, repo, selectedIds):
@@ -669,7 +671,11 @@ class OntologyDataStore:
             # print("sending filter to multi select: ", filter)
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)             
         subgraph = self.graphs[repo].subgraph(ids)
+        #print subgraph to console: 
+        print(subgraph.nodes())
+        # print("Subgraph is: ", list(subgraph.nodes()))
         P = networkx.nx_pydot.to_pydot(subgraph)
+        print("P is: ", P)
         return (P)
 
     def getDotForSelection(self, repo, data, selectedIds, filter):
@@ -681,7 +687,17 @@ class OntologyDataStore:
             ids = OntologyDataStore.getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter)
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
+        # print("subgraph is: ", subgraph.nodes())
+        if "ADDICTO_0000934" in self.graphs[repo]:
+            print("its here in full graph")
+        else:
+            print("not there in full graph")
+        if "ADDICTO_0000934" in self.graphs[repo].subgraph(ids):
+            print("its here in sub graph")
+        else:
+            print("not there in sub graph")
         P = networkx.nx_pydot.to_pydot(subgraph)
+        # print("P is: ", P)
         return (P)
 
     def getDotForIDs(self, repo, selectedIds):
@@ -1340,7 +1356,7 @@ def openVisualiseAcrossSheets():
         #     print("i is: ", i)
         # indices = json.loads(request.form.get("indices"))
         # print("indices are: ", indices)
-        ontodb.parseRelease(repo)
+        ontodb.parseRelease(repo) 
         #todo: do we need to support more than one repo at a time here?
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
