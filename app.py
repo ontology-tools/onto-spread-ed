@@ -408,7 +408,6 @@ class OntologyDataStore:
     # getDotForIDs - graph from ID list
  
     def getIDsFromSheetMultiSelect(self, repo, data, filter):
-        #todo: 
         ids = []
         for entry in data:
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
@@ -423,7 +422,7 @@ class OntologyDataStore:
                             if 'ID' in entry and len(entry['ID'])>0:
                                 ids.append(entry['ID'].replace(":","_"))
                             if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
                             if ":" in entry['ID'] or "_" in entry['ID']:
@@ -437,7 +436,7 @@ class OntologyDataStore:
                                 try:
                                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
-                                    print("NetworkXError: ", entry['ID'])
+                                    print("NetworkXError sheet multiselect: ", entry['ID'])
                                     # print("networkx exception error in getIDsFromSelection", id)
                                 
                                 if graph_descs is not None:
@@ -447,7 +446,7 @@ class OntologyDataStore:
                             
                             
         return (ids)
-    #todo: add multi-filter
+    
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
         # print("getIDsFromSheet here")
@@ -464,7 +463,7 @@ class OntologyDataStore:
                             ids.append(entry['ID'].replace(":","_"))
 
                         if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
                         
@@ -479,7 +478,7 @@ class OntologyDataStore:
                             try:
                                 graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                             except networkx.exception.NetworkXError:
-                                print("NetworkXError: ", entry['ID'])
+                                print("NetworkXError sheet filter: ", entry['ID'])
                                 # print("networkx exception error in getIDsFromSelection", id)
                             
                             if graph_descs is not None:
@@ -491,7 +490,8 @@ class OntologyDataStore:
                             ids.append(entry['ID'].replace(":","_"))
 
                     if 'Parent' in entry:
-                        entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                        entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                        print("found entryParent: ", entryParent)
                         if entryParent in self.label_to_id:
                             ids.append(self.label_to_id[entryParent])
                     if ":" in entry['ID'] or "_" in entry['ID']: 
@@ -505,7 +505,7 @@ class OntologyDataStore:
                         try:
                             graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                         except networkx.exception.NetworkXError:
-                            print("NetworkXError: ", entry['ID'])
+                            print("NetworkXError Sheet: ", entry['ID'])
                             # print("networkx exception error in getIDsFromSelection", id)
                         
                         if graph_descs is not None:
@@ -535,7 +535,7 @@ class OntologyDataStore:
                                 if 'ID' in entry and len(entry['ID']) > 0:
                                     ids.append(entry['ID'].replace(":", "_"))
                                 if 'Parent' in entry:
-                                    entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                    entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                     if entryParent in self.label_to_id:
                                         ids.append(self.label_to_id[entryParent])
                                 if ":" in entry['ID'] or "_" in entry['ID']:
@@ -549,7 +549,7 @@ class OntologyDataStore:
                                     try:
                                         graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                     except networkx.exception.NetworkXError:
-                                        print("NetworkXError: ", entry['ID'])
+                                        print("NetworkXError selection multiselect: ", entry['ID'])
                                         # print("networkx exception error in getIDsFromSelection", id)
                                     
                                     if graph_descs is not None:
@@ -576,7 +576,7 @@ class OntologyDataStore:
                             if 'ID' in entry and len(entry['ID']) > 0:
                                 ids.append(entry['ID'].replace(":", "_"))
                             if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()                                
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
                             if ":" in entry['ID'] or "_" in entry['ID']:
@@ -590,7 +590,7 @@ class OntologyDataStore:
                                 try:
                                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
-                                    print("NetworkXError: ", str(entry['ID']))
+                                    print("NetworkXError selection filter: ", str(entry['ID']))
                                     # print("networkx exception error in getIDsFromSelection", id)
                                 
                                 if graph_descs is not None:
@@ -600,11 +600,11 @@ class OntologyDataStore:
                 else:
                     if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
                         if 'ID' in entry and len(entry['ID']) > 0:
-                            ids.append(entry['ID'].replace(":", "_"))
+                            ids.append(entry['ID'].replace(":", "_"))                            
                         if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip() 
                             if entryParent in self.label_to_id:
-                                ids.append(self.label_to_id[entryParent])
+                                    ids.append(self.label_to_id[entryParent])
                         if ":" in entry['ID'] or "_" in entry['ID']:
                             entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
                             if entryIri:
@@ -615,14 +615,14 @@ class OntologyDataStore:
                             graph_descs = None
                             try:
                                 graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                            except networkx.exception.NetworkXError:
-                                print("NetworkXError: ", str(entry['ID']))
-                                # print("networkx exception error in getIDsFromSelection", id)
+                            except networkx.exception.NetworkXError:                               
+                                print("NetworkXError selection all: ", str(entry['ID']))
                             
                             if graph_descs is not None:
                                 for g in graph_descs:
                                     if g not in ids:
-                                        ids.append(g)                        
+                                        ids.append(g)   
+                             
         return (ids)
 
     def getRelatedIDs(self, repo, selectedIds):
@@ -652,8 +652,7 @@ class OntologyDataStore:
                     # print("Got descs from graph",graph_descs)
                     # print(type(graph_descs))
                 except networkx.exception.NetworkXError:
-                    print("NetworkXError: ", str(id))
-                    # print("got networkx exception in getRelatedIDs ", id)
+                    print("NetworkXError relatedIDs: ", str(id))                    
 
                 if graph_descs is not None:
                     for g in graph_descs:
