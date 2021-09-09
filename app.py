@@ -672,10 +672,10 @@ class OntologyDataStore:
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)             
         subgraph = self.graphs[repo].subgraph(ids)
         #print subgraph to console: 
-        print(subgraph.nodes())
+        # print(subgraph.nodes())
         # print("Subgraph is: ", list(subgraph.nodes()))
         P = networkx.nx_pydot.to_pydot(subgraph)
-        print("P is: ", P)
+        # print("P is: ", P)
         return (P)
 
     def getDotForSelection(self, repo, data, selectedIds, filter):
@@ -688,14 +688,14 @@ class OntologyDataStore:
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         # print("subgraph is: ", subgraph.nodes())
-        if "ADDICTO_0000934" in self.graphs[repo]:
-            print("its here in full graph")
-        else:
-            print("not there in full graph")
-        if "ADDICTO_0000934" in self.graphs[repo].subgraph(ids):
-            print("its here in sub graph")
-        else:
-            print("not there in sub graph")
+        # if "ADDICTO_0000934" in self.graphs[repo]:
+        #     print("its here in full graph")
+        # else:
+        #     print("not there in full graph")
+        # if "ADDICTO_0000934" in self.graphs[repo].subgraph(ids):
+        #     print("its here in sub graph")
+        # else:
+        #     print("not there in sub graph")
         P = networkx.nx_pydot.to_pydot(subgraph)
         # print("P is: ", P)
         return (P)
