@@ -275,7 +275,6 @@
             $(".dropdown-menu").on("click", "li", function (event) {
                 var linkText = $(event.target).text(); // Get the link text - works
                 var linkVal = $(event.target).attr("value"); // Get the link value 
-                // console.log("value is: " + linkVal);
                 loaded = false;
                 current_dot = linkVal;
                 //reset position:
@@ -285,7 +284,6 @@
                 };
                 draw(scale, translatePos, dots[current_dot]);
                 //if dots[current_dot] is empty, then show "No Data":
-                console.log("got data: ", dots[current_dot].trim());
                 if (dots[current_dot].replace(/\s/g, '').includes("{}")) {
                     $("#filterMessage").text("No Data");
                     $("#filterMessage").css("font-weight","Bold");

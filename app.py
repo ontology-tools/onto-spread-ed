@@ -95,14 +95,14 @@ class FlaskApp(Flask):
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
 app = FlaskApp(__name__)
-CORS(app) #cross origin across all - not working (and dangerous)
+CORS(app) #cross origin across all 
 app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={
     r"/api/*":{
         "origins":"*"
     }
 })
-# cors = CORS(app, resources={r"/api/*": {"origins": "*"}}) #cross origin for /api/
+
 
 app.config.from_object('config')
 cache = Cache(app) #caching
@@ -246,7 +246,6 @@ class SpreadsheetSearcher:
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id",reverse=True)
             tophit = results[0]
-            # print("top result: ", results[0])
             mostRecentID = cache.get("latestID"+repo_name) # check latest ID 
             if mostRecentID is None: # error check no cache set
                 mostRecentID = 0
@@ -363,7 +362,6 @@ class OntologyDataStore:
                 entryId = entry['ID'].replace(":", "_")
                 entryLabel = entry['Label'].strip()
                 self.label_to_id[entryLabel] = entryId
-                #todo: did below work to add the node? remove if it didn't..
                 self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
@@ -416,11 +414,8 @@ class OntologyDataStore:
                 print("Obsolete: ", entry)
             else:
                 if filter != [""] and filter != []:
-                    # print("multi-select filter: ", filter)
                     for f in filter:
-                        # print("working out multi-filter ids for f: ", f)
                         if str(entry['Curation status']) == f:
-                            # print("got filter: ", f)
                             if 'ID' in entry and len(entry['ID'])>0:
                                 ids.append(entry['ID'].replace(":","_"))
                             if 'Parent' in entry:
@@ -439,7 +434,6 @@ class OntologyDataStore:
                                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
                                     print("NetworkXError sheet multiselect: ", entry['ID'])
-                                    # print("networkx exception error in getIDsFromSelection", id)
                                 
                                 if graph_descs is not None:
                                     for g in graph_descs:
@@ -451,8 +445,6 @@ class OntologyDataStore:
     
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
-        # print("getIDsFromSheet here")
-        # print("filter is: ", filter)
         ids = []
         for entry in data:
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
@@ -460,7 +452,6 @@ class OntologyDataStore:
             else:
                 if filter != "":
                     if str(entry['Curation status']) == filter:
-                        # print("got filter: ", filter)
                         if 'ID' in entry and len(entry['ID'])>0:
                             ids.append(entry['ID'].replace(":","_"))
 
@@ -481,7 +472,6 @@ class OntologyDataStore:
                                 graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                             except networkx.exception.NetworkXError:
                                 print("NetworkXError sheet filter: ", entry['ID'])
-                                # print("networkx exception error in getIDsFromSelection", id)
                             
                             if graph_descs is not None:
                                 for g in graph_descs:
@@ -508,7 +498,6 @@ class OntologyDataStore:
                             graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                         except networkx.exception.NetworkXError:
                             print("NetworkXError Sheet: ", entry['ID'])
-                            # print("networkx exception error in getIDsFromSelection", id)
                         
                         if graph_descs is not None:
                             for g in graph_descs:
@@ -518,20 +507,15 @@ class OntologyDataStore:
     
     def getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        # print(selectedIds)
         ids = [] 
         for id in selectedIds:
-            # print("looking at id: ", id)
             entry = data[id]
             # don't visualise rows which are set to "Obsolete":
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
                 pass
-                # print("Obsolete: ", id)
             else:
                 if filter != [""] and filter != []:
-                    # print("multi-select filter: ", filter)
                     for f in filter:
-                        # print("working out multi-filter ids for f: ", f)
                         if str(entry['Curation status']) == f:
                             if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
                                 if 'ID' in entry and len(entry['ID']) > 0:
@@ -552,7 +536,6 @@ class OntologyDataStore:
                                         graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                     except networkx.exception.NetworkXError:
                                         print("NetworkXError selection multiselect: ", entry['ID'])
-                                        # print("networkx exception error in getIDsFromSelection", id)
                                     
                                     if graph_descs is not None:
                                         for g in graph_descs:
@@ -562,15 +545,12 @@ class OntologyDataStore:
 
     def getIDsFromSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        # print(selectedIds)
         ids = [] 
         for id in selectedIds:
-            # print("looking at id: ", id)
             entry = data[id]
             # don't visualise rows which are set to "Obsolete":
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
                 pass
-                # print("Obsolete: ", id)
             else:
                 if filter != "":
                     if str(entry['Curation status']) == filter:
@@ -593,7 +573,6 @@ class OntologyDataStore:
                                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
                                     print("NetworkXError selection filter: ", str(entry['ID']))
-                                    # print("networkx exception error in getIDsFromSelection", id)
                                 
                                 if graph_descs is not None:
                                     for g in graph_descs:
@@ -623,8 +602,7 @@ class OntologyDataStore:
                             if graph_descs is not None:
                                 for g in graph_descs:
                                     if g not in ids:
-                                        ids.append(g)   
-        # print("got ids: ", ids)                    
+                                        ids.append(g)                      
         return (ids)
 
     def getRelatedIDs(self, repo, selectedIds):
@@ -634,14 +612,11 @@ class OntologyDataStore:
             ids.append(id.replace(":","_"))
             if ":" in id or "_" in id: 
                 entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
-                # print("Got IRI",entryIri,"for ID",id)
-                #todo: get label, definitions, synonyms here?
 
                 if entryIri:
                     descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
                     for d in descs:
                         ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
-                        #todo: get label, definitions, synonyms here?
                         
                     superclasses = self.releases[repo].get_superclasses(entryIri)
                     for s in superclasses:
@@ -649,10 +624,7 @@ class OntologyDataStore:
             if self.graphs[repo]:
                 graph_descs = None
                 try:
-                    # print("repo is: ", repo, " id: ", id)
                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
-                    # print("Got descs from graph",graph_descs)
-                    # print(type(graph_descs))
                 except networkx.exception.NetworkXError:
                     print("NetworkXError relatedIDs: ", str(id))                    
 
@@ -668,14 +640,9 @@ class OntologyDataStore:
         if hasattr(filter, 'lower'): #check if filter is a string
             ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter)
         else: #should be a list then
-            # print("sending filter to multi select: ", filter)
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)             
         subgraph = self.graphs[repo].subgraph(ids)
-        #print subgraph to console: 
-        # print(subgraph.nodes())
-        # print("Subgraph is: ", list(subgraph.nodes()))
         P = networkx.nx_pydot.to_pydot(subgraph)
-        # print("P is: ", P)
         return (P)
 
     def getDotForSelection(self, repo, data, selectedIds, filter):
@@ -687,17 +654,7 @@ class OntologyDataStore:
             ids = OntologyDataStore.getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter)
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
-        # print("subgraph is: ", subgraph.nodes())
-        # if "ADDICTO_0000934" in self.graphs[repo]:
-        #     print("its here in full graph")
-        # else:
-        #     print("not there in full graph")
-        # if "ADDICTO_0000934" in self.graphs[repo].subgraph(ids):
-        #     print("its here in sub graph")
-        # else:
-        #     print("not there in sub graph")
         P = networkx.nx_pydot.to_pydot(subgraph)
-        # print("P is: ", P)
         return (P)
 
     def getDotForIDs(self, repo, selectedIds):
@@ -722,24 +679,17 @@ class OntologyDataStore:
         all_labels = set()
         for classIri in self.releases[repo].get_classes():
             classId = self.releases[repo].get_id_for_iri(classIri).replace(":", "_")
-            #todo: check for null ID's!
             for id in allIDS:   
                 if id is not None:         
                     if classId == id:
-                        # print("GOT A MATCH: ", classId)
                         label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']) #yes
-                        # print("label for this MATCH is: ", label)
                         iri = self.releases[repo].get_iri_for_label(label)
-                        #todo: need to get definition and synonyms still below:
                         if self.releases[repo].get_annotation(classIri, DEFN) is not None:             
-                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace("'", "").replace("\"", "") #.replace("&", "and").replace(":", " ").replace("/", " ").replace(".", " ").replace("-", " ").replace("(", " ").replace(")", " ")    
-                            # definition = self.releases[repo].get_annotation(classIri, app.config['DEFN']) 
-                            # print("definition for this MATCH is: ", definition)
+                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace("'", "").replace("\"", "")   
                         else:
                             definition = ""
                         if self.releases[repo].get_annotation(classIri, SYN) is not None:
-                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'", "").replace("\"", "") #.replace("&", "and") #.replace(":", " ").replace("/", " ").replace(".", " ").replace("-", " ").replace("(", " ").replace(")", " ")
-                            # print("synonym for this MATCH is: ", synonyms)
+                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'", "").replace("\"", "") 
                         else:
                             synonyms = ""
                         entries.append({
@@ -859,7 +809,6 @@ def search():
 @app.route('/searchAssignedToMe', methods=['POST'])
 @verify_logged_in
 def searchAssignedToMe():
-    #print("searching for initials")
     initials = request.form.get("initials")
     print("Searching for initials: " + initials)
     repoName = request.form.get("repoName")
@@ -952,7 +901,7 @@ def verify():
     returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
     if len(returnData) > 0 or len(uniqueData) > 0:
         return (json.dumps({"message":"fail","values":returnData, "unique":uniqueData}))
-    return ('success') #todo: do we need message:success, 200 here? 
+    return ('success') 
     
 
 @app.route("/generate", methods=["POST"])
@@ -961,8 +910,6 @@ def generate():
     if request.method == "POST":
         repo_key = request.form.get("repo_key")
         rowData = json.loads(request.form.get("rowData"))
-        #print("generate data sent")
-        #print("Got ", len(rowData), "rows:", rowData)
         values = {}
         ids = {}
         for row in rowData:
@@ -973,10 +920,8 @@ def generate():
             else:
                 fill_num = fill_num
             id = repo_key.upper()+":"+nextIdStr.zfill(fill_num)
-            # print("Row ID is ",row['id'])
             ids["ID"+str(row['id'])] = str(row['id'])
             values["ID"+str(row['id'])] = id
-        #print("Got values: ",values)
         return (json.dumps({"message": "idlist", "IDs": ids, "values": values})) #need to return an array 
     return ('success')  
 
@@ -1052,10 +997,6 @@ def edit(repo_key, folder, spreadsheet):
     else:
         type = session.get('type')
         session.pop('type', None)
-    #print("type is: ", type)
-    #test values for type: 
-    # type = "initials"
-    # go_to_row = "RW"
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
@@ -1099,10 +1040,8 @@ def save():
     commit_msg_extra = request.form.get("commit_msg_extra")
     overwrite = False
     overwriteVal = request.form.get("overwrite") 
-    #print(f'overwriteVal is: ' + str(overwriteVal))
     if overwriteVal == "true":
         overwrite = True
-        #print(f'overwrite True here')
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
@@ -1323,19 +1262,17 @@ def keep_alive():
 @app.route("/checkForUpdates", methods=["POST"])
 def checkForUpdates():
     if request.method == "POST":
-        repo_key = request.form.get("repo_key") #todo: fix keyError!
+        repo_key = request.form.get("repo_key") 
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
         # initialData = request.form.get("initialData") 
         old_sha = request.form.get("file_sha")     
-        #print(repo_key, folder, spreadsheet, old_sha)
         repositories = app.config['REPOSITORIES']
         repo_detail = repositories[repo_key]
         spreadsheet_file = github.get(
             f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
         )
         file_sha = spreadsheet_file['sha']
-        #print("Check update - Got file_sha",file_sha)
         if old_sha == file_sha:
             return ( json.dumps({"message":"Success"}), 200 )
         else:
@@ -1347,15 +1284,8 @@ def openVisualiseAcrossSheets():
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
         idString = request.form.get("idList")
-        # print("idString is: ", idString)
         repo = request.form.get("repo") 
-        # print("repo is ", repo)
         idList = idString.split()
-        # print("idList is: ", idList)
-        # for i in idList:
-        #     print("i is: ", i)
-        # indices = json.loads(request.form.get("indices"))
-        # print("indices are: ", indices)
         ontodb.parseRelease(repo) 
         #todo: do we need to support more than one repo at a time here?
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
@@ -1372,21 +1302,12 @@ def apiOpenVisualiseAcrossSheets():
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
         idString = request.form.get("idList")
-        # print("idString is: ", idString)
         repo = request.form.get("repo")
-        # print("repo is ", repo)
         idList = idString.split()
-        # for i in idList:
-        #     print("i is: ", i)
-        # indices = json.loads(request.form.get("indices"))
-        # print("indices are: ", indices)
         ontodb.parseRelease(repo)
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
         #NOTE: APP_TITLE2 can't be blank - messes up the spacing  
         APP_TITLE2 = "VISUALISATION" #could model this on calling url here? Or something else..
-        print("app title should be set to ", APP_TITLE2)
-        #todo: need to generate dot graph here
-        # return jsonify(dotStr=dotStr)
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr, api=True, APP_TITLE2=APP_TITLE2)
 
 
@@ -1403,16 +1324,8 @@ def openVisualise():
         indices = json.loads(request.form.get("indices"))
         try: 
             filter = json.loads(request.form.get("filter"))
-            # print("got filter: ", filter)
-            # filter is a list of strings
-            # filter by multi-select!
-            # test values: 
-            # filter = ["External", "Discussed"]
-            # print("form got filter : ", filter)
             if len(filter) > 0:
                 pass
-                # for f in filter:
-                #     print("f is: ", f)  
             else:
                 filter = ""
         except Exception as err:
@@ -1424,13 +1337,11 @@ def openVisualise():
         if len(indices) > 0: #visualise selection
             #check if filter is greater than 1:
             if len(filter) > 1 and filter != "": #multi-select:
-                print("multi-select, filter is: ", filter)
                 for i in range(0,2):
                     ontodb.parseSheetData(repo,table)
                     dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string() #filter is a list of strings here
             else:          
                 for filter in curation_status_filters:
-                    # print("normal select, filter is: ", filter)
                     #loop this twice to mitigate ID bug:   
                     for i in range(0,2):
                         ontodb.parseSheetData(repo,table)
@@ -1465,7 +1376,6 @@ def openVisualise():
                     ontodb.parseSheetData(repo,table)
                     dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()            
 
-        # print("dotStr is: ", dotStr)
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list, filter=filter)
 
     return ("Only POST allowed.")
@@ -1813,12 +1723,10 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
 def searchAcrossSheets(repo_name, search_string):
     searcherAllResults = searcher.searchFor(repo_name, search_string=search_string)
-    # print(searcherAllResults)
     return searcherAllResults
 
 def searchAssignedTo(repo_name, initials):
     searcherAllResults = searcher.searchFor(repo_name, assigned_user=initials)
-    # print(searcherAllResults)
     return searcherAllResults
 
 
