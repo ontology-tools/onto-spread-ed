@@ -731,7 +731,7 @@ def before_request():
 @app.after_request
 def after_request(response):
     db_session.remove()
-    print("after_request is running")
+    # print("after_request is running")
     return response
 
 @app.teardown_request
@@ -740,7 +740,7 @@ def teardown_request_func(error=None):
         db_session.remove()
     except Exception as e:
         print("Error in teardown_request_func: ", str(e))
-    print("teardown_request is running!")
+    # print("teardown_request is running!")
     if error:
         print(str(error))
 
