@@ -103,6 +103,8 @@
     </script>
 
     <script>
+        
+                   
         var loaded = false;
         var img1 = new Image();
 
@@ -113,8 +115,11 @@
             context.clearRect(0, 0, canvas.width, canvas.height);
 
             if (!loaded) {
-                var dotStr = dot;
-                // console.log("got dot: ", dotStr); 
+                let search = "role";
+                let dotStr = dot.replace(search, "\"" + search + "\", color=blue"); //test works
+
+                console.log("got dot: ", dotStr); 
+               
                 // Asynchronous call to layout
                 hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
                     var data = svg;
