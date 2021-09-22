@@ -134,7 +134,7 @@
 
     //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
     function draw(scale, translatePos, dot) {
-        console.log("drawing: " + dot);
+        // console.log("drawing: " + dot);
         var canvas = document.getElementById("myCanvas");
         var context = canvas.getContext("2d");
         context.clearRect(0, 0, canvas.width, canvas.height);
@@ -145,7 +145,7 @@
             // let search = "role";
             // let dotStr = dot.replace(search, "\"" + search + "\", color=red"); //test works
 
-            console.log("got dot: ", dotStr);
+            // console.log("got dot: ", dotStr);
 
             // Asynchronous call to layout
             hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
@@ -339,11 +339,36 @@
 
             context.clearRect(0, 0, canvas.width, canvas.height);
             let dot = dots[current_dot];
-            let search = "role";
-            let dotUpd = dot.replace(search, "\"" + search + "\", color=red"); //test works
-            console.log("dotUpd: " + dotUpd);
-            loaded = false; //allow update
-            draw(scale, translatePos, dotUpd);
+            //find the index of the inputTextVal in the dotStr:
+            let index = dot.indexOf(inputTextVal);
+            if (dot.indexOf(inputTextVal) == -1) {
+                //if inputTextVal is not found in dotStr, then show "No Data":
+            }
+            else {
+                if (dot.substring(index - 1, index) == "\"") { //deal with "
+                    console.log("got inverted comma");
+                    index = index - 1;
+                }
+                console.log("index: " + index);
+                // replaceTextVal = "\"" + inputTextVal + "\", color=red";
+                //replace text at index up to the next "," with inputTextVal:
+                //get length of text up to the next "," after index:
+                let length = dot.substring(index + inputTextVal.length).indexOf(",");
+                console.log("length: " + length);
+                // replaceTextVal = "\"" + dot.substring(index, index+inputTextVal.length+length) + "\", color=red";
+                replaceTextVal = dot.substring(index, index+inputTextVal.length+length) + ", color=red";
+                let newDot = dot.substring(0, index) + replaceTextVal + dot.substring(index + inputTextVal.length + length, dot.length);
+                console.log("newDot: " + newDot);
+                //draw the new dot:
+                loaded = false; //allow update
+                draw(scale, translatePos, newDot);
+
+            }
+            // let search = "role";
+            // let dotUpd = dot.replace(search, "\"" + search + "\", color=red"); //test works
+            // console.log("dotUpd: " + dotUpd);
+            // loaded = false; //allow update
+            // draw(scale, translatePos, dotUpd);
         });
 
         {% else %}
