@@ -341,8 +341,20 @@
 
             context.clearRect(0, 0, canvas.width, canvas.height);
             var dot = dots[current_dot];
+
+            //find all indexes test:
+            var haystack = dot,
+                needle = inputTextVal2,
+                splitOnFound = haystack.split(needle).map(function (culm) {
+                    return this.pos += culm.length + needle.length
+                }, { pos: -needle.length }).slice(0, -1); // {pos: ...} – Object wich is used as this
+
+            console.log("all indexes test: " + splitOnFound);
+
+            for (var i = 0; i < splitOnFound.length; i++) {
             //find the index of the inputTextVal in the dotStr:
-            var index = dot.indexOf(inputTextVal2);
+            // var index = dot.indexOf(inputTextVal2);
+            var index = splitOnFound[i];
             if (dot.indexOf(inputTextVal2) == -1) {
                 //if inputTextVal is not found in dotStr, then show "No Data":
             }
@@ -351,26 +363,29 @@
                 // var newDot = dot;
                 // for (index = dot.indexOf(inputTextVal); index >= 0; index = dot.indexOf(inputTextVal, index + 1)) {
                 //     console.log("got value at: " + index);
-                   
-                    if (dot.substring(index - 1, index) == "\"") { //deal with "
-                        console.log("got inverted comma");
-                        index = index - 1;
-                    }
-                    console.log("index: " + index);
-                    // replaceTextVal = "\"" + inputTextVal + "\", color=red";
-                    //replace text at index up to the next "," with inputTextVal:
-                    //get length of text up to the next "," after index:
-                    var length = dot.substring(index + inputTextVal2.length).indexOf(",");
-                    console.log("length: " + length);
-                    // replaceTextVal = "\"" + dot.substring(index, index+inputTextVal.length+length) + "\", color=red";
-                    replaceTextVal = dot.substring(index, index + inputTextVal2.length + length) + ", color=red";
-                    var newDot = dot.substring(0, index) + replaceTextVal + dot.substring(index + inputTextVal2.length + length, dot.length);
-                    console.log("newDot: " + newDot);
+
+                if (dot.substring(index - 1, index) == "\"") { //deal with "
+                    console.log("got inverted comma");
+                    index = index - 1;
+                }
+                console.log("index: " + index);
+                // replaceTextVal = "\"" + inputTextVal + "\", color=red";
+                //replace text at index up to the next "," with inputTextVal:
+                //get length of text up to the next "," after index:
+                var length = dot.substring(index + inputTextVal2.length).indexOf(",");
+                console.log("length: " + length);
+                // replaceTextVal = "\"" + dot.substring(index, index+inputTextVal.length+length) + "\", color=red";
+                replaceTextVal = dot.substring(index, index + inputTextVal2.length + length) + ", color=red";
+                var newDot = dot.substring(0, index) + replaceTextVal + dot.substring(index + inputTextVal2.length + length, dot.length);
+                console.log("newDot: " + newDot);
+                dot = newDot;
+            }
                 // }
                 //draw the new dot:
                 loaded = false; //allow update
                 draw(scale, translatePos, newDot);
-            }
+           
+        }
             // let search = "role";
             // let dotUpd = dot.replace(search, "\"" + search + "\", color=red"); //test works
             // console.log("dotUpd: " + dotUpd);
