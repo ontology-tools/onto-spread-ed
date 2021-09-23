@@ -297,15 +297,6 @@
 
         {% if dotstr_list %}
 
-
-
-        document.getElementById("dropdownMenuButton").addEventListener("click", function () {
-            // alert("dropdown button clicked");
-            // console.log("dropdown button clicked");
-
-        });
-
-
         $(".dropdown-menu").on("click", "li", function (event) {
             var linkText = $(event.target).text(); // Get the link text - works
             var linkVal = $(event.target).attr("value"); // Get the link value 
@@ -317,7 +308,6 @@
                 y: 0
             };
             draw(scale, translatePos, dots[current_dot]);
-            //if dots[current_dot] is empty, then show "No Data":
             if (dots[current_dot].replace(/\s/g, '').includes("{}")) {
                 $("#filterMessage").text("No Data");
                 $("#filterMessage").css("font-weight", "Bold");
@@ -326,94 +316,12 @@
                 $("#filterMessage").css("font-weight", "Bold");
             }
         });
-        // function indexes(source, find) {
-        //     if (!source) {
-        //         return [];
-        //     }
-        //     // if find is empty string return all indexes.
-        //     if (!find) {
-        //         // or shorter arrow function:
-        //         // return source.split('').map((_,i) => i);
-        //         return source.split('').map(function (_, i) { return i; });
-        //     }
-        //     var result = [];
-        //     for (i = 0; i < source.length; ++i) {
-        //         // If you want to search case insensitive use 
-        //         // if (source.substring(i, i + find.length).toLowerCase() == find) {
-        //         if (source.substring(i, i + find.length) == find) {
-        //             result.push(i);
-        //         }
-        //     }
-        //     return result;
-        // }
-
-        //another idea from stackoverflow - not working:
-        //         var getFromBetween = {
-        //     results:[],
-        //     string:"",
-        //     getFromBetween:function (sub1,sub2) {
-        //         if(this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0) return false;
-        //         var SP = this.string.indexOf(sub1)+sub1.length;
-        //         var string1 = this.string.substr(0,SP);
-        //         var string2 = this.string.substr(SP);
-        //         var TP = string1.length + string2.indexOf(sub2);
-        //         return this.string.substring(SP,TP);
-        //     },
-        //     removeFromBetween:function (sub1,sub2) {
-        //         if(this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0) return false;
-        //         var removal = sub1+this.getFromBetween(sub1,sub2)+sub2;
-        //         this.string = this.string.replace(removal,"");
-        //     },
-        //     getAllResults:function (sub1,sub2) {
-        //         // first check to see if we do have both substrings
-        //         if(this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0) return;
-
-        //         // find one result
-        //         var result = this.getFromBetween(sub1,sub2);
-        //         // push it to the results array
-        //         this.results.push(result);
-        //         // remove the most recently found one from the string
-        //         this.removeFromBetween(sub1,sub2);
-
-        //         // if there's more substrings
-        //         if(this.string.indexOf(sub1) > -1 && this.string.indexOf(sub2) > -1) {
-        //             this.getAllResults(sub1,sub2);
-        //         }
-        //         else return;
-        //     },
-        //     get:function (string,sub1,sub2) {
-        //         this.results = [];
-        //         this.string = string;
-        //         this.getAllResults(sub1,sub2);
-        //         return this.results;
-        //     }
-        // };
-
-        function get_substrings_between(str, startDelimiter, endDelimiter) {
-            var contents = [];
-            var startDelimiterLength = startDelimiter.length;
-            var endDelimiterLength = endDelimiter.length;
-            var startFrom = contentStart = contentEnd = 0;
-
-            while (false !== (contentStart = strpos(str, startDelimiter, startFrom))) {
-                contentStart += startDelimiterLength;
-                contentEnd = strpos(str, endDelimiter, contentStart);
-                if (false === contentEnd) {
-                    break;
-                }
-                contents.push(str.substr(contentStart, contentEnd - contentStart));
-                startFrom = contentEnd + endDelimiterLength;
-            }
-
-            return contents;
-        }
-
+        // adapted from an answer here: https://stackoverflow.com/questions/14867835/get-substring-between-two-characters-using-javascript
         function replace_substrings_between(str, startDelimiter, endDelimiter, searchStr) {
             var contents = [];
             var startDelimiterLength = startDelimiter.length;
             var endDelimiterLength = endDelimiter.length;
             var startFrom = contentStart = contentEnd = 0;
-
 
             while (false !== (contentStart = strpos(str, startDelimiter, startFrom))) {
                 contentStart += startDelimiterLength;
@@ -422,13 +330,9 @@
                     break;
                 }
                 var replacement = str.substr(contentStart, contentEnd - contentStart);
-                // contents.push( str.substr(contentStart, contentEnd - contentStart) );
                 if (replacement.includes("label")) {
-                    // console.log("includes label: ", replacement);
                     if (replacement.includes(searchStr)) {
-                        console.log("includes inputTextVal: ", replacement);
                         replacement = replacement + ", style=filled,color=red";
-                        console.log("changed to: " + replacement);
                         str = replaceBetween(str, contentStart, contentEnd, replacement);
                     }
                 }
@@ -462,82 +366,12 @@
 
             context.clearRect(0, 0, canvas.width, canvas.height);
             var dot = dots[current_dot];
-            // console.log("dot is: ", dot);
-            //new approach using split by []: 
-            // var dot_split = dot.split('[').pop().split(']'); //should be an array of strings between []
-            // var dot_split = dot.split(/[\[\]]/); //should be an array of strings between []
-            // var dot_split = getFromBetween.getAllResults(dot, "[", "]");
-            var dot_split = get_substrings_between(dot, "[", "]");
-            // console.log("dot_split is: "+dot_split);
-            // console.log("dot_split is: ", dot_split);
-
-            for (var i = 0; i < dot_split.length; i++) {
-                // console.log(dot_split[i]);
-                if (dot_split[i].includes("label")) {
-                    // console.log("includes label: ", dot_split[i]);
-                    if (dot_split[i].includes(inputTextVal2)) {
-                        console.log("includes inputTextVal: ", dot_split[i]);
-                        dot_split[i] = dot_split[i] + ",color=red";
-                        console.log("changed to: " + dot_split[i]);
-                    }
-                }
-            }
-
             var dot_new = replace_substrings_between(dot, "[", "]", inputTextVal2);
-            console.log("dot_new is: " + dot_new);
-            // console.log("new dot_split is: ", dot_split[0]);
-            //find all indexes test: - OK this is incorrect..
-            // var haystack = dot,
-            //     needle = inputTextVal2,
-            //     splitOnFound = haystack.split(needle).map(function (culm) {
-            //         return this.pos += culm.length + needle.length
-            //     }, { pos: -needle.length }).slice(0, -1); // {pos: ...} – Object wich is used as this
-
-            //another try from stackoverflow:
-            // splitOnFound = indexes(dot, inputTextVal2);
-            // console.log("all indexes test: " + splitOnFound);
-
-            // for (var i = 0; i < splitOnFound.length; i++) {
-            //     //find the index of the inputTextVal in the dotStr:
-            //     // var index = dot.indexOf(inputTextVal2);
-            //     var index = splitOnFound[i];
-            //     if (dot.indexOf(inputTextVal2) == -1) {
-            //         //if inputTextVal is not found in dotStr, then show "No Data":
-            //     }
-            //     else {
-            //         // var length = 0; 
-            //         // var newDot = dot;
-            //         // for (index = dot.indexOf(inputTextVal); index >= 0; index = dot.indexOf(inputTextVal, index + 1)) {
-            //         //     console.log("got value at: " + index);
-
-            //         if (dot.substring(index - 1, index) == "\"") { //deal with "
-            //             console.log("got inverted comma");
-            //             index = index - 1; //todo: problem code?
-            //         }
-            //         console.log("index: " + index);
-            //         // replaceTextVal = "\"" + inputTextVal + "\", color=red";
-            //         //replace text at index up to the next "," with inputTextVal:
-            //         //get length of text up to the next "," after index:
-            //         var length = dot.substring(index + inputTextVal2.length).indexOf(",");
-            //         console.log("length: " + length);
-            //         // replaceTextVal = "\"" + dot.substring(index, index+inputTextVal.length+length) + "\", color=red";
-            //         replaceTextVal = dot.substring(index, index + inputTextVal2.length + length) + ", color=red";
-            //         var newDot = dot.substring(0, index) + replaceTextVal + dot.substring(index + inputTextVal2.length + length, dot.length);
-            //         console.log("newDot: " + newDot);
-            //         dot = newDot;
-            // }
-            // }
+            console.log("dot_new is: " + dot_new);            
+            
             //draw the new dot:
             loaded = false; //allow update
             draw(scale, translatePos, dot_new);
-            // draw(scale, translatePos, newDot);
-
-            // }
-            // let search = "role";
-            // let dotUpd = dot.replace(search, "\"" + search + "\", color=red"); //test works
-            // console.log("dotUpd: " + dotUpd);
-            // loaded = false; //allow update
-            // draw(scale, translatePos, dotUpd);
         });
 
         {% else %}
