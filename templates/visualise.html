@@ -427,7 +427,7 @@
                     // console.log("includes label: ", replacement);
                     if (replacement.includes(searchStr)) {
                         console.log("includes inputTextVal: ", replacement);
-                        replacement = replacement + ",color=red";
+                        replacement = replacement + ", style=filled,color=red";
                         console.log("changed to: " + replacement);
                         str = replaceBetween(str, contentStart, contentEnd, replacement);
                     }
