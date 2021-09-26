@@ -30,10 +30,13 @@ import networkx
 import re
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
-from flask import render_template_string, jsonify, Response
+from flask import render_template_string, jsonify, Response, send_file
 from flask_github import GitHub
 from flask_cors import CORS #enable cross origin request?
 from flask_caching import Cache
+
+from io import StringIO  #for download
+import requests #for download
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -1036,6 +1039,48 @@ def edit(repo_key, folder, spreadsheet):
                             suggestions = json.dumps(suggestions)
                             )
 
+@app.route('/download_spreadsheet', methods=['POST'])
+@verify_logged_in
+def download_spreadsheet():
+    repo_key = request.form.get("repo_key")
+    folder = request.form.get("folder")
+    spreadsheet = request.form.get("spreadsheet")
+    repositories = app.config['REPOSITORIES']
+    repo_detail = repositories[repo_key]
+    url = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+    download_url = url['download_url']
+    print(download_url)
+    return ( json.dumps({"message":"Success",
+            "download_url": download_url}), 200 )
+    # return redirect(download_url) #why not?
+    # r = requests.get(url)
+    # strIO = StringIO.StringIO(r.content)
+    # return send_file(strIO, as_attachment=True, attachment_filename={spreadsheet})
+
+    #todo: get spreadsheet location and return it  f"repos/{repo_detail}/contents/{folder}/{spreadsheet}"
+    # spreadsheet_file = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}");
+    # spreadsheet_file = github.get(
+    #     f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
+    # )
+    # base64_bytes = spreadsheet_file['content'].encode('utf-8')
+    # decoded_data = base64.decodebytes(base64_bytes)
+    # bytesIO = io.BytesIO(decoded_data)
+    # wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
+    # sheet = wb.active
+    # wb.save(spreadsheet)
+    # bytesIO.seek(0)  # go to the beginning of the stream
+    # #
+    # return send_file(
+    #     bytesIO,
+    #     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    #     attachment_filename=f"{spreadsheet}.xlsx",
+    #     as_attachment=True,
+    #     cache_timeout=0
+    # )
+    # return ( json.dumps({"message":"Success",
+    #                             "spreadsheet_file": spreadsheet_file}), 200 )
+    # return send_file(spreadsheet_file, as_attachment=True, attachment_filename=spreadsheet)
+    # return redirect(f"https://raw.githubusercontent.com/{repo_key}/{folder}/{spreadsheet}?token={g.user.github_access_token}")
 
 @app.route('/save', methods=['POST'])
 @verify_logged_in
