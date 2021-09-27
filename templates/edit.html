@@ -2484,6 +2484,7 @@
     }
     
     var download_spreadsheet = function (repo_key, folder, spreadsheet) {
+        if(!tableEdited) {
         var request = new XMLHttpRequest();
         // Define a function to handle a state change of the request:
         request.onreadystatechange = function () {
@@ -2521,6 +2522,9 @@
         request.send('repo_key=' + repo_key +
             '&folder=' + folder +
             '&spreadsheet=' + spreadsheet);
+    } else {
+        bootbox.alert("Please save the sheet first, then download");
+    }
     };
 
     /**
