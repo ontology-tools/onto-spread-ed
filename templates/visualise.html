@@ -371,7 +371,11 @@
             
             //draw the new dot:
             loaded = false; //allow update
-            draw(scale, translatePos, dot_new);
+            if(inputTextVal.val().trim() == "" || inputTextVal.val() == null || inputTextVal.val() == undefined){
+                draw(scale, translatePos, dot);
+            } else {
+                draw(scale, translatePos, dot_new);
+            }
         });
 
         {% else %}
