@@ -331,13 +331,13 @@
                 }
                 var replacement = str.substr(contentStart, contentEnd - contentStart);
                 if (replacement.includes("label")) {
-                    if (replacement.includes(searchStr)) {
+                    if (replacement.toLowerCase().includes(searchStr.toLowerCase())) {
                         replacement = replacement + ", style=filled,color=red";
                         str = replaceBetween(str, contentStart, contentEnd, replacement);
                     }
                 }
                 startFrom = contentEnd + endDelimiterLength;
-                console.log("contentStart: " + contentStart + ", contentEnd: " + contentEnd);
+                // console.log("contentStart: " + contentStart + ", contentEnd: " + contentEnd);
             }
 
             return str;
@@ -367,7 +367,7 @@
             context.clearRect(0, 0, canvas.width, canvas.height);
             var dot = dots[current_dot];
             var dot_new = replace_substrings_between(dot, "[", "]", inputTextVal2);
-            console.log("dot_new is: " + dot_new);            
+            // console.log("dot_new is: " + dot_new);            
             
             //draw the new dot:
             loaded = false; //allow update
