@@ -73,10 +73,16 @@
     </div>
 
     <div class="col-md-3">
+        <div class="row mb-3"></div>
         <button id="save-btn" class="btn btn-outline-success btn-sm" style="display: none"
             onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) ">
             Save changes to repository
         </button>
+        <button id="download-sheet-btn" class="btn btn-outline-primary btn-sm" 
+            onclick="download_spreadsheet( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' )">
+            Download Spreadsheet
+        </button>
+        </div>
     </div>
 </div>
 
@@ -2476,10 +2482,54 @@
         }
 
     }
+    
+    var download_spreadsheet = function (repo_key, folder, spreadsheet) {
+        if(!tableEdited) {
+        var request = new XMLHttpRequest();
+        // Define a function to handle a state change of the request:
+        request.onreadystatechange = function () {
+            
+            // console.log("request status is: " + request.status);
+            if (request.readyState === 4) {
+                if (!request.status) {
+                    bootbox.alert("Problem communicating with server");
+                }
+                else if (request.status === 200) {
+                    var response = JSON.parse(request.responseText);
+                    var url = response['download_url'];                    
+                    console.log(url);       
+                    window.open(url);              
+
+                } else if (request.status === 400) { //repo not found error
+                    var response = JSON.parse(request.responseText);
+                    var errInfo = response['Error'];
+                    console.log(response);
+                } else {
+                    var response = JSON.parse(request.responseText);
+                    //console.log(response);
+                    var errInfo = response['Error'];
+                    $("#saveAlert").addClass("alert-danger");
+                    $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
+                    $("#saveAlert").show();
+                }
+            } else {
+                console.log("request status is: " + request.status);
+            }
+        }
+        // Post the request to the server.    
+        request.open('POST', '/download_spreadsheet', true);
+        request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+        request.send('repo_key=' + repo_key +
+            '&folder=' + folder +
+            '&spreadsheet=' + spreadsheet);
+    } else {
+        bootbox.alert("Please save the sheet first, then download");
+    }
+    };
+
     /**
     * Submit a pull request to github to update the given configuration file in the repository.
     */
-
     var save_changes = function (repo_key, folder, spreadsheet, rowData, initialData, overwrite) {
         //check for validate errors:
         var saveValidationMessage = "";

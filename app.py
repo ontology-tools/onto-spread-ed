@@ -30,10 +30,13 @@ import networkx
 import re
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
-from flask import render_template_string, jsonify, Response
+from flask import render_template_string, jsonify, Response, send_file
 from flask_github import GitHub
 from flask_cors import CORS #enable cross origin request?
 from flask_caching import Cache
+
+from io import StringIO  #for download
+import requests #for download
 
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -95,14 +98,14 @@ class FlaskApp(Flask):
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
 # called `app` in `main.py`.
 app = FlaskApp(__name__)
-CORS(app) #cross origin across all - not working (and dangerous)
+CORS(app) #cross origin across all 
 app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={
     r"/api/*":{
         "origins":"*"
     }
 })
-# cors = CORS(app, resources={r"/api/*": {"origins": "*"}}) #cross origin for /api/
+
 
 app.config.from_object('config')
 cache = Cache(app) #caching
@@ -246,7 +249,6 @@ class SpreadsheetSearcher:
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id",reverse=True)
             tophit = results[0]
-            # print("top result: ", results[0])
             mostRecentID = cache.get("latestID"+repo_name) # check latest ID 
             if mostRecentID is None: # error check no cache set
                 mostRecentID = 0
@@ -363,6 +365,7 @@ class OntologyDataStore:
                 entryId = entry['ID'].replace(":", "_")
                 entryLabel = entry['Label'].strip()
                 self.label_to_id[entryLabel] = entryId
+                self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
                     self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
@@ -372,7 +375,7 @@ class OntologyDataStore:
                     'Definition' in entry and \
                     'Parent' in entry and \
                     len(entry['ID'])>0:
-                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                 if entryParent in self.label_to_id:  # Subclass relations
                     # Subclass relations must be reversed for layout
                     self.graphs[repo].add_edge(self.label_to_id[entryParent],
@@ -408,37 +411,32 @@ class OntologyDataStore:
     # getDotForIDs - graph from ID list
  
     def getIDsFromSheetMultiSelect(self, repo, data, filter):
-        #todo: 
         ids = []
         for entry in data:
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
                 print("Obsolete: ", entry)
             else:
                 if filter != [""] and filter != []:
-                    # print("multi-select filter: ", filter)
                     for f in filter:
-                        # print("working out multi-filter ids for f: ", f)
                         if str(entry['Curation status']) == f:
-                            # print("got filter: ", f)
                             if 'ID' in entry and len(entry['ID'])>0:
                                 ids.append(entry['ID'].replace(":","_"))
                             if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
-                            #below was missing before... do we need to include this?
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                            if entryIri:
-                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                for d in descs:
-                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                            if ":" in entry['ID'] or "_" in entry['ID']:
+                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
+                                if entryIri:
+                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                    for d in descs:
+                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                             if self.graphs[repo]:
                                 graph_descs = None
                                 try:
                                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
-                                    print("NetworkXError: ", entry['ID'])
-                                    # print("networkx exception error in getIDsFromSelection", id)
+                                    print("NetworkXError sheet multiselect: ", entry['ID'])
                                 
                                 if graph_descs is not None:
                                     for g in graph_descs:
@@ -447,11 +445,9 @@ class OntologyDataStore:
                             
                             
         return (ids)
-    #todo: add multi-filter
+    
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
-        # print("getIDsFromSheet here")
-        # print("filter is: ", filter)
         ids = []
         for entry in data:
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
@@ -459,27 +455,26 @@ class OntologyDataStore:
             else:
                 if filter != "":
                     if str(entry['Curation status']) == filter:
-                        # print("got filter: ", filter)
                         if 'ID' in entry and len(entry['ID'])>0:
                             ids.append(entry['ID'].replace(":","_"))
 
                         if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
-                        #todo: below was missing before... do we need to include this?
-                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                        if entryIri:
-                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                            for d in descs:
-                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                        
+                        if ":" in entry['ID'] or "_" in entry['ID']:
+                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
+                            if entryIri:
+                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                for d in descs:
+                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                         if self.graphs[repo]:
                             graph_descs = None
                             try:
                                 graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                             except networkx.exception.NetworkXError:
-                                print("NetworkXError: ", entry['ID'])
-                                # print("networkx exception error in getIDsFromSelection", id)
+                                print("NetworkXError sheet filter: ", entry['ID'])
                             
                             if graph_descs is not None:
                                 for g in graph_descs:
@@ -490,22 +485,22 @@ class OntologyDataStore:
                             ids.append(entry['ID'].replace(":","_"))
 
                     if 'Parent' in entry:
-                        entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                        entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                        print("found entryParent: ", entryParent)
                         if entryParent in self.label_to_id:
                             ids.append(self.label_to_id[entryParent])
-                    #todo: below was missing before... do we need to include this? 
-                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                    if entryIri:
-                        descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                        for d in descs:
-                            ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                    if ":" in entry['ID'] or "_" in entry['ID']: 
+                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
+                        if entryIri:
+                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                            for d in descs:
+                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                     if self.graphs[repo]:
                         graph_descs = None
                         try:
                             graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                         except networkx.exception.NetworkXError:
-                            print("NetworkXError: ", entry['ID'])
-                            # print("networkx exception error in getIDsFromSelection", id)
+                            print("NetworkXError Sheet: ", entry['ID'])
                         
                         if graph_descs is not None:
                             for g in graph_descs:
@@ -515,40 +510,35 @@ class OntologyDataStore:
     
     def getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        # print(selectedIds)
         ids = [] 
         for id in selectedIds:
-            # print("looking at id: ", id)
             entry = data[id]
             # don't visualise rows which are set to "Obsolete":
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
                 pass
-                # print("Obsolete: ", id)
             else:
                 if filter != [""] and filter != []:
-                    # print("multi-select filter: ", filter)
                     for f in filter:
-                        # print("working out multi-filter ids for f: ", f)
                         if str(entry['Curation status']) == f:
                             if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
                                 if 'ID' in entry and len(entry['ID']) > 0:
                                     ids.append(entry['ID'].replace(":", "_"))
                                 if 'Parent' in entry:
-                                    entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                    entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                     if entryParent in self.label_to_id:
                                         ids.append(self.label_to_id[entryParent])
-                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                                if entryIri:
-                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                    for d in descs:
-                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                                if ":" in entry['ID'] or "_" in entry['ID']:
+                                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                                    if entryIri:
+                                        descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                        for d in descs:
+                                            ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                                 if self.graphs[repo]:
                                     graph_descs = None
                                     try:
                                         graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                     except networkx.exception.NetworkXError:
-                                        print("NetworkXError: ", entry['ID'])
-                                        # print("networkx exception error in getIDsFromSelection", id)
+                                        print("NetworkXError selection multiselect: ", entry['ID'])
                                     
                                     if graph_descs is not None:
                                         for g in graph_descs:
@@ -558,15 +548,12 @@ class OntologyDataStore:
 
     def getIDsFromSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        # print(selectedIds)
         ids = [] 
         for id in selectedIds:
-            # print("looking at id: ", id)
             entry = data[id]
             # don't visualise rows which are set to "Obsolete":
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
                 pass
-                # print("Obsolete: ", id)
             else:
                 if filter != "":
                     if str(entry['Curation status']) == filter:
@@ -574,21 +561,21 @@ class OntologyDataStore:
                             if 'ID' in entry and len(entry['ID']) > 0:
                                 ids.append(entry['ID'].replace(":", "_"))
                             if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()                                
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                            if entryIri:
-                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                for d in descs:
-                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                            if ":" in entry['ID'] or "_" in entry['ID']:
+                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                                if entryIri:
+                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                    for d in descs:
+                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                             if self.graphs[repo]:
                                 graph_descs = None
                                 try:
                                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
-                                    print("NetworkXError: ", str(entry['ID']))
-                                    # print("networkx exception error in getIDsFromSelection", id)
+                                    print("NetworkXError selection filter: ", str(entry['ID']))
                                 
                                 if graph_descs is not None:
                                     for g in graph_descs:
@@ -597,28 +584,28 @@ class OntologyDataStore:
                 else:
                     if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
                         if 'ID' in entry and len(entry['ID']) > 0:
-                            ids.append(entry['ID'].replace(":", "_"))
+                            ids.append(entry['ID'].replace(":", "_"))                            
                         if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", entry['Parent']).strip()
+                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip() 
                             if entryParent in self.label_to_id:
-                                ids.append(self.label_to_id[entryParent])
-                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                        if entryIri:
-                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                            for d in descs:
-                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
+                                    ids.append(self.label_to_id[entryParent])
+                        if ":" in entry['ID'] or "_" in entry['ID']:
+                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                            if entryIri:
+                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
+                                for d in descs:
+                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
                         if self.graphs[repo]:
                             graph_descs = None
                             try:
                                 graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                            except networkx.exception.NetworkXError:
-                                print("NetworkXError: ", str(entry['ID']))
-                                # print("networkx exception error in getIDsFromSelection", id)
+                            except networkx.exception.NetworkXError:                               
+                                print("NetworkXError selection all: ", str(entry['ID']))
                             
                             if graph_descs is not None:
                                 for g in graph_descs:
                                     if g not in ids:
-                                        ids.append(g)                        
+                                        ids.append(g)                      
         return (ids)
 
     def getRelatedIDs(self, repo, selectedIds):
@@ -626,30 +613,23 @@ class OntologyDataStore:
         ids = []
         for id in selectedIds:
             ids.append(id.replace(":","_"))
-            entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
-            # print("Got IRI",entryIri,"for ID",id)
-            #todo: get label, definitions, synonyms here?
+            if ":" in id or "_" in id: 
+                entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
 
-            if entryIri:
-                descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
-                for d in descs:
-                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
-                    #todo: get label, definitions, synonyms here?
-                    
-                superclasses = self.releases[repo].get_superclasses(entryIri)
-                # superclasses = pyhornedowl.get_superclasses(self.releases[repo], entryIri) 
-                for s in superclasses:
-                    ids.append(self.releases[repo].get_id_for_iri(s).replace(":", "_"))
+                if entryIri:
+                    descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
+                    for d in descs:
+                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+                        
+                    superclasses = self.releases[repo].get_superclasses(entryIri)
+                    for s in superclasses:
+                        ids.append(self.releases[repo].get_id_for_iri(s).replace(":", "_"))
             if self.graphs[repo]:
                 graph_descs = None
                 try:
-                    # print("repo is: ", repo, " id: ", id)
                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
-                    # print("Got descs from graph",graph_descs)
-                    # print(type(graph_descs))
                 except networkx.exception.NetworkXError:
-                    print("NetworkXError: ", str(id))
-                    # print("got networkx exception in getRelatedIDs ", id)
+                    print("NetworkXError relatedIDs: ", str(id))                    
 
                 if graph_descs is not None:
                     for g in graph_descs:
@@ -663,7 +643,6 @@ class OntologyDataStore:
         if hasattr(filter, 'lower'): #check if filter is a string
             ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter)
         else: #should be a list then
-            # print("sending filter to multi select: ", filter)
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)             
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -703,24 +682,17 @@ class OntologyDataStore:
         all_labels = set()
         for classIri in self.releases[repo].get_classes():
             classId = self.releases[repo].get_id_for_iri(classIri).replace(":", "_")
-            #todo: check for null ID's!
             for id in allIDS:   
                 if id is not None:         
                     if classId == id:
-                        # print("GOT A MATCH: ", classId)
                         label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']) #yes
-                        # print("label for this MATCH is: ", label)
                         iri = self.releases[repo].get_iri_for_label(label)
-                        #todo: need to get definition and synonyms still below:
                         if self.releases[repo].get_annotation(classIri, DEFN) is not None:             
-                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace("'", "").replace("\"", "") #.replace("&", "and").replace(":", " ").replace("/", " ").replace(".", " ").replace("-", " ").replace("(", " ").replace(")", " ")    
-                            # definition = self.releases[repo].get_annotation(classIri, app.config['DEFN']) 
-                            # print("definition for this MATCH is: ", definition)
+                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace("'", "").replace("\"", "")   
                         else:
                             definition = ""
                         if self.releases[repo].get_annotation(classIri, SYN) is not None:
-                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'", "").replace("\"", "") #.replace("&", "and") #.replace(":", " ").replace("/", " ").replace(".", " ").replace("-", " ").replace("(", " ").replace(")", " ")
-                            # print("synonym for this MATCH is: ", synonyms)
+                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'", "").replace("\"", "") 
                         else:
                             synonyms = ""
                         entries.append({
@@ -762,8 +734,18 @@ def before_request():
 @app.after_request
 def after_request(response):
     db_session.remove()
+    # print("after_request is running")
     return response
 
+@app.teardown_request
+def teardown_request_func(error=None):
+    try:
+        db_session.remove()
+    except Exception as e:
+        print("Error in teardown_request_func: ", str(e))
+    # print("teardown_request is running!")
+    if error:
+        print(str(error))
 
 @github.access_token_getter
 def token_getter():
@@ -840,7 +822,6 @@ def search():
 @app.route('/searchAssignedToMe', methods=['POST'])
 @verify_logged_in
 def searchAssignedToMe():
-    #print("searching for initials")
     initials = request.form.get("initials")
     print("Searching for initials: " + initials)
     repoName = request.form.get("repoName")
@@ -933,7 +914,7 @@ def verify():
     returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
     if len(returnData) > 0 or len(uniqueData) > 0:
         return (json.dumps({"message":"fail","values":returnData, "unique":uniqueData}))
-    return ('success') #todo: do we need message:success, 200 here? 
+    return ('success') 
     
 
 @app.route("/generate", methods=["POST"])
@@ -942,8 +923,6 @@ def generate():
     if request.method == "POST":
         repo_key = request.form.get("repo_key")
         rowData = json.loads(request.form.get("rowData"))
-        #print("generate data sent")
-        #print("Got ", len(rowData), "rows:", rowData)
         values = {}
         ids = {}
         for row in rowData:
@@ -954,10 +933,8 @@ def generate():
             else:
                 fill_num = fill_num
             id = repo_key.upper()+":"+nextIdStr.zfill(fill_num)
-            # print("Row ID is ",row['id'])
             ids["ID"+str(row['id'])] = str(row['id'])
             values["ID"+str(row['id'])] = id
-        #print("Got values: ",values)
         return (json.dumps({"message": "idlist", "IDs": ids, "values": values})) #need to return an array 
     return ('success')  
 
@@ -1033,10 +1010,6 @@ def edit(repo_key, folder, spreadsheet):
     else:
         type = session.get('type')
         session.pop('type', None)
-    #print("type is: ", type)
-    #test values for type: 
-    # type = "initials"
-    # go_to_row = "RW"
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     (file_sha,rows,header) = get_spreadsheet(repo_detail,folder,spreadsheet)
@@ -1066,6 +1039,48 @@ def edit(repo_key, folder, spreadsheet):
                             suggestions = json.dumps(suggestions)
                             )
 
+@app.route('/download_spreadsheet', methods=['POST'])
+@verify_logged_in
+def download_spreadsheet():
+    repo_key = request.form.get("repo_key")
+    folder = request.form.get("folder")
+    spreadsheet = request.form.get("spreadsheet")
+    repositories = app.config['REPOSITORIES']
+    repo_detail = repositories[repo_key]
+    url = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+    download_url = url['download_url']
+    print(download_url)
+    return ( json.dumps({"message":"Success",
+            "download_url": download_url}), 200 )
+    # return redirect(download_url) #why not?
+    # r = requests.get(url)
+    # strIO = StringIO.StringIO(r.content)
+    # return send_file(strIO, as_attachment=True, attachment_filename={spreadsheet})
+
+    #todo: get spreadsheet location and return it  f"repos/{repo_detail}/contents/{folder}/{spreadsheet}"
+    # spreadsheet_file = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}");
+    # spreadsheet_file = github.get(
+    #     f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
+    # )
+    # base64_bytes = spreadsheet_file['content'].encode('utf-8')
+    # decoded_data = base64.decodebytes(base64_bytes)
+    # bytesIO = io.BytesIO(decoded_data)
+    # wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
+    # sheet = wb.active
+    # wb.save(spreadsheet)
+    # bytesIO.seek(0)  # go to the beginning of the stream
+    # #
+    # return send_file(
+    #     bytesIO,
+    #     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    #     attachment_filename=f"{spreadsheet}.xlsx",
+    #     as_attachment=True,
+    #     cache_timeout=0
+    # )
+    # return ( json.dumps({"message":"Success",
+    #                             "spreadsheet_file": spreadsheet_file}), 200 )
+    # return send_file(spreadsheet_file, as_attachment=True, attachment_filename=spreadsheet)
+    # return redirect(f"https://raw.githubusercontent.com/{repo_key}/{folder}/{spreadsheet}?token={g.user.github_access_token}")
 
 @app.route('/save', methods=['POST'])
 @verify_logged_in
@@ -1080,10 +1095,8 @@ def save():
     commit_msg_extra = request.form.get("commit_msg_extra")
     overwrite = False
     overwriteVal = request.form.get("overwrite") 
-    #print(f'overwriteVal is: ' + str(overwriteVal))
     if overwriteVal == "true":
         overwrite = True
-        #print(f'overwrite True here')
 
     repositories = app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
@@ -1304,19 +1317,17 @@ def keep_alive():
 @app.route("/checkForUpdates", methods=["POST"])
 def checkForUpdates():
     if request.method == "POST":
-        repo_key = request.form.get("repo_key") #todo: fix keyError!
+        repo_key = request.form.get("repo_key") 
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
         # initialData = request.form.get("initialData") 
         old_sha = request.form.get("file_sha")     
-        #print(repo_key, folder, spreadsheet, old_sha)
         repositories = app.config['REPOSITORIES']
         repo_detail = repositories[repo_key]
         spreadsheet_file = github.get(
             f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
         )
         file_sha = spreadsheet_file['sha']
-        #print("Check update - Got file_sha",file_sha)
         if old_sha == file_sha:
             return ( json.dumps({"message":"Success"}), 200 )
         else:
@@ -1328,16 +1339,9 @@ def openVisualiseAcrossSheets():
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
         idString = request.form.get("idList")
-        # print("idString is: ", idString)
         repo = request.form.get("repo") 
-        # print("repo is ", repo)
         idList = idString.split()
-        # print("idList is: ", idList)
-        # for i in idList:
-        #     print("i is: ", i)
-        # indices = json.loads(request.form.get("indices"))
-        # print("indices are: ", indices)
-        ontodb.parseRelease(repo)
+        ontodb.parseRelease(repo) 
         #todo: do we need to support more than one repo at a time here?
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
@@ -1353,21 +1357,12 @@ def apiOpenVisualiseAcrossSheets():
     #build data we need for dotStr query (new one!)
     if request.method == "POST":
         idString = request.form.get("idList")
-        # print("idString is: ", idString)
         repo = request.form.get("repo")
-        # print("repo is ", repo)
         idList = idString.split()
-        # for i in idList:
-        #     print("i is: ", i)
-        # indices = json.loads(request.form.get("indices"))
-        # print("indices are: ", indices)
         ontodb.parseRelease(repo)
         dotStr = ontodb.getDotForIDs(repo,idList).to_string()
         #NOTE: APP_TITLE2 can't be blank - messes up the spacing  
         APP_TITLE2 = "VISUALISATION" #could model this on calling url here? Or something else..
-        print("app title should be set to ", APP_TITLE2)
-        #todo: need to generate dot graph here
-        # return jsonify(dotStr=dotStr)
         return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr, api=True, APP_TITLE2=APP_TITLE2)
 
 
@@ -1384,16 +1379,8 @@ def openVisualise():
         indices = json.loads(request.form.get("indices"))
         try: 
             filter = json.loads(request.form.get("filter"))
-            # print("got filter: ", filter)
-            # filter is a list of strings
-            # filter by multi-select!
-            # test values: 
-            # filter = ["External", "Discussed"]
-            # print("form got filter : ", filter)
             if len(filter) > 0:
                 pass
-                # for f in filter:
-                #     print("f is: ", f)  
             else:
                 filter = ""
         except Exception as err:
@@ -1405,13 +1392,11 @@ def openVisualise():
         if len(indices) > 0: #visualise selection
             #check if filter is greater than 1:
             if len(filter) > 1 and filter != "": #multi-select:
-                print("multi-select, filter is: ", filter)
                 for i in range(0,2):
                     ontodb.parseSheetData(repo,table)
                     dotStr = ontodb.getDotForSelection(repo,table,indices, filter).to_string() #filter is a list of strings here
             else:          
                 for filter in curation_status_filters:
-                    # print("normal select, filter is: ", filter)
                     #loop this twice to mitigate ID bug:   
                     for i in range(0,2):
                         ontodb.parseSheetData(repo,table)
@@ -1446,7 +1431,6 @@ def openVisualise():
                     ontodb.parseSheetData(repo,table)
                     dotStr = ontodb.getDotForSheetGraph(repo,table,filter).to_string()            
 
-        # print("dotStr is: ", dotStr)
         return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list, filter=filter)
 
     return ("Only POST allowed.")
@@ -1794,12 +1778,10 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
 
 def searchAcrossSheets(repo_name, search_string):
     searcherAllResults = searcher.searchFor(repo_name, search_string=search_string)
-    # print(searcherAllResults)
     return searcherAllResults
 
 def searchAssignedTo(repo_name, initials):
     searcherAllResults = searcher.searchFor(repo_name, assigned_user=initials)
-    # print(searcherAllResults)
     return searcherAllResults
 
 
