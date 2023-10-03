@@ -10,6 +10,6 @@ daff
 whoosh
 networkx
 pydot
-py-horned-owl==0.1.4
+py-horned-owl
 flask-cors==3.0.10
 flask-caching==1.10.1

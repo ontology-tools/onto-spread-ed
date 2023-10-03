@@ -13,77 +13,41 @@
 # limitations under the License.
 
 # [START gae_python37_app]
-import os
 import io
-import functools
 import openpyxl
 from openpyxl.styles import Font
 from openpyxl.styles import PatternFill
-import pandas as pd
 import csv
 import base64
 import json
 import traceback
 import daff
-import pyhornedowl
-import networkx
-import re
 
 from flask import Flask, request, g, session, redirect, url_for, render_template
-from flask import render_template_string, jsonify, Response, send_file
+from flask import jsonify
 from flask_github import GitHub
 from flask_cors import CORS #enable cross origin request?
 from flask_caching import Cache
 
-from io import StringIO  #for download
-import requests #for download
-
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-
 from datetime import date
-
-from urllib.request import urlopen
 
 import threading
 
-import whoosh
-from whoosh.qparser import MultifieldParser,QueryParser
-
 from datetime import datetime
 
+from OntologyDataStore import OntologyDataStore
+from SpreadsheetSearcher import SpreadsheetSearcher
 # setup sqlalchemy
 
 from config import *
+from database.User import User
+from database.Base import db_session, init_db
 
-engine = create_engine(DATABASE_URI)
-db_session = scoped_session(sessionmaker(autocommit=False,
-                                         autoflush=False,
-                                         bind=engine))
-Base = declarative_base()
+import logging
 
-class User(Base):
-    __tablename__ = 'users'
+from guards.verify_login import verify_logged_in
 
-    id = Column(Integer, primary_key=True)
-    github_access_token = Column(String(255))
-    github_id = Column(Integer)
-    github_login = Column(String(255))
-
-    def __init__(self, github_access_token):
-        self.github_access_token = github_access_token
-
-class NextId(Base):
-    __tablename__ = 'nextids'
-    id = Column(Integer,primary_key=True)
-    repo_name = Column(String(50))
-    next_id = Column(Integer)
-
-def init_db():
-
-    Base.query = db_session.query_property()
-    Base.metadata.create_all(bind=engine)
+logger = logging.getLogger(__name__)
 
 
 # Create an app instance
@@ -95,10 +59,9 @@ class FlaskApp(Flask):
     def _activate_background_job(self):
         init_db()
 
-# If `entrypoint` is not defined in app.yaml, App Engine will look for an app
-# called `app` in `main.py`.
+
 app = FlaskApp(__name__)
-CORS(app) #cross origin across all 
+CORS(app)  # cross origin across all
 app.config['CORS_HEADERS'] = 'Content-Type'
 cors = CORS(app, resources={
     r"/api/*":{
@@ -108,619 +71,16 @@ cors = CORS(app, resources={
 
 
 app.config.from_object('config')
-cache = Cache(app) #caching
+cache = Cache(app)
 # set cache for each prefix in prefixes:    
 for prefix in PREFIXES: 
     cache.set("latestID" + prefix[0], 0)
 # cache.set("latestID",0) #initialise caching
-print("cache initialised")
+logger.info("cache initialised")
 
 github = GitHub(app)
-
-
-# Implementation of Google Cloud Storage for index
-class BucketStorage(whoosh.filedb.filestore.RamStorage):
-    def __init__(self, bucket):
-        super().__init__()
-        self.bucket = bucket
-        self.filenameslist = []
-
-    def save_to_bucket(self):
-        for name in self.files.keys():
-            with self.open_file(name) as source:
-                print("Saving file",name)
-                blob = self.bucket.blob(name)
-                blob.upload_from_file(source)
-        for name in self.filenameslist:
-            if name not in self.files.keys():
-                blob = self.bucket.blob(name)
-                print("Deleting old file",name)
-                self.bucket.delete_blob(blob.name)
-                self.filenameslist.remove(name)
-
-    def open_from_bucket(self):
-        self.filenameslist = []
-        for blob in bucket.list_blobs():
-            print("Opening blob",blob.name)
-            self.filenameslist.append(blob.name)
-            f = self.create_file(blob.name)
-            blob.download_to_file(f)
-            f.close()
-
-
-class SpreadsheetSearcher:
-    # bucket is defined in config.py
-    def __init__(self):
-        self.storage = BucketStorage(bucket)
-        self.threadLock = threading.Lock()
-
-    def searchFor(self, repo_name, search_string="", assigned_user=""):
-        self.storage.open_from_bucket()
-        ix = self.storage.open_index()
-
-        mparser = MultifieldParser(["class_id","label","definition","parent","tobereviewedby"],
-                                schema=ix.schema)
-
-        query = mparser.parse("repo:"+repo_name+
-                              (" AND ("+search_string+")" if search_string  else "")+
-                              (" AND tobereviewedby:"+assigned_user if assigned_user else "") )
-
-        with ix.searcher() as searcher:
-            results = searcher.search(query, limit=100)
-            resultslist = []
-            for hit in results:
-                allfields = {}
-                for field in hit:
-                    allfields[field]=hit[field]
-                resultslist.append(allfields)
-
-        ix.close()
-        return (resultslist)
-
-    def updateIndex(self, repo_name, folder, sheet_name, header, sheet_data):
-        self.threadLock.acquire()
-        print("Updating index...")
-        self.storage.open_from_bucket()
-        ix = self.storage.open_index()
-        writer = ix.writer()
-        mparser = MultifieldParser(["repo", "spreadsheet"],
-                                   schema=ix.schema)
-        print("About to delete for query string: ","repo:" + repo_name + " AND spreadsheet:'" + folder+"/"+sheet_name+"'")
-        writer.delete_by_query(
-            mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder+"/"+sheet_name+"\""))
-        writer.commit()
-
-        writer = ix.writer()
-
-        for r in range(len(sheet_data)):
-            row = [v for v in sheet_data[r].values()]
-            del row[0] # Tabulator-added ID column
-
-            if "ID" in header:
-                class_id = row[header.index("ID")]
-            else:
-                class_id = None
-            if "Label" in header:
-                label = row[header.index("Label")]
-            else:
-                label = None
-            if "Definition" in header:
-                definition = row[header.index("Definition")]
-            else:
-                definition = None
-            if "Parent" in header:
-                parent = row[header.index("Parent")]
-            else:
-                parent = None
-            if "To be reviewed by" in header:
-                tobereviewedby = row[header.index("To be reviewed by")]
-            else:
-                tobereviewedby = None
-
-            if class_id or label or definition or parent:
-                writer.add_document(repo=repo_name,
-                                    spreadsheet=folder+'/'+sheet_name,
-                                    class_id=(class_id if class_id else None),
-                                    label=(label if label else None),
-                                    definition=(definition if definition else None),
-                                    parent=(parent if parent else None),
-                                    tobereviewedby=(tobereviewedby if tobereviewedby else None))
-        writer.commit(optimize=True)
-        self.storage.save_to_bucket()
-        ix.close()
-        self.threadLock.release()
-        print("Update of index completed.")
-
-    def getNextId(self,repo_name):
-        self.threadLock.acquire()
-        self.storage.open_from_bucket()
-        ix = self.storage.open_index()
-
-        nextId = 0
-
-        mparser = QueryParser("class_id",
-                              schema=ix.schema)
-        if repo_name == "BCIO":
-            updated_repo_name ="BCIO:" # in order to eliminate "BCIOR" from results
-        else:
-            updated_repo_name = repo_name
-        query = mparser.parse(updated_repo_name.upper()+"*")
-        # print("searching ", repo_name)
-        with ix.searcher() as searcher:
-            results = searcher.search(query, sortedby="class_id",reverse=True)
-            tophit = results[0]
-            mostRecentID = cache.get("latestID"+repo_name) # check latest ID 
-            if mostRecentID is None: # error check no cache set
-                mostRecentID = 0
-                print("error latestID",repo_name," was None!")
-                cache.set("latestID"+repo_name, 0)
-            nextId = int(tophit['class_id'].split(":")[1] )+1
-
-            # check nextId against cached most recent id:
-            if not(nextId > mostRecentID):
-                print("cached version is higher: ", mostRecentID, " > ", nextId)
-                nextId = cache.get("latestID"+repo_name)+1                
-            cache.set("latestID"+repo_name, nextId)
-            
-
-        ix.close()
-
-        self.threadLock.release()
-        return (nextId)
-
-
 searcher = SpreadsheetSearcher()
-
-class OntologyDataStore:
-    node_props = {"shape":"box","style":"rounded", "font": "helvetica"}
-    rel_cols = {"has part":"blue","part of":"blue","contains":"green",
-                "has role":"darkgreen","is about":"darkgrey",
-                "has participant":"darkblue"}
-
-    def __init__(self):
-        self.releases = {}
-        self.releasedates = {}
-        self.label_to_id = {}
-        self.graphs = {}
-
-    def parseRelease(self,repo):
-        # Keep track of when you parsed this release
-        self.graphs[repo] = networkx.MultiDiGraph()
-        self.releasedates[repo] = date.today()
-        #print("Release date ",self.releasedates[repo])
-
-        # Get the ontology from the repository
-        ontofilename = app.config['RELEASE_FILES'][repo]
-        repositories = app.config['REPOSITORIES']
-        repo_detail = repositories[repo]
-        location = f"https://raw.githubusercontent.com/{repo_detail}/master/{ontofilename}"
-        print("Fetching release file from", location)
-        data = urlopen(location).read()  # bytes
-        ontofile = data.decode('utf-8')
-
-        # Parse it
-        if ontofile:
-            self.releases[repo] = pyhornedowl.open_ontology(ontofile)
-            prefixes = app.config['PREFIXES']
-            for prefix in prefixes:
-                self.releases[repo].add_prefix_mapping(prefix[0],prefix[1])
-            for classIri in self.releases[repo].get_classes():
-                classId = self.releases[repo].get_id_for_iri(classIri)
-                if classId:
-                    classId = classId.replace(":","_")
-                    # is it already in the graph?
-                    if classId not in self.graphs[repo].nodes:
-                        label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL'])
-                        if label:
-                            self.label_to_id[label.strip()] = classId
-                            self.graphs[repo].add_node(classId,
-                                                       label=label.strip().replace(" ", "\n"),
-                                                **OntologyDataStore.node_props)
-                        else:
-                            print("Could not determine label for IRI",classIri)
-                else:
-                    print("Could not determine ID for IRI",classIri)
-            for classIri in self.releases[repo].get_classes():
-                classId = self.releases[repo].get_id_for_iri(classIri)
-                if classId:
-                    parents = self.releases[repo].get_superclasses(classIri)
-                    for p in parents:
-                        plabel = self.releases[repo].get_annotation(p, app.config['RDFSLABEL'])
-                        if plabel and plabel.strip() in self.label_to_id:
-                            self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
-                                                       classId.replace(":", "_"), dir="back")
-                    axioms = self.releases[repo].get_axioms_for_iri(classIri) # other relationships
-                    for a in axioms:
-                        # Example: ['SubClassOf', 'http://purl.obolibrary.org/obo/CHEBI_27732', ['ObjectSomeValuesFrom', 'http://purl.obolibrary.org/obo/RO_0000087', 'http://purl.obolibrary.org/obo/CHEBI_60809']]
-                        if len(a) == 3 and a[0]=='SubClassOf' \
-                            and isinstance(a[2], list) and len(a[2])==3 \
-                            and a[2][0]=='ObjectSomeValuesFrom':
-                            relIri = a[2][1]
-                            targetIri = a[2][2]
-                            rel_name = self.releases[repo].get_annotation(relIri, app.config['RDFSLABEL'])
-                            targetLabel = self.releases[repo].get_annotation(targetIri, app.config['RDFSLABEL'])
-                            if targetLabel and targetLabel.strip() in self.label_to_id:
-                                if rel_name in OntologyDataStore.rel_cols:
-                                    rcolour = OntologyDataStore.rel_cols[rel_name]
-                                else:
-                                    rcolour = "orange"
-                                self.graphs[repo].add_edge(classId.replace(":", "_"),
-                                                           self.label_to_id[targetLabel.strip()],
-                                                           color=rcolour,
-                                                           label=rel_name)
-
-    def getReleaseLabels(self, repo):
-        all_labels = set()
-        for classIri in self.releases[repo].get_classes():
-            all_labels.add(self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']))
-        return( all_labels )
-
-    def parseSheetData(self, repo, data):
-        for entry in data:
-            if 'ID' in entry and \
-                    'Label' in entry and \
-                    'Definition' in entry and \
-                    'Parent' in entry and \
-                    len(entry['ID'])>0:
-                entryId = entry['ID'].replace(":", "_")
-                entryLabel = entry['Label'].strip()
-                self.label_to_id[entryLabel] = entryId
-                self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
-                if entryId in self.graphs[repo].nodes:
-                    self.graphs[repo].remove_node(entryId)
-                    self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
-        for entry in data:
-            if 'ID' in entry and \
-                    'Label' in entry and \
-                    'Definition' in entry and \
-                    'Parent' in entry and \
-                    len(entry['ID'])>0:
-                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
-                if entryParent in self.label_to_id:  # Subclass relations
-                    # Subclass relations must be reversed for layout
-                    self.graphs[repo].add_edge(self.label_to_id[entryParent],
-                                               entry['ID'].replace(":", "_"), dir="back")
-                for header in entry.keys():  # Other relations
-                    if entry[header] and str(entry[header]).strip() and "REL" in header:
-                        # Get the rel name
-                        rel_names = re.findall(r"'([^']+)'", header)
-                        if len(rel_names) > 0:
-                            rel_name = rel_names[0]
-                            if rel_name in OntologyDataStore.rel_cols:
-                                rcolour = OntologyDataStore.rel_cols[rel_name]
-                            else:
-                                rcolour = "orange"
-
-                            relValues = entry[header].split(";")
-                            for relValue in relValues:
-                                if relValue.strip() in self.label_to_id:
-                                    self.graphs[repo].add_edge(entry['ID'].replace(":", "_"),
-                                                               self.label_to_id[relValue.strip()],
-                                                               color=rcolour,
-                                                               label=rel_name)
- 
- # re-factored the following:  
-    # *new : getIDsFromSheetMultiSelect
-    # getIDsFromSheet - related ID's from whole sheet
-    # getIDsFromSelection - related ID's from selection in sheet    
-    # getRelatedIds - related ID's from list of ID's
-
-    # *new: getIDSForSheetGraphMultiSelect
-    # getDotForSheetGraph - graph from whole sheet
-    # getDotForSelection - graph from selection in sheet
-    # getDotForIDs - graph from ID list
- 
-    def getIDsFromSheetMultiSelect(self, repo, data, filter):
-        ids = []
-        for entry in data:
-            if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
-                print("Obsolete: ", entry)
-            else:
-                if filter != [""] and filter != []:
-                    for f in filter:
-                        if str(entry['Curation status']) == f:
-                            if 'ID' in entry and len(entry['ID'])>0:
-                                ids.append(entry['ID'].replace(":","_"))
-                            if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
-                                if entryParent in self.label_to_id:
-                                    ids.append(self.label_to_id[entryParent])
-                            if ":" in entry['ID'] or "_" in entry['ID']:
-                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                                if entryIri:
-                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                    for d in descs:
-                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                            if self.graphs[repo]:
-                                graph_descs = None
-                                try:
-                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                                except networkx.exception.NetworkXError:
-                                    print("NetworkXError sheet multiselect: ", entry['ID'])
-                                
-                                if graph_descs is not None:
-                                    for g in graph_descs:
-                                        if g not in ids:
-                                            ids.append(g)
-                            
-                            
-        return (ids)
-    
-    def getIDsFromSheet(self, repo, data, filter):
-        # list of ids from sheetExternal
-        ids = []
-        for entry in data:
-            if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
-                print("Obsolete: ", entry)
-            else:
-                if filter != "":
-                    if str(entry['Curation status']) == filter:
-                        if 'ID' in entry and len(entry['ID'])>0:
-                            ids.append(entry['ID'].replace(":","_"))
-
-                        if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
-                            if entryParent in self.label_to_id:
-                                ids.append(self.label_to_id[entryParent])
-                        
-                        if ":" in entry['ID'] or "_" in entry['ID']:
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                            if entryIri:
-                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                for d in descs:
-                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                        if self.graphs[repo]:
-                            graph_descs = None
-                            try:
-                                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                            except networkx.exception.NetworkXError:
-                                print("NetworkXError sheet filter: ", entry['ID'])
-                            
-                            if graph_descs is not None:
-                                for g in graph_descs:
-                                    if g not in ids:
-                                        ids.append(g)  
-                else:
-                    if 'ID' in entry and len(entry['ID'])>0:
-                            ids.append(entry['ID'].replace(":","_"))
-
-                    if 'Parent' in entry:
-                        entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
-                        print("found entryParent: ", entryParent)
-                        if entryParent in self.label_to_id:
-                            ids.append(self.label_to_id[entryParent])
-                    if ":" in entry['ID'] or "_" in entry['ID']: 
-                        entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))                    
-                        if entryIri:
-                            descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                            for d in descs:
-                                ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                    if self.graphs[repo]:
-                        graph_descs = None
-                        try:
-                            graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                        except networkx.exception.NetworkXError:
-                            print("NetworkXError Sheet: ", entry['ID'])
-                        
-                        if graph_descs is not None:
-                            for g in graph_descs:
-                                if g not in ids:
-                                    ids.append(g)   
-        return (ids)
-    
-    def getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter):
-        # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = [] 
-        for id in selectedIds:
-            entry = data[id]
-            # don't visualise rows which are set to "Obsolete":
-            if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
-                pass
-            else:
-                if filter != [""] and filter != []:
-                    for f in filter:
-                        if str(entry['Curation status']) == f:
-                            if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
-                                if 'ID' in entry and len(entry['ID']) > 0:
-                                    ids.append(entry['ID'].replace(":", "_"))
-                                if 'Parent' in entry:
-                                    entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
-                                    if entryParent in self.label_to_id:
-                                        ids.append(self.label_to_id[entryParent])
-                                if ":" in entry['ID'] or "_" in entry['ID']:
-                                    entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                                    if entryIri:
-                                        descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                        for d in descs:
-                                            ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                                if self.graphs[repo]:
-                                    graph_descs = None
-                                    try:
-                                        graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                                    except networkx.exception.NetworkXError:
-                                        print("NetworkXError selection multiselect: ", entry['ID'])
-                                    
-                                    if graph_descs is not None:
-                                        for g in graph_descs:
-                                            if g not in ids:
-                                                ids.append(g)                        
-        return (ids)
-
-    def getIDsFromSelection(self, repo, data, selectedIds, filter):
-        # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = [] 
-        for id in selectedIds:
-            entry = data[id]
-            # don't visualise rows which are set to "Obsolete":
-            if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete": 
-                pass
-            else:
-                if filter != "":
-                    if str(entry['Curation status']) == filter:
-                        if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
-                            if 'ID' in entry and len(entry['ID']) > 0:
-                                ids.append(entry['ID'].replace(":", "_"))
-                            if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()                                
-                                if entryParent in self.label_to_id:
-                                    ids.append(self.label_to_id[entryParent])
-                            if ":" in entry['ID'] or "_" in entry['ID']:
-                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                                if entryIri:
-                                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                    for d in descs:
-                                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                            if self.graphs[repo]:
-                                graph_descs = None
-                                try:
-                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                                except networkx.exception.NetworkXError:
-                                    print("NetworkXError selection filter: ", str(entry['ID']))
-                                
-                                if graph_descs is not None:
-                                    for g in graph_descs:
-                                        if g not in ids:
-                                            ids.append(g)  
-                else:
-                    if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
-                        if 'ID' in entry and len(entry['ID']) > 0:
-                            ids.append(entry['ID'].replace(":", "_"))                            
-                        if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip() 
-                            if entryParent in self.label_to_id:
-                                    ids.append(self.label_to_id[entryParent])
-                        if ":" in entry['ID'] or "_" in entry['ID']:
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
-                            if entryIri:
-                                descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
-                                for d in descs:
-                                    ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
-                        if self.graphs[repo]:
-                            graph_descs = None
-                            try:
-                                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
-                            except networkx.exception.NetworkXError:                               
-                                print("NetworkXError selection all: ", str(entry['ID']))
-                            
-                            if graph_descs is not None:
-                                for g in graph_descs:
-                                    if g not in ids:
-                                        ids.append(g)                      
-        return (ids)
-
-    def getRelatedIDs(self, repo, selectedIds):
-        # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = []
-        for id in selectedIds:
-            ids.append(id.replace(":","_"))
-            if ":" in id or "_" in id: 
-                entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
-
-                if entryIri:
-                    descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
-                    for d in descs:
-                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
-                        
-                    superclasses = self.releases[repo].get_superclasses(entryIri)
-                    for s in superclasses:
-                        ids.append(self.releases[repo].get_id_for_iri(s).replace(":", "_"))
-            if self.graphs[repo]:
-                graph_descs = None
-                try:
-                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo], id.replace(":", "_"))
-                except networkx.exception.NetworkXError:
-                    print("NetworkXError relatedIDs: ", str(id))                    
-
-                if graph_descs is not None:
-                    for g in graph_descs:
-                        if g not in ids:
-                            ids.append(g)
-        return (ids)
-
-    def getDotForSheetGraph(self, repo, data, filter):
-        # Get a list of IDs from the sheet graph
-        #todo: is there a better way to do this? 
-        if hasattr(filter, 'lower'): #check if filter is a string
-            ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter)
-        else: #should be a list then
-            ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)             
-        subgraph = self.graphs[repo].subgraph(ids)
-        P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
-
-    def getDotForSelection(self, repo, data, selectedIds, filter):
-        # Add all descendents of the selected IDs, the IDs and their parents.
-        #todo: is there a better way to do this? 
-        if hasattr(filter, 'lower'): #check if filter is a string
-            ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds, filter)
-        else: #should be a list then
-            ids = OntologyDataStore.getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter)
-        # Then get the subgraph as usual
-        subgraph = self.graphs[repo].subgraph(ids)
-        P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
-
-    def getDotForIDs(self, repo, selectedIds):
-        # Add all descendents of the selected IDs, the IDs and their parents.
-        ids = OntologyDataStore.getRelatedIDs(self, repo, selectedIds)
-        # Then get the subgraph as usual
-        subgraph = self.graphs[repo].subgraph(ids)
-        P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)   
-
-    #to create a dictionary and add all info to it, in the relevant place
-    def getMetaData(self, repo, allIDS):                    
-        DEFN = "http://purl.obolibrary.org/obo/IAO_0000115"
-        SYN = "http://purl.obolibrary.org/obo/IAO_0000118"
-
-        label = "" 
-        definition = ""
-        synonyms = ""
-        entries = []
-
-        
-        all_labels = set()
-        for classIri in self.releases[repo].get_classes():
-            classId = self.releases[repo].get_id_for_iri(classIri).replace(":", "_")
-            for id in allIDS:   
-                if id is not None:         
-                    if classId == id:
-                        label = self.releases[repo].get_annotation(classIri, app.config['RDFSLABEL']) #yes
-                        iri = self.releases[repo].get_iri_for_label(label)
-                        if self.releases[repo].get_annotation(classIri, DEFN) is not None:             
-                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace("'", "").replace("\"", "")   
-                        else:
-                            definition = ""
-                        if self.releases[repo].get_annotation(classIri, SYN) is not None:
-                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'", "").replace("\"", "") 
-                        else:
-                            synonyms = ""
-                        entries.append({
-                            "id": id,
-                            "label": label, 
-                            "synonyms": synonyms,
-                            "definition": definition,                      
-                        })
-        return (entries)
-
-
-
 ontodb = OntologyDataStore()
-
-def verify_logged_in(fn):
-    """
-    Decorator used to make sure that the user is logged in
-    """
-    @functools.wraps(fn)
-    def wrapped(*args, **kwargs):
-        # If the user is not logged in, then redirect him to the "logged out" page:
-        if not g.user:
-            return redirect(url_for("login"))
-        return fn(*args, **kwargs)
-
-    return wrapped
-
-# Pages:
 
 
 @app.before_request
@@ -742,10 +102,9 @@ def teardown_request_func(error=None):
     try:
         db_session.remove()
     except Exception as e:
-        print("Error in teardown_request_func: ", str(e))
-    # print("teardown_request is running!")
+        logger.error(f"Error in teardown_request_func: {e}")
     if error:
-        print(str(error))
+        logger.error(str(error))
 
 @github.access_token_getter
 def token_getter():
@@ -759,7 +118,7 @@ def token_getter():
 def authorized(access_token):
     next_url = request.args.get('next') or url_for('home')
     if access_token is None:
-        print("Authorization failed.")
+        logger.warning("Authorization failed.")
         return redirect(url_for('logout'))
 
     user = User.query.filter_by(github_access_token=access_token).first()
@@ -823,7 +182,7 @@ def search():
 @verify_logged_in
 def searchAssignedToMe():
     initials = request.form.get("initials")
-    print("Searching for initials: " + initials)
+    logger.debug("Searching for initials: " + initials)
     repoName = request.form.get("repoName")
     #below is searching in "Label" column? 
     searchResults = searchAssignedTo(repoName, initials)
@@ -871,7 +230,7 @@ def repo(repo_key, folder_path=""):
     if g.user.github_login in USERS_METADATA:
         user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
-        print(f"The user {g.user.github_login} has no known metadata")
+        logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
 
     return render_template('repo.html',
@@ -1016,7 +375,7 @@ def edit(repo_key, folder, spreadsheet):
     if g.user.github_login in USERS_METADATA:
         user_initials = USERS_METADATA[g.user.github_login]["initials"]
     else:
-        print(f"The user {g.user.github_login} has no known metadata")
+        logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
     #Build suggestions data:
     if repo_key not in ontodb.releases or date.today() > ontodb.releasedates[repo_key]:
@@ -1049,7 +408,7 @@ def download_spreadsheet():
     repo_detail = repositories[repo_key]
     url = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
     download_url = url['download_url']
-    print(download_url)
+    logger.debug(f"Downloading spreadsheet from {download_url}")
     return ( json.dumps({"message":"Success",
             "download_url": download_url}), 200 )
     # return redirect(download_url) #why not?
@@ -1113,7 +472,7 @@ def save():
         if 'Label' in initial_first_row:
             initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff!
+            logger.warning("While saving: No Label column present, so not sorting this.") #do we need to sort - yes, for diff!
 
         first_row = row_data_parsed[0]
         header = [k for k in first_row.keys()]
@@ -1123,10 +482,10 @@ def save():
         if 'Label' in first_row:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
         else:
-            print("No Label column present, so not sorting this.") #do we need to sort - yes, for diff! 
+            logger.warning("While saving: No Label column present, so not sorting this.") #do we need to sort - yes, for diff!
 
         
-        print("Got file_sha",file_sha)
+        logger.debug(f"Got file_sha: {file_sha}")
 
         wb = openpyxl.Workbook()
         sheet = wb.active
@@ -1192,14 +551,14 @@ def save():
             raise Exception(f"Unable to get SHA for HEAD of master in {repo_detail}")
         sha = response["object"]["sha"]
         branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
-        print("About to try to create branch in ",f"repos/{repo_detail}/git/refs")
+        logger.debug("About to try to create branch in %s", f"repos/{repo_detail}/git/refs")
         response = github.post(
             f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
             )
         if not response:
             raise Exception(f"Unable to create new branch {branch} in {repo_detail}")
 
-        print("About to get latest version of the spreadsheet file",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        logger.debug("About to get latest version of the spreadsheet file %s", f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         # Get the sha for the file
         (new_file_sha, new_rows, new_header) = get_spreadsheet(repo_detail,folder, spreadsheet)
 
@@ -1210,7 +569,7 @@ def save():
             "branch": branch,
         }
         data["sha"] = new_file_sha
-        print("About to commit file to branch",f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        logger.debug("About to commit file to branch %s", f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
         if not response:
             raise Exception(
@@ -1218,7 +577,7 @@ def save():
             )
 
         # Create a PR for the change
-        print("About to create PR from branch",)
+        logger.debug("About to create PR from branch",)
         response = github.post(
             f"repos/{repo_detail}/pulls",
             data={
@@ -1235,7 +594,7 @@ def save():
         # Do not merge automatically if this file was stale as that will overwrite the other changes
         
         if new_file_sha != file_sha and not overwrite:
-            print("PR created and must be merged manually as repo file had changed")
+            logger.info("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
             merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed) # getDiff(saving version, latest server version, header for both)
@@ -1243,7 +602,7 @@ def save():
             (file_sha3,rows3,header3) = get_spreadsheet(repo_detail,folder,spreadsheet)
             #todo: delete transient branch here? Github delete code is a test for now. 
             # Delete the branch again
-            print ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
+            logger.debug ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
             response = github.delete(
                 f"repos/{repo_detail}/git/refs/heads/{branch}")
             if not response:
@@ -1255,7 +614,7 @@ def save():
                 )
         else:
             # Merge the created PR
-            print("About to merge created PR")
+            logger.debug("About to merge created PR")
             response = github.post(
                 f"repos/{repo_detail}/merges",
                 data={
@@ -1268,13 +627,13 @@ def save():
                 raise Exception(f"Unable to merge PR from branch {branch} in {repo_detail}")
 
             # Delete the branch again
-            print ("About to delete branch",f"repos/{repo_detail}/git/refs/heads/{branch}")
+            logger.debug ("About to delete branch %s",f"repos/{repo_detail}/git/refs/heads/{branch}")
             response = github.delete(
                 f"repos/{repo_detail}/git/refs/heads/{branch}")
             if not response:
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
 
-        print ("Save succeeded.")
+        logger.info ("Save succeeded.")
         # Update the search index for this file ASYNCHRONOUSLY (don't wait)
         thread = threading.Thread(target=searcher.updateIndex,
                                   args=(repo_key, folder, spreadsheet, header, row_data_parsed))
@@ -1296,7 +655,7 @@ def save():
                                 "file_sha": new_file_sha}), 200 )
 
     except Exception as err:
-        print(err)
+        logger.error(err)
         traceback.print_exc()
         return (
             json.dumps({"message": "Failed",
@@ -1385,7 +744,7 @@ def openVisualise():
                 filter = ""
         except Exception as err:
             filter = ""
-            print(err)
+            logger.error(str(err))
         if repo not in ontodb.releases:
             ontodb.parseRelease(repo)
 
@@ -1438,7 +797,7 @@ def openVisualise():
 
 # todo: below is never reached? 
 @app.route('/visualise/<repo>/<sheet>')
-@verify_logged_in # todo: does this need to be disabled to allow cross origin requests? apparently not!
+@verify_logged_in  # todo: does this need to be disabled to allow cross origin requests? apparently not!
 def visualise(repo, sheet):
     # print("reached visualise")
     return render_template("visualise.html", sheet=sheet, repo=repo)
@@ -1486,9 +845,9 @@ def openPatAcrossSheets():
         idString = request.form.get("idList")
         # print("idString is: ", idString)
         repo = request.form.get("repo") 
-        print("repo is ", repo)
+        logger.debug("repo is %s", repo)
         idList = idString.split()
-        print("idList: ", idList)
+        logger.debug("idList: %s", idList)
         # for i in idList:
         #     print("i is: ", i)
         # indices = json.loads(request.form.get("indices"))
@@ -1545,7 +904,7 @@ def edit_external(repo_key, folder_path):
 @verify_logged_in
 def save_new_ontology():
     new_ontology = request.form.get("new_ontology")
-    print("Received new Ontology: " + new_ontology)
+    logger.debug("Received new Ontology: %s" + new_ontology)
     response = "test"
     return ( json.dumps({"message":"Success",
                              "response": response}), 200 )
@@ -1555,8 +914,8 @@ def save_new_ontology():
 def update_ids():
     current_ontology=request.form.get("current_ontology")
     new_IDs=request.form.get("new_IDs")
-    print("Received new IDs from : "+ current_ontology)
-    print("data is: ", new_IDs)
+    logger.debug("Received new IDs from : %s"+ current_ontology)
+    logger.debug("data is: %s", new_IDs)
     response = "test"
     return ( json.dumps({"message":"Success",
                              "response": response}), 200 )
@@ -1689,10 +1048,10 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3): #(1saving, 2server,
     highlighter.hilite(table_diff)
     #hasDifference() should return true - and it does. 
     if highlighter.hasDifference():
-        print(f'HASDIFFERENCE')
-        print(highlighter.getSummary().row_deletes)
+        logger.debug(f'HASDIFFERENCE')
+        logger.debug(highlighter.getSummary().row_deletes)
     else:
-        print(f'no difference found')
+        logger.debug(f'no difference found')
     diff2html = daff.DiffRender()
     diff2html.usePrettyArrows(False)
     diff2html.render(table_diff)
