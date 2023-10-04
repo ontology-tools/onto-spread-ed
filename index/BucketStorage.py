@@ -1,18 +1,25 @@
 import logging
 
-import whoosh
+import whoosh.filedb.filestore
 
 from config import bucket
+from index.ExtendedStorage import ExtendedStorage
 
 
 # Implementation of Google Cloud Storage for index
-class BucketStorage(whoosh.filedb.filestore.RamStorage):
+class BucketStorage(ExtendedStorage, whoosh.filedb.filestore.RamStorage):
     _logger = logging.getLogger(__name__)
 
     def __init__(self, bucket):
         super().__init__()
         self.bucket = bucket
         self.filenameslist = []
+
+    def open(self) -> None:
+        self.open_from_bucket()
+
+    def save(self) -> None:
+        self.save_to_bucket()
 
     def save_to_bucket(self):
         for name in self.files.keys():

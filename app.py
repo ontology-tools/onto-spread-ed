@@ -50,6 +50,10 @@ from guards.verify_login import verify_logged_in
 logger = logging.getLogger(__name__)
 
 
+if DEBUG:
+    logging.basicConfig(level=logging.DEBUG)
+
+
 # Create an app instance
 class FlaskApp(Flask):
     def __init__(self, *args, **kwargs):
@@ -79,8 +83,8 @@ for prefix in PREFIXES:
 logger.info("cache initialised")
 
 github = GitHub(app)
-searcher = SpreadsheetSearcher()
-ontodb = OntologyDataStore()
+searcher = SpreadsheetSearcher(cache)
+ontodb = OntologyDataStore(app.config)
 
 
 @app.before_request
