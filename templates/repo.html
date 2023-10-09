@@ -149,9 +149,9 @@
           message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
           closeButton: true
         });
-        sendData();
         $("#resultsHeader").text("SEARCHING...");
         $("#resultsHeader").show();
+        sendData();
       }
       else if (button.value == "show_assigned") {
         console.log("show assigned clicked");

@@ -1,11 +1,5 @@
+import logging
 import os
-
-# Connect to the Google cloud Secret Manager client
-from google.cloud import secretmanager
-# Connect to Google cloud storage client
-from google.cloud import storage
-
-DEBUG = True
 
 # flask_caching:
 CACHE_TYPE = "SimpleCache"
@@ -48,62 +42,67 @@ RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 DIGIT_COUNT = 7
 
-INDEX_STORAGE = os.environ.get("INDEX_STORAGE", "LOCAL").upper()
-"""
-How to store the index. Possible values are "GOOGLE_CLOUD", "LOCAL"
-"""
-if INDEX_STORAGE not in ["GOOGLE_CLOUD", "LOCAL"]:
-    INDEX_STORAGE = "LOCAL"
+LOG_LEVEL = getattr(logging, os.environ.get("LOG_LEVEL", "ERROR").upper())
+if not isinstance(LOG_LEVEL, int):
+    raise ValueError('Invalid log level: %s' % LOG_LEVEL)
+logging.basicConfig(level=LOG_LEVEL)
 
+DEPLOYMENT_MODE = os.environ.get("INDEX_STORAGE", "LOCAL").upper()
+"""
+How the app is deployed and gets is configuration. Possible values are "GOOGLE_CLOUD", "LOCAL"
+"""
+if DEPLOYMENT_MODE not in ["GOOGLE_CLOUD", "LOCAL"]:
+    DEPLOYMENT_MODE = "LOCAL"
 
 GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
 GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
 SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
 
 if os.environ.get("FLASK_ENV") == 'development':
-    REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology", "BCIO": "b-gehrke/ontologies"}
-
-    if INDEX_STORAGE == "":
-        # onto-spread-ed google credentials in local directory for dev mode
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'ontospreaded.json'
-        # Cloud storage - for the index search
-        storage_client = storage.Client()
-        bucket = storage_client.get_bucket('index-spread-ed-dev')
-
+    REPOSITORIES = {"BCIO": "b-gehrke/ontologies"}
 else:
     REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology", "BCIO": "HumanBehaviourChangeProject/ontologies"}
 
-    if INDEX_STORAGE == "GOOGLE_CLOUD":
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", 'ontospreaded.json')
-        # Cloud storage - for the index search
-        storage_client = storage.Client()
-        GOOGLE_INDEX_BUCKET = os.environ.get("GOOGLE_INDEX_BUCKET", 'index-spread-ed')
-        bucket = storage_client.get_bucket(GOOGLE_INDEX_BUCKET)
+if DEPLOYMENT_MODE == "GOOGLE_CLOUD":
+    # Connect to the Google cloud Secret Manager client
+    from google.cloud import secretmanager
+    # Connect to Google cloud storage client
+    from google.cloud import storage
 
-        # Create the Secret Manager client.
-        client = secretmanager.SecretManagerServiceClient()
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS",
+                                                                  'ontospreaded.json')
+    # Cloud storage - for the index search
+    storage_client = storage.Client()
+    GOOGLE_INDEX_BUCKET = os.environ.get("GOOGLE_INDEX_BUCKET", 'index-spread-ed')
+    bucket = storage_client.get_bucket(GOOGLE_INDEX_BUCKET)
 
-        GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID", "onto-spread-ed")
-        GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID = os.environ.get("GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID", "GITHUB_CLIENT_ID")
-        # Build the resource name of the secret version.
-        name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID}/versions/latest"
-        # Access the secret version.
-        response = client.access_secret_version(request={"name": name})
-        GITHUB_CLIENT_ID = response.payload.data.decode("UTF-8")
+    # Create the Secret Manager client.
+    client = secretmanager.SecretManagerServiceClient()
 
-        GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET = os.environ.get("GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET", "GITHUB_CLIENT_SECRET")
-        # Build the resource name of the secret version.
-        name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET}/versions/latest"
-        # Access the secret version.
-        response = client.access_secret_version(request={"name": name})
-        GITHUB_CLIENT_SECRET = response.payload.data.decode("UTF-8")
+    GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID", "onto-spread-ed")
+    GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID = os.environ.get("GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID", "GITHUB_CLIENT_ID")
+    # Build the resource name of the secret version.
+    name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID}/versions/latest"
+    # Access the secret version.
+    response = client.access_secret_version(request={"name": name})
+    GITHUB_CLIENT_ID = response.payload.data.decode("UTF-8")
 
-        GOOGLE_SECRET_NAME_FLASK_SECRET = os.environ.get("GOOGLE_SECRET_NAME_FLASK_SECRET", "FLASK_SECRET_KEY")
-        # Build the resource name of the secret version.
-        name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_FLASK_SECRET}/versions/latest"
-        # Access the secret version.
-        response = client.access_secret_version(request={"name": name})
-        SECRET_KEY = response.payload.data.decode("UTF-8")
+    GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET = os.environ.get("GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET",
+                                                             "GITHUB_CLIENT_SECRET")
+    # Build the resource name of the secret version.
+    name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET}/versions/latest"
+    # Access the secret version.
+    response = client.access_secret_version(request={"name": name})
+    GITHUB_CLIENT_SECRET = response.payload.data.decode("UTF-8")
+
+    GOOGLE_SECRET_NAME_FLASK_SECRET = os.environ.get("GOOGLE_SECRET_NAME_FLASK_SECRET", "FLASK_SECRET_KEY")
+    # Build the resource name of the secret version.
+    name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_FLASK_SECRET}/versions/latest"
+    # Access the secret version.
+    response = client.access_secret_version(request={"name": name})
+    SECRET_KEY = response.payload.data.decode("UTF-8")
+elif DEPLOYMENT_MODE == "LOCAL":
+    INDEX_PATH = os.environ.get("INDEX_PATH")
 
 USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "BCIO"]},
                   "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO"]},

@@ -1,6 +1,6 @@
-# ROSE 🌹 Resourceful Ontology Spreadsheet Editor
+# Ontology Spreadsheet Editor
 
-ROSE is a python based web platform for editing OWL ontologies as Excel Sheets.
+The ontology spreadsheet editor is a python based web platform for editing OWL ontologies as Excel Sheets.
 
 ## Development
 
@@ -43,11 +43,11 @@ regardless of the variables. To change this behaviour, change `config.py`.
 
 ###### General variables
 
-| Variable          | Description                                                  | Example value                    | Default   |
-|-------------------|--------------------------------------------------------------|----------------------------------|-----------|
-| `FLASK_ENV`       | Flask envrionment. See their documentation for more details. | `development`                    | `release` |
-| `LOG_LEVEL`       | How much information should be logged                        | `error`, `warn`, `info`, `debug` | `error`   |
-| `DEPLOYMENT_MODE` | Mode of deployment                                           | `GOOGLE_CLOUD`, `LOCAL`          | `LOCAL`   |
+| Variable          | Description                                                  | Example value                       | Default   |
+|-------------------|--------------------------------------------------------------|-------------------------------------|-----------|
+| `FLASK_ENV`       | Flask envrionment. See their documentation for more details. | `development`                       | `release` |
+| `LOG_LEVEL`       | How much information should be logged                        | `error`, `warning`, `info`, `debug` | `error`   |
+| `DEPLOYMENT_MODE` | Mode of deployment                                           | `GOOGLE_CLOUD`, `LOCAL`             | `LOCAL`   |
 
 ###### Local deployment
 

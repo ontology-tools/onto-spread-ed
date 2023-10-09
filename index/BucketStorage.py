@@ -2,7 +2,6 @@ import logging
 
 import whoosh.filedb.filestore
 
-from config import bucket
 from index.ExtendedStorage import ExtendedStorage
 
 
@@ -36,8 +35,8 @@ class BucketStorage(ExtendedStorage, whoosh.filedb.filestore.RamStorage):
 
     def open_from_bucket(self):
         self.filenameslist = []
-        for blob in bucket.list_blobs():
-            self._logger.debug("Opening blob",blob.name)
+        for blob in self.bucket.list_blobs():
+            self._logger.debug("Opening blob", blob.name)
             self.filenameslist.append(blob.name)
             f = self.create_file(blob.name)
             blob.download_to_file(f)
