@@ -105,7 +105,7 @@ elif DEPLOYMENT_MODE == "LOCAL":
     INDEX_PATH = os.environ.get("INDEX_PATH")
 
 USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "BCIO"]},
-                  "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO"]},
+                  "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True},
                   "robertjwest": {"initials": "RW", "repositories": ["AddictO", "BCIO"]},
                   "sharoncox": {"initials": "SC", "repositories": ["AddictO"]},
                   "ksoar": {"initials": "KS", "repositories": ["AddictO"]},
@@ -116,5 +116,6 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "candicemooreucl": {"initials": "CM", "repositories": ["BCIO"]},
                   "oscarcastroserrano": {"initials": "OC", "repositories": ["BCIO"]},
                   "emilyjhayes": {"initials": "EJH", "repositories": ["BCIO"]},
-                  "paulinaschenk": {"initials": "PS", "repositories": ["BCIO"]}}
+                  "paulinaschenk": {"initials": "PS", "repositories": ["BCIO"]},
+                  "b-gehrke": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]

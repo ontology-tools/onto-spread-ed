@@ -36,6 +36,7 @@ from SpreadsheetSearcher import SpreadsheetSearcher
 from config import *
 from database.Base import db_session, init_db
 from database.User import User
+from guards.admin import verify_admin
 from guards.verify_login import verify_logged_in
 from utils.github import get_csv, get_spreadsheet
 
@@ -162,10 +163,16 @@ def user():
 
 # Pages for the app
 @app.route("/rebuild-index")
-@verify_logged_in
+@verify_admin
 def rebuild_index():
-    searcher.rebuild_index()
-    return redirect("/")
+    sheets = searcher.rebuild_index()
+    return ('<h1>Index rebuild</h1>'
+            '<p>The index was rebuild successfully</p>'
+            '<p><a href="/">Go back to main page</a></p>'
+            '<h3> Files included in the index</h3>'
+            '<ul>'
+            f"{''.join(f'<li>{s}</li>' for s in sheets)}"
+            '</ul>')
 
 @app.route('/search', methods=['POST'])
 @verify_logged_in

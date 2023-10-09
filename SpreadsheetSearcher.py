@@ -2,7 +2,7 @@ import logging
 import os.path
 import shutil
 import threading
-from typing import Generator, Dict
+from typing import Generator, Dict, List, Optional
 
 from flask_caching import Cache
 from flask_github import GitHub
@@ -122,7 +122,15 @@ class SpreadsheetSearcher:
         self.threadLock.release()
         return next_id
 
-    def rebuild_index(self):
+    def rebuild_index(self, repository_keys: Optional[List[str]] = None) -> List[str]:
+        """
+        Rebuild the index for entity data stored in Excel files.
+
+        If not list of keys is given, all repositories the current user has access to are indexed.
+
+        :param repository_keys: List of short names of the repositories to index
+        :return: Names of sheets that have been indexed in the form `repository/file`
+        """
         self.threadLock.acquire()
 
         index_dir = self.config["INDEX_PATH"]
@@ -143,7 +151,11 @@ class SpreadsheetSearcher:
                 elif entry['type'] == 'file' and entry['name'].endswith('.xlsx'):
                     yield entry['path']
 
+        sheets = []
         for repository_key, repository in repositories.items():
+            if repository_keys is not None and repository_key not in repository_keys:
+                continue
+
             excel_files = get_excel_files(repository)
 
             for file in excel_files:
@@ -154,9 +166,12 @@ class SpreadsheetSearcher:
                 spreadsheet = file
                 self._logger.debug(f"Rewriting entity data for repository '{repository_key} ({repository})' and file '{spreadsheet}'")
                 re_write_entity_data_set(repository_key, index, spreadsheet, entity_data)
+                sheets.append(f"{repository}/{file}")
 
         self.storage.save()
         index.close()
         self.threadLock.release()
+
+        return sheets
 
 
