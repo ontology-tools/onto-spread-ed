@@ -30,12 +30,12 @@
 
   <!-- //tabulator: -->
   <!-- always up-to-date tabulator CDN -->
-  <link href="https://unpkg.com/tabulator-tables/dist/css/tabulator_simple.min.css" rel="stylesheet">
-  <script type="text/javascript" src="https://unpkg.com/tabulator-tables/dist/js/tabulator.min.js"></script>
+  <link href="https://unpkg.com/tabulator-tables@4.9.3//dist/css/tabulator_simple.min.css" rel="stylesheet">
+  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.3//dist/js/tabulator.min.js"></script>
 
 
   <!-- bootstrap 4 theme -->
-  <link href="https://unpkg.com/tabulator-tables/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/tabulator-tables@4.9.3//dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 
 
@@ -149,9 +149,9 @@
           message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SEARCHING...</p>',
           closeButton: true
         });
-        sendData();
         $("#resultsHeader").text("SEARCHING...");
         $("#resultsHeader").show();
+        sendData();
       }
       else if (button.value == "show_assigned") {
         console.log("show assigned clicked");

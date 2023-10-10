@@ -1,4 +1,4 @@
-Flask==1.1.1
+Flask>=2.2.2
 pandas
 openpyxl
 gunicorn
@@ -10,6 +10,6 @@ daff
 whoosh
 networkx
 pydot
-py-horned-owl==0.1.4
+py-horned-owl
 flask-cors==3.0.10
 flask-caching==1.10.1

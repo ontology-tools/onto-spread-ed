@@ -1,15 +1,9 @@
+import logging
 import os
 
-# Connect to the Google cloud Secret Manager client
-from google.cloud import secretmanager
-# Connect to Google cloud storage client
-from google.cloud import storage
-
-DEBUG = True
-
-#flask_caching:
+# flask_caching:
 CACHE_TYPE = "SimpleCache"
-CACHE_DEFAULT_TIMEOUT = 172800 # 2 days
+CACHE_DEFAULT_TIMEOUT = 172800  # 2 days
 
 APP_TITLE = "Ontology Spreadsheet Editor"
 
@@ -18,90 +12,110 @@ DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
 RELEASE_FILES = {"AddictO": "addicto-merged.owx",
                  "BCIO": "Upper%20Level%20BCIO/bcio-merged.owx"}
 
-PREFIXES = [ ["ADDICTO","http://addictovocab.org/ADDICTO_"],
-             ["BFO","http://purl.obolibrary.org/obo/BFO_"],
-             ["CHEBI","http://purl.obolibrary.org/obo/CHEBI_"],
-             ["UBERON","http://purl.obolibrary.org/obo/UBERON_"],
-             ["PATO","http://purl.obolibrary.org/obo/PATO_"],
-             ["BCIO","http://humanbehaviourchange.org/ontology/BCIO_"],
-             ["SEPIO","http://purl.obolibrary.org/obo/SEPIO_"],
-             ["OMRSE","http://purl.obolibrary.org/obo/OMRSE_"],
-             ["OBCS","http://purl.obolibrary.org/obo/OBCS_"],
-             ["OGMS","http://purl.obolibrary.org/obo/OGMS_"],
-             ["ENVO","http://purl.obolibrary.org/obo/ENVO_"],
-             ["OBI", "http://purl.obolibrary.org/obo/OBI_"],
-             ["MFOEM","http://purl.obolibrary.org/obo/MFOEM_"],
-             ["MF","http://purl.obolibrary.org/obo/MF_"],
-             ["CHMO","http://purl.obolibrary.org/obo/CHMO_"],
-             ["DOID","http://purl.obolibrary.org/obo/DOID_"],
-             ["IAO","http://purl.obolibrary.org/obo/IAO_"],
-             ["ERO","http://purl.obolibrary.org/obo/ERO_"],
-             ["PO","http://purl.obolibrary.org/obo/PO_"],
-             ["RO","http://purl.obolibrary.org/obo/RO_"],
-             ["APOLLO_SV","http://purl.obolibrary.org/obo/APOLLO_SV_"],
-             ["PDRO","http://purl.obolibrary.org/obo/PDRO_"],
-             ["GAZ","http://purl.obolibrary.org/obo/GAZ_"],
-             ["GSSO","http://purl.obolibrary.org/obo/GSSO_"]
-           ]
+PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
+            ["BFO", "http://purl.obolibrary.org/obo/BFO_"],
+            ["CHEBI", "http://purl.obolibrary.org/obo/CHEBI_"],
+            ["UBERON", "http://purl.obolibrary.org/obo/UBERON_"],
+            ["PATO", "http://purl.obolibrary.org/obo/PATO_"],
+            ["BCIO", "http://humanbehaviourchange.org/ontology/BCIO_"],
+            ["SEPIO", "http://purl.obolibrary.org/obo/SEPIO_"],
+            ["OMRSE", "http://purl.obolibrary.org/obo/OMRSE_"],
+            ["OBCS", "http://purl.obolibrary.org/obo/OBCS_"],
+            ["OGMS", "http://purl.obolibrary.org/obo/OGMS_"],
+            ["ENVO", "http://purl.obolibrary.org/obo/ENVO_"],
+            ["OBI", "http://purl.obolibrary.org/obo/OBI_"],
+            ["MFOEM", "http://purl.obolibrary.org/obo/MFOEM_"],
+            ["MF", "http://purl.obolibrary.org/obo/MF_"],
+            ["CHMO", "http://purl.obolibrary.org/obo/CHMO_"],
+            ["DOID", "http://purl.obolibrary.org/obo/DOID_"],
+            ["IAO", "http://purl.obolibrary.org/obo/IAO_"],
+            ["ERO", "http://purl.obolibrary.org/obo/ERO_"],
+            ["PO", "http://purl.obolibrary.org/obo/PO_"],
+            ["RO", "http://purl.obolibrary.org/obo/RO_"],
+            ["APOLLO_SV", "http://purl.obolibrary.org/obo/APOLLO_SV_"],
+            ["PDRO", "http://purl.obolibrary.org/obo/PDRO_"],
+            ["GAZ", "http://purl.obolibrary.org/obo/GAZ_"],
+            ["GSSO", "http://purl.obolibrary.org/obo/GSSO_"]
+            ]
 
 RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 DIGIT_COUNT = 7
 
-if os.environ.get("FLASK_ENV")=='development':
-    GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
-    GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
-    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
-    REPOSITORIES = {"AddictO": "jannahastings/addiction-ontology", "BCIO": "jannahastings/ontologies"}
-    # onto-spread-ed google credentials in local directory for dev mode
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS']='ontospreaded.json'
-    # Cloud storage - for the index search
-    storage_client = storage.Client()
-    bucket = storage_client.get_bucket('index-spread-ed-dev')
+LOG_LEVEL = getattr(logging, os.environ.get("LOG_LEVEL", "ERROR").upper())
+if not isinstance(LOG_LEVEL, int):
+    raise ValueError('Invalid log level: %s' % LOG_LEVEL)
+logging.basicConfig(level=LOG_LEVEL)
 
+DEPLOYMENT_MODE = os.environ.get("INDEX_STORAGE", "LOCAL").upper()
+"""
+How the app is deployed and gets is configuration. Possible values are "GOOGLE_CLOUD", "LOCAL"
+"""
+if DEPLOYMENT_MODE not in ["GOOGLE_CLOUD", "LOCAL"]:
+    DEPLOYMENT_MODE = "LOCAL"
+
+GITHUB_CLIENT_ID = os.environ.get('GITHUB_CLIENT_ID')
+GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
+SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
+
+if os.environ.get("FLASK_ENV") == 'development':
+    REPOSITORIES = {"BCIO": "b-gehrke/ontologies"}
 else:
     REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology", "BCIO": "HumanBehaviourChangeProject/ontologies"}
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'ontospreaded.json'
+
+if DEPLOYMENT_MODE == "GOOGLE_CLOUD":
+    # Connect to the Google cloud Secret Manager client
+    from google.cloud import secretmanager
+    # Connect to Google cloud storage client
+    from google.cloud import storage
+
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS",
+                                                                  'ontospreaded.json')
     # Cloud storage - for the index search
     storage_client = storage.Client()
-    bucket = storage_client.get_bucket('index-spread-ed')
+    GOOGLE_INDEX_BUCKET = os.environ.get("GOOGLE_INDEX_BUCKET", 'index-spread-ed')
+    bucket = storage_client.get_bucket(GOOGLE_INDEX_BUCKET)
 
     # Create the Secret Manager client.
     client = secretmanager.SecretManagerServiceClient()
 
-    project_id = "onto-spread-ed"
-    client_id = "GITHUB_CLIENT_ID"
+    GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID", "onto-spread-ed")
+    GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID = os.environ.get("GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID", "GITHUB_CLIENT_ID")
     # Build the resource name of the secret version.
-    name = f"projects/{project_id}/secrets/{client_id}/versions/latest"
+    name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID}/versions/latest"
     # Access the secret version.
     response = client.access_secret_version(request={"name": name})
     GITHUB_CLIENT_ID = response.payload.data.decode("UTF-8")
 
-    client_secret = "GITHUB_CLIENT_SECRET"
+    GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET = os.environ.get("GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET",
+                                                             "GITHUB_CLIENT_SECRET")
     # Build the resource name of the secret version.
-    name = f"projects/{project_id}/secrets/{client_secret}/versions/latest"
+    name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_GITHUB_CLIENT_SECRET}/versions/latest"
     # Access the secret version.
     response = client.access_secret_version(request={"name": name})
     GITHUB_CLIENT_SECRET = response.payload.data.decode("UTF-8")
 
-    flask_secret = "FLASK_SECRET_KEY"
+    GOOGLE_SECRET_NAME_FLASK_SECRET = os.environ.get("GOOGLE_SECRET_NAME_FLASK_SECRET", "FLASK_SECRET_KEY")
     # Build the resource name of the secret version.
-    name = f"projects/{project_id}/secrets/{flask_secret}/versions/latest"
+    name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_FLASK_SECRET}/versions/latest"
     # Access the secret version.
     response = client.access_secret_version(request={"name": name})
     SECRET_KEY = response.payload.data.decode("UTF-8")
+elif DEPLOYMENT_MODE == "LOCAL":
+    INDEX_PATH = os.environ.get("INDEX_PATH")
 
-USERS_METADATA = {"tomjuggler": {"initials":"ZZ", "repositories":["AddictO","BCIO"]},
-                  "jannahastings": {"initials":"JH", "repositories":["AddictO","BCIO"]},
-                  "robertjwest": {"initials":"RW", "repositories":["AddictO","BCIO"]},
-                  "sharoncox":{"initials":"SC", "repositories":["AddictO"]},
-                  "ksoar":{"initials":"KS", "repositories":["AddictO"]},
-                  "CaitlinNotley702": {"initials":"CN", "repositories":["AddictO"]},
-                  "CaitlinNotley": {"initials":"CN", "repositories":["AddictO"]},
-                  "alisonjwright":{"initials":"AW", "repositories":["BCIO","AddictO"]},
-                  "zcbtelh": {"initials":"EH", "repositories":["BCIO"]},
-                  "candicemooreucl": {"initials":"CM", "repositories":["BCIO"]},
-                  "oscarcastroserrano": {"initials":"OC", "repositories":["BCIO"]},
-                  "emilyjhayes": {"initials":"EJH", "repositories":["BCIO"]},
-                  "paulinaschenk": {"initials":"PS", "repositories": ["BCIO"]}}
+USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "BCIO"]},
+                  "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True},
+                  "robertjwest": {"initials": "RW", "repositories": ["AddictO", "BCIO"]},
+                  "sharoncox": {"initials": "SC", "repositories": ["AddictO"]},
+                  "ksoar": {"initials": "KS", "repositories": ["AddictO"]},
+                  "CaitlinNotley702": {"initials": "CN", "repositories": ["AddictO"]},
+                  "CaitlinNotley": {"initials": "CN", "repositories": ["AddictO"]},
+                  "alisonjwright": {"initials": "AW", "repositories": ["BCIO", "AddictO"]},
+                  "zcbtelh": {"initials": "EH", "repositories": ["BCIO"]},
+                  "candicemooreucl": {"initials": "CM", "repositories": ["BCIO"]},
+                  "oscarcastroserrano": {"initials": "OC", "repositories": ["BCIO"]},
+                  "emilyjhayes": {"initials": "EJH", "repositories": ["BCIO"]},
+                  "paulinaschenk": {"initials": "PS", "repositories": ["BCIO"]},
+                  "b-gehrke": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
