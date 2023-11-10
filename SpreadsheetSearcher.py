@@ -90,7 +90,6 @@ class SpreadsheetSearcher:
 
     def get_next_id(self, repo_name):
         self.threadLock.acquire()
-        self.storage.open()
         ix = self.storage.open_index()
 
         mparser = QueryParser("class_id",
