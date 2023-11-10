@@ -59,7 +59,7 @@ GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
 SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
 
 if os.environ.get("FLASK_ENV") == 'development':
-    REPOSITORIES = {"BCIO": "b-gehrke/ontologies"}
+    REPOSITORIES = {"BCIO": "b-gehrke/ontologies", "AddictO": "b-gehrke/addiction-ontology"}
 else:
     REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology", "BCIO": "HumanBehaviourChangeProject/ontologies"}
 
@@ -117,5 +117,5 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "oscarcastroserrano": {"initials": "OC", "repositories": ["BCIO"]},
                   "emilyjhayes": {"initials": "EJH", "repositories": ["BCIO"]},
                   "paulinaschenk": {"initials": "PS", "repositories": ["BCIO"]},
-                  "b-gehrke": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True}}
+                  "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO"], "admin": True}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
