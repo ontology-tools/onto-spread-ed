@@ -8,6 +8,7 @@ CACHE_DEFAULT_TIMEOUT = 172800  # 2 days
 APP_TITLE = "Ontology Spreadsheet Editor"
 
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
+SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
 RELEASE_FILES = {"AddictO": "addicto-merged.owx",
                  "BCIO": "Upper%20Level%20BCIO/bcio-merged.owx"}
@@ -79,7 +80,7 @@ if DEPLOYMENT_MODE == "GOOGLE_CLOUD":
     # Create the Secret Manager client.
     client = secretmanager.SecretManagerServiceClient()
 
-    GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID", "onto-spread-ed")
+    GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID", "")
     GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID = os.environ.get("GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID", "GITHUB_CLIENT_ID")
     # Build the resource name of the secret version.
     name = f"projects/{GOOGLE_PROJECT_ID}/secrets/{GOOGLE_SECRET_NAME_GITHUB_CLIENT_ID}/versions/latest"

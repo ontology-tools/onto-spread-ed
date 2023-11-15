@@ -8,10 +8,10 @@ from flask_caching import Cache
 from flask_github import GitHub
 from whoosh.qparser import MultifieldParser, QueryParser
 
-from index.FileStorage import FileStorage
-from index.create_index import add_entity_data_to_index, to_entity_data_list, re_write_entity_data_set
-from index.schema import schema
-from utils.github import get_spreadsheet
+from .index.FileStorage import FileStorage
+from .index.create_index import add_entity_data_to_index, to_entity_data_list, re_write_entity_data_set
+from .index.schema import schema
+from .utils.github import get_spreadsheet
 
 
 class SpreadsheetSearcher:

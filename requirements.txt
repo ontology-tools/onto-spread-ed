@@ -1,8 +1,9 @@
-Flask>=2.2.2
+Flask==2.3.3
 pandas
 openpyxl
 gunicorn
-Flask-SQLAlchemy
+Flask-SQLAlchemy==3.1.1
+Flask-Injector
 GitHub-Flask
 google-cloud-secret-manager
 google-cloud-storage
@@ -12,4 +13,4 @@ networkx
 pydot
 py-horned-owl
 flask-cors==3.0.10
-flask-caching==1.10.1
+flask-caching==2.1.0
