@@ -1,4 +1,5 @@
 import json
+from functools import reduce
 
 from flask import Blueprint, current_app, g, render_template, redirect, url_for, request, session
 from flask_github import GitHub
@@ -49,11 +50,14 @@ def repo(repo_key, github: GitHub, folder_path=""):
         current_app.logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
 
+    breadcrumb_segments = [repo_key, *folder_path.split("/")]
+
     return render_template('repo.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
                            repo_name=repo_key,
                            folder_path=folder_path,
+                           breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i+1])} for i, s in enumerate(breadcrumb_segments) ],
                            directories=dirs,
                            spreadsheets=spreadsheets,
                            )

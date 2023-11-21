@@ -5,15 +5,16 @@
 {% endblock %}
 {% block content %}
 
-    <label class="font-weight-bold" for="submitText">Search across all spreadsheets:</label>
-    <form id="submitText">
-        <input id="inputText" name="inputText" value="" placeholder='search terms'>
-        <button type="submit" id="inputBtn" name="input" value="search" class="btn btn-outline-success fas fa-search"
-                onclick="return submitForm(this)">Search
+    <label class="font-weight-bold form-label" for="submitText">Search across all spreadsheets:</label>
+    <form id="submitText" class="d-flex">
+        <input id="inputText" name="inputText" value="" placeholder='search terms' class="form-control me-2 d-inline-block w-auto"/>
+        <button type="submit" id="inputBtn" name="input" value="search" class="btn btn-outline-success me-2"
+                onclick="return submitForm(this)">
+            <i class=" fas fa-search"></i> Search
         </button>
         <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
-                class="btn btn-outline-warning fas fa-search-plus" onclick="return submitForm(this)">
-            Show all assigned to me
+                class="btn btn-outline-warning" onclick="return submitForm(this)">
+            <i class="fas fa-search-plus"></i> Show all assigned to me
         </button>
     </form>
 

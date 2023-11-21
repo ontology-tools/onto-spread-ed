@@ -1,8 +1,6 @@
 import functools
 
-from flask import g, redirect, url_for, abort
-
-from config import USERS_METADATA
+from flask import g, redirect, url_for, abort, current_app
 
 
 def verify_admin(fn):
@@ -13,8 +11,8 @@ def verify_admin(fn):
     def wrapped(*args, **kwargs):
         # If the user is not logged in, then redirect him to the "logged out" page:
         if not g.user:
-            return redirect(url_for("login"))
-        if not USERS_METADATA.get(g.user.github_login, {}).get("admin", False):
+            return redirect(url_for("authentication.login"))
+        if not current_app.config['USERS_METADATA'].get(g.user.github_login, {}).get("admin", False):
             abort(403, "You do not have sufficient permissions!")
         return fn(*args, **kwargs)
 

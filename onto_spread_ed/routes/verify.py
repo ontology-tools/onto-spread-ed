@@ -21,6 +21,9 @@ VERIFY_ROW_SCHEMA = {
         },
         "entity": {
             "type": "object",
+        },
+        "old_entity": {
+            "type": "object",
         }
     },
     "title": "schema"
@@ -36,13 +39,13 @@ def verify_row_change(searcher: SpreadsheetSearcher):
     except jsonschema.ValidationError as e:
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
-    repo_key, spreadsheet, entity = data["repository"], data["spreadsheet"], data["entity"]
+    repo_key, spreadsheet, entity, old_entity = data["repository"], data["spreadsheet"], data["entity"], data["old_entity"]
 
     # repositories = current_app.config['REPOSITORIES']
     # repo_detail = repositories[repo_key]
     # all_files = get_spreadsheets(github, repo_detail, exclude_pattern=r"(imports/.*)|(.*BCIO_External_Imports.xlsx)|(.*BCIO_Upper_Rels.xlsx)")
 
-    valid, errors, warnings = validate_line(entity, repo_key, spreadsheet, searcher)
+    valid, errors, warnings = validate_line(entity, old_entity, repo_key, spreadsheet, searcher)
 
     return jsonify({
         "success": True,
@@ -53,6 +56,7 @@ def verify_row_change(searcher: SpreadsheetSearcher):
 
 
 def validate_line(entity: dict[str, Any],
+                  old_entity: dict[str, Any],
                   repository: str,
                   file: str,
                   # all_files: list[str],
@@ -72,28 +76,29 @@ def validate_line(entity: dict[str, Any],
             "parent": entity["Parent"]
         })
 
-    old_label = None
+    old_label = old_entity["Label"]
     duplicate_ids = searcher.search_for(repository, f"class_id:'{entity['ID']}'")
-    if len(duplicate_ids) > 0:
-        if len(duplicate_ids) == 1 and duplicate_ids[0]['spreadsheet'] == file:
-            old_label = duplicate_ids[0]['label']
-        else:
-            errors.append({
-                "type": "duplicate-id",
-                "id": entity["ID"],
-                "labels": [e["label"] for e in duplicate_ids]
-            })
+    if len(duplicate_ids) > 0 and not (duplicate_ids[0]["label"] == old_label and duplicate_ids[0]["spreadsheet"] == file):
+        errors.append({
+            "type": "duplicate-id",
+            "id": entity["ID"],
+            "labels": [e["label"] for e in duplicate_ids]
+        })
 
     duplicate_labels = searcher.search_for(repository, f"label:'{entity['Label']}'")
-    if len(duplicate_labels) > 0:
-        if len(duplicate_labels) > 1 or duplicate_labels[0]["class_id"] != entity["ID"]:
+    if len(duplicate_labels) > 0 and not (duplicate_labels[0]["class_id"] == old_entity["ID"] and duplicate_labels[0]["spreadsheet"] == file):
             errors.append({
                 "type": "duplicate-label",
                 "ids": [e["label"] for e in duplicate_labels],
                 "label": entity["Label"]
             })
 
-    if old_label is not None:
+    if old_entity["ID"] != entity["ID"]:
+        warnings.append({
+            "type": "id-changed"
+        })
+
+    if old_label != entity["Label"]:
         references = searcher.search_for(repository, f"parent:'{old_label}'")
         warnings += [{
             "type": "dangling-reference",

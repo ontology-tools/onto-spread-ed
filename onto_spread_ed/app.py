@@ -50,122 +50,17 @@ logger = logging.getLogger(__name__)
 
 
 
-# Pages for the app
-@app.route("/rebuild-index")
-@verify_admin
-def rebuild_index():
-    sheets = searcher.rebuild_index()
-    return ('<h1>Index rebuild</h1>'
-            '<p>The index was rebuild successfully</p>'
-            '<p><a href="/">Go back to main page</a></p>'
-            '<h3> Files included in the index</h3>'
-            '<ul>'
-            f"{''.join(f'<li>{s}</li>' for s in sheets)}"
-            '</ul>')
 
 
 
 
-
-@app.route("/validate", methods=["POST"])
-@verify_logged_in
-def verify():
-    if request.method == "POST":
-        cell = json.loads(request.form.get("cell"))
-        column = json.loads(request.form.get("column"))
-        rowData = json.loads(request.form.get("rowData"))
-        headers = json.loads(request.form.get("headers"))
-        table = json.loads(request.form.get("table"))
-        # check for blank cells under conditions first:
-    blank = {}
-    unique = {}
-    returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
-    if len(returnData) > 0 or len(uniqueData) > 0:
-        return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
-    return ('success')
-
-
-@app.route("/generate", methods=["POST"])
-@verify_logged_in
-def generate():
-    if request.method == "POST":
-        repo_key = request.form.get("repo_key")
-        rowData = json.loads(request.form.get("rowData"))
-        values = {}
-        ids = {}
-        for row in rowData:
-            nextIdStr = str(searcher.get_next_id(repo_key))
-            fill_num = app.config['DIGIT_COUNT']
-            if repo_key == "BCIO":
-                fill_num = fill_num - 1
-            else:
-                fill_num = fill_num
-            id = repo_key.upper() + ":" + nextIdStr.zfill(fill_num)
-            ids["ID" + str(row['id'])] = str(row['id'])
-            values["ID" + str(row['id'])] = id
-        return (json.dumps({"message": "idlist", "IDs": ids, "values": values}))  # need to return an array
-    return ('success')
 
 
 # validation checks here: 
 
 # recursive check each cell in rowData:
-def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
-    for index, (key, value) in enumerate(
-            rowData.items()):  # todo: really, we need to loop here, surely there is a faster way?
-        if index == current:
-            if key == "Label" or key == "Definition" or key == "Parent" or key == "Sub-ontology" or key == "Curation status":
-                if key == "Definition" or key == "Parent":
-                    status = rowData.get("Curation status")  # check for "Curation status"
-                    if (status):
-                        if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
-                            pass
-                        else:
-                            if value.strip() == "":
-                                blank.update({key: value})
-                    else:
-                        pass  # no "Curation status" column
-                else:
-                    if value.strip() == "":
-                        blank.update({key: value})
-                    else:
-                        pass
-            if key == "Label" or key == "ID" or key == "Definition":
-                if checkNotUnique(value, key, headers, table):
-                    unique.update({key: value})
-    # go again:
-    current = current + 1
-    if current >= len(rowData):
-        return (blank, unique)
-    return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
 
 
-def checkNotUnique(cell, column, headers, table):
-    counter = 0
-    cellStr = cell.strip()
-    if cellStr == "":
-        return False
-    # if Label, ID or Definition column, check cell against all other cells in the same column and return true if same
-    for r in range(len(table)):
-        row = [v for v in table[r].values()]
-        del row[0]  # remove extra numbered "id" column
-        for c in range(len(headers)):
-            if headers[c] == "ID" and column == "ID":
-                if row[c].strip() == cellStr:
-                    counter += 1
-                    if counter > 1:  # more than one of the same
-                        return True
-            if headers[c] == "Label" and column == "Label":
-                if row[c].strip() == cellStr:
-                    counter += 1
-                    if counter > 1:
-                        return True
-            if headers[c] == "Definition" and column == "Definition":
-                if row[c].strip() == cellStr:
-                    counter += 1
-                    if counter > 1:
-                        return True
-    return False
 
 
 

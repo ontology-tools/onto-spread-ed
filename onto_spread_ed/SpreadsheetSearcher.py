@@ -2,7 +2,7 @@ import logging
 import os.path
 import shutil
 import threading
-from typing import Generator, Dict, List, Optional
+from typing import Generator, Dict, List, Optional, Any
 
 from flask_caching import Cache
 from flask_github import GitHub
@@ -120,6 +120,25 @@ class SpreadsheetSearcher:
 
         self.threadLock.release()
         return next_id
+
+    def stats(self) -> dict[str, Any]:
+        stats = dict()
+
+        self.threadLock.acquire()
+        ix = self.storage.open_index()
+
+        with ix.reader() as r:
+            stats = dict(
+                sheets=r.doc_count(),
+                entities=len(list(r.all_terms()))
+            )
+
+        ix.close()
+
+        self.threadLock.release()
+
+        return stats
+
 
     def rebuild_index(self, repository_keys: Optional[List[str]] = None) -> List[str]:
         """

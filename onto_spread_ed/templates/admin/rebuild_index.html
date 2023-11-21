@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+
+    <h1>Rebuild the index</h1>
+    <p>
+        Currently, the index has the following statistics:
+    </p>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Value</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for name, value in index_stats.items() %}
+            <tr>
+                <td>{{ name | capitalize }}</td>
+                <td>{{ value }}</td>
+            </tr>
+        {% endfor %}
+
+        </tbody>
+    </table>
+
+    <button type="button" id="btn-rebuild-index" class="btn btn-danger">Rebuild the index</button>
+
+
+    <script type="application/javascript">
+        const btn_rebuild = $("#btn-rebuild-index")
+        btn_rebuild.on("click", async (event) => {
+            let dialog = bootbox.dialog({
+                title: "Rebuilding...",
+                message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i><br> This might take while. Please do not close the window or tab!</p>',
+                closeButton: true
+            });
+            let dialogShown$ = new Promise((resolve, _) => {
+                dialog.on('shown.bs.modal', () => resolve())
+            });
+
+            try {
+                const result = await fetch("/admin/rebuild-index", {
+                    method: "POST"
+                })
+
+                let sheets = await result.json();
+                bootbox.dialog({
+                    title: "Index rebuild",
+                    message: `<p>Files included in the index:</p><ul>${sheets.map(x => "<li>" + x + "</li>").join("\n")}</ul>`,
+                    closeButton: true,
+                    size: 'large',
+                    onEscape: true,
+                    backdrop: true,
+                })
+
+            } catch (e) {
+                bootbox.alert("Something went wrong");
+                console.error(e)
+            }
+
+            await dialogShown$;
+            dialog.modal("hide")
+        })
+    </script>
+{% endblock %}

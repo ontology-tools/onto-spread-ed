@@ -47,6 +47,9 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     suggestions = ontodb.getReleaseLabels(repo_key)
     suggestions = list(dict.fromkeys(suggestions))
 
+    breadcrumb_segments = [repo_key, *folder.split("/"), spreadsheet]
+
+
     return render_template('edit.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
@@ -54,6 +57,9 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
                            repo_name=repo_key,
                            folder=folder,
                            spreadsheet_name=spreadsheet,
+                           breadcrumb=[{"name": s, "repo/" + "path": "/".join(breadcrumb_segments[:i + 1])} for i, s in
+                                       enumerate(breadcrumb_segments)],
+
                            header=json.dumps(header),
                            rows=json.dumps(rows),
                            file_sha=file_sha,
@@ -189,8 +195,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             if 'ID' in first_row:
                 if not row[header.index("ID")]:  # blank
                     if 'Label' and 'Parent' and 'Definition' in first_row:  # make sure we have the right sheet
-                        if row[header.index("Label")] and row[header.index("Parent")] and row[
-                            header.index("Definition")]:  # not blank
+                        if (row[header.index("Label")] and row[header.index("Parent")] and
+                                row[header.index("Definition")]):  # not blank
                             # generate ID here:
                             nextIdStr = str(searcher.get_next_id(repo_key))
                             fill_num = current_app.config['DIGIT_COUNT']
@@ -227,7 +233,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             raise Exception(f"Unable to create new branch {branch} in {repo_detail}")
 
         current_app.logger.debug("About to get latest version of the spreadsheet file %s",
-                     f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+                                 f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         # Get the sha for the file
         (new_file_sha, new_rows, new_header) = get_spreadsheet(github, repo_detail, folder, spreadsheet)
 
@@ -238,7 +244,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             "branch": branch,
         }
         data["sha"] = new_file_sha
-        current_app.logger.debug("About to commit file to branch %s", f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        current_app.logger.debug("About to commit file to branch %s",
+                                 f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
         if not response:
             raise Exception(
@@ -364,6 +371,100 @@ def checkForUpdates(github: GitHub):
         else:
             return (json.dumps({"message": "Fail"}), 200)
 
+@bp.route("/generate", methods=["POST"])
+@verify_logged_in
+def generate(searcher: SpreadsheetSearcher):
+    if request.method == "POST":
+        repo_key = request.form.get("repo_key")
+        rowData = json.loads(request.form.get("rowData"))
+        values = {}
+        ids = {}
+        for row in rowData:
+            nextIdStr = str(searcher.get_next_id(repo_key))
+            fill_num = current_app.config['DIGIT_COUNT']
+            if repo_key == "BCIO":
+                fill_num = fill_num - 1
+            else:
+                fill_num = fill_num
+            id = repo_key.upper() + ":" + nextIdStr.zfill(fill_num)
+            ids["ID" + str(row['id'])] = str(row['id'])
+            values["ID" + str(row['id'])] = id
+        return (json.dumps({"message": "idlist", "IDs": ids, "values": values}))  # need to return an array
+    return ('success')
+
+
+@bp.route("/validate", methods=["POST"])
+@verify_logged_in
+def verify():
+    if request.method == "POST":
+        cell = json.loads(request.form.get("cell"))
+        column = json.loads(request.form.get("column"))
+        rowData = json.loads(request.form.get("rowData"))
+        headers = json.loads(request.form.get("headers"))
+        table = json.loads(request.form.get("table"))
+        # check for blank cells under conditions first:
+    blank = {}
+    unique = {}
+    returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
+    if len(returnData) > 0 or len(uniqueData) > 0:
+        return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
+    return ('success')
+
+def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
+    for index, (key, value) in enumerate(
+            rowData.items()):  # todo: really, we need to loop here, surely there is a faster way?
+        if index == current:
+            if key == "Label" or key == "Definition" or key == "Parent" or key == "Sub-ontology" or key == "Curation status":
+                if key == "Definition" or key == "Parent":
+                    status = rowData.get("Curation status")  # check for "Curation status"
+                    if (status):
+                        if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
+                            pass
+                        else:
+                            if value.strip() == "":
+                                blank.update({key: value})
+                    else:
+                        pass  # no "Curation status" column
+                else:
+                    if value.strip() == "":
+                        blank.update({key: value})
+                    else:
+                        pass
+            if key == "Label" or key == "ID" or key == "Definition":
+                if checkNotUnique(value, key, headers, table):
+                    unique.update({key: value})
+    # go again:
+    current = current + 1
+    if current >= len(rowData):
+        return (blank, unique)
+    return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
+
+def checkNotUnique(cell, column, headers, table):
+    counter = 0
+    cellStr = cell.strip()
+    if cellStr == "":
+        return False
+    # if Label, ID or Definition column, check cell against all other cells in the same column and return true if same
+    for r in range(len(table)):
+        row = [v for v in table[r].values()]
+        del row[0]  # remove extra numbered "id" column
+        for c in range(len(headers)):
+            if headers[c] == "ID" and column == "ID":
+                if row[c].strip() == cellStr:
+                    counter += 1
+                    if counter > 1:  # more than one of the same
+                        return True
+            if headers[c] == "Label" and column == "Label":
+                if row[c].strip() == cellStr:
+                    counter += 1
+                    if counter > 1:
+                        return True
+            if headers[c] == "Definition" and column == "Definition":
+                if row[c].strip() == cellStr:
+                    counter += 1
+                    if counter > 1:
+                        return True
+    return False
 
 
 def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2server, header, 3initial)
