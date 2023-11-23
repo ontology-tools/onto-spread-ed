@@ -10,6 +10,8 @@ def init_app(app: Flask):
     from .visualize import bp as visualize
     from .admin import bp as admin
 
+    from .api import blueprints as api_blueprints
+
     app.register_blueprint(verify)
     app.register_blueprint(auth)
     app.register_blueprint(main)
@@ -17,4 +19,8 @@ def init_app(app: Flask):
     app.register_blueprint(search)
     app.register_blueprint(visualize)
     app.register_blueprint(admin)
+
+    for bp in api_blueprints:
+        app.register_blueprint(bp)
+
 

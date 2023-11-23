@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, g, request, url_for, jsonify
+from flask import Blueprint, render_template, g, request, jsonify
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..guards.admin import verify_admin
@@ -30,3 +30,14 @@ def rebuild_index(searcher: SpreadsheetSearcher):
                                    dict(name="Rebuild index", path="admin/rebuild-index")
                                ],
                                login=g.user.github_login, )
+
+
+@bp.route("/release", methods=("GET",))
+@verify_admin
+def release():
+    return render_template("release.html",
+                           breadcrumb=[
+                               dict(name="Admin", path="admin/dashboard"),
+                               dict(name="Release", path="admin/release")
+                           ],
+                           login=g.user.github_login, )

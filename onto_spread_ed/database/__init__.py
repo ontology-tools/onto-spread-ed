@@ -3,6 +3,8 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .Base import Base
 
+from .Release import Release
+
 
 def init_app(app):
     db = SQLAlchemy(app)
