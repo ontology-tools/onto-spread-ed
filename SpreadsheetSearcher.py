@@ -62,29 +62,35 @@ class SpreadsheetSearcher:
     def update_index(self, repo_name, folder, sheet_name, header, sheet_data):
         self.threadLock.acquire()
         self._logger.debug("Update of index start")
-        # self.storage.open_from_bucket()
-        ix = self.storage.open_index()
-        writer = ix.writer()
-        mparser = MultifieldParser(["repo", "spreadsheet"],
-                                   schema=ix.schema)
-        self._logger.debug("About to delete for query string: " +
-              "repo:" + repo_name + " AND spreadsheet:'" + folder + "/" + sheet_name + "'")
-        writer.delete_by_query(
-            mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder + "/" + sheet_name + "\""))
-        writer.commit()
-        writer = ix.writer()
 
-        for r in range(len(sheet_data)):
-            row = [v for v in sheet_data[r].values()]
-            del row[0]  # Tabulator-added ID column
+        writer = None
+        try:
+            ix = self.storage.open_index()
+            writer = ix.writer(timeout=60)  # Wait 60s for the writer lock
+            mparser = MultifieldParser(["repo", "spreadsheet"],
+                                       schema=ix.schema)
+            self._logger.debug("About to delete for query string: " +
+                  "repo:" + repo_name + " AND spreadsheet:'" + folder + "/" + sheet_name + "'")
+            writer.delete_by_query(
+                mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder + "/" + sheet_name + "\""))
+            writer.commit()
+            writer = ix.writer(timeout=60)  # Wait 60s for the writer lock
 
-            add_entity_data_to_index((header, row), repo_name, folder + '/' + sheet_name, writer)
+            for r in range(len(sheet_data)):
+                row = [v for v in sheet_data[r].values()]
+                del row[0]  # Tabulator-added ID column
 
-        writer.commit(optimize=True)
+                add_entity_data_to_index((header, row), repo_name, folder + '/' + sheet_name, writer)
 
-        self.storage.save()
-        ix.close()
-        self.threadLock.release()
+            writer.commit(optimize=True)
+
+            self.storage.save()
+            ix.close()
+        finally:
+            if writer is not None and not writer.is_closed():
+                writer.cancel()
+
+            self.threadLock.release()
 
         self._logger.debug("Update of index completed.")
 
@@ -106,13 +112,13 @@ class SpreadsheetSearcher:
             most_recent_id = self.cache.get("latestID" + repo_name)  # check latest ID
             if most_recent_id is None:  # error check no cache set
                 most_recent_id = 0
-                print("error latestID", repo_name, " was None!")
+                self._logger.error("error latestID", repo_name, " was None!")
                 self.cache.set("latestID" + repo_name, 0)
             next_id = int(top_hit['class_id'].split(":")[1]) + 1
 
             # check nextId against cached most recent id:
             if not (next_id > most_recent_id):
-                print("cached version is higher: ", most_recent_id, " > ", next_id)
+                self._logger.warning("cached version is higher: ", most_recent_id, " > ", next_id)
                 next_id = self.cache.get("latestID" + repo_name) + 1
             self.cache.set("latestID" + repo_name, next_id)
 
@@ -132,44 +138,47 @@ class SpreadsheetSearcher:
         """
         self.threadLock.acquire()
 
-        index_dir = self.config["INDEX_PATH"]
-        shutil.rmtree(index_dir)
-        os.mkdir(index_dir)
-        index = self.storage.create_index(schema)
-        repositories = self.config["REPOSITORIES"]
+        try:
+            index_dir = self.config["INDEX_PATH"]
+            shutil.rmtree(index_dir)
+            os.mkdir(index_dir)
+            index = self.storage.create_index(schema)
+            repositories = self.config["REPOSITORIES"]
 
-        def get_excel_files(repo, directory="") -> Generator[str, None, None]:
+            def get_excel_files(repo, directory="") -> Generator[str, None, None]:
 
-            directories = self.github.get(
-                f'repos/{repo}/contents/{directory}'
-            )
+                directories = self.github.get(
+                    f'repos/{repo}/contents/{directory}'
+                )
 
-            for entry in directories:
-                if entry['type'] == 'dir':
-                    yield from get_excel_files(repo, entry['path'])
-                elif entry['type'] == 'file' and entry['name'].endswith('.xlsx'):
-                    yield entry['path']
+                for entry in directories:
+                    if entry['type'] == 'dir':
+                        yield from get_excel_files(repo, entry['path'])
+                    elif entry['type'] == 'file' and entry['name'].endswith('.xlsx'):
+                        yield entry['path']
 
-        sheets = []
-        for repository_key, repository in repositories.items():
-            if repository_keys is not None and repository_key not in repository_keys:
-                continue
+            sheets = []
+            for repository_key, repository in repositories.items():
+                if repository_keys is not None and repository_key not in repository_keys:
+                    continue
 
-            excel_files = get_excel_files(repository)
+                excel_files = get_excel_files(repository)
 
-            for file in excel_files:
-                _, data, _ = get_spreadsheet(self.github, repository, "", file)
+                for file in excel_files:
+                    _, data, _ = get_spreadsheet(self.github, repository, "", file)
 
-                entity_data = to_entity_data_list(data)
+                    entity_data = to_entity_data_list(data)
 
-                spreadsheet = file
-                self._logger.debug(f"Rewriting entity data for repository '{repository_key} ({repository})' and file '{spreadsheet}'")
-                re_write_entity_data_set(repository_key, index, spreadsheet, entity_data)
-                sheets.append(f"{repository}/{file}")
+                    spreadsheet = file
+                    self._logger.debug(f"Rewriting entity data for repository '{repository_key} ({repository})' and file '{spreadsheet}'")
+                    re_write_entity_data_set(repository_key, index, spreadsheet, entity_data)
+                    sheets.append(f"{repository}/{file}")
 
-        self.storage.save()
-        index.close()
-        self.threadLock.release()
+            self.storage.save()
+            index.close()
+
+        finally:
+            self.threadLock.release()
 
         return sheets
 

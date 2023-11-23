@@ -42,7 +42,7 @@ RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 DIGIT_COUNT = 7
 
-LOG_LEVEL = getattr(logging, os.environ.get("LOG_LEVEL", "ERROR").upper())
+LOG_LEVEL = getattr(logging, os.environ.get("LOG_LEVEL", "WARNING").upper())
 if not isinstance(LOG_LEVEL, int):
     raise ValueError('Invalid log level: %s' % LOG_LEVEL)
 logging.basicConfig(level=LOG_LEVEL)
