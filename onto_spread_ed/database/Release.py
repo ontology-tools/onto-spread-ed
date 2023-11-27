@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, JSON, DateTime
+from sqlalchemy import Column, Integer, String, JSON, DateTime, Boolean
+from sqlalchemy.orm import QueryPropertyDescriptor
 
 from .Base import Base
 
@@ -8,6 +9,7 @@ class Release(Base):
 
     id = Column(Integer, primary_key=True)
     state = Column(String(20))
+    running = Column(Boolean(), default=True)
     step = Column(Integer)
     current_info = Column(JSON(none_as_null=True))
     start = Column(DateTime)

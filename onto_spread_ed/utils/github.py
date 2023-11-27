@@ -32,6 +32,17 @@ def get_csv(github: GitHub, repository_name: str, folder: str, spreadsheet_name:
     return file_sha, rows, header
 
 
+def download_file(github: GitHub, repository_name: str, spreadsheet: str, outpath: str):
+    spreadsheet_file = github.get(
+        f'repos/{repository_name}/contents/{spreadsheet}'
+    )
+    base64_bytes = spreadsheet_file['content'].encode('utf-8')
+    decoded_data = base64.decodebytes(base64_bytes)
+
+    with open(outpath, "wb") as f:
+        f.write(decoded_data)
+
+
 def get_spreadsheet(github: GitHub,
                     repository_name: str,
                     folder: str,
