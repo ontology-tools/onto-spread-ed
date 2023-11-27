@@ -11,7 +11,7 @@ from whoosh.qparser import MultifieldParser, QueryParser
 from index.FileStorage import FileStorage
 from index.create_index import add_entity_data_to_index, to_entity_data_list, re_write_entity_data_set
 from index.schema import schema
-from utils.github import get_spreadsheet
+from utils.github import get_spreadsheet, get_spreadsheets
 
 
 class SpreadsheetSearcher:
@@ -162,7 +162,10 @@ class SpreadsheetSearcher:
                 if repository_keys is not None and repository_key not in repository_keys:
                     continue
 
-                excel_files = get_excel_files(repository)
+                active_sheets = self.config["ACTIVE_SPREADSHEETS"][repository_key]
+                regex = "|".join(f"({r})" for r in active_sheets)
+
+                excel_files = get_spreadsheets(self.github, repository, include_pattern=regex)
 
                 for file in excel_files:
                     _, data, _ = get_spreadsheet(self.github, repository, "", file)

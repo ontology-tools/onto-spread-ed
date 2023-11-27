@@ -38,6 +38,22 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["GSSO", "http://purl.obolibrary.org/obo/GSSO_"],
             ["GO", "http://purl.obolibrary.org/obo/GO_"]
             ]
+# Spreadsheets that should be included in the index and are later used in a release
+ACTIVE_SPREADSHEETS = {
+    "BCIO": [
+        "Setting/inputs/Setting.xlsx",
+        "ModeOfDelivery/inputs/MoD.xlsx",
+        "Source/inputs/BCIO_Source.xlsx",
+        "MechanismOfAction/inputs/BCIO_MoA.xlsx",
+        "Behaviour/BCIO_behaviour.xlsx",
+        "BehaviourChangeTechniques/inputs/BCIO_BehaviourChangeTechniques.xlsx",
+        "StyleOfDelivery/BCIO_StyleOfDelivery.xlsx",
+        r"Upper Level BCIO/inputs/.*\.xlsx"
+    ],
+    "AddictO": [
+        r".*\.xlsx"
+    ]
+}
 
 RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
