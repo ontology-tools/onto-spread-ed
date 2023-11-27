@@ -62,7 +62,7 @@ def get_spreadsheets(github: GitHub,
                      repository_name: str,
                      folder: str = "",
                      exclude_pattern: Optional[Union[re.Pattern, str]] = None,
-                     include_pattern: Optional[Union[re.Pattern, str]] = None) -> list[str]:
+                     include_pattern: Optional[Union[re.Pattern, str]] = None) -> List[str]:
     tree = github.get(
         f'repos/{repository_name}/git/trees/master',
         params={"recursive": "true"}
