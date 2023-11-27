@@ -87,7 +87,7 @@ class SpreadsheetSearcher:
             self.storage.save()
             ix.close()
         finally:
-            if writer is not None and not writer.is_closed():
+            if writer is not None and not writer.is_closed:
                 writer.cancel()
 
             self.threadLock.release()
@@ -112,7 +112,7 @@ class SpreadsheetSearcher:
             most_recent_id = self.cache.get("latestID" + repo_name)  # check latest ID
             if most_recent_id is None:  # error check no cache set
                 most_recent_id = 0
-                self._logger.error("error latestID", repo_name, " was None!")
+                self._logger.error(f"error latestID {repo_name} was None!")
                 self.cache.set("latestID" + repo_name, 0)
             next_id = int(top_hit['class_id'].split(":")[1]) + 1
 
