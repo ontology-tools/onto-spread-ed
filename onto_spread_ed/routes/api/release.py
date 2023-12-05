@@ -1,10 +1,11 @@
 import datetime
+import json
 import os
 import tempfile
 import threading
-from typing import NamedTuple
+from typing import NamedTuple, Tuple, Generator, Iterable
 
-from flask import jsonify, Blueprint, current_app
+from flask import jsonify, Blueprint, current_app, Response
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
@@ -20,10 +21,10 @@ bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 class Repository(NamedTuple):
     full_name: str
     short_name: str
-    external: (str, str)
-    upper_level_defs: (str, str)
-    upper_level_rels: (str, str)
-    sub_ontologies: list[(str, str)]
+    external: Tuple[str, str]
+    upper_level_defs: Tuple[str, str]
+    upper_level_rels: Tuple[str, str]
+    sub_ontologies: list[Tuple[str, str]]
 
 
 @bp.route("/<repo>", methods=("POST",))
@@ -38,7 +39,11 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub):
             releases=[r.as_dict() for r in ongoing]
         )), 400
 
-    r = Repository(
+    return Response(release_stream(repo, db, gh), mimetype="text/event-stream")
+
+
+def release_stream(repo: str, db: SQLAlchemy, gh: GitHub) -> Iterable[str]:
+    repo_details = Repository(
         full_name=current_app.config["REPOSITORIES"][repo],
         short_name=repo,
         external=("Upper Level BCIO/inputs/BCIO_External_Imports.xlsx", "Upper Level BCIO/bcio_external.owl"),
@@ -59,42 +64,11 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub):
     release = Release(state="starting", start=datetime.datetime.now(), step=0, current_info={}, running=True)
     db.session.add(release)
     db.session.commit()
+    release_id = release.id
 
-    release_thread = threading.Thread(target=do_release, args=(release.id, r, db, gh))
-    release_thread.daemon = True
-    release_thread.start()
-
-    return jsonify(release.as_dict())
-
-
-@bp.route("/<id>", methods=("GET",))
-@verify_admin
-def get_release(id: int):
-    q: Query[Release] = Release.query
-    release = q.get(id)
-
-    if release is None:
-        return jsonify("Not found"), 404
-
-    return jsonify(release.as_dict())
-
-
-@bp.route("/", methods=("GET",))
-@verify_admin
-def get_releases():
-    q: Query[Release] = Release.query
-    releases = q.all()
-
-    if releases is None:
-        return jsonify("Not found"), 404
-
-    return jsonify([r.as_dict() for r in releases])
-
-
-def do_release(release_id: int, repo_details: Repository, db: SQLAlchemy, gh: GitHub):
     q: Query[Release] = db.session.query(Release)
     try:
-        update_release(q, release_id, {
+        yield update_release(q, release_id, {
             Release.state: "running",
             Release.step: 1
         })
@@ -112,7 +86,12 @@ def do_release(release_id: int, repo_details: Repository, db: SQLAlchemy, gh: Gi
             for f in repo_details.sub_ontologies:
                 download_file(gh, repo_details.full_name, f, sub_ontologies_xlsx[f])
 
-            next_release_step(q, release_id)
+            yield next_release_step(q, release_id)
+
+            # Validate
+
+
+            yield next_release_step(q, release_id)
 
             external_owl = os.path.join(tmp, 'external.owl')
             upper_rel_csv = os.path.join(tmp, "upper_rel.csv")
@@ -126,7 +105,7 @@ def do_release(release_id: int, repo_details: Repository, db: SQLAlchemy, gh: Gi
                 merged_ontology_name=repo_details.short_name,
                 download_path=os.path.join(tmp, "external"))
 
-            next_release_step(q, release_id)
+            yield next_release_step(q, release_id)
 
             robot_wrapper = RobotTemplateWrapper(robotcmd='robot')
             robot_wrapper.add_classes_from_excel(upper_level_defs_xlsx)
@@ -155,9 +134,38 @@ def do_release(release_id: int, repo_details: Repository, db: SQLAlchemy, gh: Gi
         })
 
 
-def update_release(q: Query[Release], release_id: int, patch: dict):
+
+
+@bp.route("/<id>", methods=("GET",))
+@verify_admin
+def get_release(id: int):
+    q: Query[Release] = Release.query
+    release = q.get(id)
+
+    if release is None:
+        return jsonify("Not found"), 404
+
+    return jsonify(release.as_dict())
+
+
+@bp.route("/", methods=("GET",))
+@verify_admin
+def get_releases():
+    q: Query[Release] = Release.query
+    releases = q.all()
+
+    if releases is None:
+        return jsonify("Not found"), 404
+
+    return jsonify([r.as_dict() for r in releases])
+
+
+def update_release(q: Query[Release], release_id: int, patch: dict) -> str:
     q.filter(Release.id == release_id).update(patch)
 
+    release = q.get(release_id)
+    return json.dumps(release)
 
-def next_release_step(q: Query[Release], release_id: int):
-    update_release(q, release_id, {Release.step: Release.step + 1})
+
+def next_release_step(q: Query[Release], release_id: int) -> str:
+    return update_release(q, release_id, {Release.step: Release.step + 1})

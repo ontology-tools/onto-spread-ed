@@ -105,6 +105,18 @@ if DEPLOYMENT_MODE == "GOOGLE_CLOUD":
 elif DEPLOYMENT_MODE == "LOCAL":
     INDEX_PATH = os.environ.get("INDEX_PATH")
 
+DEFAULT_RELEASE_FILES = {
+    "BCIO": [
+        "Setting/inputs/Setting.xlsx",
+        "ModeOfDelivery/inputs/MoD.xlsx",
+        "Source/inputs/BCIO_Source.xlsx",
+        "MechanismOfAction/inputs/BCIO_MoA.xlsx",
+        "Behaviour/BCIO_behaviour.xlsx",
+        "BehaviourChangeTechniques/inputs/BCIO_BehaviourChangeTechniques.xlsx",
+        "StyleOfDelivery/BCIO_StyleOfDelivery.xlsx",
+    ]
+}
+
 USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "BCIO"]},
                   "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True},
                   "robertjwest": {"initials": "RW", "repositories": ["AddictO", "BCIO"]},

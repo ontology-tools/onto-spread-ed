@@ -35,7 +35,6 @@ class SpreadsheetSearcher:
 
             self.storage.create_index(schema)
 
-
     def search_for(self, repo_name, search_string="", assigned_user=""):
         # self.storage.open_from_bucket()
         ix = self.storage.open_index()
@@ -94,7 +93,7 @@ class SpreadsheetSearcher:
 
         mparser = QueryParser("class_id",
                               schema=ix.schema)
-        if repo_name == "BCIO":
+        if repo_name == "BCIOR":
             updated_repo_name = "BCIO:"  # in order to eliminate "BCIOR" from results
         else:
             updated_repo_name = repo_name

@@ -2,13 +2,14 @@ import json
 from typing import Any
 
 import jsonschema
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 
-from ..SpreadsheetSearcher import SpreadsheetSearcher
+from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
+from onto_spread_ed.guards.verify_login import verify_logged_in
 
-bp = Blueprint("verify", __name__, url_prefix="/verify")
+bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
 
-VERIFY_ROW_SCHEMA = {
+VERIFY_ENTITY_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "required": ["repository", "spreadsheet", "entity"],
@@ -30,16 +31,18 @@ VERIFY_ROW_SCHEMA = {
 }
 
 
-@bp.route("/row_change", methods=("POST",))
-def verify_row_change(searcher: SpreadsheetSearcher):
+@bp.route("/entity", methods=("POST",))
+@verify_logged_in
+def validate_entity(searcher: SpreadsheetSearcher):
     data = json.loads(request.data)
 
     try:
-        jsonschema.validate(data, VERIFY_ROW_SCHEMA)
+        jsonschema.validate(data, VERIFY_ENTITY_SCHEMA)
     except jsonschema.ValidationError as e:
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
-    repo_key, spreadsheet, entity, old_entity = data["repository"], data["spreadsheet"], data["entity"], data["old_entity"]
+    repo_key, spreadsheet, entity, old_entity = data["repository"], data["spreadsheet"], data["entity"], data[
+        "old_entity"]
 
     # repositories = current_app.config['REPOSITORIES']
     # repo_detail = repositories[repo_key]
@@ -61,7 +64,8 @@ def validate_line(entity: dict[str, Any],
                   file: str,
                   # all_files: list[str],
                   searcher: SpreadsheetSearcher) -> (bool, [dict[str, Any]]):
-    relations = dict((k[k.index("'") + 1:k.rindex("'")], v) for k, v in entity.items() if k.startswith("REL"))
+    relations: dict[str, str] = dict(
+        (k[k.index("'") + 1:k.rindex("'")], v) for k, v in entity.items() if k.startswith("REL"))
 
     errors = []
     warnings = []
@@ -69,6 +73,7 @@ def validate_line(entity: dict[str, Any],
     # parent_defined = False
 
     parent_result = searcher.search_for(repository, f"label:'{entity['Parent']}'")
+    parent_result = [p for p in parent_result if p['label'] == entity['Parent']]
     if not any(parent_result):
         errors.append({
             "type": "unknown-parent",
@@ -78,7 +83,9 @@ def validate_line(entity: dict[str, Any],
 
     old_label = old_entity["Label"]
     duplicate_ids = searcher.search_for(repository, f"class_id:'{entity['ID']}'")
-    if len(duplicate_ids) > 0 and not (duplicate_ids[0]["label"] == old_label and duplicate_ids[0]["spreadsheet"] == file):
+    duplicate_ids = [i for i in duplicate_ids if i['class_id'] == entity['ID']]  # Do strict filtering
+    if len(duplicate_ids) > 1 or len(duplicate_ids) == 1 and not (
+            duplicate_ids[0]["label"] == old_label and duplicate_ids[0]["spreadsheet"] == file):
         errors.append({
             "type": "duplicate-id",
             "id": entity["ID"],
@@ -86,12 +93,14 @@ def validate_line(entity: dict[str, Any],
         })
 
     duplicate_labels = searcher.search_for(repository, f"label:'{entity['Label']}'")
-    if len(duplicate_labels) > 0 and not (duplicate_labels[0]["class_id"] == old_entity["ID"] and duplicate_labels[0]["spreadsheet"] == file):
-            errors.append({
-                "type": "duplicate-label",
-                "ids": [e["label"] for e in duplicate_labels],
-                "label": entity["Label"]
-            })
+    duplicate_labels = [l for l in duplicate_labels if l['label'] == entity['Label']]  # Do strict filtering
+    if len(duplicate_labels) > 1 or len(duplicate_labels) == 1 and not (
+            duplicate_labels[0]["class_id"] == old_entity["ID"] and duplicate_labels[0]["spreadsheet"] == file):
+        errors.append({
+            "type": "duplicate-label",
+            "ids": [e["label"] for e in duplicate_labels],
+            "label": entity["Label"]
+        })
 
     if old_entity["ID"] != entity["ID"]:
         warnings.append({
@@ -100,12 +109,25 @@ def validate_line(entity: dict[str, Any],
 
     if old_label != entity["Label"]:
         references = searcher.search_for(repository, f"parent:'{old_label}'")
+        references = [r for r in references if r['parent'] == old_label]   # Do strict filtering
         warnings += [{
             "type": "dangling-reference",
             "id": r["class_id"],
             "label": r["label"],
             "spreadsheet": r['spreadsheet']
         } for r in references]
+
+    for relation, value in relations.items():
+        if value is None or value.strip() == "":
+            continue
+        related_entities = searcher.search_for(repository, f"label:'{value}'")
+        related_entities = [e for e in related_entities if e['label'] == value]
+        if len(related_entities) == 0:
+            errors.append({
+                "type": "unknown-relation-target",
+                "relation": relation,
+                "relation-target": value
+            })
 
     # relation_search = " OR ".join(f'' for r in relations.keys())
     #
@@ -158,3 +180,9 @@ def validate_line(entity: dict[str, Any],
     #         })
 
     return not any(errors), errors, warnings
+
+
+@bp.route("/file", methods=("POST",))
+@verify_logged_in
+def validate_file():
+    pass

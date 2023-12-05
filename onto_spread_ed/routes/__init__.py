@@ -2,7 +2,6 @@ from flask import Flask
 
 
 def init_app(app: Flask):
-    from .verify import bp as verify
     from .auth import bp as auth
     from .main import bp as main
     from .edit import bp as edit
@@ -12,7 +11,6 @@ def init_app(app: Flask):
 
     from .api import blueprints as api_blueprints
 
-    app.register_blueprint(verify)
     app.register_blueprint(auth)
     app.register_blueprint(main)
     app.register_blueprint(edit)
