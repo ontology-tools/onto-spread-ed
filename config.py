@@ -1,10 +1,6 @@
 import logging
 import os
 
-# flask_caching:
-CACHE_TYPE = "SimpleCache"
-CACHE_DEFAULT_TIMEOUT = 172800  # 2 days
-
 APP_TITLE = "Ontology Spreadsheet Editor"
 
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'

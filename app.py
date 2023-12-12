@@ -25,7 +25,6 @@ import daff
 import openpyxl
 from flask import Flask, request, g, session, redirect, url_for, render_template
 from flask import jsonify
-from flask_caching import Cache
 from flask_cors import CORS  # enable cross origin request?
 from flask_github import GitHub
 from openpyxl.styles import Font
@@ -65,15 +64,9 @@ cors = CORS(app, resources={
 })
 
 app.config.from_object('config')
-cache = Cache(app)
-# set cache for each prefix in prefixes:    
-for prefix in PREFIXES:
-    cache.set("latestID" + prefix[0], 0)
-# cache.set("latestID",0) #initialise caching
-logger.info("cache initialised")
 
 github = GitHub(app)
-searcher = SpreadsheetSearcher(cache, app.config, github)
+searcher = SpreadsheetSearcher(app.config, github)
 ontodb = OntologyDataStore(app.config)
 
 

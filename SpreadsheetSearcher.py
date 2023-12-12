@@ -4,7 +4,6 @@ import shutil
 import threading
 from typing import Generator, Dict, List, Optional
 
-from flask_caching import Cache
 from flask_github import GitHub
 from whoosh.qparser import MultifieldParser, QueryParser
 
@@ -17,10 +16,9 @@ from utils.github import get_spreadsheet, get_spreadsheets
 class SpreadsheetSearcher:
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, cache: Cache, config: Dict, github: GitHub):
+    def __init__(self, config: Dict, github: GitHub):
         self.config = config
         self.threadLock = threading.Lock()
-        self.cache = cache
         self.github = github
 
         index_dir = config["INDEX_PATH"]
@@ -105,22 +103,10 @@ class SpreadsheetSearcher:
         else:
             updated_repo_name = repo_name
         query = mparser.parse(updated_repo_name.upper() + "*")
-        # print("searching ", repo_name)
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id", reverse=True)
             top_hit = results[0]
-            most_recent_id = self.cache.get("latestID" + repo_name)  # check latest ID
-            if most_recent_id is None:  # error check no cache set
-                most_recent_id = 0
-                self._logger.error(f"error latestID {repo_name} was None!")
-                self.cache.set("latestID" + repo_name, 0)
             next_id = int(top_hit['class_id'].split(":")[1]) + 1
-
-            # check nextId against cached most recent id:
-            if not (next_id > most_recent_id):
-                self._logger.warning("cached version is higher: ", most_recent_id, " > ", next_id)
-                next_id = self.cache.get("latestID" + repo_name) + 1
-            self.cache.set("latestID" + repo_name, next_id)
 
         ix.close()
 
