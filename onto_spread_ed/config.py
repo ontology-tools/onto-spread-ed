@@ -1,10 +1,6 @@
 import logging
 import os
 
-# flask_caching:
-CACHE_TYPE = "SimpleCache"
-CACHE_DEFAULT_TIMEOUT = 172800  # 2 days
-
 APP_TITLE = "Ontology Spreadsheet Editor"
 
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
@@ -36,14 +32,31 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["APOLLO_SV", "http://purl.obolibrary.org/obo/APOLLO_SV_"],
             ["PDRO", "http://purl.obolibrary.org/obo/PDRO_"],
             ["GAZ", "http://purl.obolibrary.org/obo/GAZ_"],
-            ["GSSO", "http://purl.obolibrary.org/obo/GSSO_"]
+            ["GSSO", "http://purl.obolibrary.org/obo/GSSO_"],
+            ["GO", "http://purl.obolibrary.org/obo/GO_"]
             ]
+# Spreadsheets that should be included in the index
+ACTIVE_SPREADSHEETS = {
+    "BCIO": [
+        "Setting/inputs/Setting.xlsx",
+        "ModeOfDelivery/inputs/MoD.xlsx",
+        "Source/inputs/BCIO_Source.xlsx",
+        "MechanismOfAction/inputs/BCIO_MoA.xlsx",
+        "Behaviour/BCIO_behaviour.xlsx",
+        "BehaviourChangeTechniques/inputs/BCIO_BehaviourChangeTechniques.xlsx",
+        "StyleOfDelivery/BCIO_StyleOfDelivery.xlsx",
+        r"Upper Level BCIO/inputs/.*\.xlsx"
+    ],
+    "AddictO": [
+        r".*\.xlsx"
+    ]
+}
 
 RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
 DIGIT_COUNT = 7
 
-LOG_LEVEL = getattr(logging, os.environ.get("LOG_LEVEL", "ERROR").upper())
+LOG_LEVEL = getattr(logging, os.environ.get("LOG_LEVEL", "WARNING").upper())
 if not isinstance(LOG_LEVEL, int):
     raise ValueError('Invalid log level: %s' % LOG_LEVEL)
 logging.basicConfig(level=LOG_LEVEL)
@@ -104,18 +117,6 @@ if DEPLOYMENT_MODE == "GOOGLE_CLOUD":
     SECRET_KEY = response.payload.data.decode("UTF-8")
 elif DEPLOYMENT_MODE == "LOCAL":
     INDEX_PATH = os.environ.get("INDEX_PATH")
-
-DEFAULT_RELEASE_FILES = {
-    "BCIO": [
-        "Setting/inputs/Setting.xlsx",
-        "ModeOfDelivery/inputs/MoD.xlsx",
-        "Source/inputs/BCIO_Source.xlsx",
-        "MechanismOfAction/inputs/BCIO_MoA.xlsx",
-        "Behaviour/BCIO_behaviour.xlsx",
-        "BehaviourChangeTechniques/inputs/BCIO_BehaviourChangeTechniques.xlsx",
-        "StyleOfDelivery/BCIO_StyleOfDelivery.xlsx",
-    ]
-}
 
 USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "BCIO"]},
                   "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True},

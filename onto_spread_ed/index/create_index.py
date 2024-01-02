@@ -48,12 +48,12 @@ def parse_input_sheet(file: Union[str, bytes, io.BytesIO]) -> List[EntityData]:
 
 
 def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, entity_data: List[EntityData]):
-    writer = index.writer()
+    writer = index.writer(timeout=60)  # Wait 60s for the writer lock
     mparser = MultifieldParser(["repo", "spreadsheet"],
                                schema=index.schema)
     writer.delete_by_query(mparser.parse("repo:" + repo_name + " AND spreadsheet:" + sheet_name))
     writer.commit()
-    writer = index.writer()
+    writer = index.writer(timeout=60)  # Wait 60s for the writer lock
     for data in entity_data:
         add_entity_data_to_index(data, repo_name, sheet_name, writer)
 
