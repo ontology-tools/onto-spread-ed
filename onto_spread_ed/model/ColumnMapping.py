@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional, Callable, Union, Any
 
+from .Relation import Relation, OWLPropertyType
 from .TermIdentifier import TermIdentifier
 
 
@@ -85,14 +86,22 @@ class PrefixColumnMapping(SimpleColumnMapping):
 
 @dataclass
 class ParentMapping(SimpleColumnMapping):
-    _pattern = re.compile(r"^([\w\s]+)(?:\[(\w+:\d+)\]|\((\w+:\d+)\))?$")
+    _pattern = re.compile(r"^([-,\w\s]+)(?:\[(\w+:\d+)\]|\((\w+:\d+)\))?$")
 
     def get_value(self, value: str) -> TermIdentifier:
         match = self._pattern.match(value.strip())
-        return TermIdentifier(id=match.group(2), label=match.group(1))
+        id = match.group(2)
+        label = match.group(1)
+        return TermIdentifier(id=id.strip() if id is not None else None,
+                              label=label.strip() if label is not None else None)
 
     def valid(self, value: str) -> bool:
         return self._pattern.match(value.strip()) is not None
+
+
+@dataclass
+class ManchesterSyntaxMapping(SimpleColumnMapping):
+    pass
 
 
 @dataclass
@@ -101,7 +110,7 @@ class TermMapping(SimpleColumnMapping):
     require_label: Optional[bool] = False
     separator: Optional[str] = None
 
-    _term_pattern = re.compile(r"(.*\s+)?(?:\[(.*)\])?")
+    _term_pattern = re.compile(r"^([^\[]*)\s*(?:\[(.*)\])?$")
 
     def get_value(self, value: str) -> list[TermIdentifier]:
         idents = []
@@ -121,7 +130,7 @@ class TermMapping(SimpleColumnMapping):
             values = value.strip().split(self.separator)
 
         for v in values:
-            m = self._term_pattern.match(value.strip())
+            m = self._term_pattern.match(v.strip())
             if m is None or m.group(1) is None and self.require_label or m.group(2) is None and self.require_id:
                 return False
 
@@ -163,7 +172,7 @@ class LabelMapping(SimpleColumnMapping):
 
 @dataclass
 class RelationColumnMapping(ColumnMapping):
-    relation: TermIdentifier
+    relation: Relation
     name: str
     separator: Optional[str] = None
 
@@ -173,14 +182,16 @@ class RelationColumnMapping(ColumnMapping):
     def get_kind(self) -> ColumnMappingKind:
         return ColumnMappingKind.RELATION
 
-    def get_relation(self) -> TermIdentifier:
+    def get_relation(self) -> Relation:
         return self.relation
 
     def get_value(self, value: str) -> list[tuple[TermIdentifier, Any]]:
-        if self.separator is None:
-            return [(self.relation, value.strip())]
-        else:
-            return [(self.relation, x.strip()) for x in value.split(self.separator)]
+        values = [x.strip() for x in value.split(self.separator)] if self.separator is not None else [value.strip()]
+
+        if self.relation.owl_property_type == OWLPropertyType.ObjectProperty:
+            values = [TermIdentifier(label=x) for x in values]
+
+        return [(self.relation.identifier(), x) for x in values]
 
 
 class ColumnMappingFactory:
@@ -224,6 +235,9 @@ class Schema:
     def __init__(self, mapping_factories: list[ColumnMappingFactory]):
         self._mapping_factories = mapping_factories
 
+    def used_relations(self) -> list[Relation]:
+        return self._mapping_factories
+
     def get_mapping(self, header_name: str) -> Optional[ColumnMapping]:
         return next(
             iter(m.create_mapping(header_name) for m in self._mapping_factories if m.maps(header_name)), None)
@@ -238,16 +252,26 @@ def simple(excel_names: list[str], kind: ColumnMappingKind, name: Optional[str] 
 
 
 def relation(excel_name: list[str], relation: TermIdentifier, name: Optional[str] = None,
-             split: Optional[str] = None) -> ColumnMappingFactory:
-    return SingletonMappingFactory(excel_name,
-                                   RelationColumnMapping(relation, excel_name[0] if name is None else name, split))
+             split: Optional[str] = None,
+             property_type: OWLPropertyType = OWLPropertyType.AnnotationProperty) -> ColumnMappingFactory:
+    return SingletonMappingFactory(excel_name, RelationColumnMapping(
+        Relation(relation.id, relation.label, [], [], property_type, [], None, None, ("<schema>", 0)),
+        excel_name[0] if name is None else name, split))
 
 
 def relation_pattern(pattern: Union[str, re.Pattern],
-                     factory: Callable[[str, re.Match], TermIdentifier]) -> ColumnMappingFactory:
-    return PatternMappingFactory(pattern, lambda rel_name, match: RelationColumnMapping(
-        factory(rel_name, match),
-        f"REL {rel_name}"))
+                     factory: Callable[[str, re.Match], TermIdentifier],
+                     split: Optional[str] = None,
+                     relation_kind: OWLPropertyType = OWLPropertyType.AnnotationProperty) -> ColumnMappingFactory:
+    def f(rel_name: str, match: re.Match) -> RelationColumnMapping:
+        identifier = factory(rel_name, match)
+        return RelationColumnMapping(
+            Relation(identifier.id, identifier.label, [], [], relation_kind, [], None, None, ("<schema>", 0)),
+            f"REL {rel_name}",
+            split
+        )
+
+    return PatternMappingFactory(pattern, f)
 
 
 DEFAULT_MAPPINGS = [
@@ -257,24 +281,26 @@ DEFAULT_MAPPINGS = [
     singleton(["Name", "Label", "Label (synonym)", "Relationship"], LabelMapping),
     singleton(["Parent", "Parent class/ BFO class"], ParentMapping, kind=ColumnMappingKind.SUB_CLASS_OF),
     singleton(["Parent relationship"], ParentMapping, kind=ColumnMappingKind.SUB_PROPERTY_OF),
-    simple(["Logical definition", "Equivalent to relationship"], ColumnMappingKind.EQUIVALENT_TO),
-    simple(["Disjoint classes"], ColumnMappingKind.DISJOINT_WITH),
+    singleton(["Logical definition", "Equivalent to relationship"], ManchesterSyntaxMapping, kind=ColumnMappingKind.EQUIVALENT_TO),
+    singleton(["Disjoint classes"], TermMapping, kind=ColumnMappingKind.DISJOINT_WITH, separator=";"),
     relation(["Definition"], TermIdentifier(id="IAO:0000115", label="definition")),
     relation(["Definition_ID"], TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy")),
     relation(["Definition_Source"], TermIdentifier(id="IAO:0000119", label="definition source")),
-    relation(["Examples", "Examples of usage", "Elaboration"], TermIdentifier(id="IAO:0000112", label="example of usage")),
+    relation(["Examples", "Examples of usage", "Elaboration"],
+             TermIdentifier(id="IAO:0000112", label="example of usage")),
     relation(["Curator note"], TermIdentifier(id="IAO:0000232", label="curator note")),
     relation(["Synonyms"], TermIdentifier(id="IAO:0000118", label="alternative label"), ";"),
     relation(["Comment"], TermIdentifier(id="rdfs:comment", label="rdfs:comment")),
     relation(["Curation status"], TermIdentifier(id="IAO:0000114", label="has curation status")),
-    relation_pattern(r"REL '([^'])+'", lambda name, match: TermIdentifier(label=match.group(1)))
+    relation_pattern(r"REL '([^']+)'", lambda name, match: TermIdentifier(label=match.group(1)), relation_kind=OWLPropertyType.ObjectProperty, split=";")
 ]
 
 DEFAULT_IMPORT_SCHEMA = Schema([
     simple(["Ontology ID"], ColumnMappingKind.ONTOLOGY_ID),
     simple(["PURL"], ColumnMappingKind.PURL),
-    singleton(["ROOT ID"], TermMapping, kind=ColumnMappingKind.ROOT_ID, require_id=True, require_label=True),
-    singleton(["IDs"], TermMapping, kind=ColumnMappingKind.IMPORTED_ID, require_id=True, require_label=True, separator=";"),
+    singleton(["ROOT_ID"], TermMapping, kind=ColumnMappingKind.ROOT_ID, require_id=True, require_label=True),
+    singleton(["IDs"], TermMapping, kind=ColumnMappingKind.IMPORTED_ID, require_id=True, require_label=True,
+              separator=";"),
     simple(["Intermediates"], ColumnMappingKind.PLAIN),
     singleton(["Prefix"], PrefixColumnMapping, separator=";")
 

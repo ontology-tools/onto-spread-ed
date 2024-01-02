@@ -1,0 +1,136 @@
+<h3>Validation</h3>
+
+{% if details and "error" not in details %}
+    {% if details.values() | map(attribute="errors") | map("length") | sum == 0 and details.values() | map(attribute="warnings") | map("length") | sum == 0 %}
+        <div class="alert alert-success">
+            <h5>Everything ok</h5>
+            Good work! All files are valid. The release process will continue.
+        </div>
+    {% elif details.values() | map(attribute="errors") | map("length") | sum == 0 %}
+            <div class="alert alert-warning">
+            <h5>No errors but warnings</h5>
+            All files are valid but there are still warnings. The release process will continue.
+        </div>
+    {% else %}
+        <p>{{ details.values() | map(attribute="errors") | map("length") | sum }} errors
+            and {{ details.values() | map(attribute="warnings") | map("length") | sum }} warnings were found during the validation.
+            Please fix the errors and save the
+            spreadsheets. When you fixed all errors, restart the release. If you just want to rerun the validation,
+            restart the release as well. </p>
+
+        {% for sheet in details.keys() %}
+            {% set warnings = details[sheet]["warnings"] %}
+            {% set errors = details[sheet]["errors"] %}
+
+            {% macro error_link(error, term=None) %}
+                {% set term = term if term != None else error %}
+                {% if term.origin is defined %}
+                    {% set has_id = term.id is defined and term.id != None %}
+                    {% set has_label = term.label is defined and term.label != None %}
+                    {% set typ = "id" if has_id else "search" %}
+                    {% set goto = term.id if has_id else term.label %}
+                    <a target="_blank"
+                       href="/direct?type={{ typ }}&repo={{ release.release_script['short_repository_name'] }}&sheet={{ term.origin[0] }}&go_to_row={{ goto }}">
+                        <i>
+                            at <b>{{ term.origin[0] }}</b>
+                            {% if "row" in error %}row <b>{{ error.row }}</b>{% endif %}
+                            {% if "column" in error %}column <b>{{ error.column }}</b>{% endif %}
+                        </i>
+                    </a>
+                {% endif %}
+            {% endmacro %}
+
+            {% for error in errors %}
+
+                <div class="alert alert-danger val val-error val-error-type-{{ error.type }} val-error-source-{{ sheet | css_safe }}"
+                     role="alert">
+
+                    {% if error.type == "invalid-value" %}
+                        <h5>Invalid value</h5>
+                        <p>
+                            {{ error.msg }}<br>
+                            {{ error_link(error) }}
+                        </p>
+                    {% elif error.type == "unknown-parent" %}
+                        <h5>Unknown parent</h5>
+                        <p>
+                            The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
+                            (<code>{{ error.term.id | default("<no id>") }}</code>) is not known. <br>
+                            {{ error_link(error, error.term) }}
+                        </p>
+                    {% elif error.type == "unknown-disjoint" %}
+                        <h5>Unknown disjoint class</h5>
+                        <p>
+                            The class <code>{{ error.term.label }}</code> (<code>{{ error.term.id }}</code>) is
+                            specified to
+                            be disjoint with <code>{{ error.disjoint_class.label }}</code> but it is not known.<br>
+                            {{ error_link(error, error.term) }}
+                        </p>
+                    {% elif error.type == "unknown-equivalent" %}
+                        <h5>Unknown disjoint class</h5>
+                        <p>
+                            The class <code>{{ error.term.label }}</code> (<code>{{ error.term.id }}</code>) is
+                            specified to
+                            be logically equivalent to <code>{{ error.equivalent_class.label }}</code> but it is not
+                            known.<br>
+                            {{ error_link(error, error.term) }}
+                        </p>
+                    {% elif error.type == "unknown-relation-value" %}
+                        <h5>Unknown value for relation <code>{{ error.relation.label }}</code></h5>
+                        <p>
+                            Related term <code>{{ error.value.label }}</code> of <code>{{ error.term.label }}</code>
+                            (<code>{{ error.term.id | default("<no id>") }}</code>) is not known. <br>
+                            {{ error_link(error, error.term) }}
+                        </p>
+                    {% elif error.type == "unknown-range" %}
+                        <h5>Unknown range</h5>
+                        <p>
+                            The range <code>{{ error.relation.range.label }}</code> of
+                            <code>{{ error.relation.label }}</code>
+                            (<code>{{ error.relation.id | default("<no id>") }}</code>) is not known. <br>
+                            {{ error_link(error, error.relation) }}
+                        </p>
+                    {% elif error.type == "unknown-domain" %}
+                        <h5>Unknown domain</h5>
+                        <p>
+                            The domain <code>{{ error.relation.domain.label }}</code> of
+                            <code>{{ error.relation.label }}</code>
+                            (<code>{{ error.relation.id | default("<no id>") }}</code>) is not known. <br>
+                            {{ error_link(error, error.relation) }}
+                        </p>
+                    {% else %}
+                        <h5>{{ error.type.replace("-", " ") | capitalize }}</h5>
+                        <p>
+                            {{ error.msg }}<br>
+
+                            {{ error_link(error) }}
+                        </p>
+                        <pre>{{ error | pprint }}</pre>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            {% for warning in warnings %}
+                <div class="alert alert-warning val val-warning val-warning-type-{{ warning.type }} val-warning-source-{{ sheet | css_safe }}"
+                     role="alert">
+                    {% if False %}
+
+                    {% else %}
+                        <h5>{{ warning.type.replace("-", " ") | capitalize }}</h5>
+                        <p>
+                            {{ warning.msg }}<br>
+
+                            {{ error_link(warning) }}
+                        </p>
+                        <pre>{{ warning | pprint }}</pre>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+
+        {% endfor %}
+    {% endif %}
+{% else %}
+
+    {{ loading_indicator("All excel files are now being validated. The results will be presented here soon.") }}
+{% endif %}

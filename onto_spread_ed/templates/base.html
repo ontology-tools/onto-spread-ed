@@ -24,10 +24,12 @@
               integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
               crossorigin="anonymous">
         <!-- Bootstrap filter table CSS -->
-        <link rel="stylesheet" href="excel-bootstrap-table-filter-style.css">
+        <link rel="stylesheet" href="/static/excel-bootstrap-table-filter-style.css">
 
         <!-- //fontawesome: -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous">
+
+        <link rel="stylesheet" href="/static/main.css">
 
         <link rel="shortcut icon" href="#"/>
 
@@ -37,7 +39,7 @@
 </head>
 
 <body>
-<nav class="navbar navbar-expand-lg bg-{{ 'primary' if config['DEBUG'] else 'primary' }} p-3" data-bs-theme="dark">
+<nav class="navbar navbar-expand-lg p-3" style="background: {{ 'fuchsia' if config['DEBUG'] else '#123456' }}" data-bs-theme="dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">
             {% if APP_TITLE2 is defined %}
@@ -45,12 +47,11 @@
             {% else %}
                 {{ config['APP_TITLE'] }}
             {% endif %}
-            {{  " - DEBUG" if config['DEBUG'] }}
         </a>
     <div class="collapse navbar-collapse">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
-                    {% if config["USERS_METADATA"][login]["admin"] %}
+                    {% if login is defined and config["USERS_METADATA"][login]["admin"] %}
                     	<li class="nav-item"><a class="nav-link active" aria-current="page" href="/admin">Admin</a></li>
                     {% endif %}
         </ul>

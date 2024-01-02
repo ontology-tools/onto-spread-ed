@@ -1,8 +1,10 @@
 from flask import Flask
 from flask_caching import Cache
+from flask_executor import Executor
 from flask_github import GitHub
+from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
-from injector import Module, singleton
+from injector import Module, singleton, Binder, provider
 
 from . import database
 from . import gh
@@ -11,23 +13,40 @@ from .SpreadsheetSearcher import SpreadsheetSearcher
 
 
 class AppModule(Module):
-    def __init__(self, app: Flask, cache: Cache):
-        self.app = app
+    def __init__(self, cache: Cache):
         self.cache = cache
 
     """Configure the application."""
 
-    def configure(self, binder):
+    def init_app(self, app):
+        database.init_app(app)
+        gh.init_app(app)
+
+    @provider
+    @request
+    def db(self) -> SQLAlchemy:
         # We configure the DB here, explicitly, as Flask-SQLAlchemy requires
         # the DB to be configured before request handlers are called.
-        db = database.init_app(self.app)
-        binder.bind(SQLAlchemy, to=db, scope=singleton)
+        return database.db
 
-        github = gh.init_app(self.app)
-        binder.bind(GitHub, to=github, scope=singleton)
+    @provider
+    @request
+    def github(self, app: Flask) -> GitHub:
+        return gh.github
 
-        ontodb = OntologyDataStore(self.app.config)
-        binder.bind(OntologyDataStore, to=ontodb, scope=singleton)
+    @provider
+    @request
+    def ontodb(self, app: Flask) -> OntologyDataStore:
+        return OntologyDataStore(app.config)
 
-        searcher = SpreadsheetSearcher(self.cache, self.app.config, github)
-        binder.bind(SpreadsheetSearcher, to=searcher, scope=singleton)
+    @provider
+    @request
+    def searcher(self, app: Flask, github: GitHub) -> SpreadsheetSearcher:
+        return SpreadsheetSearcher(self.cache, app.config, github)
+
+    @provider
+    @request
+    def executor(self, app: Flask) -> Executor:
+        return Executor(app)
+
+

@@ -17,3 +17,6 @@ class TermIdentifier:
 
         if self.label is None:
             self.label = other.label
+
+    def __json__(self) -> dict:
+        return self.__dict__

@@ -5,78 +5,33 @@
 {% endblock %}
 {% block content %}
 
-    <h1>Release</h1>
-
-
-    <div style="display: grid;grid-template-columns: 200px 1fr;grid-gap: 50px;" class="text-start">
-        <div class="sidebar border" style="grid-column: 1">
-            <ul class="list-unstyled ps-2">
-                <li class="mb-1">
-                    <i class="fa-regular fa-circle text-primary"></i><a class="btn"><strong>Selection</strong></a>
-                </li>
-                <li class="mb-1">
-                    <i class="fa-regular fa-clock text-warning"></i><a class="btn"> Validation</a>
-
-                    <ul class="list-unstyled ms-4">
-                        <li>
-                            <i class="fa-regular fa-clock text-warning"></i><a class="btn">Upperlevel</a>
-                        </li>
-
-                        {% for file in files %}
-
-                            <li>
-                                <i class="fa fa-spinner fa-spin-pulse"></i><a class="btn">{{ file }}</a>
-                            </li>
-                        {% endfor %}
-
-
-                    </ul>
-                </li>
-            </ul>
+    <div class="d-flex gap-2 align-items-center">
+        <h1 id="lbl-release-title"><i id="icon-release" class="fa fa-spinner fa-spin text-black-50"></i> Release</h1>
+        <span id="release-info" class="align-self-end mb-2 text-muted"></span>
+        <span class="flex-fill"></span>
+        <div class="form-check form-switch">
+            <input class="btn-check" type="checkbox" role="switch" id="tgl-auto-refresh" checked>
+            <label class="btn btn-outline-primary" for="tgl-auto-refresh">Auto refresh</label>
         </div>
-        <div class="main" style="grid-column: 2">
-            <h3>File selection</h3>
-            <p>
-                Select the files to be included in the release. Every selected file will create a .owl file next to it.
-                Also, every selected file will be included in the final bcio.owl file.
-            </p>
 
-            <div class="alert alert-info"><b>Hint:</b> Keep the current selection for a standard release.</div>
-
-            <div class="selection p-2 border" style="max-height: 400px; overflow: scroll">
-
-                {% macro render_tree(tree, depth=0, id='root') -%}
-                    <ul class="list-unstyled collapse show" style="margin-left: {{ depth * 20 }}px"
-                        id="selection-tree-{{ id }}">
-                        {% for path, entries in tree.items() %}
-                            {% if path == "." %}
-                                {% for file, selected in entries %}
-                                    <li class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" {{ "checked" if selected }}
-                                               id="selection-{{ id }}-{{ loop.index }}">
-                                        <label class="form-check-label" for="selection-{{ id }}-{{ loop.index }}">
-                                            {{ file }}
-                                        </label>
-                                    </li>
-                                {% endfor %}
-                            {% else %}
-                                <li class="mb-2"><a class="btn btn-toggle border-0 p-0 mb-2" data-bs-toggle="collapse"
-                                       href="#selection-tree-{{ id + "-" + path | replace(" ", "_") }}"><i
-                                        class="fa fa-folder"></i> {{ path }}</a>
-                                    {{ render_tree(entries, depth + 1, id + "-" + path | replace(" ", "_")) }}
-                                </li>
-                            {% endif %}
-
-                        {% endfor %}
-                    </ul>
-                {%- endmacro %}
-
-                {{ render_tree(selection) }}
-            </div>
-
-            <a class="btn btn-primary w-100 mt-2">Start release</a>
-
-        </div>
+        <button class="btn btn-primary" id="btn-release-refresh"><i class="fa fa-refresh"></i> Refresh</button>
+        <button class="btn btn-primary" id="btn-release-rerun-step"><i class="fa-regular fa-play-circle"></i> Rerun step
+        </button>
+        <button class="btn btn-warning" id="btn-release-restart"><i class="fa fa-rotate-left"></i> Restart
+        </button>
+        <button class="btn btn-danger" id="btn-release-cancel"><i class="fa fa-cancel"></i> Cancel</button>
     </div>
+
+
+    <div style="display: grid;grid-template-columns: 240px 1fr;grid-gap: 50px" class="text-start w-100"
+         id="release-core">
+        {% include "release_core.html" %}
+    </div>
+
+    <script>
+        release =
+        {{ release.as_dict() | tojson if release else "null" }};
+    </script>
+    <script src="/static/release.js"></script>
 
 {% endblock %}

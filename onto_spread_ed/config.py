@@ -10,8 +10,8 @@ APP_TITLE = "Ontology Spreadsheet Editor"
 DATABASE_URI = 'sqlite:////tmp/github-flask-ontospreaded.db'
 SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
-RELEASE_FILES = {"AddictO": "addicto-merged.owx",
-                 "BCIO": "Upper%20Level%20BCIO/bcio-merged.owx"}
+RELEASE_FILES = {"AddictO": "addicto.owl",
+                 "BCIO": "Upper%20Level%20BCIO/bcio.owl"}
 
 PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["BFO", "http://purl.obolibrary.org/obo/BFO_"],

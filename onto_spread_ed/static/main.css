@@ -1,0 +1,40 @@
+
+
+:root {
+    --bs-callout-link: 10,88,202;
+    --bs-callout-code-color: #ab296a;
+}
+
+.callout-success {
+  --bd-callout-color: var(--bs-success-text-emphasis);
+  --bd-callout-bg: var(--bs-success-bg-subtle);
+  --bd-callout-border: var(--bs-success-border-subtle);
+}
+
+.callout-danger {
+  --bd-callout-color: var(--bs-danger-text-emphasis);
+  --bd-callout-bg: var(--bs-danger-bg-subtle);
+  --bd-callout-border: var(--bs-danger-border-subtle);
+}
+
+.callout-warning {
+  --bd-callout-color: var(--bs-warning-text-emphasis);
+  --bd-callout-bg: var(--bs-warning-bg-subtle);
+  --bd-callout-border: var(--bs-warning-border-subtle);
+}
+
+.callout-info {
+  --bd-callout-color: var(--bs-info-text-emphasis);
+  --bd-callout-bg: var(--bs-info-bg-subtle);
+  --bd-callout-border: var(--bs-info-border-subtle);
+}
+.callout {
+  --bs-link-color-rgb: var(--bs-callout-link);
+  --bs-code-color: var(--bs-callout-code-color);
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  color: var(--bd-callout-color, inherit);
+  background-color: var(--bd-callout-bg, var(--bs-gray-100));
+  border-left: 0.25rem solid var(--bd-callout-border, var(--bs-gray-300));
+}

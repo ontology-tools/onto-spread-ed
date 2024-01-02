@@ -2377,11 +2377,14 @@
             if (initialSearchtype == "" || initialSearchtype == null) {
 
             } else if (initialSearchtype == "search") {
+                const filter_header = "Relationship" in table.columnManager.columnsByField ? "Relationship" : "Label"
                 //filter by Label:
-                table.setHeaderFilterValue("Label", initialRowSearch);
+                table.setHeaderFilterValue(filter_header, initialRowSearch);
                 //todo: setHeaderFilterValue for "Assigned To Me"
             } else if (initialSearchtype == "initials") {
                 table.setHeaderFilterValue("To be reviewed by", initialRowSearch);
+            } else if (initialSearchtype === "id") {
+                table.setHeaderFilterValue("ID", initialRowSearch);
             } else {
 
             }

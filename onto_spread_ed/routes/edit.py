@@ -14,7 +14,7 @@ from openpyxl.styles import Font, PatternFill
 from ..OntologyDataStore import OntologyDataStore
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..guards.verify_login import verify_logged_in
-from ..utils.github import get_spreadsheet, get_csv
+from ..utils.github import get_spreadsheet, get_csv, create_branch
 
 bp = Blueprint("edit", __name__, template_folder="../templates")
 
@@ -47,6 +47,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     suggestions = ontodb.getReleaseLabels(repo_key)
     suggestions = list(dict.fromkeys(suggestions))
 
+
     breadcrumb_segments = [repo_key, *folder.split("/"), spreadsheet]
 
 
@@ -57,7 +58,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
                            repo_name=repo_key,
                            folder=folder,
                            spreadsheet_name=spreadsheet,
-                           breadcrumb=[{"name": s, "repo/" + "path": "/".join(breadcrumb_segments[:i + 1])} for i, s in
+                           breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i + 1])} for i, s in
                                        enumerate(breadcrumb_segments)],
 
                            header=json.dumps(header),
@@ -220,17 +221,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
         base64_string = base64_bytes.decode("ascii")
 
         # Create a new branch to commit the change to (in case of simultaneous updates)
-        response = github.get(f"repos/{repo_detail}/git/ref/heads/master")
-        if not response or "object" not in response or "sha" not in response["object"]:
-            raise Exception(f"Unable to get SHA for HEAD of master in {repo_detail}")
-        sha = response["object"]["sha"]
         branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
-        current_app.logger.debug("About to try to create branch in %s", f"repos/{repo_detail}/git/refs")
-        response = github.post(
-            f"repos/{repo_detail}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
-        )
-        if not response:
-            raise Exception(f"Unable to create new branch {branch} in {repo_detail}")
+        create_branch(github, repo_detail, branch)
 
         current_app.logger.debug("About to get latest version of the spreadsheet file %s",
                                  f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")

@@ -1,12 +1,15 @@
 from flask import Flask, request, url_for, redirect, g, session
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import make_transient
 
 from .database.User import User
 
+github = GitHub()
+
 
 def init_app(app: Flask):
-    github = GitHub(app)
+    github.init_app(app)
 
     @github.access_token_getter
     def token_getter():
@@ -16,17 +19,18 @@ def init_app(app: Flask):
 
     @app.route('/github-callback')
     @github.authorized_handler
-    def authorized(access_token, db: SQLAlchemy):
+    def authorized(access_token, db: SQLAlchemy, github: GitHub):
         next_url = request.args.get('next') or url_for('main.home')
         if access_token is None:
             app.logger.warning("Authorization failed.")
             return redirect(url_for('authentication.logout'))
 
-        user = User.query.filter_by(github_access_token=access_token).first()
+        user = db.session.query(User).filter_by(github_access_token=access_token).first()
         if user is None:
             user = User(access_token)
         # Not necessary to get these details here
         # but it helps humans to identify users easily.
+
         g.user = user
         github_user = github.get('/user')
         user.github_id = github_user['id']
@@ -36,6 +40,9 @@ def init_app(app: Flask):
         db.session.commit()
 
         session['user_id'] = user.id
+
+        db.session.expunge(user)
+
         return redirect(next_url)
 
     @app.after_request
@@ -52,5 +59,3 @@ def init_app(app: Flask):
             app.logger.error(f"Error in teardown_request_func: {e}")
         if error:
             app.logger.error(str(error))
-
-    return github

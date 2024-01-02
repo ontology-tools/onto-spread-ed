@@ -5,11 +5,10 @@ import csv
 import io
 import logging
 import re
-from functools import cache
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Literal
 
 import openpyxl
-from flask_github import GitHub
+from flask_github import GitHub, GitHubError
 
 _logger = logging.getLogger(__name__)
 
@@ -82,4 +81,58 @@ def get_spreadsheets(github: GitHub,
     )
     entries = tree["tree"]
 
-    return [x["path"] for x in entries if x["path"].endswith(".xlsx") and not (exclude_pattern and re.match(exclude_pattern, x["path"]))]
+    return [x["path"] for x in entries if
+            x["path"].endswith(".xlsx") and not (exclude_pattern and re.match(exclude_pattern, x["path"]))]
+
+
+def create_branch(github: GitHub, repo: str, branch: str, parent_branch: Optional[str] = "master") -> None:
+    response = github.get(f"repos/{repo}/git/ref/heads/{parent_branch}")
+    if not response or "object" not in response or "sha" not in response["object"]:
+        raise Exception(f"Unable to get SHA for HEAD of {parent_branch} in {repo}")
+    sha = response["object"]["sha"]
+    # current_app.logger.debug("About to try to create branch in %s", f"repos/{repo_detail}/git/refs")
+    response = github.post(
+        f"repos/{repo}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
+    )
+    if not response:
+        raise Exception(f"Unable to create new branch {branch} in {repo}")
+
+
+def save_file(github: GitHub, repo: str, path: str, content: bytes, message: str, branch: str) -> None:
+    data = dict(
+        message=message,
+        branch=branch,
+        content=base64.b64encode(content).decode("ascii")
+    )
+
+    # Check if the file already exists
+    try:
+        response = github.get(
+            f'repos/{repo}/contents/{path}?ref={branch}'
+        )
+        data["sha"] = response["sha"]
+    except GitHubError as e:
+        if e.response.status_code != 404 and not e.response.ok:
+            raise e
+
+    github.put(f"repos/{repo}/contents/{path}", data=data)
+
+
+def create_pr(github: GitHub, repo: str, title: str, body: str, source: str, target: str = "master") -> int:
+    response = github.post(
+        f"repos/{repo}/pulls",
+        data={
+            "title": title,
+            "head": source,
+            "base": target,
+            "body": body
+        },
+    )
+
+    return response['number']
+
+
+def merge_pr(github: GitHub, repo: str, pr: int, merge_method: Literal['squash','merge', 'rebase'] = "squash") -> None:
+    github.put(f"repos/{repo}/pulls/{pr}/merge", data=dict(
+        merge_method=merge_method
+    ))

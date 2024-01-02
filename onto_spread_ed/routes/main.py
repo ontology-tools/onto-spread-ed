@@ -1,7 +1,7 @@
 import json
 from functools import reduce
 
-from flask import Blueprint, current_app, g, render_template, redirect, url_for, request, session
+from flask import Blueprint, current_app, g, render_template, redirect, url_for, request, session, jsonify
 from flask_github import GitHub
 
 from ..guards.verify_login import verify_logged_in
@@ -63,18 +63,35 @@ def repo(repo_key, github: GitHub, folder_path=""):
                            )
 
 
-@bp.route("/direct", methods=["POST"])
+@bp.route("/direct", methods=["POST", "GET"])
 @verify_logged_in
 def direct():
-    type = json.loads(request.form.get("type"))
-    repo = json.loads(request.form.get("repo"))
-    sheet = json.loads(request.form.get("sheet"))
-    go_to_row = json.loads(request.form.get("go_to_row"))
-    repoStr = repo['repo']
-    sheetStr = sheet['sheet']
-    url = '/edit' + '/' + repoStr + '/' + sheetStr
-    session['type'] = type['type']
-    session['label'] = go_to_row['go_to_row']
+    if request.method == "POST":
+        typ = json.loads(request.form.get("type"))
+        typ = typ["type"]
+        repo = json.loads(request.form.get("repo"))
+        sheet = json.loads(request.form.get("sheet"))
+        go_to_row = json.loads(request.form.get("go_to_row"))
+        go_to_row = go_to_row["go_to_row"]
+        repo_str = repo['repo']
+        sheet_str = sheet['sheet']
+    else:
+        args = request.args
+        typ = args.get("type", None)
+        repo_str = args.get("repo", None)
+        sheet_str = args.get("sheet", None)
+        go_to_row = args.get("go_to_row", None)
+
+    if any(x is None for x in [typ, repo_str, sheet_str, go_to_row]):
+        return jsonify("invalid number of arguments for get"), 400
+
+    url = '/edit' + '/' + repo_str + '/' + sheet_str
+    session['type'] = typ
+    session['label'] = go_to_row
     session['url'] = url
-    return ('success')
+
+    if request.method == "POST":
+        return ('success')
+    else:
+        return redirect(url)
 

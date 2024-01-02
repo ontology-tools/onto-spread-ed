@@ -1,0 +1,38 @@
+<h3>Publishing the release</h3>
+
+{% if release.state == "waiting-for-user" %}
+    <div class="alert alert-danger">
+        <h4>An error occurred while communicating with github.</h4>
+        <p>
+            A technical error occurred. Please contact an administrator.
+        </p>
+    </div>
+    {% for error in details['errors'] %}
+        <div class="alert alert-danger">
+            {% if "code" in error %}
+                <h6>Command</h6>
+                <pre>{{ error.command }}</pre>
+                <h6>Return code</h6>
+                <p>{{ error.code }}</p>
+                <h6>Standard out</h6>
+                <pre>{{ error.out }}</pre>
+                <h6>Standard error</h6>
+                <pre>{{ error.err }}</pre>
+            {% else %}
+                <pre>{{ error | tojson(indent=2) }}</pre>
+
+            {% endif %}
+        </div>
+    {% endfor %}
+
+{% elif release.state == "completed" %}
+    <p>
+        The ontologies are now published to github and the release is completed.
+    </p>
+    <div class="text-center w-100 text-success" style="font-size: 100px">
+        <i class="fa fa-check-double"></i>
+    </div>
+{% else %}
+
+    {{ loading_indicator("The ontologies are being published to github.") }}
+{% endif %}

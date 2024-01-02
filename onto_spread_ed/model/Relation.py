@@ -15,14 +15,20 @@ class OWLPropertyType(enum.Enum):
 @dataclass
 class Relation:
     id: str
-    name: str
+    label: str
     synonyms: list[str]
     relations: list[tuple[TermIdentifier, Any]]
     owl_property_type: OWLPropertyType
     sub_property_of: list[TermIdentifier]
     domain: Optional[TermIdentifier]
     range: Optional[TermIdentifier]
-    origin: str
+    origin: tuple[str, int]
+
+    def identifier(self) -> TermIdentifier:
+        return TermIdentifier(self.id, self.label)
+
+    def __hash__(self) -> int:
+        return hash(self.__dict__.values())
 
 
 @dataclass
@@ -37,7 +43,7 @@ class UnresolvedRelation:
     owl_property_type: Optional[OWLPropertyType] = None
     domain: Optional[TermIdentifier] = None
     range: Optional[TermIdentifier] = None
-    origin: Optional[str] = None
+    origin: Optional[tuple[str, int]] = None
 
     def is_unresolved(self) -> bool:
         return any(v is None for v in [self.id, self.label, self.owl_property_type, self.origin])
@@ -53,5 +59,8 @@ class UnresolvedRelation:
             raise ValueError(f"Cannot convert unresolved term {self} to a resolved term.")
 
         return Relation(**self.__dict__)
+
+    def identifier(self) -> TermIdentifier:
+        return TermIdentifier(self.id, self.label)
 
 

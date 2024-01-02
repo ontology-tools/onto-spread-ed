@@ -11,9 +11,14 @@ class Release(Base):
     state = Column(String(20))
     running = Column(Boolean(), default=True)
     step = Column(Integer)
-    current_info = Column(JSON(none_as_null=True))
+    details = Column(JSON(none_as_null=True))  # Dict from step nr to step info
+    included_files = Column(JSON())
     start = Column(DateTime)
+    started_by = Column(String())
     end = Column(DateTime)
+    release_script = Column(JSON(none_as_null=True))
+    worker_id = Column(String(20))
+    local_dir = Column(String())
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

@@ -16,6 +16,10 @@ class Result(Generic[A]):
     errors: list[Message] = field(default_factory=list)
     warnings: list[Message] = field(default_factory=list)
 
+    def __add__(self, other):
+        if isinstance(other, Result):
+            return self.merge(other)
+
     def error(self, **kwargs) -> None:
         self.errors.append({**self.template, **kwargs})
 
@@ -31,8 +35,11 @@ class Result(Generic[A]):
     def merge(self, other: Result[B]) -> Result[B]:
         return Result(template={**self.template, **other.template},
                       errors=self.errors + other.errors,
-                      warnings=self.warnings + other.errors,
+                      warnings=self.warnings + other.warnings,
                       value=other.value)
 
     def ok(self) -> bool:
         return self.value is not None
+
+    def has_errors(self) -> bool:
+        return len(self.errors) > 0

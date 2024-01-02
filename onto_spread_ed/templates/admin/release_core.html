@@ -1,0 +1,160 @@
+{% set current_step = release.step if release else -1 %}
+{% set selected_step = selected_step if selected_step != None else current_step %}
+{% set details = (release.details[selected_step | string]) | default( None) if release %}
+{% macro entry(title, step) %}
+    {% if current_step > step or release.state == "completed" %}
+        <i class="fa-regular fa-check-circle text-success"></i>
+        <a class="btn border-0" href="?step={{ step }}">
+            {% if selected_step == step %}
+                <strong>{{ title }}</strong>
+            {% else %}
+                {{ title }}
+            {% endif %}
+        </a>
+    {% elif current_step == step %}
+        <i class="fa-regular fa-circle text-primary"></i>
+        <a class="btn border-0" href="?step={{ step }}">
+            {% if selected_step == step %}
+                <strong>{{ title }}</strong>
+            {% else %}
+                {{ title }}
+            {% endif %}
+        </a>
+    {% else %}
+        <i class="fa-regular fa-clock text-warning"></i>
+        <a class="btn border-0" style="cursor: unset">
+            {% if selected_step == step %}
+                <strong>{{ title }}</strong>
+            {% else %}
+                {{ title }}
+            {% endif %}
+        </a>
+
+    {% endif %}
+{% endmacro %}
+{% macro loading_indicator(message="") %}
+    {% if release.state == "running" %}
+        <p>
+            {{ message }}
+        </p>
+        {% if details and "__progress" in details %}
+            {% set percent = (details["__progress"] * 100) | int %}
+            <div class="progress" role="progressbar">
+                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                     style="width: {{ percent }}%">{{ percent }}%
+                </div>
+            </div>
+        {% else %}
+            <div class="d-flex justify-content-center mt-5">
+                <div class="spinner-border text-primary" role="status" style="width: 5rem; height: 5rem">
+                    <span class="visually-hidden">Waiting...</span>
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+
+    {% endif %}
+{% endmacro %}
+
+
+<div class="sidebar border" style="grid-column: 1">
+    <ul class="list-unstyled ps-2">
+        <li class="mb-1">
+            {{ entry("Selection", -1) }}
+        </li>
+        <li class="mb-1">
+            {{ entry("Preparation", 0) }}
+        </li>
+        <li class="mb-1">
+            {{ entry("Validation", 1) }}
+
+            <ul class="list-unstyled ms-4">
+                {% for file in (details.keys() if details and selected_step == 1) %}
+                    {% if file not in ["error", "__progress", "warning", "errors", "warnings"] %}
+
+                        <li style="display: flex; align-items: center">
+                            {% if details[file]['errors'] | length > 0 %}
+                                <i class="fa fa-circle-exclamation text-danger"></i>
+                            {% elif details[file]['warnings'] | length > 0 %}
+                                <i class="fa fa-triangle-exclamation text-warning"></i>
+                            {% else %}
+                                <i class="fa fa-check-circle text-success"></i>
+
+                            {% endif %}
+                            {#                        <i class="fa fa-spinner fa-spin-pulse"></i><a data-bs-toggle="tooltip" data-bs-title="{{ file }}" class="btn border-0 text-truncate">{{ file.split("/")[-1] }}</a>#}
+                            <button title="{{ file }}" data-ose-file="{{ file | css_safe }}"
+                                    class="btn border-0 text-truncate btn-validation">{{ file.split("/")[-1] }}</button>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+
+            </ul>
+        </li>
+        <li class="mb-1">
+            {{ entry("Building externals", 2) }}
+        </li>
+        <li class="mb-1">
+            {{ entry("Building upper", 3) }}
+        </li>
+        <li class="mb-1">
+            {{ entry("Building lower", 4) }}
+            {##}
+            {#            <ul class="list-unstyled ms-4">#}
+            {#                {% for file in (details.keys() if details and current_step == 4) %}#}
+            {##}
+            {#                    <li style="display: flex; align-items: center">#}
+            {#                        {% if details[file]['errors'] | length > 0 %}#}
+            {#                            <i class="fa fa-circle-exclamation text-danger"></i>#}
+            {#                        {% elif details[file]['warnings'] | length > 0 %}#}
+            {#                            <i class="fa fa-triangle-exclamation text-warning"></i>#}
+            {#                        {% else %}#}
+            {#                            <i class="fa fa-check-circle text-success"></i>#}
+            {##}
+            {#                        {% endif %}#}
+            {#                        <i class="fa fa-spinner fa-spin-pulse"></i><a data-bs-toggle="tooltip" data-bs-title="{{ file }}" class="btn border-0 text-truncate">{{ file.split("/")[-1] }}</a>#}
+            {#                        <a title="{{ file }}"#}
+            {#                           class="btn border-0 text-truncate">{{ file.split("/")[-1] }}</a>#}
+            {#                    </li>#}
+            {#                {% endfor %}#}
+            {##}
+            {##}
+            {#            </ul>#}
+        </li>
+
+        <li class="mb-1">
+            {{ entry("Build finalisation", 5) }}
+        </li>
+
+        <li class="mb-1">
+            {{ entry("Human verification", 6) }}
+        </li>
+
+        <li class="mb-1">
+            {{ entry("Publish", 7) }}
+        </li>
+    </ul>
+</div>
+<div class="main" style="grid-column: 2">
+    {% if release and release.state == "errored" %}
+        {% if details.error %}
+
+
+            <div class="alert alert-danger" role="alert">
+                <h3>An error occurred: {{ details.error.short }}</h3>
+                <p>{{ details.error.long }}</p>
+            </div>
+        {% else %}
+
+
+            <div class="alert alert-danger" role="alert">
+                <h3>An unknown error occurred</h3>
+                <p>An error occurred but the reason and origin is not known. Please contact an administrator.</p>
+            </div>
+        {% endif %}
+
+    {% else %}
+        {% include "release_core_" + selected_step | string + ".html" %}
+    {% endif %}
+</div>
+
