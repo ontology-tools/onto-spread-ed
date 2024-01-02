@@ -18,7 +18,6 @@ from flask import Flask, session, g
 from flask_caching import Cache
 from flask_cors import CORS
 from flask_injector import FlaskInjector
-from injector import Injector
 
 from .config import PREFIXES
 
@@ -38,10 +37,6 @@ def create_app(test_config=None):
     })
 
     app.config.from_object(config)
-    cache = Cache(app)
-
-    for prefix in PREFIXES:
-        cache.set("latestID" + prefix[0], 0)
 
     app.logger.info("cache initialised")
 
@@ -63,12 +58,10 @@ def create_app(test_config=None):
 
     from .AppModule import AppModule
 
-    module = AppModule(cache)
+    module = AppModule()
     with app.app_context():
         module.init_app(app)
 
     FlaskInjector(app=app, modules=[module])
 
     return app
-
-

@@ -5,7 +5,7 @@ import csv
 import io
 import logging
 import re
-from typing import List, Tuple, Dict, Optional, Literal
+from typing import List, Tuple, Dict, Optional, Literal, Union
 
 import openpyxl
 from flask_github import GitHub, GitHubError
@@ -74,15 +74,19 @@ def get_spreadsheet(github: GitHub,
 def get_spreadsheets(github: GitHub,
                      repository_name: str,
                      folder: str = "",
-                     exclude_pattern: Optional[re.Pattern | str] = None) -> list[str]:
+                     exclude_pattern: Optional[Union[re.Pattern, str]] = None,
+                     include_pattern: Optional[Union[re.Pattern, str]] = None) -> list[str]:
     tree = github.get(
         f'repos/{repository_name}/git/trees/master',
         params={"recursive": "true"}
     )
     entries = tree["tree"]
 
-    return [x["path"] for x in entries if
-            x["path"].endswith(".xlsx") and not (exclude_pattern and re.match(exclude_pattern, x["path"]))]
+    return [x["path"] for x in entries if x["path"].endswith(".xlsx") and
+            (re.match(include_pattern, x["path"])
+             if include_pattern is not None else
+             not (exclude_pattern and re.match(exclude_pattern, x["path"])))
+            ]
 
 
 def create_branch(github: GitHub, repo: str, branch: str, parent_branch: Optional[str] = "master") -> None:

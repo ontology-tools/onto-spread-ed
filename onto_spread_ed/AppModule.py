@@ -1,5 +1,4 @@
 from flask import Flask
-from flask_caching import Cache
 from flask_executor import Executor
 from flask_github import GitHub
 from flask_injector import request
@@ -13,9 +12,6 @@ from .SpreadsheetSearcher import SpreadsheetSearcher
 
 
 class AppModule(Module):
-    def __init__(self, cache: Cache):
-        self.cache = cache
-
     """Configure the application."""
 
     def init_app(self, app):
@@ -42,7 +38,7 @@ class AppModule(Module):
     @provider
     @request
     def searcher(self, app: Flask, github: GitHub) -> SpreadsheetSearcher:
-        return SpreadsheetSearcher(self.cache, app.config, github)
+        return SpreadsheetSearcher(app.config, github)
 
     @provider
     @request
