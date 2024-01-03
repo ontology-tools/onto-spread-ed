@@ -97,7 +97,7 @@ class SpreadsheetSearcher:
 
         mparser = QueryParser("class_id",
                               schema=ix.schema)
-        if repo_name == "BCIOR":
+        if repo_name == "BCIO":
             updated_repo_name = "BCIO:"  # in order to eliminate "BCIOR" from results
         else:
             updated_repo_name = repo_name
