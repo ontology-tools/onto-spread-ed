@@ -15,7 +15,6 @@ JSONEncoder.original_default = JSONEncoder.default
 JSONEncoder.default = wrapped_default
 
 from flask import Flask, session, g
-from flask_caching import Cache
 from flask_cors import CORS
 from flask_injector import FlaskInjector
 
