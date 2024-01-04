@@ -2,7 +2,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from io import BytesIO
-from typing import Optional, Union, Iterator
+from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set
 from typing_extensions import Self
 
 import openpyxl
@@ -20,17 +20,17 @@ class OntologyImport:
     id: str
     purl: Optional[str] = None
     root_id: Optional[TermIdentifier] = None
-    imported_terms: list[TermIdentifier] = field(default_factory=list)
+    imported_terms: List[TermIdentifier] = field(default_factory=list)
     intermediates: Optional[str] = None  # all | minimal
-    prefixes: list[(tuple[str, str])] = field(default_factory=list)
+    prefixes: List[(Tuple[str, str])] = field(default_factory=list)
 
 
 class ExcelOntology:
     _logger = logging.getLogger(__name__)
-    _terms: list[UnresolvedTerm]
-    _relations: list[UnresolvedRelation]
-    _imports: list[OntologyImport]
-    _used_relations: set[Relation]
+    _terms: List[UnresolvedTerm]
+    _relations: List[UnresolvedRelation]
+    _imports: List[OntologyImport]
+    _used_relations: Set[Relation]
 
     def __init__(self, iri: str, version_iri: Optional[str] = None):
         self._terms = []
@@ -41,16 +41,16 @@ class ExcelOntology:
         self._iri = iri
         self._version_iri = version_iri
 
-    def imports(self) -> list[OntologyImport]:
+    def imports(self) -> List[OntologyImport]:
         return self._imports.copy()
 
-    def used_relations(self) -> frozenset[Relation]:
+    def used_relations(self) -> FrozenSet[Relation]:
         return frozenset(self._used_relations)
 
-    def imported_terms(self) -> list[TermIdentifier]:
+    def imported_terms(self) -> List[TermIdentifier]:
         return [TermIdentifier(t.id, t.label) for o in self._imports for t in o.imported_terms]
 
-    def terms(self) -> list[Term]:
+    def terms(self) -> List[Term]:
         return [t.as_resolved() for t in self._terms if not t.is_unresolved()]
 
     def term_by_label(self, label: str) -> Optional[Term]:
@@ -65,16 +65,16 @@ class ExcelOntology:
     def term_by_id(self, id: str) -> Optional[Term]:
         return next(iter(t for t in self.terms() if t.id == id), None)
 
-    def _unresolved_term_by_label(self, label: str, exclude: Optional[UnresolvedTerm] = None) -> list[UnresolvedTerm]:
+    def _unresolved_term_by_label(self, label: str, exclude: Optional[UnresolvedTerm] = None) -> List[UnresolvedTerm]:
         return list(t for t in self._terms if t.label == label and (exclude is None or exclude != t))
 
-    def _unresolved_term_by_id(self, id: str, exclude: Optional[UnresolvedTerm] = None) -> list[UnresolvedTerm]:
+    def _unresolved_term_by_id(self, id: str, exclude: Optional[UnresolvedTerm] = None) -> List[UnresolvedTerm]:
         return list(t for t in self._terms if t.id == id and (exclude is None or exclude != t))
 
-    def relations(self) -> list[Relation]:
+    def relations(self) -> List[Relation]:
         return [r.as_resolved() for r in self._relations if not r.is_unresolved()]
 
-    def _parse_term(self, row: list[tuple[ColumnMapping, Optional[str]]], err_default: dict) -> Result[UnresolvedTerm]:
+    def _parse_term(self, row: List[Tuple[ColumnMapping, Optional[str]]], err_default: dict) -> Result[UnresolvedTerm]:
         r = Result(template=err_default)
         term = UnresolvedTerm()
         unprocessable_columns = []
@@ -112,7 +112,7 @@ class ExcelOntology:
         r.value = term
         return r
 
-    def _parse_import(self, row: list[tuple[ColumnMapping, Optional[str]]], err_default: dict) -> Result[
+    def _parse_import(self, row: List[Tuple[ColumnMapping, Optional[str]]], err_default: dict) -> Result[
         OntologyImport]:
         r = Result(template=err_default)
         ontology = OntologyImport(id=None)
@@ -149,9 +149,9 @@ class ExcelOntology:
         return r
 
     def _parse_relation(self,
-                        row: list[tuple[ColumnMapping, Optional[str]]],
+                        row: List[Tuple[ColumnMapping, Optional[str]]],
                         err_default: dict) -> Result[UnresolvedRelation]:
-        r = Result(template= err_default)
+        r = Result(template=err_default)
         relation = UnresolvedRelation(owl_property_type=OWLPropertyType.ObjectProperty)
         unprocessable_columns = []
         for col, val in row:
@@ -201,7 +201,8 @@ class ExcelOntology:
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
             result = result.merge(
-                self._parse_import([(m, c.value) for m, c in zip(mapped, row) if m is not None], dict(row=row_idx, origin=origin)))
+                self._parse_import([(m, c.value) for m, c in zip(mapped, row) if m is not None],
+                                   dict(row=row_idx, origin=origin)))
 
             if result.ok():
                 term = result.value
@@ -232,7 +233,8 @@ class ExcelOntology:
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
             result = result.merge(
-                self._parse_term([(m, c.value) for m, c in zip(mapped, row) if m is not None], dict(row=row_idx, origin=origin)))
+                self._parse_term([(m, c.value) for m, c in zip(mapped, row) if m is not None],
+                                 dict(row=row_idx, origin=origin)))
 
             if result.ok():
                 term = result.value
@@ -257,7 +259,8 @@ class ExcelOntology:
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
             result = result.merge(
-                self._parse_term([(m, c.value) for m, c in zip(mapped, row) if m is not None], dict(row=row_idx, origin=origin)))
+                self._parse_term([(m, c.value) for m, c in zip(mapped, row) if m is not None],
+                                 dict(row=row_idx, origin=origin)))
 
             if result.ok():
                 term = result.value
@@ -279,7 +282,8 @@ class ExcelOntology:
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
             result = result.merge(
-                self._parse_relation([(m, c.value) for m, c in zip(mapped, row) if m is not None], dict(row=row_idx, origin=origin)))
+                self._parse_relation([(m, c.value) for m, c in zip(mapped, row) if m is not None],
+                                     dict(row=row_idx, origin=origin)))
 
             if result.ok():
                 relation = result.value
@@ -290,7 +294,7 @@ class ExcelOntology:
         return result.merge(Result(()))
 
     def _open_excel(self, file: Union[bytes, str, BytesIO], schema: Optional[Schema] = None) -> \
-            tuple[Iterator[Iterator[Optional[str]]], list[ColumnMapping]]:
+            Tuple[Iterator[Iterator[Optional[str]]], List[ColumnMapping]]:
         if schema is None:
             schema = Schema(DEFAULT_MAPPINGS)
         if isinstance(file, bytes):
@@ -333,7 +337,7 @@ class ExcelOntology:
                 continue
 
             relation_values = [x for r, x in term.relations if isinstance(x, TermIdentifier)]
-            unresolved: list[TermIdentifier] = ([*term.sub_class_of, *term.disjoint_with] +
+            unresolved: List[TermIdentifier] = ([*term.sub_class_of, *term.disjoint_with] +
                                                 relation_values)
             unresolved = [i for i in unresolved if i.is_unresolved()]
             for unresolved_term in unresolved:
@@ -416,7 +420,6 @@ class ExcelOntology:
                                      relation=relation,
                                      value=value,
                                      term=term.__dict__)
-
 
         for relation in self._relations:
             result.template = {"row": relation.origin[1]} if relation.origin is not None else {}

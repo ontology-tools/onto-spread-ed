@@ -6,6 +6,7 @@ from ..guards.verify_login import verify_logged_in
 
 bp = Blueprint("authentication", __name__, template_folder="../templates")
 
+
 @bp.route('/login')
 def login(github: GitHub):
     if session.get('user_id', None) is not None:

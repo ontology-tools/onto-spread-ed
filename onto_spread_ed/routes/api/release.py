@@ -5,7 +5,7 @@ import threading
 import traceback
 from dataclasses import dataclass
 from time import sleep
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 
 import jsonschema
 from flask import jsonify, Blueprint, current_app, request, url_for, make_response, Response, g
@@ -44,10 +44,10 @@ class ReleaseScript:
     iri_prefix: str
     upper_level_iri: str
     external_iri: str
-    ontology_annotations: dict[str, str]
+    ontology_annotations: Dict[str, str]
     full_repository_name: str
     short_repository_name: str
-    prefixes: dict[str, str]
+    prefixes: Dict[str, str]
     external: Tuple[str, str]
     upper_level: Tuple[str, str]
     upper_level_rels: Optional[str] = None
@@ -60,7 +60,7 @@ class ReleaseScript:
         return r
 
 
-def get_current_release(q: Query[Release]) -> tuple[Optional[Release], Optional[tuple[Response, int]]]:
+def get_current_release(q: Query[Release]) -> Tuple[Optional[Release], Optional[Tuple[Response, int]]]:
     ongoing = q.filter_by(running=True).all()
     if len(ongoing) > 1:
         return None, (jsonify(dict(

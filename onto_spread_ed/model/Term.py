@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, List, Tuple
 
 from typing_extensions import Self
 
@@ -11,12 +11,12 @@ from .TermIdentifier import TermIdentifier
 class Term:
     id: str
     label: str
-    synonyms: list[str]
-    origin: tuple[str, int]
-    relations: list[tuple[TermIdentifier, Any]]
-    sub_class_of: list[TermIdentifier]
-    equivalent_to: list[str]
-    disjoint_with: list[TermIdentifier]
+    synonyms: List[str]
+    origin: Tuple[str, int]
+    relations: List[Tuple[TermIdentifier, Any]]
+    sub_class_of: List[TermIdentifier]
+    equivalent_to: List[str]
+    disjoint_with: List[TermIdentifier]
 
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)
@@ -26,12 +26,12 @@ class Term:
 class UnresolvedTerm:
     id: Optional[str] = None
     label: Optional[str] = None
-    synonyms: list[str] = field(default_factory=list)
-    origin: Optional[tuple[str, int]] = None
-    relations: list[tuple[TermIdentifier, Any]] = field(default_factory=list)
-    sub_class_of: list[TermIdentifier] = field(default_factory=list)
-    equivalent_to: list[str] = field(default_factory=list)
-    disjoint_with: list[TermIdentifier] = field(default_factory=list)
+    synonyms: List[str] = field(default_factory=list)
+    origin: Optional[Tuple[str, int]] = None
+    relations: List[Tuple[TermIdentifier, Any]] = field(default_factory=list)
+    sub_class_of: List[TermIdentifier] = field(default_factory=list)
+    equivalent_to: List[str] = field(default_factory=list)
+    disjoint_with: List[TermIdentifier] = field(default_factory=list)
 
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)

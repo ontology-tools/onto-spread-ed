@@ -112,7 +112,7 @@ class SpreadsheetSearcher:
         self.threadLock.release()
         return next_id
 
-    def stats(self) -> dict[str, Any]:
+    def stats(self) -> Dict[str, Any]:
         stats = dict()
 
         self.threadLock.acquire()

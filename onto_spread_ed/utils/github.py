@@ -136,7 +136,7 @@ def create_pr(github: GitHub, repo: str, title: str, body: str, source: str, tar
     return response['number']
 
 
-def merge_pr(github: GitHub, repo: str, pr: int, merge_method: Literal['squash','merge', 'rebase'] = "squash") -> None:
+def merge_pr(github: GitHub, repo: str, pr: int, merge_method: Literal['squash', 'merge', 'rebase'] = "squash") -> None:
     github.put(f"repos/{repo}/pulls/{pr}/merge", data=dict(
         merge_method=merge_method
     ))

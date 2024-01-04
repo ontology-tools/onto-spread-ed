@@ -37,6 +37,7 @@ from onto_spread_ed.utils.github import get_csv, get_spreadsheet
 
 logger = logging.getLogger(__name__)
 
+
 # app = FlaskApp(__name__)
 
 # cache.set("latestID",0) #initialise caching
@@ -46,23 +47,9 @@ logger = logging.getLogger(__name__)
 # app.config["searcher"] = searcher
 
 
-
-
-
-
-
-
-
-
-
-
-# validation checks here: 
+# validation checks here:
 
 # recursive check each cell in rowData:
-
-
-
-
 
 
 # api:
@@ -171,11 +158,6 @@ def update_ids():
 
 
 # Internal methods
-
-
-
-
-
 
 
 if __name__ == "__main__":  # on running python app.py

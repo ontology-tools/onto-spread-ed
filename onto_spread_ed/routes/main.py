@@ -8,6 +8,7 @@ from ..guards.verify_login import verify_logged_in
 
 bp = Blueprint("main", __name__, template_folder="../templates")
 
+
 @bp.route('/')
 @bp.route('/home')
 @verify_logged_in
@@ -45,7 +46,7 @@ def repo(repo_key, github: GitHub, folder_path=""):
         elif directory['type'] == 'file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
     if g.user.github_login in current_app.config['USERS_METADATA']:
-        user_initials = current_app.config ['USERS_METADATA'][g.user.github_login]["initials"]
+        user_initials = current_app.config['USERS_METADATA'][g.user.github_login]["initials"]
     else:
         current_app.logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -57,7 +58,8 @@ def repo(repo_key, github: GitHub, folder_path=""):
                            user_initials=user_initials,
                            repo_name=repo_key,
                            folder_path=folder_path,
-                           breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i+1])} for i, s in enumerate(breadcrumb_segments) ],
+                           breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i + 1])} for i, s in
+                                       enumerate(breadcrumb_segments)],
                            directories=dirs,
                            spreadsheets=spreadsheets,
                            )
@@ -94,4 +96,3 @@ def direct():
         return ('success')
     else:
         return redirect(url)
-

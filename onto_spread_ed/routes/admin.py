@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, List, Tuple, Dict
 
 from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for
 from flask_github import GitHub
@@ -54,8 +54,8 @@ def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
 
         selection = sorted([(f, f in default) for f in spreadsheets])
 
-        def to_tree(l: list[tuple[str, bool]]) -> dict[str, Union[list[tuple[str, bool]]], dict]:
-            tree: dict[str, Union[list[tuple[str, bool]], dict]] = {".": []}
+        def to_tree(l: List[Tuple[str, bool]]) -> Dict[str, Union[List[Tuple[str, bool]]], dict]:
+            tree: Dict[str, Union[List[Tuple[str, bool]], dict]] = {".": []}
             for entry, selected in l:
                 parts = entry.split("/")
                 subtree = tree
@@ -96,7 +96,7 @@ def release_body(id: str, db: SQLAlchemy, gh: GitHub):
 @bp.route("/release", methods=("GET",))
 @bp.route("/release/<id>", methods=("GET",))
 @verify_admin
-def release(id:Optional[str], db: SQLAlchemy, gh: GitHub):
+def release(id: Optional[str], db: SQLAlchemy, gh: GitHub):
     step = int(request.args["step"]) if "step" in request.args else None
     if step is not None and (step < -2 or step > 7):
         return jsonify(dict(error=f"Invalid step argument '{step}'. It must be an integer.")), 400

@@ -1,6 +1,6 @@
 import enum
 from dataclasses import dataclass, field
-from typing import Optional, Any
+from typing import Optional, Any, Tuple, List
 
 from .TermIdentifier import TermIdentifier
 
@@ -16,13 +16,13 @@ class OWLPropertyType(enum.Enum):
 class Relation:
     id: str
     label: str
-    synonyms: list[str]
-    relations: list[tuple[TermIdentifier, Any]]
+    synonyms: List[str]
+    relations: List[Tuple[TermIdentifier, Any]]
     owl_property_type: OWLPropertyType
-    sub_property_of: list[TermIdentifier]
+    sub_property_of: List[TermIdentifier]
     domain: Optional[TermIdentifier]
     range: Optional[TermIdentifier]
-    origin: tuple[str, int]
+    origin: Tuple[str, int]
 
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)
@@ -35,15 +35,15 @@ class Relation:
 class UnresolvedRelation:
     id: Optional[str] = None
     label: Optional[str] = None
-    synonyms: list[str] = field(default_factory=list)
-    relations: list[tuple[TermIdentifier, Any]] = field(default_factory=list)
+    synonyms: List[str] = field(default_factory=list)
+    relations: List[Tuple[TermIdentifier, Any]] = field(default_factory=list)
 
-    sub_property_of: list[TermIdentifier] = field(default_factory=list)
+    sub_property_of: List[TermIdentifier] = field(default_factory=list)
 
     owl_property_type: Optional[OWLPropertyType] = None
     domain: Optional[TermIdentifier] = None
     range: Optional[TermIdentifier] = None
-    origin: Optional[tuple[str, int]] = None
+    origin: Optional[Tuple[str, int]] = None
 
     def is_unresolved(self) -> bool:
         return any(v is None for v in [self.id, self.label, self.owl_property_type, self.origin])

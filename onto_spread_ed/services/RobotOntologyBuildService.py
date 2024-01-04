@@ -3,7 +3,7 @@ import logging
 import os
 import subprocess
 from multiprocessing import Pool
-from typing import Optional, Any
+from typing import Optional, Any, Dict, List
 
 from .OntoloyBuildService import OntologyBuildService
 from ..model.ExcelOntology import ExcelOntology, OntologyImport
@@ -16,7 +16,7 @@ class RobotOntologyBuildService(OntologyBuildService):
     _logger = logging.getLogger(__name__)
 
     def merge_imports(self,
-                      imports: list[OntologyImport],
+                      imports: List[OntologyImport],
                       outfile: str,
                       iri: str,
                       main_ontology_name: str,
@@ -57,7 +57,7 @@ class RobotOntologyBuildService(OntologyBuildService):
         self._execute_command(slim_cmd, shell_flag=True)
 
     def _merge_imported_ontologies(self, merged_iri: str, merged_file: str, main_ontology_name: str, download_path: str,
-                                   imports: list[OntologyImport]) -> Result[str]:
+                                   imports: List[OntologyImport]) -> Result[str]:
         """
         Merges previously added, downloaded, and extracted ontology terms into one merged ontology
 
@@ -83,8 +83,8 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return self._execute_command(merge_cmd, shell_flag=True)
 
-    def build_ontology(self, ontology: ExcelOntology, outfile: str, prefixes: Optional[dict[str, str]],
-                       dependency_files: Optional[list[str]], tmp_dir: str):
+    def build_ontology(self, ontology: ExcelOntology, outfile: str, prefixes: Optional[Dict[str, str]],
+                       dependency_files: Optional[List[str]], tmp_dir: str):
         # with NamedTemporaryFile("w",) as f:
         with open(os.path.join(tmp_dir, os.path.basename(outfile)) + ".csv", "w") as csv_file:
             header = [
@@ -142,7 +142,7 @@ class RobotOntologyBuildService(OntologyBuildService):
 
                 writer.writerow(row)
 
-            template_command: list[str] = ["robot", 'template', '--template', csv_file.name]
+            template_command: List[str] = ["robot", 'template', '--template', csv_file.name]
             for prefix, definition in prefixes.items():
                 template_command.append('--prefix')
                 template_command.append(f'"{prefix}: {definition}"')
@@ -180,8 +180,8 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return self._execute_command(" ".join(template_command), cwd=tmp_dir)
 
-    def merge_ontologies(self, ontologies: list[str], outfile: str, iri: str, version_iri: str,
-                         annotations: dict[str, str]) -> Result[Any]:
+    def merge_ontologies(self, ontologies: List[str], outfile: str, iri: str, version_iri: str,
+                         annotations: Dict[str, str]) -> Result[Any]:
         command = ["robot", "merge"]
         command += [f'"{s}"' for o in ontologies for s in ["--input", o]]
         command += ["annotate"]

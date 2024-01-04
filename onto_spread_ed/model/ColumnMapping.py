@@ -2,7 +2,7 @@ import abc
 import enum
 import re
 from dataclasses import dataclass
-from typing import Optional, Callable, Union, Any
+from typing import Optional, Callable, Union, Any, List, Tuple
 
 from .Relation import Relation, OWLPropertyType
 from .TermIdentifier import TermIdentifier
@@ -64,12 +64,12 @@ class PrefixColumnMapping(SimpleColumnMapping):
         self.separator = separator
         self.kind = ColumnMappingKind.PREFIX
 
-    def get_value(self, value: str) -> list[tuple[str, str]]:
+    def get_value(self, value: str) -> List[Tuple[str, str]]:
         values = [value]
         if self.separator is not None:
             values = value.split(self.separator)
 
-        res: list[tuple[str, str]] = []
+        res: List[Tuple[str, str]] = []
         for v in values:
             m = self._pattern.match(v.strip())
             res.append((m.group(1).strip(), m.group(2).strip()))
@@ -112,7 +112,7 @@ class TermMapping(SimpleColumnMapping):
 
     _term_pattern = re.compile(r"^([^\[]*)\s*(?:\[(.*)\])?$")
 
-    def get_value(self, value: str) -> list[TermIdentifier]:
+    def get_value(self, value: str) -> List[TermIdentifier]:
         idents = []
         for val in [value.strip()] if self.separator is None else value.strip().split(self.separator):
             m = self._term_pattern.match(val.strip())
@@ -159,7 +159,7 @@ class LabelMapping(SimpleColumnMapping):
         else:
             return match.group(1).strip()
 
-    def get_synonyms(self, value: str) -> list[str]:
+    def get_synonyms(self, value: str) -> List[str]:
         match = re.match(self._label_pattern, value)
         if match is None:
             return []
@@ -185,7 +185,7 @@ class RelationColumnMapping(ColumnMapping):
     def get_relation(self) -> Relation:
         return self.relation
 
-    def get_value(self, value: str) -> list[tuple[TermIdentifier, Any]]:
+    def get_value(self, value: str) -> List[Tuple[TermIdentifier, Any]]:
         values = [x.strip() for x in value.split(self.separator)] if self.separator is not None else [value.strip()]
 
         if self.relation.owl_property_type == OWLPropertyType.ObjectProperty:
@@ -206,7 +206,7 @@ class ColumnMappingFactory:
 
 @dataclass
 class SingletonMappingFactory(ColumnMappingFactory):
-    column_names: list[str]
+    column_names: List[str]
     mapping: ColumnMapping
 
     def maps(self, column_name: str) -> bool:
@@ -230,28 +230,25 @@ class PatternMappingFactory(ColumnMappingFactory):
 
 
 class Schema:
-    _mapping_factories: list[ColumnMappingFactory]
+    _mapping_factories: List[ColumnMappingFactory]
 
-    def __init__(self, mapping_factories: list[ColumnMappingFactory]):
+    def __init__(self, mapping_factories: List[ColumnMappingFactory]):
         self._mapping_factories = mapping_factories
-
-    def used_relations(self) -> list[Relation]:
-        return self._mapping_factories
 
     def get_mapping(self, header_name: str) -> Optional[ColumnMapping]:
         return next(
             iter(m.create_mapping(header_name) for m in self._mapping_factories if m.maps(header_name)), None)
 
 
-def singleton(excel_names: list[str], mapping: Callable[[...], ColumnMapping], *args, **kwargs) -> ColumnMappingFactory:
+def singleton(excel_names: List[str], mapping: Callable[[...], ColumnMapping], *args, **kwargs) -> ColumnMappingFactory:
     return SingletonMappingFactory(excel_names, mapping(*args, **{"name": excel_names[0], **kwargs}))
 
 
-def simple(excel_names: list[str], kind: ColumnMappingKind, name: Optional[str] = None) -> ColumnMappingFactory:
+def simple(excel_names: List[str], kind: ColumnMappingKind, name: Optional[str] = None) -> ColumnMappingFactory:
     return SingletonMappingFactory(excel_names, SimpleColumnMapping(kind, excel_names[0] if name is None else name))
 
 
-def relation(excel_name: list[str], relation: TermIdentifier, name: Optional[str] = None,
+def relation(excel_name: List[str], relation: TermIdentifier, name: Optional[str] = None,
              split: Optional[str] = None,
              property_type: OWLPropertyType = OWLPropertyType.AnnotationProperty) -> ColumnMappingFactory:
     return SingletonMappingFactory(excel_name, RelationColumnMapping(

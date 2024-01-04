@@ -7,10 +7,10 @@ import pyhornedowl
 
 
 class OntologyDataStore:
-    node_props = {"shape":"box","style":"rounded", "font": "helvetica"}
-    rel_cols = {"has part":"blue","part of":"blue","contains":"green",
-                "has role":"darkgreen","is about":"darkgrey",
-                "has participant":"darkblue"}
+    node_props = {"shape": "box", "style": "rounded", "font": "helvetica"}
+    rel_cols = {"has part": "blue", "part of": "blue", "contains": "green",
+                "has role": "darkgreen", "is about": "darkgrey",
+                "has participant": "darkblue"}
 
     def __init__(self, config):
         self.releases = {}
@@ -19,11 +19,11 @@ class OntologyDataStore:
         self.graphs = {}
         self.config = config
 
-    def parseRelease(self,repo):
+    def parseRelease(self, repo):
         # Keep track of when you parsed this release
         self.graphs[repo] = networkx.MultiDiGraph()
         self.releasedates[repo] = date.today()
-        #print("Release date ",self.releasedates[repo])
+        # print("Release date ",self.releasedates[repo])
 
         # Get the ontology from the repository
         ontofilename = self.config['RELEASE_FILES'][repo]
@@ -39,11 +39,11 @@ class OntologyDataStore:
             self.releases[repo] = pyhornedowl.open_ontology(ontofile)
             prefixes = self.config['PREFIXES']
             for prefix in prefixes:
-                self.releases[repo].add_prefix_mapping(prefix[0],prefix[1])
+                self.releases[repo].add_prefix_mapping(prefix[0], prefix[1])
             for classIri in self.releases[repo].get_classes():
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
-                    classId = classId.replace(":","_")
+                    classId = classId.replace(":", "_")
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
                         label = self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL'])
@@ -51,11 +51,11 @@ class OntologyDataStore:
                             self.label_to_id[label.strip()] = classId
                             self.graphs[repo].add_node(classId,
                                                        label=label.strip().replace(" ", "\n"),
-                                                **OntologyDataStore.node_props)
+                                                       **OntologyDataStore.node_props)
                         else:
-                            print("Could not determine label for IRI",classIri)
+                            print("Could not determine label for IRI", classIri)
                 else:
-                    print("Could not determine ID for IRI",classIri)
+                    print("Could not determine ID for IRI", classIri)
             for classIri in self.releases[repo].get_classes():
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
@@ -65,12 +65,12 @@ class OntologyDataStore:
                         if plabel and plabel.strip() in self.label_to_id:
                             self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
                                                        classId.replace(":", "_"), dir="back")
-                    axioms = self.releases[repo].get_axioms_for_iri(classIri) # other relationships
+                    axioms = self.releases[repo].get_axioms_for_iri(classIri)  # other relationships
                     for a in axioms:
                         # Example: ['SubClassOf', 'http://purl.obolibrary.org/obo/CHEBI_27732', ['ObjectSomeValuesFrom', 'http://purl.obolibrary.org/obo/RO_0000087', 'http://purl.obolibrary.org/obo/CHEBI_60809']]
-                        if len(a) == 3 and a[0]=='SubClassOf' \
-                            and isinstance(a[2], list) and len(a[2])==3 \
-                            and a[2][0]=='ObjectSomeValuesFrom':
+                        if len(a) == 3 and a[0] == 'SubClassOf' \
+                                and isinstance(a[2], list) and len(a[2]) == 3 \
+                                and a[2][0] == 'ObjectSomeValuesFrom':
                             relIri = a[2][1]
                             targetIri = a[2][2]
                             rel_name = self.releases[repo].get_annotation(relIri, self.config['RDFSLABEL'])
@@ -89,7 +89,7 @@ class OntologyDataStore:
         all_labels = set()
         for classIri in self.releases[repo].get_classes():
             all_labels.add(self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL']))
-        return( all_labels )
+        return (all_labels)
 
     def parseSheetData(self, repo, data):
         for entry in data:
@@ -97,20 +97,21 @@ class OntologyDataStore:
                     'Label' in entry and \
                     'Definition' in entry and \
                     'Parent' in entry and \
-                    len(entry['ID'])>0:
+                    len(entry['ID']) > 0:
                 entryId = entry['ID'].replace(":", "_")
                 entryLabel = entry['Label'].strip()
                 self.label_to_id[entryLabel] = entryId
                 self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
                 if entryId in self.graphs[repo].nodes:
                     self.graphs[repo].remove_node(entryId)
-                    self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"), **OntologyDataStore.node_props)
+                    self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"),
+                                               **OntologyDataStore.node_props)
         for entry in data:
             if 'ID' in entry and \
                     'Label' in entry and \
                     'Definition' in entry and \
                     'Parent' in entry and \
-                    len(entry['ID'])>0:
+                    len(entry['ID']) > 0:
                 entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                 if entryParent in self.label_to_id:  # Subclass relations
                     # Subclass relations must be reversed for layout
@@ -135,7 +136,7 @@ class OntologyDataStore:
                                                                color=rcolour,
                                                                label=rel_name)
 
- # re-factored the following:
+    # re-factored the following:
     # *new : getIDsFromSheetMultiSelect
     # getIDsFromSheet - related ID's from whole sheet
     # getIDsFromSelection - related ID's from selection in sheet
@@ -155,8 +156,8 @@ class OntologyDataStore:
                 if filter != [""] and filter != []:
                     for f in filter:
                         if str(entry['Curation status']) == f:
-                            if 'ID' in entry and len(entry['ID'])>0:
-                                ids.append(entry['ID'].replace(":","_"))
+                            if 'ID' in entry and len(entry['ID']) > 0:
+                                ids.append(entry['ID'].replace(":", "_"))
                             if 'Parent' in entry:
                                 entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                 if entryParent in self.label_to_id:
@@ -170,7 +171,8 @@ class OntologyDataStore:
                             if self.graphs[repo]:
                                 graph_descs = None
                                 try:
-                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
+                                                                                      entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
                                     print("NetworkXError sheet multiselect: ", entry['ID'])
 
@@ -178,7 +180,6 @@ class OntologyDataStore:
                                     for g in graph_descs:
                                         if g not in ids:
                                             ids.append(g)
-
 
         return (ids)
 
@@ -191,8 +192,8 @@ class OntologyDataStore:
             else:
                 if filter != "":
                     if str(entry['Curation status']) == filter:
-                        if 'ID' in entry and len(entry['ID'])>0:
-                            ids.append(entry['ID'].replace(":","_"))
+                        if 'ID' in entry and len(entry['ID']) > 0:
+                            ids.append(entry['ID'].replace(":", "_"))
 
                         if 'Parent' in entry:
                             entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
@@ -208,7 +209,8 @@ class OntologyDataStore:
                         if self.graphs[repo]:
                             graph_descs = None
                             try:
-                                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
+                                                                                  entry['ID'].replace(":", "_"))
                             except networkx.exception.NetworkXError:
                                 print("NetworkXError sheet filter: ", entry['ID'])
 
@@ -217,8 +219,8 @@ class OntologyDataStore:
                                     if g not in ids:
                                         ids.append(g)
                 else:
-                    if 'ID' in entry and len(entry['ID'])>0:
-                            ids.append(entry['ID'].replace(":","_"))
+                    if 'ID' in entry and len(entry['ID']) > 0:
+                        ids.append(entry['ID'].replace(":", "_"))
 
                     if 'Parent' in entry:
                         entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
@@ -234,7 +236,8 @@ class OntologyDataStore:
                     if self.graphs[repo]:
                         graph_descs = None
                         try:
-                            graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                            graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
+                                                                              entry['ID'].replace(":", "_"))
                         except networkx.exception.NetworkXError:
                             print("NetworkXError Sheet: ", entry['ID'])
 
@@ -256,7 +259,7 @@ class OntologyDataStore:
                 if filter != [""] and filter != []:
                     for f in filter:
                         if str(entry['Curation status']) == f:
-                            if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+                            if str(entry['ID']) and str(entry['ID']).strip():  # check for none and blank ID's
                                 if 'ID' in entry and len(entry['ID']) > 0:
                                     ids.append(entry['ID'].replace(":", "_"))
                                 if 'Parent' in entry:
@@ -272,7 +275,8 @@ class OntologyDataStore:
                                 if self.graphs[repo]:
                                     graph_descs = None
                                     try:
-                                        graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                                        graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
+                                                                                          entry['ID'].replace(":", "_"))
                                     except networkx.exception.NetworkXError:
                                         print("NetworkXError selection multiselect: ", entry['ID'])
 
@@ -293,7 +297,7 @@ class OntologyDataStore:
             else:
                 if filter != "":
                     if str(entry['Curation status']) == filter:
-                        if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+                        if str(entry['ID']) and str(entry['ID']).strip():  # check for none and blank ID's
                             if 'ID' in entry and len(entry['ID']) > 0:
                                 ids.append(entry['ID'].replace(":", "_"))
                             if 'Parent' in entry:
@@ -309,7 +313,8 @@ class OntologyDataStore:
                             if self.graphs[repo]:
                                 graph_descs = None
                                 try:
-                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                                    graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
+                                                                                      entry['ID'].replace(":", "_"))
                                 except networkx.exception.NetworkXError:
                                     print("NetworkXError selection filter: ", str(entry['ID']))
 
@@ -318,13 +323,13 @@ class OntologyDataStore:
                                         if g not in ids:
                                             ids.append(g)
                 else:
-                    if str(entry['ID']) and str(entry['ID']).strip(): #check for none and blank ID's
+                    if str(entry['ID']) and str(entry['ID']).strip():  # check for none and blank ID's
                         if 'ID' in entry and len(entry['ID']) > 0:
                             ids.append(entry['ID'].replace(":", "_"))
                         if 'Parent' in entry:
                             entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
                             if entryParent in self.label_to_id:
-                                    ids.append(self.label_to_id[entryParent])
+                                ids.append(self.label_to_id[entryParent])
                         if ":" in entry['ID'] or "_" in entry['ID']:
                             entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
                             if entryIri:
@@ -334,7 +339,8 @@ class OntologyDataStore:
                         if self.graphs[repo]:
                             graph_descs = None
                             try:
-                                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],entry['ID'].replace(":", "_"))
+                                graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
+                                                                                  entry['ID'].replace(":", "_"))
                             except networkx.exception.NetworkXError:
                                 print("NetworkXError selection all: ", str(entry['ID']))
 
@@ -348,14 +354,14 @@ class OntologyDataStore:
         # Add all descendents of the selected IDs, the IDs and their parents.
         ids = []
         for id in selectedIds:
-            ids.append(id.replace(":","_"))
+            ids.append(id.replace(":", "_"))
             if ":" in id or "_" in id:
                 entryIri = self.releases[repo].get_iri_for_id(id.replace("_", ":"))
 
                 if entryIri:
-                    descs = pyhornedowl.get_descendants(self.releases[repo],entryIri)
+                    descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                     for d in descs:
-                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":","_"))
+                        ids.append(self.releases[repo].get_id_for_iri(d).replace(":", "_"))
 
                     superclasses = self.releases[repo].get_superclasses(entryIri)
                     for s in superclasses:
@@ -375,10 +381,10 @@ class OntologyDataStore:
 
     def getDotForSheetGraph(self, repo, data, filter):
         # Get a list of IDs from the sheet graph
-        #todo: is there a better way to do this?
-        if hasattr(filter, 'lower'): #check if filter is a string
+        # todo: is there a better way to do this?
+        if hasattr(filter, 'lower'):  # check if filter is a string
             ids = OntologyDataStore.getIDsFromSheet(self, repo, data, filter)
-        else: #should be a list then
+        else:  # should be a list then
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
@@ -386,10 +392,10 @@ class OntologyDataStore:
 
     def getDotForSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
-        #todo: is there a better way to do this?
-        if hasattr(filter, 'lower'): #check if filter is a string
+        # todo: is there a better way to do this?
+        if hasattr(filter, 'lower'):  # check if filter is a string
             ids = OntologyDataStore.getIDsFromSelection(self, repo, data, selectedIds, filter)
-        else: #should be a list then
+        else:  # should be a list then
             ids = OntologyDataStore.getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter)
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
@@ -404,7 +410,7 @@ class OntologyDataStore:
         P = networkx.nx_pydot.to_pydot(subgraph)
         return (P)
 
-    #to create a dictionary and add all info to it, in the relevant place
+    # to create a dictionary and add all info to it, in the relevant place
     def getMetaData(self, repo, allIDS):
         DEFN = "http://purl.obolibrary.org/obo/IAO_0000115"
         SYN = "http://purl.obolibrary.org/obo/IAO_0000118"
@@ -414,21 +420,23 @@ class OntologyDataStore:
         synonyms = ""
         entries = []
 
-
         all_labels = set()
         for classIri in self.releases[repo].get_classes():
             classId = self.releases[repo].get_id_for_iri(classIri).replace(":", "_")
             for id in allIDS:
                 if id is not None:
                     if classId == id:
-                        label = self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL']) #yes
+                        label = self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL'])  # yes
                         iri = self.releases[repo].get_iri_for_label(label)
                         if self.releases[repo].get_annotation(classIri, DEFN) is not None:
-                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace("'", "").replace("\"", "")
+                            definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace(
+                                "'", "").replace("\"", "")
                         else:
                             definition = ""
                         if self.releases[repo].get_annotation(classIri, SYN) is not None:
-                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'", "").replace("\"", "")
+                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'",
+                                                                                                                  "").replace(
+                                "\"", "")
                         else:
                             synonyms = ""
                         entries.append({

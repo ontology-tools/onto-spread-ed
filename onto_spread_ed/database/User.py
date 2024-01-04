@@ -11,5 +11,6 @@ class User(Base):
     github_id = Column(Integer)
     github_login = Column(String(255))
 
-    def __init__(self, github_access_token):
+    def __init__(self, github_access_token, **kw: Any):
+        super().__init__(**kw)
         self.github_access_token = github_access_token

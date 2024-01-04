@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 
 class ValidationService:
@@ -11,5 +11,5 @@ class ValidationService:
     def validate_entity(self, repository_key: str, file_path: str, new_entity: dict, old_entity: dict):
         pass
 
-    def validate_all_files(self, repository_key: str, file_paths: Optional[list[str]] = None):
+    def validate_all_files(self, repository_key: str, file_paths: Optional[List[str]] = None):
         pass

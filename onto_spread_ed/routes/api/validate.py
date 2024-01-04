@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, Dict
 
 import jsonschema
 from flask import Blueprint, request, jsonify
@@ -58,13 +58,13 @@ def validate_entity(searcher: SpreadsheetSearcher):
     })
 
 
-def validate_line(entity: dict[str, Any],
-                  old_entity: dict[str, Any],
+def validate_line(entity: Dict[str, Any],
+                  old_entity: Dict[str, Any],
                   repository: str,
                   file: str,
                   # all_files: list[str],
-                  searcher: SpreadsheetSearcher) -> (bool, [dict[str, Any]]):
-    relations: dict[str, str] = dict(
+                  searcher: SpreadsheetSearcher) -> (bool, [Dict[str, Any]]):
+    relations: Dict[str, str] = dict(
         (k[k.index("'") + 1:k.rindex("'")], v) for k, v in entity.items() if k.startswith("REL"))
 
     errors = []
