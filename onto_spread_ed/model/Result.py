@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TypeVar, Generic, Any, Optional, Callable
+from typing import TypeVar, Generic, Any, Optional, Callable, Dict
 
 A = TypeVar("A")
 B = TypeVar("B")
 
-Message = dict[str, Any]
+Message = Dict[str, Any]
 
 
 @dataclass

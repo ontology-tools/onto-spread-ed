@@ -5,6 +5,8 @@ from urllib.request import urlopen
 import networkx
 import pyhornedowl
 
+from pyhornedowl.model import *
+
 
 class OntologyDataStore:
     node_props = {"shape": "box", "style": "rounded", "font": "helvetica"}
@@ -65,14 +67,12 @@ class OntologyDataStore:
                         if plabel and plabel.strip() in self.label_to_id:
                             self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
                                                        classId.replace(":", "_"), dir="back")
-                    axioms = self.releases[repo].get_axioms_for_iri(classIri)  # other relationships
+                    axioms: List[AnnotatedAxiom] = self.releases[repo].get_axioms_for_iri(classIri)  # other relationships
                     for a in axioms:
                         # Example: ['SubClassOf', 'http://purl.obolibrary.org/obo/CHEBI_27732', ['ObjectSomeValuesFrom', 'http://purl.obolibrary.org/obo/RO_0000087', 'http://purl.obolibrary.org/obo/CHEBI_60809']]
-                        if len(a) == 3 and a[0] == 'SubClassOf' \
-                                and isinstance(a[2], list) and len(a[2]) == 3 \
-                                and a[2][0] == 'ObjectSomeValuesFrom':
-                            relIri = a[2][1]
-                            targetIri = a[2][2]
+                        if isinstance(a.axiom, SubClassOf) and isinstance(a.axiom.sup, ObjectSomeValuesFrom) and isinstance(a.axiom.sup.ope, ObjectProperty) and isinstance(a.axiom.sup.bce, Class):
+                            relIri = str(a.axiom.sup.ope.first)
+                            targetIri = str(a.axiom.sup.bce.first)
                             rel_name = self.releases[repo].get_annotation(relIri, self.config['RDFSLABEL'])
                             targetLabel = self.releases[repo].get_annotation(targetIri, self.config['RDFSLABEL'])
                             if targetLabel and targetLabel.strip() in self.label_to_id:

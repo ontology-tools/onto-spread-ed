@@ -5,8 +5,7 @@ gunicorn
 Flask-SQLAlchemy==3.1.1
 Flask-Injector
 GitHub-Flask
-google-cloud-secret-manager
-google-cloud-storage
+jsonschema
 daff
 whoosh
 networkx

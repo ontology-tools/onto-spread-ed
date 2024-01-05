@@ -240,7 +240,7 @@ class Schema:
             iter(m.create_mapping(header_name) for m in self._mapping_factories if m.maps(header_name)), None)
 
 
-def singleton(excel_names: List[str], mapping: Callable[[...], ColumnMapping], *args, **kwargs) -> ColumnMappingFactory:
+def singleton(excel_names: List[str], mapping: Callable[..., ColumnMapping], *args, **kwargs) -> ColumnMappingFactory:
     return SingletonMappingFactory(excel_names, mapping(*args, **{"name": excel_names[0], **kwargs}))
 
 
