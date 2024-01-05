@@ -35,7 +35,7 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["GSSO", "http://purl.obolibrary.org/obo/GSSO_"],
             ["GO", "http://purl.obolibrary.org/obo/GO_"]
             ]
-# Spreadsheets that should be included in the index
+# Spreadsheets that should be included in the index and by default selected to be included in the release
 ACTIVE_SPREADSHEETS = {
     "BCIO": [
         "Setting/inputs/Setting.xlsx",

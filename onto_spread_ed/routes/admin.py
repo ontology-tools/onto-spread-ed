@@ -50,12 +50,12 @@ def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
     selection = {}
     if not current_release or not current_release.included_files:
         spreadsheets = get_spreadsheets(gh, current_app.config["REPOSITORIES"]["BCIO"], "", "Upper Level BCIO/")
-        default = current_app.config["DEFAULT_RELEASE_FILES"]["BCIO"]
+        default = current_app.config["ACTIVE_SPREADSHEETS"]["BCIO"]
 
         selection = sorted([(f, f in default) for f in spreadsheets])
 
-        def to_tree(l: List[Tuple[str, bool]]) -> Dict[str, Union[List[Tuple[str, bool]]], dict]:
-            tree: Dict[str, Union[List[Tuple[str, bool]], dict]] = {".": []}
+        def to_tree(l: List[Tuple[str, bool]]) -> Dict[str, Union[List[Tuple[str, bool]], Dict]]:
+            tree: Dict[str, Union[List[Tuple[str, bool]], Dict]] = {".": []}
             for entry, selected in l:
                 parts = entry.split("/")
                 subtree = tree

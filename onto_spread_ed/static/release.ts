@@ -121,7 +121,7 @@ document.body.onload = async () => {
                     element.classList.add("d-none")
                 }
 
-                for (const element of document.querySelectorAll(`.val-error-source-${file}, .val-warning-source-${file}`)){
+                for (const element of document.querySelectorAll(`.val-error-source-${file}, .val-warning-source-${file}`)) {
                     element.classList.remove("d-none")
                 }
 
@@ -191,7 +191,7 @@ document.body.onload = async () => {
             release.start = new Date(release.start)
             release.end = new Date(release.end)
         }
-        core.innerHTML = data["html"]
+            core.innerHTML = data["html"]
 
         await update()
     }
@@ -292,8 +292,9 @@ document.body.onload = async () => {
                     }
                 })
                 const started_release: Release = await response.json()
-                window.location.href += "/" + started_release.id
-                }
+                const i = window.location.pathname.match(/(\/\d+)?$/)?.index ?? window.location.pathname.length
+                window.location.pathname = window.location.pathname.substring(0, i) + "/" + started_release.id
+            }
 
         })
     }

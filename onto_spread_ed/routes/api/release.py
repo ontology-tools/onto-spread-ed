@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import tempfile
 import threading
 import traceback
 from dataclasses import dataclass
@@ -284,8 +285,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
     if release.local_dir:
         tmp = release.local_dir
     else:
-        # tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
-        tmp_dir = "/Users/bgehrk/development/onto-spread-ed/tmp"
+        tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
         tmp = tmp_dir
 
     try:
@@ -356,7 +356,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             for excel_file in release.included_files:
                 result = Result(())
                 local_xlsx = _local_name(excel_file)
-                iri = release_script.iri_prefix + os.path.basename(excel_file).removesuffix(".xlsx") + ".owl"
+                iri = release_script.iri_prefix + os.path.basename(excel_file).replace(".xlsx", ".owl")
                 lower = ExcelOntology(iri)
 
                 result += lower.import_other_excel_ontology(upper)
