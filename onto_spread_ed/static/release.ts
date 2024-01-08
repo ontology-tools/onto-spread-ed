@@ -1,4 +1,5 @@
 declare var release: Release | null;
+declare var bootstrap: any;
 
 if (release) {
     release.start = new Date(release.start)
@@ -200,7 +201,7 @@ document.body.onload = async () => {
         tgl_auto_refresh.addEventListener("change", (event) => {
             clearInterval(refresh_interval)
             if (tgl_auto_refresh.checked) {
-                refresh_interval = setInterval(refresh, 2000)
+                refresh_interval = window.setInterval(refresh, 2000)
                 console.debug("Starting refresh interval")
             }
         })
@@ -262,7 +263,7 @@ document.body.onload = async () => {
     } else {
         if (tgl_auto_refresh?.checked) {
             clearInterval(refresh_interval)
-            refresh_interval = setInterval(refresh, 2000)
+            refresh_interval = window.setInterval(refresh, 2000)
             console.debug("Starting refresh interval")
         }
     }

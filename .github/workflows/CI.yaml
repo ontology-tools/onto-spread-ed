@@ -1,0 +1,52 @@
+name: CI
+on:
+  push:
+    branches:
+      - release_workflow
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v4
+      - name: Install typescript
+        run: >
+          npm install typescript
+      - name: Build typescript
+        run: >
+          npx tsc
+      - name: Build deploy package
+        run: >
+          tar -czf onto-ed.tar.gz app.py requirements.txt onto_spread_ed
+      - uses: actions/upload-artifact@v3
+        with:
+          name: app
+          path: onto-ed.tar.gz
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://onto-ed.hbcptools.org/
+    needs:
+      - build
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: app
+    - name: Deploy app
+      env:
+        PRIVATE_KEY: ${{ secrets.deploymentKey }}
+      run: >
+        echo PRIVATE_KEY | base64 --decode > privkey
+        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }}
+        ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} -c "redeploy --env ${{ env }}"
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://onto-ed.hbcptools.org/
+    needs:
+      - deploy-dev
+    steps:
+      - name: deploy
+        run: echo "I'm deploying to production"
