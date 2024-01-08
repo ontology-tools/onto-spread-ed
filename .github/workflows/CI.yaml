@@ -37,8 +37,8 @@ jobs:
       env:
         PRIVATE_KEY: ${{ secrets.deploymentKey }}
       run: >
-        echo PRIVATE_KEY | base64 --decode > privkey
-        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }}
+        echo PRIVATE_KEY | base64 --decode > privkey &&
+        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} -c "redeploy --env ${{ env }}"
   deploy-prod:
     runs-on: ubuntu-latest
