@@ -208,7 +208,7 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     return jsonify(release.as_dict())
 
 
-@bp.route("/rerun-step", methods=("POST",))
+@bp.route("/rerun-step", methods=("POST","GET"))
 @verify_admin
 def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
     q: Query[Release] = db.session.query(Release)
@@ -586,8 +586,8 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
 
 @bp.route("/<id>", methods=("GET",))
 @verify_admin
-def get_release(id: int):
-    q: Query[Release] = Release.query
+def get_release(id: int, db: SQLAlchemy):
+    q: Query[Release] = db.session.query(Release)
     release = q.get(id)
 
     if release is None:
@@ -602,8 +602,8 @@ def get_release(id: int):
 
 @bp.route("/", methods=("GET",))
 @verify_admin
-def get_releases():
-    q: Query[Release] = Release.query
+def get_releases(db: SQLAlchemy):
+    q: Query[Release] = db.session.query(Release)
     releases = q.all()
 
     if releases is None:
