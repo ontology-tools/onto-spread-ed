@@ -30,14 +30,12 @@ document.body.onload = async () => {
     const release_info: HTMLSpanElement = document.querySelector("#release-info")!
     const btn_start_release: HTMLLinkElement | null = document.querySelector("#btn-start-release")
     const btn_release_restart: HTMLLinkElement | null = document.querySelector("#btn-release-restart")
-    const btn_release_rerun_step: HTMLButtonElement | null = document.querySelector("#btn-release-rerun-step")
     const btn_release_cancel: HTMLButtonElement | null = document.querySelector("#btn-release-cancel")
     const btn_refresh: HTMLButtonElement | null = document.querySelector("#btn-release-refresh")
     const tgl_auto_refresh: HTMLInputElement | null = document.querySelector("#tgl-auto-refresh")
     const control_buttons = [
         btn_start_release,
         btn_release_restart,
-        btn_release_rerun_step,
         btn_release_cancel,
         btn_refresh,
         tgl_auto_refresh
@@ -71,12 +69,6 @@ document.body.onload = async () => {
         selected_step = Number.parseInt(step_str ?? "NaN")
         if (Number.isNaN(selected_step)) {
             selected_step = release?.step ?? null
-        }
-
-        if (release?.worker_id === null && release.state !== "canceled" && release.state !== "completed") {
-            btn_release_rerun_step?.classList.remove("d-none")
-        } else {
-            btn_release_rerun_step?.classList.add("d-none")
         }
 
         if (release === null || release.state === "canceled" || release.state === "completed") {
@@ -210,19 +202,6 @@ document.body.onload = async () => {
     if (btn_refresh !== null) {
         btn_refresh.addEventListener("click", async (event) => {
             await set_disabled_all()
-            await refresh()
-        })
-    }
-
-    if (btn_release_rerun_step !== null) {
-        btn_release_rerun_step.addEventListener("click", async event => {
-            event.preventDefault()
-            await set_disabled_all()
-
-            await fetch("/api/release/rerun-step", {
-                method: "POST"
-            })
-
             await refresh()
         })
     }
