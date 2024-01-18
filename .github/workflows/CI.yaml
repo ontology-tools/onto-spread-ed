@@ -43,13 +43,13 @@ jobs:
         echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
         scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy"
-  deploy-prod:
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://onto-ed.hbcptools.org/
-    needs:
-      - deploy-dev
-    steps:
-      - name: deploy
-        run: echo "I'm deploying to production"
+#  deploy-prod:
+#    runs-on: ubuntu-latest
+#    environment:
+#      name: production
+#      url: https://onto-ed.hbcptools.org/
+#    needs:
+#      - deploy-dev
+#    steps:
+#      - name: deploy
+#        run: echo "I'm deploying to production"
