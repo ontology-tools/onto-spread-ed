@@ -122,10 +122,8 @@ document.body.onload = async () => {
                     btn.classList.remove("fw-bold")
                 }
                 btn.classList.add("fw-bold")
-                clearInterval(refresh_interval)
             })
         }
-
 
         const publish_checklist: HTMLInputElement[] = Array.from(document.querySelectorAll(".checklist"))
         btn_publish_release = document.querySelector("#btn-publish-release")
@@ -162,7 +160,7 @@ document.body.onload = async () => {
 
         update_btn_publish_disabled()
 
-        if (steps_without_auto_refresh.includes(selected_step ?? NaN) || release?.running == false) {
+        if (steps_without_auto_refresh.includes(selected_step ?? NaN) || release?.running == false || release?.state == "waiting-for-user") {
             clearInterval(refresh_interval)
             if (tgl_auto_refresh !== null) {
                 tgl_auto_refresh.checked = false
