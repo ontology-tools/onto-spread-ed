@@ -7,13 +7,14 @@
             Good work! All files are valid. The release process will continue.
         </div>
     {% elif details.values() | map(attribute="errors") | map("length") | sum == 0 %}
-            <div class="alert alert-warning">
+        <div class="alert alert-warning">
             <h5>No errors but warnings</h5>
             All files are valid but there are still warnings. The release process will continue.
         </div>
     {% else %}
         <p>{{ details.values() | map(attribute="errors") | map("length") | sum }} errors
-            and {{ details.values() | map(attribute="warnings") | map("length") | sum }} warnings were found during the validation.
+            and {{ details.values() | map(attribute="warnings") | map("length") | sum }} warnings were found during the
+            validation.
             Please fix the errors and save the
             spreadsheets. When you fixed all errors, restart the release. If you just want to rerun the validation,
             restart the release as well. </p>
@@ -55,7 +56,26 @@
                         <h5>Unknown parent</h5>
                         <p>
                             The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
-                            (<code>{{ error.term.id | default("<no id>") }}</code>) is not known. <br>
+                            (<code>{{ error.term.id | default("<no id>") }}</code>) is not known.
+                            {% if error.term.id != None and not error.term.id.startswith(release.release_script["short_repository_name"]) %}
+                                The term appears external. If you redefine an external entity ensure to import its
+                                parent and all of its related terms as well.
+                            {% else %}
+                                If it is an external term, ensure that it is imported correctly.
+                            {% endif %} <br>
+                            {{ error_link(error, error.term) }}
+                        </p>
+                    {% elif error.type == "missing-label" %}
+                        <h5>Unknown label</h5>
+                        <p>
+                            The term <code>{{ error.term.id }}</code> has no label. <br>
+                            {{ error_link(error, error.term) }}
+                        </p>
+                    {% elif error.type == "unknown-label" %}
+                        <h5>Missing label</h5>
+                        <p>
+                            The term <code>{{ error.term.label }}</code> could not be resolved. Ensure it has an ID and
+                            if it is external ensure it is imported properly. <br>
                             {{ error_link(error, error.term) }}
                         </p>
                     {% elif error.type == "unknown-disjoint" %}
