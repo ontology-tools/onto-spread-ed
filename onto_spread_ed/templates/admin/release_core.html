@@ -2,8 +2,20 @@
 {% set selected_step = selected_step if selected_step != None else current_step %}
 {% set details = (release.details[selected_step | string]) | default( None) if release %}
 {% macro entry(title, step) %}
+    {% set errors = 0 %}
+    {% set warnings = 0 %}
+
+    {% set _details = release.details[step | string] | default({}) if release else {} %}
+    {% set errors = _details["errors"] | length if "errors" in _details else _details.values() | map(attribute="errors") | map("length") | sum %}
+    {% set warnings = _details["warnings"] | length if "warnings" in _details else _details.values() | map(attribute="warnings") | map("length") | sum %}
     {% if current_step > step or release.state == "completed" %}
-        <i class="fa-regular fa-check-circle text-success"></i>
+        {% if errors > 0 %}
+            <i class="fa fa-triangle-exclamation text-danger"></i>
+        {% elif warnings > 0 %}
+            <i class="fa fa-triangle-exclamation text-warning"></i>
+        {% else %}
+            <i class="fa-regular fa-check-circle text-success"></i>
+        {% endif %}
         <a class="btn border-0" href="?step={{ step }}">
             {% if selected_step == step %}
                 <strong>{{ title }}</strong>
@@ -12,8 +24,14 @@
             {% endif %}
         </a>
     {% elif current_step == step %}
-        <i class="fa-regular fa-circle text-primary"></i>
-        <a class="btn border-0" href="?step={{ step }}">
+        {% if errors > 0 %}
+            <i class="fa fa-triangle-exclamation text-danger"></i>
+        {% elif warnings > 0 %}
+            <i class="fa fa-triangle-exclamation text-warning"></i>
+        {% else %}
+            <i class="fa-regular fa-circle text-primary"></i>
+        {% endif %}
+        <a class="btn border-0" href="?">
             {% if selected_step == step %}
                 <strong>{{ title }}</strong>
             {% else %}
@@ -31,6 +49,7 @@
         </a>
 
     {% endif %}
+{#     {{ release.details[step | string]["warnings"] | length if "warnings" in release.details[step | string] else release.details[step | string].values() | map(attribute="errors") | map("length") | sum if step | string in release.details else -1 }}#}
 {% endmacro %}
 {% macro loading_indicator(message="") %}
     {% if release.state == "running" %}

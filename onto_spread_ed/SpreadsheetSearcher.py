@@ -120,8 +120,12 @@ class SpreadsheetSearcher:
 
         with ix.reader() as r:
             stats = dict(
-                sheets=r.doc_count(),
-                entities=len(list(r.all_terms()))
+                number_of_repositories=len(list(r.field_terms("repo"))),
+                number_of_sheets=len(list(r.field_terms("spreadsheet"))),
+                number_of_terms=r.doc_count(),
+                repositories=list(r.field_terms("repo")),
+                sheets=list(r.field_terms("spreadsheet"))
+
             )
 
         ix.close()

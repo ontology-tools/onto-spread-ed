@@ -115,12 +115,12 @@ class RobotOntologyBuildService(OntologyBuildService):
                     "type": "class",
                     "id": term.id,
                     "label": term.label,
-                    "parent class": ";".join(t.id for t in term.sub_class_of),
+                    "parent class": ";".join(t.label for t in term.sub_class_of),
                     "logical definition": ";".join(t for t in term.equivalent_to)
                 }
 
                 for relation, value in term.relations:
-                    row[f"REL '{relation.label}'"] = value.id if isinstance(value, TermIdentifier) else value
+                    row[f"REL '{relation.label}'"] = value.label if isinstance(value, TermIdentifier) else value
 
                 writer.writerow(row)
 
@@ -134,7 +134,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     "type": typ,
                     "id": relation.id,
                     "label": relation.label,
-                    "parent relation": ";".join(r.id for r in relation.sub_property_of),
+                    "parent relation": ";".join(r.label for r in relation.sub_property_of),
                 }
 
                 for r, value in relation.relations:
@@ -150,11 +150,13 @@ class RobotOntologyBuildService(OntologyBuildService):
                                      '--output', f'"{outfile}"'
                                      ])
 
-            # with NamedTemporaryFile("w", suffix="import.owl") as dependency_f:
-            with open(os.path.join(tmp_dir, "imports.owl"), "w") as dependency_f:
+            # A bit of hacking to deal appropriately with external dependency files:
+            if dependency_files is not None:
+                dependency_file_name = os.path.join(tmp_dir, "imports.owl")
+                catalog_file_name = os.path.join(tmp_dir, "catalog.xml")
+                # with NamedTemporaryFile("w", suffix="import.owl") as dependency_f:
+                with open(dependency_file_name, "w") as dependency_f:
 
-                # A bit of hacking to deal appropriately with external dependency files:
-                if dependency_files is not None:
                     # Allow multiple dependencies. These will become OWL imports.
                     dependency_file_names = dependency_files
                     dependency_f.write("""<?xml version=\"1.0\"?>
@@ -175,8 +177,17 @@ class RobotOntologyBuildService(OntologyBuildService):
                             f"<owl:imports rdf:resource=\"{ontology.iri()[:ontology.iri().rindex('/')]}/{d}\"/> \n")
                     dependency_f.write(" </owl:Ontology> \n</rdf:RDF> ")
 
-        template_command.extend(
-            ['--input', dependency_f.name, "--merge-before", "--collapse-import-closure", "false"])
+                with open(catalog_file_name, "w") as f:
+                    entries = "\n".join([f'<uri id="external" name="{ontology.iri()[:ontology.iri().rindex("/")]}/{d}" uri="{d}" />' for d in dependency_file_names])
+                    f.write(f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<catalog prefer="public" xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+    <group id="Folder Repository, directory=, recursive=true, Auto-Update=true, version=2" prefer="public" xml:base="">
+{entries}
+    </group>
+</catalog>
+""")
+                template_command.extend(
+                    ['--catalog', catalog_file_name, '--input', dependency_f.name, "--merge-before", "--collapse-import-closure", "false"])
 
         return self._execute_command(" ".join(template_command), cwd=tmp_dir)
 

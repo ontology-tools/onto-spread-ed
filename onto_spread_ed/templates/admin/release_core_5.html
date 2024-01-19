@@ -1,6 +1,6 @@
 <h3>Finalising Build</h3>
 
-{% if release.state == "waiting-for-user" %}
+{% if release.state == "waiting-for-user" and details["errors"] | length > 0 %}
     <div class="alert alert-danger">
         <h4>An error occurred while building the final release file.</h4>
         <p>

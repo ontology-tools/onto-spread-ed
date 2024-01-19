@@ -13,6 +13,7 @@ from .Relation import Relation, UnresolvedRelation, OWLPropertyType
 from .Result import Result
 from .Term import Term, UnresolvedTerm
 from .TermIdentifier import TermIdentifier
+from ..utils import str_empty
 
 
 @dataclass
@@ -54,7 +55,7 @@ class ExcelOntology:
         return [t.as_resolved() for t in self._terms if not t.is_unresolved()]
 
     def term_by_label(self, label: str) -> Optional[Term]:
-        return next(iter(t for t in self.terms() if t.label == label), None)
+        return next(iter(t for t in (self.terms() + self.imported_terms()) if t.label == label), None)
 
     def find_term_id(self, label: str) -> Optional[str]:
         return next((t.id for t in (self._terms + self.imported_terms()) if t.label == label), None)
@@ -63,7 +64,7 @@ class ExcelOntology:
         return next((t.label for t in (self._terms + self.imported_terms()) if t.id == id), None)
 
     def term_by_id(self, id: str) -> Optional[Term]:
-        return next(iter(t for t in self.terms() if t.id == id), None)
+        return next(iter(t for t in (self.terms() + self.imported_terms()) if t.id == id), None)
 
     def _unresolved_term_by_label(self, label: str, exclude: Optional[UnresolvedTerm] = None) -> List[UnresolvedTerm]:
         return list(t for t in self._terms if t.label == label and (exclude is None or exclude != t))
@@ -109,7 +110,14 @@ class ExcelOntology:
                           msg=f"The column '{col.get_name()}' could not be processed")
                 unprocessable_columns.append(col)
 
-        r.value = term
+        # If a term has no id, label, or parents it is probably an empty line.
+        # Ignore it but issue a warning.
+        if str_empty(term.id) and str_empty(term.label) and not any(term.sub_class_of):
+            r.warning(type="incomplete-term",
+                      msg="Empty or incomplete term")
+        else:
+            r.value = term
+
         return r
 
     def _parse_import(self, row: List[Tuple[ColumnMapping, Optional[str]]], err_default: dict) -> Result[
@@ -393,33 +401,47 @@ class ExcelOntology:
 
         for term in self._terms:
             result.template = {"row": term.origin[1]} if term.origin is not None else {}
-            if term.is_unresolved():
-                if term.label is None:
-                    result.error(type="missing-label",
-                                 term=term.__dict__)
+            # if term.is_unresolved():
+            if term.label is None:
+                result.error(type="missing-label",
+                             term=term.__dict__)
 
-                if term.id is None:
-                    result.error(type="unknown-label",
-                                 term=term.__dict__)
+            if term.id is None:
+                result.error(type="unknown-label",
+                             term=term.__dict__)
 
-                for p in term.sub_class_of:
-                    if p.is_unresolved():
-                        result.error(type="unknown-parent",
-                                     term=term.__dict__,
-                                     parent=p.__dict__)
+            for p in term.sub_class_of:
+                if p.is_unresolved():
+                    result.error(type="unknown-parent",
+                                 term=term.__dict__,
+                                 parent=p.__dict__)
+                elif self.term_by_id(p.id) is None:
+                    result.error(type="missing-parent",
+                                 term=term.__dict__,
+                                 parent=p.__dict__)
 
-                for p in term.disjoint_with:
-                    if p.is_unresolved():
-                        result.error(type="unknown-disjoint",
-                                     term=term.__dict__,
-                                     disjoint_class=p.__dict__)
+            for p in term.disjoint_with:
+                if p.is_unresolved():
+                    result.error(type="unknown-disjoint",
+                                 term=term.__dict__,
+                                 disjoint_class=p.__dict__)
+                elif self.term_by_id(p.id) is None:
+                    result.error(type="missing-disjoint",
+                                 term=term.__dict__,
+                                 disjoint_class=p.__dict__)
 
-                for relation, value in term.relations:
-                    if isinstance(value, TermIdentifier) and value.is_unresolved():
+            for relation, value in term.relations:
+                if isinstance(value, TermIdentifier):
+                    if value.is_unresolved():
                         result.error(type="unknown-relation-value",
                                      relation=relation,
                                      value=value,
                                      term=term.__dict__)
+                    elif self.term_by_id(value.id) is None:
+                        result.error(type="missing-relation-value",
+                                     term=term.__dict__,
+                                     relation=relation,
+                                     value=value,)
 
         for relation in self._relations:
             result.template = {"row": relation.origin[1]} if relation.origin is not None else {}

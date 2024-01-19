@@ -38,13 +38,13 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
 # Spreadsheets that should be included in the index and by default selected to be included in the release
 ACTIVE_SPREADSHEETS = {
     "BCIO": [
-        "Setting/inputs/Setting.xlsx",
-        "ModeOfDelivery/inputs/MoD.xlsx",
-        "Source/inputs/BCIO_Source.xlsx",
-        "MechanismOfAction/inputs/BCIO_MoA.xlsx",
-        "Behaviour/BCIO_behaviour.xlsx",
-        "BehaviourChangeTechniques/inputs/BCIO_BehaviourChangeTechniques.xlsx",
-        "StyleOfDelivery/BCIO_StyleOfDelivery.xlsx",
+        "Setting/bcio_setting.xlsx",
+        "ModeOfDelivery/bcio_mode_of_delivery.xlsx",
+        "Source/bcio_source.xlsx",
+        "MechanismOfAction/bcio_moa.xlsx",
+        "Behaviour/bcio_behaviour.xlsx",
+        "BehaviourChangeTechniques/bcto.xlsx",
+        "StyleOfDelivery/bcio_style.xlsx",
         r"Upper Level BCIO/inputs/.*\.xlsx"
     ],
     "AddictO": [

@@ -472,6 +472,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 ], tmp)
                 _raise_if_canceled()
 
+            result.warnings = []
             set_release_result(q, release_id, result)
             return result.ok()
 
