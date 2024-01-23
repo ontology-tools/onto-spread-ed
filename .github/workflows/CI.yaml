@@ -48,13 +48,24 @@ jobs:
         scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
   deploy-prod:
-    if: ${{ github.event_name == "push" && github.ref == "refs/heads/main" }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: hbcptools
-      url: https://onto-ed.hbcptools.org/
+      url: https://test.onto-ed.hbcptools.org/
     needs:
       - build
     steps:
-      - name: deploy
-        run: echo "I'm deploying to production"
+    - uses: actions/download-artifact@v3
+      with:
+        name: app
+    - name: Deploy app
+      env:
+        PRIVATE_KEY: ${{ secrets.deploymentKey }}
+      run: >
+        echo $PRIVATE_KEY | base64 --decode > privkey &&
+        chmod 600 privkey &&
+        mkdir -p $HOME/.ssh &&
+        echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
+        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
+        ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
