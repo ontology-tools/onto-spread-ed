@@ -26,7 +26,7 @@ jobs:
           name: app
           path: onto-ed.tar.gz
   deploy-dev:
-    if: ${{ github.event_name == "push" && github.ref == "refs/heads/develop" }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment:
       name: development
