@@ -68,4 +68,4 @@ jobs:
         mkdir -p $HOME/.ssh &&
         echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
         scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
-        ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
+        ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy hbcptools"
