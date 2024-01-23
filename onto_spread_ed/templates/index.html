@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+
+    <h2> Choose a project repository: </h2>
+
+    <div class="row align-stretch">
+        {% for repo, repo_detail in repos.items() %}
+            <div class="col-sm-6 col-md-4 col-lg-3 m-2">
+
+                <a class="card bg-light" href="/repo/{{ repo }}"
+                   style="height: 100%; text-decoration: none;; border-width: 2px 2px 4px 2px">
+                    <div class="section p-5 text-center fs-2">
+                        {{ repo }}
+                    </div>
+                    <div class="card-body text-center">
+                        {{ repo_detail }}
+                    </div>
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+
+
+{% endblock %}

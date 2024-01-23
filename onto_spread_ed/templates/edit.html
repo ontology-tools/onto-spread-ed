@@ -1,0 +1,3031 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+{{ super() }}
+
+{% endblock %}
+{% block content %}
+
+
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <h2 id="s-name"> Editing {{spreadsheet_name}} </h2>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-9">
+        <div class="text-left">
+            <button id=add-row class="btn btn-outline-info btn-sm"><i class="fas fa-plus"></i> Add Row</button>
+            <button id=delete-rows class="btn btn-outline-danger btn-sm" style="display: none"><i
+                    class="fas fa-trash-alt"></i> Delete
+                Rows</button>
+            <button id=highlight-user class="btn btn-outline-warning btn-sm"><i class="fas fa-highlighter"></i>
+                Highlight Your Rows</button>
+            <button id=remove-formatting class="btn btn-outline-dark btn-sm"><i class="fas fa-remove-format"></i> Remove
+                all Filters</button>
+            <button id=ask-for-review class="btn btn-outline-primary btn-sm" style="display: none"><i
+                    class="fas fa-clipboard"></i> Ask for
+                review</button>
+            <button id=reviewed class="btn btn-outline-primary btn-sm" style="display: none"><i
+                    class="fas fa-clipboard-check"></i>
+                Reviewed</button>
+            
+            <div class="btn-group">
+                <button id=visualise-sheet class="btn btn-outline-success btn-sm" style="display: none"><i
+                    class="fab fa-uncharted"></i>
+                    Visualise sheet
+                </button>                
+                <button id=visualise-sheet-multiselect type="button" class="btn btn-outline-success btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="display: none">
+                    [filter]
+                    <span class="sr-only">Toggle Dropdown</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li id="visualise-sheet-checkbox-list" class="dropdown">
+                        <!-- using jquery to add checkbox list items -->
+                           
+                    </li>
+                </ul>
+            </div>
+            
+                <div class="btn-group">
+                    <button id=visualise-selection class="btn btn-outline-success btn-sm" style="display: none"><i
+                        class="fab fa-uncharted"></i>
+                        Visualise selection
+                    </button>                
+                    <button id=visualise-selection-multiselect type="button" class="btn btn-outline-success btn-sm dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="display: none">
+                        [filter]
+                        <span class="sr-only">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li id="visualise-selection-checkbox-list" class="dropdown">
+                            <!-- using jquery to add checkbox list items -->
+                               
+                        </li>
+                    </ul>
+                </div>
+    
+            <button id=generate-identifier class="btn btn-outline-dark btn-sm" style="display: none"><i
+                    class="fas fa-marker"></i>
+                Generate {{repo_name}} identifier</button>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="row mb-3"></div>
+        <button id="save-btn" class="btn btn-outline-success btn-sm" style="display: none"
+            onclick="save_changes( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' , JSON.stringify( table.getData() ), JSON.stringify( testTableData ), 'false' ) ">
+            Save changes to repository
+        </button>
+        <button id="download-sheet-btn" class="btn btn-outline-primary btn-sm" 
+            onclick="download_spreadsheet( '{{repo_name}}', '{{folder}}' , '{{ spreadsheet_name }}' )">
+            Download Spreadsheet
+        </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-9">
+        <div id="conflict-btns" class="btn-group btn-group-lg text-right" style="display: none">
+            <button id="merge-btn" class="btn btn-success" onclick="keep_both()">
+                Try to keep both
+            </button>
+            <button id="overwrite-btn" class="btn btn-dark"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                Overwrite remote changes
+            </button>
+            <button id="lose-changes-btn" class="btn btn-danger" onclick="lose_changes()">
+                Lose your changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-9">
+        <div id="merge-btns" class="btn-group btn-group-lg text-right " style="display: none">
+            <button id="merge-overwrite-btn" class="btn btn-success"
+                onclick="save_changes('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', JSON.stringify(table.getData()), JSON.stringify(testTableData), 'true')">
+                SAVE
+            </button>
+            <button id="merge-revert-btn" class="btn btn-dark" onclick="revert_changes()">
+                REVERT
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div id="validation-btns" class="col-md-9" style="display: none">
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="saveAlert" class="alert alert-success collapse" role="alert">
+            <button id="closeSaveMsgBtn" type="button" class="close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <div id="saveMessage"> </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div id=updates type="button" class="alert alert-warning text-center" role="alert" style="display: none">
+            <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>UPDATES AVAILABLE
+            <div class="spinner-grow spinner-grow-sm text-white mr-2" role="status"></div>
+        </div>
+    </div>
+</div>
+
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="contentTable" class="table table-bordered table-hover table-sm" style="font-size: 0.8em;">
+        </div>
+    </div>
+</div>
+
+
+<div class="row">
+    <!-- The form that gets displayed on the confirmation box, otherwise is hidden -->
+    <div id="message-box" class="form-content" style="display:none;">
+        <form class="form" role="form">
+            <div class="form-group">
+                <label for="commit-msg">Commit message</label>
+                <input type="text" class="form-control" id="commit-msg" name="commit-msg">
+            </div>
+            <div class="form-group">
+                <label for="descr">Detailed description</label>
+                <input type="text" class="form-control" id="descr" name="descr">
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <span id="keepAlive"></span>
+</div>
+
+{% endblock %}
+
+{% block javascriptblock %}
+<!-- //tabulator: -->
+<!-- always up-to-date tabulator CDN? -->
+<link href="https://unpkg.com/tabulator-tables@4.9.3//dist/css/tabulator_simple.min.css" rel="stylesheet">
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.3//dist/js/tabulator.min.js"></script>
+
+
+<!-- bootstrap 4 theme -->
+<link href="https://unpkg.com/tabulator-tables@4.9.3//dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
+
+<script type="text/javascript">
+    var filter = [""]; //for multi-filter
+
+    var reloadTable = false; //test if table needs to be reloaded
+
+    //for suggestions (autocomplete):
+    //get suggestions from server: 
+    var labelSuggestions = {{ suggestions | safe }};
+    var suggestValuesArray = {{ suggestions | safe }};
+    // var labelSuggestions = [];
+    // var suggestValuesArray = [];
+
+    var initialRowSearch = "";
+    var initialSearchtype = "";
+
+    allCookies = document.cookie;
+    // console.log("allCookies: " + allCookies);
+
+    var file_sha = '{{file_sha}}';
+    var repo_name = '{{repo_name}}';
+    //hide save button on load
+    $('#save-btn').hide();
+    $('#conflict-btns').hide();
+    $('#merge-btns').hide();
+    $('#validation-btns').hide();
+
+
+
+    // Column name for curation status
+    var curation_status = "Curation status"
+    var prevCurationStatus = "";
+    // For the curation status, the allowed values
+    var discussed = "Discussed";
+    var ready = "Ready";
+    var proposed = "Proposed";
+    var toBeDiscussed = "ToBeDiscussed";
+    var inDiscussion = "InDiscussion";
+    var published = "Published";
+    var obsolete = "Obsolete";
+    var external = "External";
+
+    //whyFuzzy
+    var why_Fuzzy = "Why fuzzy";//column name
+    var whyFuzzy = "Whyfuzzy";
+
+    //Fuzzy Set
+    var fuzzy_Set = "Fuzzy set"; //column name
+
+    //E-Cig0
+
+
+    //for to be reviewed by
+    var to_be_reviewed_by = "To be reviewed by";
+    //Column name for Curator
+    var curator = "Curator";
+
+    var AOsub_ontology = "Sub-ontology";
+
+    // array to save changes in backupChanges
+    var changes = [];
+
+    //validate error messages array:
+    var validateErrorMessages = [];
+
+    //boolean conflict check
+    var unsavedChanges = false;
+
+    // merge info array: 
+    var mergedTable = [];
+
+    //Get the row data from the Jinja template object "rows"
+    var rowData = {{ rows | safe }};
+    // console.log(rowData);
+
+
+    var rowLength = rowData.length;
+
+    var headers = {{ header | safe }};
+    var headerLength = headers.length;
+
+
+    //current spreadsheet name    
+    var thisSheet = '{{spreadsheet_name | safe}}';
+    // console.log("thisSheet is: " + thisSheet);
+
+    //Build the table row data with field names
+    var tableData = [];
+    var testTableData = [];
+    var previousData = [];
+
+
+
+    //get saved table data, compare to current table:
+    for (var i = 0; i < rowLength; i++) {
+        var rowObj = { id: i }
+        for (var j = 0; j < headerLength; j++) {
+            rowObj[headers[j]] = rowData[i][headers[j]];
+            //replace & and =
+            if (rowObj[headers[j]] !== null) {
+                rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');
+            }
+
+        }
+        testTableData.push(rowObj);
+    }
+
+    //check for #saveMessage after location.reload:
+    var showSaveMessageMessage = "";
+    if (localStorage.getItem("showSaveMessage" + thisSheet) !== null) {
+        showSaveMessageMessage = localStorage.getItem("showSaveMessage" + thisSheet);
+        // console.log("showSaveMessageMessage is: " + showSaveMessageMessage);
+        $('#saveAlert').removeClass('alert-danger');
+        $('#saveAlert').addClass('alert-success');
+        $("#saveMessage").text(showSaveMessageMessage);
+        // $("#saveMessage").text('Changes were saved successfully to the repository. ');
+        $("#saveAlert").dismissed = false;
+        $("#saveAlert").show();
+        showSaveMessageMessage = "";
+        localStorage.removeItem("showSaveMessage" + thisSheet);
+    } else {
+        //test:
+        // localStorage.setItem("showSaveMessage" + thisSheet, "hello"); //works!
+    }
+
+    //todo: save login name as well as sheet name?.
+    var previousTableData = localStorage.getItem("savedTableData" + thisSheet);
+    if (JSON.stringify(testTableData) === previousTableData) {
+        //console.log("SAME SAME");
+    } else {
+        try {
+            unsavedChanges = true;
+            // console.log("NOT SAME WHY?");
+            var changesArray = [];
+            //check saved changes array
+            if (window.localStorage.getItem("savedChanges" + thisSheet) !== null) {
+                var previousChangeData = window.localStorage.getItem("savedChanges" + thisSheet);
+                // console.log("previousChangeData is: " + previousChangeData); //just checking.
+                changesArray = JSON.parse(previousChangeData);
+                unsavedChanges = true;
+                if (changesArray.length < 3) { //savedChanges not correct format or empty
+                    window.localStorage.removeItem("savedChanges" + thisSheet);
+                    unsavedChanges = false;
+                }
+            } else { //no saved changes, don't look for them later
+                // console.log("savedChanges missing");
+                unsavedChanges = false;
+                //remove previous table array
+                window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
+            }
+            var changesLength = changesArray.length / 3;
+            var changeWorkingOn = 0;
+        } catch (err) {
+            console.log(err);
+            unsavedChanges = true;
+        }
+    }
+
+    // unsavedChanges = false; //un-comment this line to disable restoring backup functionality. 
+
+    //restore unsaved changes if needed:
+    try {
+        if (unsavedChanges) {
+            // console.log("changesArray is: " + changesArray);
+            //build array of data which will be replaced: 
+            var tableChangedArray = [];
+            for (var i = 0; i < rowLength; i++) {
+                var rowObj = { id: i };
+                for (var j = 0; j < headerLength; j++) {
+                    //every cell here
+                    for (var a = 0; a < changesArray.length; a += 3) {
+                        if (i == changesArray[a + 1] && headers[j] == changesArray[a + 2]) {
+                            // console.log("cell to change is: " + testTableData[i][changesArray[a + 2]]);
+                            // console.log("cell replacing is: " + changesArray[a]);
+                            tableChangedArray.push(testTableData[i][changesArray[a + 2]]); //correct now
+                            tableChangedArray.push(changesArray[a + 1]); //row
+                            tableChangedArray.push(changesArray[a + 2]); //column                            
+                        }
+                    }
+                }
+            }
+
+            // console.log("tableChangedArray complete is: " + tableChangedArray); //correct
+
+            var changedMessage = "";
+            for (var i = 0; i < changesArray.length; i += 3) {
+                //do a check first!
+                for (var j = 0; j < tableChangedArray.length; j += 3) {
+                    if (tableChangedArray[j + 1] == changesArray[i + 1] && tableChangedArray[j + 2] == changesArray[i + 2]) {
+                        if (tableChangedArray[j] === changesArray[i]) {
+                            //don't display values where they are the same? TODO: Why are they the same?
+                        } else {
+                            if (tableChangedArray[j] == "null" || tableChangedArray[j] == undefined) {
+                                changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + "\"\"" + "=>" + changesArray[i] + "\n";
+                            } else {
+                                changedMessage += "Row " + changesArray[i + 1] + ", " + changesArray[i + 2] + ": " + tableChangedArray[j] + "=>" + changesArray[i] + "\n";
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            if (confirm("You have previously unsaved changes \n Press 'OK' to keep them. \n" + changedMessage)) {
+                //unsavedChanges code here, plus save at end
+                //console.log("confirmed");
+                //Restoring entire array:
+                var newRowLength = previousTableData.length / headerLength;
+                //console.log(newRowLength);
+                tableData = JSON.parse(previousTableData); //todo: this doesn't take into account changes made on the server!
+                //todo: below needs to block, but we want a bootbox style which is asynchronous?
+                alert("Restored data is not permanent. \n Press save to keep your changes or they will be lost! \n Some functionality is disabled until you save");
+                window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+                $('#save-btn').show();
+                //todo: save automatically? Keep the changes? Add to change array instead of dealing with it now?
+                //generate suggestions - todo: this is based on server version of table for now - data could be incorrect
+                for (var i = 0; i < rowLength; i++) {
+                    var rowObj = { id: i }
+                    for (var j = 0; j < headerLength; j++) {
+                        //add to suggestValuesArray:
+                        if (headers[j] == "Label") {
+                            addToSuggestions(rowData[i][headers[j]]);
+                        }
+                    }
+                }
+            } else {
+                //discard changes 
+                populateTable();
+                window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+            }
+
+        } else {
+            //no saved change
+
+            populateTable();
+            //check for duplicates: 
+            const yourArrayWithoutDuplicates = [...new Set(labelSuggestions)]
+            let duplicates = [...labelSuggestions]
+            yourArrayWithoutDuplicates.forEach((item) => {
+                const i = duplicates.indexOf(item)
+                duplicates = duplicates
+                    .slice(0, i)
+                    .concat(duplicates.slice(i + 1, duplicates.length))
+            })
+
+            // console.log("duplicates: " + duplicates) 
+        }
+    } catch (err) {
+        // alert("an error occurred, unable to restore unsaved changes\n" + err);
+        window.localStorage.removeItem("savedChanges" + thisSheet); //remove change array
+        //still build table, but losing changes on error, without any error message. 
+        populateTable();
+    }
+
+    function populateTable() {
+        for (var i = 0; i < rowLength; i++) {
+            var rowObj = { id: i }
+            for (var j = 0; j < headerLength; j++) {
+                //add to suggestValuesArray:
+                if (headers[j] == "Label") {
+                    addToSuggestions(rowData[i][headers[j]]);
+                }
+                rowObj[headers[j]] = rowData[i][headers[j]];
+                //replace & and =
+                if (rowObj[headers[j]] !== null) {
+                    rowObj[headers[j]] = rowObj[headers[j]].toString().replaceAll('&', 'and');
+                }
+                //trying to set null values to 0 in checkbox columns here:
+                if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
+                    if (rowObj[headers[j]] == null) {
+                        rowObj[headers[j]] = 0;
+                    }
+                    /////////////////////fix E-CigO removing ticks///////////////////////
+                    if (rowObj[headers[j]] == 1) {
+                        rowObj[headers[j]] = 1;
+                    }
+                    ////////////////////////////////////////////////////////////////////
+                } else {
+                    if (rowObj[headers[j]] == null) {
+                        rowObj[headers[j]] = ""; //change all null to ""
+                    }
+                }
+                //All rows with empty IDs --> not external. 
+                //Rows with AddictO IDs in AddictO repo or BCIO IDs in BCIO repo --> not external. 
+                //Only rows with  non-empty IDs, that are not matching the project ID template, are external.
+                //adding "External" status:
+                if (headers[j] == curation_status) { //column
+                    // console.log("repo_name is: " + repo_name);
+                    if (rowObj["ID"] == undefined) {
+                        //no "ID" column
+                    } else {
+                        if (rowObj["ID"] == "" || rowObj["ID"] == null) {
+                            //not External
+                        } else {
+                            //different repo's: 
+                            if (repo_name == "BCIO") {
+                                //todo: is there no change for "" and null here as well? 
+                                if (rowObj["ID"].includes("BCIO")) {
+                                    //not external
+                                } else {
+                                    rowObj[headers[j]] = "External";
+                                }
+                            } else { //"AddictO repo"
+                                if (rowObj["ID"].includes("ADDICTO")) {
+                                    //not external
+                                } else {
+                                    rowObj[headers[j]] = "External";
+                                }
+                            }
+                        }
+                    }
+
+
+                }
+            }
+            tableData.push(rowObj);
+        }
+    }
+
+
+
+    //login
+    var loginInitials = "{{user_initials}}";
+    var highlightLogin = false; //highlight user edited tables
+
+    //all_initials
+    var allInitials = {{ all_initials | safe }};
+    // console.log("allInitials: " + allInitials);
+
+    // save changes
+    var tableEdited = false; //true when user has unsaved changes - for exit without saving warning
+
+    //row value, keep track of where we are:
+    var rowValue = 0;
+    var columnValue = 0; //why doesn't tabulator have this
+
+    //header menu:
+    //define row context menu
+    var headerMenu = [
+        {
+            label: "Hide Column",
+            action: function (e, column) {
+                column.hide();
+            }
+        },
+        {
+            label: "Show Hidden",
+            action: function (e, column) {
+                var allColumns = table.getColumns();
+                for (var i = 0; i < allColumns.length; i++) {
+                    if (!table.getColumn(allColumns[i]).isVisible()) {
+                        table.getColumn(allColumns[i]).show();
+                    }
+                }
+            }
+        },
+        {
+            label: "Reset All Column Widths",
+            action: function (e, column) {
+                var allColumns = table.getColumns();
+                for (var i = 1; i < allColumns.length; i++) { //don't re-size checkbox column (column 0)
+                    //"E-CigO" and "Fuzzy set" are a different size
+                    if (table.getColumn(allColumns[i]).getField() == "E-CigO" || table.getColumn(allColumns[i]).getField() == "Fuzzy set") {
+                        table.getColumn(allColumns[i]).setWidth(140);
+                    } else {
+                        table.getColumn(allColumns[i]).setWidth(200);
+                    }
+                }
+            }
+        },
+    ]
+
+
+    //Build array for autocompleting "Parent" column: 
+
+    //extend Tabulator with new Autocomplete module: 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    Tabulator.prototype.extendModule("edit", "editors", {
+        autocompleteREL: function (cell, onRendered, success, cancel, editorParams) {
+            var self = this,
+                cellEl = cell.getElement(),
+                initialValue = cell.getValue(), //original version all cell
+                vertNav = editorParams.verticalNavigation || "editor",
+                initialDisplayValue = typeof initialValue !== "undefined" || initialValue === null ? initialValue : (typeof editorParams.defaultValue !== "undefined" ? editorParams.defaultValue : ""),
+                input = document.createElement("textarea"), //was input, changed to textarea - is it really this easy?
+                listEl = document.createElement("div"),
+                allItems = [],
+                displayItems = [],
+                values = [],
+                currentItem = false,
+                blurable = true,
+                uniqueColumnValues = false;
+
+            //style input
+            input.setAttribute("type", "search");
+            input.style.padding = "4px";
+            input.style.width = "100%";
+            input.style.height = "100%";
+
+
+            input.style.boxSizing = "border-box";
+            input.style.whiteSpace = "pre-wrap";
+            input.style.resize = "none";
+
+
+            if (editorParams.elementAttributes && typeof editorParams.elementAttributes == "object") {
+                for (let key in editorParams.elementAttributes) {
+                    if (key.charAt(0) == "+") {
+                        key = key.slice(1);
+                        input.setAttribute(key, input.getAttribute(key) + editorParams.elementAttributes["+" + key]);
+                    } else {
+                        input.setAttribute(key, editorParams.elementAttributes[key]);
+                    }
+                }
+            }
+
+            //style list element
+            listEl.classList.add("tabulator-edit-select-list");
+
+            listEl.addEventListener("mousedown", function (e) {
+                blurable = false;
+
+                setTimeout(function () {
+                    blurable = true;
+                }, 10);
+            });
+
+
+            function genUniqueColumnValues() {
+                if (editorParams.values === true) {
+                    uniqueColumnValues = getUniqueColumnValues();
+                } else if (typeof editorParams.values === "string") {
+                    uniqueColumnValues = getUniqueColumnValues(editorParams.values);
+                }
+            }
+
+            function getUniqueColumnValues(field) {
+                var output = {},
+                    data = self.table.getData(),
+                    column;
+
+                if (field) {
+                    column = self.table.columnManager.getColumnByField(field);
+                } else {
+                    column = cell.getColumn()._getSelf();
+                }
+
+                if (column) {
+                    data.forEach(function (row) {
+                        var val = column.getFieldValue(row);
+
+                        if (val !== null && typeof val !== "undefined" && val !== "") {
+                            output[val] = true;
+                        }
+                    });
+
+                    if (editorParams.sortValuesList) {
+                        if (editorParams.sortValuesList == "asc") {
+                            output = Object.keys(output).sort();
+                        } else {
+                            output = Object.keys(output).sort().reverse();
+                        }
+                    } else {
+                        output = Object.keys(output);
+                    }
+                } else {
+                    console.warn("unable to find matching column to create autocomplete lookup list:", field);
+                }
+
+
+                return output;
+            }
+
+            function filterList(term, intialLoad) {
+                //only last value after ";":
+                term = term.split(";").pop();
+                var matches = [],
+                    values, items, searchEl;
+
+                //lookup base values list
+                if (uniqueColumnValues) {
+                    values = uniqueColumnValues;
+                } else {
+                    values = editorParams.values || [];
+                }
+
+                if (editorParams.searchFunc) {
+                    matches = editorParams.searchFunc(term, values);
+
+                    if (matches instanceof Promise) {
+
+                        addNotice(typeof editorParams.searchingPlaceholder !== "undefined" ? editorParams.searchingPlaceholder : "Searching...");
+
+                        matches.then((result) => {
+                            fillListIfNotEmpty(parseItems(result), intialLoad);
+                        }).catch((err) => {
+                            console.err("error in autocomplete search promise:", err);
+                        });
+
+                    } else {
+                        fillListIfNotEmpty(parseItems(matches), intialLoad);
+                    }
+                } else {
+                    items = parseItems(values);
+
+                    if (term === "") {
+                        if (editorParams.showListOnEmpty) {
+                            matches = items;
+                        }
+                    } else {
+                        items.forEach(function (item) {
+                            if (item.value !== null || typeof item.value !== "undefined") {
+                                if (String(item.value).toLowerCase().indexOf(String(term).toLowerCase()) > -1 || String(item.title).toLowerCase().indexOf(String(term).toLowerCase()) > -1) {
+                                    matches.push(item);
+                                }
+                            }
+                        });
+                    }
+
+                    fillListIfNotEmpty(matches, intialLoad);
+                }
+            }
+
+            function addNotice(notice) {
+                var searchEl = document.createElement("div");
+
+                clearList();
+
+                if (notice !== false) {
+                    searchEl.classList.add("tabulator-edit-select-list-notice");
+                    searchEl.tabIndex = 0;
+
+                    if (notice instanceof Node) {
+                        searchEl.appendChild(notice);
+                    } else {
+                        searchEl.innerHTML = notice;
+                    }
+
+                    listEl.appendChild(searchEl);
+                }
+            }
+
+            function parseItems(inputValues) {
+                var itemList = [];
+
+                if (Array.isArray(inputValues)) {
+                    inputValues.forEach(function (value) {
+                        if (value == null) {
+                            //console.log("gotcha null!");
+                        } else {
+                            var item = {};
+
+                            if (typeof value === "object") {
+                                item.title = editorParams.listItemFormatter ? editorParams.listItemFormatter(value.value, value.label) : value.label;
+                                item.value = value.value;
+                            } else {
+                                item.title = editorParams.listItemFormatter ? editorParams.listItemFormatter(value, value) : value;
+                                item.value = value;
+                            }
+
+                            itemList.push(item);
+                        }
+                    });
+                } else {
+                    for (var key in inputValues) {
+                        var item = {
+                            title: editorParams.listItemFormatter ? editorParams.listItemFormatter(key, inputValues[key]) : inputValues[key],
+                            value: key,
+                        };
+
+                        itemList.push(item);
+                    }
+                }
+
+                return itemList;
+            }
+
+            function clearList() {
+                while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+            }
+
+            function fillListIfNotEmpty(items, intialLoad) {
+                if (items.length) {
+                    fillList(items, intialLoad);
+                } else {
+                    if (editorParams.emptyPlaceholder) {
+                        addNotice(editorParams.emptyPlaceholder);
+                    }
+                }
+            }
+
+            function fillList(items, intialLoad) {
+                var current = false;
+
+                clearList();
+
+                displayItems = items;
+
+                displayItems.forEach(function (item) {
+                    var el = item.element;
+
+                    if (!el) {
+                        el = document.createElement("div");
+                        el.classList.add("tabulator-edit-select-list-item");
+                        el.tabIndex = 0;
+                        el.innerHTML = item.title;
+
+                        el.addEventListener("click", function (e) {
+                            setCurrentItem(item);
+                            chooseItem();
+                        });
+
+                        el.addEventListener("mousedown", function (e) {
+                            blurable = false;
+
+                            setTimeout(function () {
+                                blurable = true;
+                            }, 10);
+                        });
+
+                        item.element = el;
+
+                        if (intialLoad && item.value == initialValue.split(";").pop()) {
+                            // if (intialLoad && item.value == initialValue) {
+                            input.value = item.title;
+                            item.element.classList.add("active");
+                            current = true;
+                        }
+
+                        if (item === currentItem) {
+                            item.element.classList.add("active");
+                            current = true;
+                        }
+                    }
+
+                    listEl.appendChild(el);
+                });
+
+                if (!current) {
+                    setCurrentItem(false);
+                }
+            }
+
+            function chooseItem() {
+                hideList();
+
+                if (currentItem) {
+                    if (initialValue.split(";").pop() !== currentItem.value) {
+                        initialValue = currentItem.value; //original
+                        splitIndex = input.value.lastIndexOf(";");
+                        if (input.value.substring(0, splitIndex).trim() === "") { //first value
+                            result = initialValue; // + ";"; //changed to no ";" at end
+                        } else { // all other values 
+                            result = input.value.substring(0, splitIndex) + "; " + initialValue; // + ";"; //changed to no ";" at end
+                        }
+                        success(result); // value goes here!
+                    } else {
+                        cancel();
+                    }
+                } else {
+                    if (editorParams.freetext) {
+                        initialValue = input.value;
+                        success(input.value);
+                    } else {
+                        if (editorParams.allowEmpty && input.value === "") {
+                            initialValue = input.value;
+                            success(input.value);
+                        } else {
+                            cancel();
+                        }
+                    }
+                }
+            }
+
+            function showList() {
+                if (!listEl.parentNode) {
+
+                    //console.log("show", initialDisplayValue)
+                    while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+
+                    var offset = Tabulator.prototype.helpers.elOffset(cellEl);
+
+                    listEl.style.minWidth = cellEl.offsetWidth + "px";
+
+                    listEl.style.top = (offset.top + cellEl.offsetHeight) + "px";
+                    listEl.style.left = offset.left + "px";
+                    document.body.appendChild(listEl);
+                }
+            }
+
+            function setCurrentItem(item, showInputValue) {
+                if (currentItem && currentItem.element) {
+                    currentItem.element.classList.remove("active");
+                }
+
+                currentItem = item;
+
+                if (item && item.element) {
+                    item.element.classList.add("active");
+                }
+
+                if (item && item.element && item.element.scrollIntoView) {
+                    item.element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                }
+            }
+
+            function hideList() {
+                if (listEl.parentNode) {
+                    listEl.parentNode.removeChild(listEl);
+                }
+
+                removeScrollListener();
+            }
+
+
+            function cancelItem() {
+                hideList();
+                cancel();
+            }
+
+            function removeScrollListener() {
+                self.table.rowManager.element.removeEventListener("scroll", cancelItem);
+            }
+
+            //allow key based navigation
+            input.addEventListener("keydown", function (e) {
+                var index;
+
+                switch (e.keyCode) {
+                    case 38: //up arrow
+                        index = displayItems.indexOf(currentItem);
+
+                        if (vertNav == "editor" || (vertNav == "hybrid" && index)) {
+                            e.stopImmediatePropagation();
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            if (index > 0) {
+                                setCurrentItem(displayItems[index - 1]);
+                            } else {
+                                setCurrentItem(false);
+                            }
+                        }
+                        break;
+
+                    case 40: //down arrow
+
+                        index = displayItems.indexOf(currentItem);
+
+                        if (vertNav == "editor" || (vertNav == "hybrid" && index < displayItems.length - 1)) {
+
+                            e.stopImmediatePropagation();
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            if (index < displayItems.length - 1) {
+                                if (index == -1) {
+                                    setCurrentItem(displayItems[0]);
+                                } else {
+                                    setCurrentItem(displayItems[index + 1]);
+                                }
+                            }
+                        }
+                        break;
+
+
+                    case 37: //left arrow
+                    case 39: //right arrow
+                        e.stopImmediatePropagation();
+                        e.stopPropagation();
+                        // e.preventDefault();
+                        break;
+
+                    case 13: //enter
+                        chooseItem();
+                        break;
+
+                    case 27: //escape
+                        cancelItem();
+                        break;
+
+                    case 36: //home
+                    case 35: //end
+                        //prevent table navigation while using input element
+                        e.stopImmediatePropagation();
+                        break;
+                }
+            });
+
+            input.addEventListener("keyup", function (e) {
+
+                switch (e.keyCode) {
+                    case 38: //up arrow
+                    case 37: //left arrow
+                    case 39: //up arrow
+                    case 40: //right arrow
+                    case 13: //enter
+                    case 27: //escape
+                        break;
+
+                    default:
+                        filterList(input.value);
+                }
+
+            });
+
+            input.addEventListener("search", function (e) {
+                filterList(input.value);
+            });
+
+            input.addEventListener("blur", function (e) {
+                if (blurable) {
+                    chooseItem();
+                }
+            });
+
+            input.addEventListener("focus", function (e) {
+                var value = initialDisplayValue;
+                genUniqueColumnValues();
+                showList();
+                input.value = value;
+                filterList(value, true);
+            });
+
+
+            onRendered(function () {
+                input.style.height = "100%";
+                input.focus({ preventScroll: true });
+                input.scrollHeight;
+                input.style.height = input.scrollHeight + "px";
+                cell.getRow().normalizeHeight();
+            });
+
+            if (editorParams.mask) {
+                this.table.modules.edit.maskInput(input, editorParams);
+            }
+
+            setTimeout(() => {
+                this.table.rowManager.element.addEventListener("scroll", cancelItem);
+            }, 10);
+
+            genUniqueColumnValues();
+            input.value = initialDisplayValue;
+            filterList(initialDisplayValue, true);
+
+            return input;
+        }
+
+    });
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    function addToSuggestions(suggestion) {
+        // labelSuggestions.push(suggestion); //original backup
+        // suggestValuesArray.push(suggestion); //to change
+        if (suggestion !== null) {
+            var checkDuplicate = false;
+            for (v in labelSuggestions) {
+                if (labelSuggestions[v] === suggestion) {
+                    checkDuplicate = true;
+                }
+            }
+            if (!checkDuplicate) {
+                labelSuggestions.push(suggestion);
+            }
+            suggestValuesArray = labelSuggestions.slice(); //update current suggestions
+        }
+    }
+
+
+    //Build the column data from the Jinja template object "header"
+    var columnData = []; //Start with an empty array
+    //checkbox row selector on the side:
+    columnData.push({ title: "Selector", formatter: "rowSelection", titleFormatter: "rowSelection", width: "50", hozAlign: "center", headerSort: false, frozen: true });
+    for (var i = 0; i < headerLength; i++) {
+        //Dropdown list for "Curation status":
+        if (headers[i] == "Curation status") {
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        } else if (headers[i] == "E-CigO") {
+            columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
+        } else if (headers[i] == "Fuzzy set") {
+            columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
+        }
+        else if (headers[i] == "To be reviewed by") {
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        } else if (headers[i] == "Parent") {
+            //  columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        } else if (headers[i].includes("REL")) {
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        } else {
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+        }
+    }
+
+
+    function getDropdown(cell) {
+        return (allInitials);
+    }
+    //Create the Tabulator table:
+    var table = new Tabulator("#contentTable", {
+        groupToggleElement: "header",
+        height: window.innerHeight / 3 * 2,
+        layout: "fitColumns",
+        // pagination:"local",
+        // paginationSize:"20",
+        movableRows: false,
+        groupBy: "Id",
+        groupStartOpen: true,
+        persistence: true,
+        keybindings: true,
+        history: true, //records table interaction
+        data: tableData,
+        columns: columnData,
+        reactiveData: true, //enables updating cell contents programmatically
+        virtualDomBuffer: 1500, //may be needed to fix bug where up scroll is disappearing rows
+        scrollToRowPosition: "bottom", //for scrollToRow()
+        scrollToRowIfVisible: false, //don't scroll if row already on screen
+
+        //tooltips for validate:
+        tooltips: true,
+        tooltipGenerationMode: "hover", //update on hover
+        tooltips: function (cell) {
+            var tooltipMsg = "ERROR - validation failed";
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                if (cell == validateErrorMessages[i]) {
+                    tooltipMsg = validateErrorMessages[i + 1]; // + (i / 2 + 1); // "+ i" just for testing
+                }
+            }
+            if (cell.getElement().style.backgroundColor == 'red') {
+                //function should return a string for the tooltip of false to hide the tooltip
+                return tooltipMsg;
+            } else {
+                return false;
+            }
+        },
+
+        dataSorting: function (sorters) {
+            //console.log("sorted");
+            //sorters - an array of the sorters currently applied
+        },
+        //called when table rendered or re-drawn:
+        tableBuilt: function () {
+
+        },
+        renderStarted: function () {
+            // console.log("renderStarted");
+        },
+
+        renderComplete: function () {
+
+        },
+
+        columnResized: function (column) {
+            //console.log("resized"); //not triggering on hide, show column dropdown
+        },
+
+        rowSelected: function (row) {
+            var data = row.getData();
+            //show buttons concerning rows:
+            $('#delete-rows').show();
+            if (data['ID'] === undefined) { //for tables without ID
+            } else {
+                $('#visualise-selection').show(); //only for tables with ID column
+                $('#visualise-selection-multiselect').show();            
+            }
+            if (data[curation_status] === undefined) { //for tables without curation_status
+                //don't show some buttons if in a table where they are not needed
+            } else {
+                //show buttons to do with rows and curation status
+                $('#ask-for-review').show();
+                $('#reviewed').show();
+            }
+            rowValue = row.getPosition(true);
+        },
+
+        rowDeselected: function (row) {
+            var data = row.getData();
+            var selectedRows = table.getSelectedRows();
+            if (selectedRows.length > 0) {
+                //some rows still selected, do nothing
+            } else {
+                //no rows still selected, hide buttons to do with rows
+                $('#delete-rows').hide();
+                $('#ask-for-review').hide();
+                $('#reviewed').hide();
+                $('#visualise-selection').hide();
+                $('#visualise-selection-multiselect').hide();
+            }
+            //re-do styling
+            if (data[curation_status] === undefined) { //for tables without curation_status
+                //don't show some buttons if in a table where they are not needed
+            } else {
+                if (data[curation_status] !== null) {
+                    rowColours(row, data);
+                }
+            }
+            rowValue = row.getPosition(true);
+        },
+
+        rowSelectionChanged: function (data, rows) {
+
+            if (table) {
+                //console.log("highlighting now");
+                for (var r in table.getRows()) {
+                    if (table.getRow(r)) { //don't try to check for deleted rows!
+                        var row3 = table.getRow(r);
+                        var data3 = row3.getData();
+                        if (data3[curation_status] === undefined) { //for tables without curation_status
+
+                        } else {
+                            if (data3[curation_status] !== null) {
+                                rowColours(row3, data3);
+                            }
+                        }
+                    }
+                }
+            }
+            // console.log("ROW SELECTION CHANGED");
+            if (rows.length == 0) {
+                $('#delete-rows').hide();
+                $('#ask-for-review').hide();
+                $('#reviewed').hide();
+                $('#visualise-selection').hide();
+                $('#visualise-selection-multiselect').hide();
+                $('#generate-identifier').hide();
+            } else {
+                $('#delete-rows').show();
+                var showGenerateIdentifier = false;
+                for (r in rows) {
+                    var rowData = rows[r].getData();
+                    //show buttons concerning rows:
+                    $('#delete-rows').show();
+                    if (rowData['ID'] === undefined) { //for tables without ID
+                    } else {
+                        $('#visualise-selection').show(); //only for tables with ID column
+                        $('#visualise-selection-multiselect').show();
+                        if (rowData['ID'] === null || rowData['ID'].trim() === "") {
+                            //has no ID but has Label, Definition and Parent:
+                            if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
+                                showGenerateIdentifier = true;
+                            }
+                        }
+                    }
+                    if (rowData[curation_status] === undefined) { //for tables without curation_status
+                        //don't show some buttons if in a table where they are not needed
+                    } else {
+                        //show buttons to do with rows and curation status
+                        $('#ask-for-review').show();
+                        $('#reviewed').show();
+                    }
+                }
+            }
+            if (showGenerateIdentifier) {
+                $('#generate-identifier').show();
+            } else {
+                $('#generate-identifier').hide();
+            }
+
+        },
+
+        cellClick: function (e, cell) {
+            //WARNING: THIS DOES NOT TRIGGER ON FIREFOX!
+            var row = cell.getRow();
+            var data = row.getData();
+        },
+
+        cellEditing: function (cell) {
+            var row = cell.getRow();
+            rowValue = row.getPosition(true);
+            var data = row.getData();
+            var column = cell.getColumn(); //todo: this is column object!
+
+            // console.log("editing row: " + rowValue);
+            // console.log("editing column: " + column.getDefinition().title.toLowerCase().replace(/\s+/g, ''));
+            //save backup curation status if "Curation status" column present: 
+            //todo: this may be inaccurate, saving all sorts of things
+            if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+                    prevCurationStatus = cell.getValue();
+                    // console.log("PREV CURATION STATUS IS: " + prevCurationStatus)
+                }
+            }
+            //change suggestion to remove this row:
+            var parent = "Parent";
+            if (data["Label"] !== undefined) { //if we have a "Label" column
+
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(parent.toLowerCase().replace(/\s+/g, '')) !== -1) {
+                    //console.log("Parent column");
+                    //todo: big error after this with AddictO_Not_yet_classified_Defs.xlsx
+                    //unable to edit "Parent" column. Fix!!
+                    for (v in suggestValuesArray) {
+                        if (suggestValuesArray[v] === data["Label"]) {
+                            table.blockRedraw();
+                            // console.log("found match: " + suggestValuesArray[v]);
+                            suggestValuesArray.splice(v, 1); //remove for now
+                            // console.log("removing row: " + v + ", data: " + data["Label"]);
+                            // console.log(suggestValuesArray);
+                            column.getDefinition().editorParams.values = suggestValuesArray;
+                            table.restoreRedraw();
+                            table.redraw();
+                            suggestValuesArray = labelSuggestions.slice(); //restore original array
+                        }
+                    }
+                }
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').includes("rel")) {
+                    //console.log("REL column");
+
+                    for (v in suggestValuesArray) {
+                        if (suggestValuesArray[v] === data["Label"]) {
+                            table.blockRedraw();
+                            // console.log("found match: " + suggestValuesArray[v]);
+                            suggestValuesArray.splice(v, 1); //remove for now
+                            // console.log("removing row: " + v + ", data: " + data["Label"]);
+                            // console.log(suggestValuesArray);
+                            column.getDefinition().editorParams.values = suggestValuesArray;
+                            table.restoreRedraw();
+                            table.redraw();
+                            suggestValuesArray = labelSuggestions.slice(); //restore original array
+                        }
+                    }
+                }
+            }
+        },
+
+
+        cellEdited: function (cell) {
+            suggestValuesArray = labelSuggestions.slice(); //restore original suggestions array
+            cell.getElement().style.color = "#003399"; //change text colour on edited
+            var row = cell.getRow();
+            var data = row.getData();
+            var column = cell.getColumn();
+            // console.log("cellEdited: " + cell.getValue() + ", " + row.getPosition() + ", " + column.getDefinition().title);
+            // console.log("cellEdited column is: " + column.getDefinition().title);
+
+
+            //save changed cell data:
+            //{value, row, columnName}
+            if (cell.getValue() !== "" && cell.getValue() !== null) {
+                cellValue = cell.getValue();
+                rowValue = row.getPosition();//save absolute row position
+                columnValue = cell.getField(); //column name
+                updateChanges(cellValue, rowValue, columnValue);
+                /*
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for (var i = 0; i < changes.length; i++) {
+                    if (rowValue == changes[i]) { //matches row number
+                        if (columnValue == changes[i + 1]) { //matches column name as well
+                            console.log("already edited this field");
+                            changes.splice(i - 1, 3, cell.getValue(), rowValue, columnValue);
+                            alreadyChanged = true;
+                        }
+                    }
+                }
+                if (!alreadyChanged) {
+                    changes.push(cell.getValue());
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                }
+                */
+            }
+            //update suggestions:
+            var labelLabel = "Label"
+            if (data["Label"] === undefined) { //no label column
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(labelLabel.toLowerCase()) !== -1) {
+                    if (cell.getValue() !== "") {
+                        addToSuggestions(cell.getValue());
+                        //console.log("adding " + cell.getValue() + " to suggestions");
+                    }
+                }
+            }
+            //update highlighting:
+            if (data[curation_status] === undefined) {
+
+            } else {
+                //re-do styling
+                if (data[curation_status] !== null) {
+                    rowColours(row, data);
+                }
+
+                //override for "External" Curation status:
+                //If "ID" changed to "ADDICTO" or "BCIO" (in corresponding repo), "Curation status" must be set to "Proposed"
+                if (cell.getValue() !== "" && cell.getValue() !== null) {
+                    rowValue = row.getPosition();//save absolute row position
+                    columnValue = cell.getField(); //column name
+                    if (cell.getValue().includes(repo_name.toUpperCase())) {
+                        if (data[curation_status] == "External") { //
+                            data[curation_status] = "Proposed"; //change "External" to "Proposed", but don't change any other status to "Proposed" (for eg if just editing)
+                        }
+                    }
+                }
+                if (data["ID"] == undefined) {
+                    //no "ID" column
+                } else {
+                    if (data["ID"] == "" || data["ID"] == null) {
+                        //not External
+                    } else {
+                        //different repo's: 
+                        if (repo_name == "BCIO") {
+                            if (data["ID"].includes("BCIO")) {
+                                //not external
+                            } else {
+                                data[curation_status] = "External";
+                            }
+                        } else { //"AddictO repo"
+                            if (data["ID"].includes("ADDICTO")) {
+                                //not external
+                            } else {
+                                data[curation_status] = "External";
+                            }
+                        }
+                    }
+                }
+            }
+
+            //if a field in any column except "Curator" edited
+            //check "Curator" column for loginInitials and auto fill
+            if (cell.getValue() !== "" && cell.getValue() !== null) {
+                if (data[curator] === undefined) { //curator column not present in table
+
+                } else {
+                    if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curator.toLowerCase()) == -1) {
+                        if (cell.getValue() !== "") { //stop saving curator when cell is empty - still saves if there are spaces... not an issue?
+                            if (data[curator] !== null && data[curator] !== "") {
+                                var prevCurator = data[curator];
+                                var nameCheck = prevCurator.indexOf(loginInitials);
+                                if (nameCheck > -1) {
+                                    //name exists, don't update
+                                } else {
+                                    data[curator] = prevCurator + "; " + loginInitials;
+                                }
+                            } else {
+                                data[curator] = loginInitials;
+                            }
+                        } else {
+                            data[curator] = loginInitials;
+                        }
+                        //save curator column to local storage for backup here
+                        //{value, row, columnName}
+                        //data[curator], row.getPosition(), "Curator"
+                        if (data[curator] !== "" && data[curator] !== null) {
+                            cellValue = data[curator];
+                            rowValue = row.getPosition();//save absolute row position
+                            columnValue = "Curator"; //column name
+                            updateChanges(cellValue, rowValue, columnValue);
+                            /*
+                            var alreadyChanged = false;
+                            //check for previously edited cell, and overwrite if already changed before
+                            for (var i = 0; i < changes.length; i++) {
+                                if (rowValue == changes[i]) { //matches row number
+                                    if (columnValue == changes[i + 1]) { //matches column name as well
+                                        console.log("already edited this field");
+                                        changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                                        alreadyChanged = true;
+                                    }
+                                }
+                            }
+                            if (!alreadyChanged) {
+                                changes.push(data[curator]);
+                                changes.push(rowValue);
+                                changes.push(columnValue);
+                            }
+                            */
+                        }
+
+                        //text must be coloured if highlighting login set though..
+                        if (highlightLogin) {
+                            if (data[curator] !== null) {
+                                var curatorA = data[curator];
+                                if (curatorA !== null) {
+                                    var nameCheckA = curatorA.indexOf(loginInitials);
+                                    if (nameCheckA > -1) {
+                                        row.getElement().style.color = 'black';
+                                        row.getElement().style.fontWeight = 'bold';
+                                    }
+                                }
+                            }
+                        }
+                    } else { //if editing "Curator" column, text must be coloured if highlighting login set
+                        if (highlightLogin) {
+                            if (data[curator] !== null && data[curator] !== "") {
+                                var curatorB = data[curator];
+                                if (curatorB !== null) {
+                                    var nameCheckB = curatorB.indexOf(loginInitials);
+                                    if (nameCheckB > -1) {
+                                        row.getElement().style.color = 'black';
+                                        row.getElement().style.fontWeight = 'bold';
+                                    }
+                                }
+                            } else {
+                                row.getElement().style.color = 'black'; //change back to
+                            }
+                        }
+                    }
+                }
+            }
+
+            //If the user enters anything in the ‘Why fuzzy’ column automatically set the ‘Fuzzy set’ column to true
+            //todo: do we need to remove checkbox if user deletes their 'Why fuzzy' comment?
+            if (data[why_Fuzzy] === undefined) { //why Fuzzy column not present
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(whyFuzzy.toLowerCase()) !== -1) {
+                    if (cell.getValue() !== "") {
+                        if (data[why_Fuzzy] !== null && data[why_Fuzzy] !== "") {
+                            data[fuzzy_Set] = 1;
+                            //save Fuzzy set column to local storage for backup here
+                            //{value, row, columnName}
+                            //data[curator], row.getPosition(), "Curator"
+                            cellValue = 1;
+                            rowValue = row.getPosition();//save absolute row position
+                            columnValue = fuzzy_Set; //column name
+                            updateChanges(cellValue, rowValue, columnValue);
+                            /*
+                            var alreadyChanged = false;
+                            //check for previously edited cell, and overwrite if already changed before
+                            for (var i = 0; i < changes.length; i++) {
+                                if (rowValue == changes[i]) { //matches row number
+                                    if (fuzzy_Set == changes[i + 1]) { //matches column name as well
+                                        console.log("already edited this field");
+                                        changes.splice(i - 1, 3, 1, rowValue, fuzzy_Set);
+                                        alreadyChanged = true;
+                                    }
+                                }
+                            }
+                            if (!alreadyChanged) {
+                                changes.push(1);
+                                changes.push(rowValue);
+                                changes.push(fuzzy_Set);
+                            }
+                            */
+                        }
+                    }
+                }
+            }
+
+            // workflow (for "Curation status"): 
+            // 1. Can't change status to 'published' unless status is 'discussed' and that status has been saved
+            //      - if user tries to change status to 'published' but it was not in 'discussed', their change
+            //      should be reverted to whatever status it was before, and user should be shown a message saying that 
+            //      you can't change to 'published' without setting to 'discussed' first and saving that
+            // 2. Once in 'published', can't change status to anything but 'obsolete'. 
+            //      - if user tries to change status out of 'published' to anything else, their change should be 
+            //      reverted and a popup message says "are you sure" as if they are trying to delete it
+            // 3a. It shouldn't be possible to set curation status to Discussed if there are empty values 
+            //     in any of the Label, Definition, and Parent columns. 
+            //     These should all be populated before a row can go into Discussed. 
+            // 3b. And then an additional requirement for the Published status is that 
+            //     it's not possible to go to Published status without a value in the ID column. 
+
+
+
+            if (data[curation_status] === undefined) { //Curation status column not present in table
+
+            } else {
+                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').indexOf(curation_status.toLowerCase()) == -1) {
+                    // console.log(prevCurationStatus + " is now changed to " + cell.getValue()); //before and after values
+                    // console.log("column is: " + column.getDefinition().title);
+                    // 1.
+                    if (cell.getValue() == "Published") {
+                        var savedCellDiscussed = false; //for saved version "Discussed" status
+                        if (!tableEdited) { // error, only works once! todo: fix this
+                            savedCellDiscussed = true;
+                        } else {
+                            //need to check saved table to see if status for this row was "Discussed" or not: 
+                            //get column number programatically:
+                            var currentColumnNumber = headerLength - 2; //fallback, for now
+                            for (var i = 0; i < headerLength; i++) {
+                                if (headers[i] == curation_status) {
+                                    //console.log("reached correct column" + i);
+                                    currentColumnNumber = i;
+                                }
+                            }
+                            var dValue = "Proposed";
+                            // console.log("rowData.length : " + rowData.length + "and rowValue is: " + rowValue);
+                            //check for new row:                             
+                            if (rowValue >= rowData.length) {
+                                //console.log("rowData is undefined, must be new row?");
+                            } else {
+                                dValue = rowData[rowValue][headers[currentColumnNumber]];
+                            }
+
+                            if (dValue === "Discussed") {
+                                savedCellDiscussed = true;
+                            }
+                        }
+                        if (prevCurationStatus == "Discussed" && savedCellDiscussed) {
+                            //additional check for empty "ID" column here: 
+                            if (data["ID"] == null || data["ID"] == "") {
+                                bootbox.alert("'ID' needs to be set first");
+                                data[curation_status] = prevCurationStatus; //reverting here
+                                //revert to prevCurationStatus and send a message
+                            }
+                            // console.log("this is fine");
+                            //this is fine, allow it
+                        } else {
+                            bootbox.alert("You can't change to 'Published' without setting to 'Discussed' first and saving your change");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                            //revert to prevCurationStatus and send a message
+                        }
+                    }
+                    // 2. 
+                    if (prevCurationStatus == "Published") {
+                        if (cell.getValue() !== "Obsolete") {
+                            bootbox.alert("Not possible to change 'Published' to anything other than 'Obsolete'");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                            //revert to prevCurationStatus and send a message "are you sure?"
+                        } else {
+                            //console.log("this is fine");
+                            //this is fine, allow it
+                        }
+                    }
+                    //3. 
+                    //if setting to "Discussed"
+                    if (cell.getValue() == "Discussed" && prevCurationStatus !== "Discussed") { //prevCurationStatus !== "Discussed" to make sure we aren't just re-setting it somewhere else
+                        if (data["Label"] == null || data["Label"] == "" | data["Definition"] == null || data["Definition"] == "" | data["Parent"] == null || data["Parent"] == "") {
+                            bootbox.alert("'Label', 'Definition' and 'Parent' columns all need to be set first");
+                            data[curation_status] = prevCurationStatus; //reverting here
+                        } else {
+                            reloadTable = true; //todo: experimental - reload table after saving
+                            // console.log("All set. Label, Definition and Parent. Should be Discussed now");
+                            //this is fine, allow it
+                        }
+                    }
+                }
+            }
+
+            backupChanges();
+
+            //promise:
+            validate(cell, column.getDefinition().title, data, headers, table).done(function (message) {
+
+                // console.log("message: " + message);
+                if (message == 'success') { //no validation errors
+                    // console.log("validate true");
+                    //first remove all old validateErrorMessages for same rows:
+                    if (validateErrorMessages.length > 0) {
+                        var newValidateErrorMessages = [];
+                        var write = true;
+                        for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                            write = true;
+                            for (var j = 0; j < headerLength; j++) {
+                                if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
+                                    row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                                    write = false;
+                                }
+                            }
+                            if (write) {
+                                newValidateErrorMessages.push(validateErrorMessages[i]);
+                                newValidateErrorMessages.push(validateErrorMessages[i + 1]);
+                            }
+                        }
+                        validateErrorMessages = newValidateErrorMessages; //replace
+                        if ($("#validation-btns").is(":hidden")) {
+                            //console.log("HIDDEN");
+                        } else {
+                            //console.log("NOT HIDDEN");
+                            validateButtons();
+                            // $("#validation-btns").hide();
+                        }
+                    }
+
+                } else {
+                    var messageJSON = JSON.parse(message);
+
+                    //first remove all old validateErrorMessages for same rows:
+                    if (validateErrorMessages.length > 0) {
+                        var newValidateErrorMessages = [];
+                        var write = true;
+                        for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                            write = true;
+                            for (var j = 0; j < headerLength; j++) {
+                                if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
+                                    row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                                    write = false;
+                                }
+                            }
+                            if (write) {
+                                newValidateErrorMessages.push(validateErrorMessages[i]);
+                                newValidateErrorMessages.push(validateErrorMessages[i + 1]);
+                            }
+                        }
+                        validateErrorMessages = newValidateErrorMessages; //replace
+                    }
+
+                    function getOtherErrors(obj) {
+                        for (var k in obj) {
+                            if (k == "message") { //todo: what if there is a "message" column? 
+                            } else if (k == "values") {
+                                for (var v in obj[k]) {
+                                    //1. turn cell red
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
+                                    //2. add to validateErrorMessages array
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value should not be empty");
+                                }
+                            } else if (k == "unique") {
+                                for (var v in obj[k]) {
+                                    row.getCell(v).getElement().style.backgroundColor = 'red';
+                                    validateErrorMessages.push(row.getCell(v));
+                                    validateErrorMessages.push("Value is not unique");
+                                }
+                            }
+                        }
+                    };
+                    getOtherErrors(messageJSON);
+                    // console.log(validateErrorMessages);
+                    //check if we are dealing with validation errors:
+                    if ($("#validation-btns").is(":hidden")) {
+                        //console.log("HIDDEN");
+                    } else {
+                        //console.log("NOT HIDDEN");
+                        validateButtons();
+                    }
+                }
+            });
+
+        },
+
+        cellEditCancelled: function (cell) {
+
+        },
+
+        dataChanged: function (data) {
+            tableEdited = true;
+            $('#save-btn').show();
+        },
+
+        //highlight on load table:
+        rowFormatter: function (row) {
+            var data = row.getData();
+
+            //hide unimportant buttons until rows selected:
+            $('#delete-rows').hide();
+            $('#ask-for-review').hide();
+            $('#reviewed').hide();
+            $('#updates').hide();
+            $('#visualise-selection').hide();
+            $('#visualise-selection-multiselect').hide();
+            $('#visualise-sheet').hide();
+            $('#visualise-sheet-multiselect').hide();
+            if (data['ID'] === undefined || data['Curation status'] === undefined) { //for tables without ID or curation status column
+
+            } else {
+                if (data['ID'] !== null && data['Curation status'] !== null) {
+                    $('#visualise-sheet').show(); //only for tables with ID
+                    $('#visualise-sheet-multiselect').show();
+                }
+            }
+
+            //update highlighting
+            if (data[curation_status] === undefined) { //for tables without curation_status
+
+            } else {
+                if (data[curation_status] !== null) {
+                    rowColours(row, data);
+                }
+            }
+
+
+
+            if (highlightLogin) {
+                if (data[curator] === undefined) {
+
+                } else {
+                    if (data[curator] !== null) {
+                        var curatorA = data[curator];
+                        var nameCheckA = curatorA.indexOf(loginInitials);
+                        if (nameCheckA > -1) {
+                            row.getElement().style.color = 'black';
+                            row.getElement().style.fontWeight = 'bold';
+                        }
+                    }
+                }
+            } else {
+                row.getElement().style.color = 'black';
+                row.getElement().style.fontWeight = 'normal';
+            }
+        },
+
+        rowAdded: function (row) {
+            var rowZero = table.getRow(0); //will fail on empty spreadsheet, but "row" not working for new row..
+            var data = rowZero.getData();
+
+            table.scrollToRow(row, "bottom", false)
+                .then(function () {
+                    if (data["Label"] === undefined) { //"Label" column not present
+                        // console.log("undefined label");
+                    } else {
+                        var cell = row.getCell("Label");
+                        cell.getElement().focus(); //no focus for spreadsheets without "Label" column
+                        // console.log("should focus here");
+                    }
+                })
+                .catch(function (error) {
+                    console.log("error scrolling");
+                    //handle error scrolling to row
+                });
+            rowValue = row.getPosition(true);
+            backupChanges(); //not for empty row maybe?
+            // console.log(row.getData());
+            var pos = row.getPosition();
+            // console.log(pos);
+        },
+
+        rowDeleted: function (row) {
+            //remove all old validateErrorMessages for this row:
+            if (validateErrorMessages.length > 0) {
+                var newValidateErrorMessages = [];
+                var write = true;
+                for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                    write = true;
+                    for (var j = 0; j < headerLength; j++) {
+                        if (row.getCell(headers[j]).getColumn().title == validateErrorMessages[i].getColumn().title && row.getPosition() == validateErrorMessages[i].getRow().getPosition()) {
+                            row.getCell(headers[j]).getElement().style.backgroundColor = null; //remove style backgroundColor
+                            write = false;
+                        }
+                    }
+                    if (write) {
+                        newValidateErrorMessages.push(validateErrorMessages[i]);
+                        newValidateErrorMessages.push(validateErrorMessages[i + 1]);
+                    }
+                }
+                validateErrorMessages = newValidateErrorMessages; //replace
+            }
+
+            //remove suggestion "Label" for this row:
+            var data = row.getData();
+            if (data["Label"] !== undefined) { //if we have a "Label" column
+                for (v in labelSuggestions) {
+                    if (labelSuggestions[v] === data["Label"]) {
+                        table.blockRedraw();
+                        // console.log("found match: " + labelSuggestions[v]);
+                        labelSuggestions.splice(v, 1); //remove for now
+                        // console.log("removing row: " + v + ", data: " + data["Label"]);
+                        // console.log(labelSuggestions);
+                        table.restoreRedraw();
+                        table.redraw();
+                        suggestValuesArray = labelSuggestions.slice(); //update current suggestions
+                    }
+                }
+            }
+        },
+
+        // rowUpdated:function(row){
+
+        // },
+    });
+
+    function rowColours(row, data) {
+        if (!row.isSelected()) {
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+            }
+            // change all "Ready" to "Published":
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
+                data[curation_status] = "Published";
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
+            }
+            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
+                row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
+            }
+        } else {
+            row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
+        }
+    }
+    //below recommended for Firefox in particular by Tabulator issue responseText
+    //reference: https://github.com/olifolkerd/tabulator/issues/2117
+    table.redraw(true); //may be needed to fix bug where up scroll is disappearing rows.
+    backupChanges(); //todo:is this necessary here?
+
+    //new row button click handler:
+    $("#add-row").click(function () {
+        // var rowObj = {};
+        var sheetNamesArray = ["AddictO_Environmental_system_Defs.xlsx", "AddictO_Human-being_Defs.xlsx",
+            "AddictO_Human_behaviour_Defs.xlsx", "AddictO_Human_population_Defs.xlsx", "AddictO_Intervention_Defs.xlsx",
+            "AddictO_Not_yet_classified_Defs.xlsx", "AddictO_Organisation_Defs.xlsx", "AddictO_Product_Defs.xlsx",
+            "AddictO_Research_activity_Defs.xlsx", "BCIO_Behaviour.xlsx"];
+        var AOsub_ontologyNames = ["Environmental system", "Human being", "Human behaviour", "Human population",
+            "Intervention", "", "Organisation", "Product", "Research activity", "Behaviour"];
+        var idNum = table.getDataCount();
+        var rowObj = { id: idNum } //add to end of table! 
+        for (var j = 0; j < headerLength; j++) {
+            rowObj[headers[j]] = "";
+            if (headers[j] == curation_status) { //column
+                rowObj[headers[j]] = "Proposed";
+            }
+            //set null values to 0 in checkbox columns here:
+            if (headers[j] == fuzzy_Set || headers[j] == "E-CigO") { //column
+                if (rowObj[headers[j]] == null) {
+                    rowObj[headers[j]] = 0;
+                }
+            }
+            //set per-sheet “AO sub-ontology” column: "Product, Intervention, etc"
+            if (headers[j] == AOsub_ontology) { //column
+                for (var a = 0; a < sheetNamesArray.length; a++) {
+                    if (sheetNamesArray[a] == thisSheet) {
+                        rowObj[headers[j]] = AOsub_ontologyNames[a];
+                    }
+                }
+            }
+        }
+        clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
+        table.addRow(rowObj);
+
+        // backupChanges(); //done in rowAdded!
+        //rowAdded triggered here
+    });
+
+    //delete row button click handler:
+    $("#delete-rows").click(function () {
+        var selectedRows = table.getSelectedRows();
+        if (selectedRows.length > 1) {
+            if (!confirm("Do you really want to delete these rows?")) { return; }
+        } else if (selectedRows.length == 1) {
+            if (!confirm("Do you really want to delete this row?")) { return; }
+        } else {
+            bootbox.alert("No rows selected");
+            return;
+        }
+        //if selectedRows ID column is not null and "" then don't delete!
+        selectedRows.forEach(function (row) {
+            var data = row.getData();
+            if (data["ID"] === undefined || data[curation_status] === undefined) {
+                table.deleteRow(row);
+                // if (row.getCell("ID") === undefined) {
+                //console.log("ID undefined");
+            } else {
+                var data = row.getData();
+                var cell = row.getCell("ID");
+                if (cell.getValue().trim() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
+                    //set to obsolete and show a message here
+                    data[curation_status] = "Obsolete";
+                    //save change:
+                    cellValue = data[curation_status];
+                    var rowValue = row.getPosition();//save absolute row position
+                    var columnValue = "Curation status"; //column name
+                    updateChanges(cellValue, rowValue, columnValue);
+                    /*
+                    var alreadyChanged = false;
+                    //check for previously edited cell, and overwrite if already changed before
+                    for (var i = 0; i < changes.length; i++) {
+                        if (rowValue == changes[i]) { //matches row number
+                            if (columnValue == changes[i + 1]) { //matches column name as well
+                                console.log("already edited this field");
+                                changes.splice(i - 1, 3, data[curation_status], rowValue, columnValue);
+                                alreadyChanged = true;
+                            }
+                        }
+                    }
+                    if (!alreadyChanged) {
+                        changes.push(data[curation_status]);
+                        changes.push(rowValue);
+                        changes.push(columnValue);
+                    }
+                    */
+                    bootbox.alert("You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead.");
+                    row.deselect();
+
+                    //set initials of "Curator"
+                    if (data[curator] !== null && data[curator] !== "") {
+                        var prevCurator = data[curator];
+                        var nameCheck = prevCurator.indexOf(loginInitials);
+                        if (nameCheck > -1) {
+                            //name exists, don't update
+                        } else {
+                            data[curator] = prevCurator + "; " + loginInitials;
+                        }
+                    } else {
+                        data[curator] = loginInitials;
+                    }
+
+                    //save curator column to local storage for backup here
+                    //{value, row, columnName}
+                    //data[curator], row.getPosition(), "Curator"
+                    if (data[curator] !== "" && data[curator] !== null) {
+                        cellValue = data[curator];
+                        rowValue = row.getPosition();//save absolute row position
+                        columnValue = "Curator"; //column name
+                        updateChanges(cellValue, rowValue, columnValue);
+                        /*
+                        var alreadyChanged = false;
+                        //check for previously edited cell, and overwrite if already changed before
+                        for (var i = 0; i < changes.length; i++) {
+                            if (rowValue == changes[i]) { //matches row number
+                                if (columnValue == changes[i + 1]) { //matches column name as well
+                                    console.log("already edited this field");
+                                    changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                                    alreadyChanged = true;
+                                }
+                            }
+                        }
+                        if (!alreadyChanged) {
+                            changes.push(data[curator]);
+                            changes.push(rowValue);
+                            changes.push(columnValue);
+                        }
+                        */
+                    }
+                } else { // ID is "" or null, we can delete 
+                    table.deleteRow(row);
+                }
+            }
+        });
+        // table.deleteRow(selectedRows);
+        backupChanges(); //has no effect
+    });
+
+    // Hightlight your rows
+    $("#highlight-user").click(function () {
+        highlightLogin = !highlightLogin;
+        if (highlightLogin) {
+            this.children[0].style.color = "#333300"; //colour of marker
+        } else {
+            this.children[0].style.color = null;
+        }
+        //deselect any selected rows as this was causing a inconsistent update problem in renderComplete: 
+        var selectedRows = table.getSelectedRows();
+        //console.log(selectedRows);
+        if (selectedRows == "") {
+
+        } else {
+            selectedRows.forEach(function (row) {
+                row.deselect();
+            });
+        }
+        table.redraw(true);
+        //renderComplete triggered here 
+    });
+
+    $("#remove-formatting").click(function () {
+        clearFormatting();
+    });
+
+    $("#ask-for-review").click(function () {
+        var selectedRows = table.getSelectedRows();
+        if (selectedRows == "") {
+            bootbox.alert("No rows selected");
+        } else {
+            var inputArray = [];
+            for (var i = 0; i < allInitials.length; i++) {
+                inputArray.push({ text: allInitials[i], value: allInitials[i] });
+            }
+            bootbox.prompt({
+                title: "Choose reviewers",
+                inputType: 'checkbox',
+                inputOptions: $(inputArray),
+                callback: function (result) {
+                    if (result === null || result === "") { //cancel or no curator selected
+
+                    } else {
+                        selectedRows.forEach(function (row) {
+                            //services:
+                            //1. Don't repeat initials already present
+                            //2. add selected initials (in dropdown) to cell
+                            //3. join with "; " except the first one (if cellValue !== null)
+                            var data = row.getData();
+                            var cell = row.getCell(to_be_reviewed_by);
+                            //save "curator":
+                            saveCurator(row);
+                            var cellValue = cell.getValue();
+                            var reviewedCell = "";
+                            var addData = result.join("; ");
+                            if (cellValue !== null && cellValue !== "") {
+                                reviewedCell = cellValue + "; " + addData;
+                            } else {
+                                reviewedCell = addData;
+                            }
+                            row.update({ "To be reviewed by": reviewedCell });
+                            row.deselect();
+                            //backup changes:
+                            if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
+                                cellValueData = data[to_be_reviewed_by];
+                                rowValue = row.getPosition();//save absolute row position
+                                columnValue = "To be reviewed by"; //column name
+                                updateChanges(cellValueData, rowValue, columnValue);
+                                /*
+                                var alreadyChanged = false;
+                                //check for previously edited cell, and overwrite if already changed before
+                                for (var i = 0; i < changes.length; i++) {
+                                    if (rowValue == changes[i]) { //matches row number
+                                        if (columnValue == changes[i + 1]) { //matches column name as well
+                                            console.log("already edited this field");
+                                            changes.splice(i - 1, 3, data[to_be_reviewed_by], rowValue, columnValue);
+                                            alreadyChanged = true;
+                                        }
+                                    }
+                                }
+                                if (!alreadyChanged) {
+                                    changes.push(data[to_be_reviewed_by]);
+                                    changes.push(rowValue);
+                                    changes.push(columnValue);
+                                }
+                                */
+                            }
+                            backupChanges();
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    $("#reviewed").click(function () {
+        var selectedRows = table.getSelectedRows();
+        //console.log(selectedRows);
+        if (selectedRows == "") {
+            bootbox.alert("No rows selected");
+        }
+
+        selectedRows.forEach(function (row) {
+            if (row.getCell(to_be_reviewed_by) === undefined) {
+
+            } else {
+                var data = row.getData();
+                var cell = row.getCell(to_be_reviewed_by);
+                //save "curator":
+                saveCurator(row);
+                var cellValue = cell.getValue();
+                var reviewedCell = "";
+                //three options to replace (eg if loginInitials are "to"):
+                // ; to | to; | to
+                //added two new options, ;to|to; - without spaces
+                // todo: how to check for arbitrary number of spaces? 
+                var semiFirstNoSpace = ";" + loginInitials;
+                var semiAfterNoSpace = loginInitials + ";";
+
+                var semiFirst = "; " + loginInitials;
+                var semiAfter = loginInitials + "; ";
+
+                if (cellValue !== null) {
+                    reviewedCell = cellValue.replace(semiFirst, '');
+                    reviewedCell = reviewedCell.replace(semiAfter, '');
+                    //replace if without spaces:
+                    reviewedCell = cellValue.replace(semiFirstNoSpace, '');
+                    reviewedCell = reviewedCell.replace(semiAfterNoSpace, '');
+
+                    reviewedCell = reviewedCell.replace(loginInitials, '');
+                }
+                row.update({ "To be reviewed by": reviewedCell });
+                row.deselect(); //triggers rowDeselected()
+                //backup changes
+                if (data[to_be_reviewed_by] !== "" && data[to_be_reviewed_by] !== null) {
+                    cellValueData = data[to_be_reviewed_by];
+                    rowValue = row.getPosition();//save absolute row position
+                    columnValue = "To be reviewed by"; //column name
+                    updateChanges(cellValueData, rowValue, columnValue);
+                    /*
+                    var alreadyChanged = false;
+                    //check for previously edited cell, and overwrite if already changed before
+                    for (var i = 0; i < changes.length; i++) {
+                        if (rowValue == changes[i]) { //matches row number
+                            if (columnValue == changes[i + 1]) { //matches column name as well
+                                console.log("already edited this field");
+                                changes.splice(i - 1, 3, data[to_be_reviewed_by], rowValue, columnValue);
+                                alreadyChanged = true;
+                            }
+                        }
+                    }
+                    if (!alreadyChanged) {
+                        changes.push(data[to_be_reviewed_by]);
+                        changes.push(rowValue);
+                        changes.push(columnValue);
+                    }
+                    */
+                }
+                backupChanges();
+            }
+        });
+
+    });
+
+    $("#visualise-sheet").click(function () {
+        filter=[""];
+        sendVisualisationRequest(filter, "sheet");               
+    });
+
+    $("#visualise-sheet-multiselect").click(function () {
+        var filterOptions = ["External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published"];  
+        $("#visualise-sheet-checkbox-list").empty(); //todo: save state of checkboxes
+        for (var i = 0; i < filterOptions.length; i++) {
+            $("#visualise-sheet-checkbox-list").append("<input type='checkbox' name='" + filterOptions[i] + "' value='" + filterOptions[i] + "'>" + filterOptions[i] + "<br>");
+        }
+        $("#visualise-sheet-checkbox-list").append("<br><button id='visualise-sheet-multiselect-apply'>Apply</button>");
+        $("#visualise-sheet-multiselect-apply").click(function () {
+            var selectedOptions = [];
+            $("#visualise-sheet-checkbox-list input:checked").each(function () {
+                selectedOptions.push($(this).val());
+            });
+           
+            if (selectedOptions.length > 1) {
+                sendVisualisationRequest(selectedOptions, "sheet");                
+            } else{
+                bootbox.alert("Please select at least two options");            }
+        });
+    });
+
+       
+
+    $("#visualise-selection").click(function () {
+        filter=[""];
+        sendVisualisationRequest(filter, "select");               
+    });
+
+    $("#visualise-selection-multiselect").click(function () {
+        var filterOptions = ["External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published"];
+        // use jquery to add checkboxes to visualise-selection-checkbox-list:   
+        $("#visualise-selection-checkbox-list").empty();
+        for (var i = 0; i < filterOptions.length; i++) {
+            $("#visualise-selection-checkbox-list").append("<input type='checkbox' name='" + filterOptions[i] + "' value='" + filterOptions[i] + "'>" + filterOptions[i] + "<br>");
+        }
+        $("#visualise-selection-checkbox-list").append("<br><button id='visualise-selection-multiselect-apply'>Apply</button>");
+        $("#visualise-selection-multiselect-apply").click(function () {
+            var selectedOptions = [];
+            $("#visualise-selection-checkbox-list input:checked").each(function () {
+                selectedOptions.push($(this).val());
+            });
+            if (selectedOptions.length > 1) {
+                sendVisualisationRequest(selectedOptions, "select");
+            } else{
+                bootbox.alert("Please select at least two options");
+            }
+        });
+    });
+
+    function sendVisualisationRequest(filter, sendType) {
+            var indices = [];
+            if(sendType == "select"){
+                var selectedData = table.getSelectedData();
+                var selectedRows = table.getSelectedRows();
+            } else{
+                var selectedRows = table.getRows();
+            }
+            
+            for (r in selectedRows) {
+                indices.push(selectedRows[r].getIndex());
+            }
+            indices.sort(function (a, b) { return a - b });
+            // console.log(indices);
+
+                window.open('', 'VisualisationWindow');
+
+                var form = document.createElement("form");
+                form.setAttribute("method", "post");
+                form.setAttribute("action", "/openVisualise");
+                form.setAttribute("target", 'VisualisationWindow');
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = "sheet";
+                input.value = "{{spreadsheet_name}}";
+                form.appendChild(input);
+                var input2 = document.createElement('input');
+                input2.type = 'hidden';
+                input2.name = "repo";
+                input2.value = "{{repo_name}}";
+                form.appendChild(input2);
+                var input4 = document.createElement('input');
+                input4.type = 'hidden';
+                input4.name = "table";
+                input4.value = JSON.stringify(table.getData());
+                form.appendChild(input4);
+                var input5 = document.createElement('input');
+                input5.type = 'hidden';
+                input5.name = "indices";
+                input5.value = JSON.stringify(indices);
+                form.appendChild(input5);
+                var input6 = document.createElement('input');
+                input6.type = 'hidden';
+                input6.name = "filter";
+                //test:
+                // var filter = ["External", "Proposed"];
+                // var filter = ""; //ok we can set this here!
+                input6.value = JSON.stringify(filter);
+                form.appendChild(input6);
+                document.body.appendChild(form);
+                form.target = 'VisualisationWindow';
+                form.submit();
+                document.body.removeChild(form);
+            }
+
+    
+
+    
+
+
+    $("#generate-identifier").click(function () {
+        // console.log("clicked generate-identifier");
+        var selectedData = table.getSelectedData();
+        var selectedRows = table.getSelectedRows();
+        //array of rows: 
+        var rowsToGenerate = [];
+        // var indices = [];
+
+        for (r in selectedRows) {
+            var rowData = selectedRows[r].getData();
+            if (rowData['ID'] === null || rowData['ID'].trim() === "") {
+                // console.log("no ID found");
+                //has no ID but has Label, Definition and Parent:
+                if (!!rowData['Label'].trim() && !!rowData['Definition'].trim() && !!rowData['Parent'].trim()) {
+                    // console.log("should add something here");
+                    rowsToGenerate.push(rowData); //add to array
+                }
+            }
+        }
+        // console.log(rowsToGenerate);
+        //send rowsToGenerate to generate function:
+        generate(rowsToGenerate).done(function (message) {
+            // console.log(message);
+            var messageIDValues = message; //JSON.parse(message);
+            // console.log(messageIDValues.values);
+            var messageIDVar = messageIDValues.values
+            var arrReplace = [];
+            $.each(messageIDValues.values, function (index, data) {
+                // console.log("index is: " + index.match(/\d+/));
+                var replaceRow = Number(index.match(/\d+/)); //number after "ID"
+                // console.log("data is: " + data);
+                var replaceData = data;
+                //replace: 
+                var rowToReplace = table.getRow(replaceRow);
+                var rowDataReplacing = rowToReplace.getData();
+                rowDataReplacing["ID"] = data;
+
+                //save "ID" column to local storage for backup here
+                //{value, row, columnName}
+                //data, row.getPosition(), "ID"
+                cellValue = data;
+                rowValue = replaceRow;//save absolute row position
+                columnValue = "ID"; //column name
+                updateChanges(data, rowValue, columnValue);
+                /*
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for (var i = 0; i < changes.length; i++) {
+                    if (rowValue == changes[i]) { //matches row number
+                        if (columnValue == changes[i + 1]) { //matches column name as well
+                            console.log("already edited this field");
+                            changes.splice(i - 1, 3, data, rowValue, columnValue);
+                            alreadyChanged = true;
+                        }
+                    }
+                }
+                if (!alreadyChanged) {
+                    changes.push(data);
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                    console.log("changes are: " + changes);
+                }
+                */
+
+            });
+            backupChanges();
+        });
+    });
+
+    $('#contentTable').ready(function () {
+        //warn user if unsaved changes:
+        window.onbeforeunload = function (e) {
+            if (tableEdited) {
+                if (e) {
+                    var message = "You have not saved your changes.";
+                    e.returnValue = message;
+                }
+                return message;
+            }
+        };
+        //scroll to search term if present:
+        initialRowSearch = '{{go_to_row | safe}}';
+        initialSearchtype = '{{type | safe}}';
+        // console.log(initialRowSearch);
+        // console.log("type is: " + initialSearchtype);
+        if (initialRowSearch == "" || initialRowSearch == null) {
+
+        } else {
+            if (initialSearchtype == "" || initialSearchtype == null) {
+
+            } else if (initialSearchtype == "search") {
+                const filter_header = "Relationship" in table.columnManager.columnsByField ? "Relationship" : "Label"
+                //filter by Label:
+                table.setHeaderFilterValue(filter_header, initialRowSearch);
+                //todo: setHeaderFilterValue for "Assigned To Me"
+            } else if (initialSearchtype == "initials") {
+                table.setHeaderFilterValue("To be reviewed by", initialRowSearch);
+            } else if (initialSearchtype === "id") {
+                table.setHeaderFilterValue("ID", initialRowSearch);
+            } else {
+
+            }
+        };
+
+    });
+
+
+    function saveCurator(row) {
+        //if a field in any column except "Curator" edited
+        //check "Curator" column for loginInitials and auto fill
+        var data = row.getData();
+        if (data[curator] === undefined) { //curator column not present in table
+
+        } else {
+
+            if (data[curator] !== null && data[curator] !== "") {
+                var prevCurator = data[curator];
+                var nameCheck = prevCurator.indexOf(loginInitials);
+                if (nameCheck > -1) {
+                    //name exists, don't update
+                } else {
+                    data[curator] = prevCurator + "; " + loginInitials;
+                }
+            } else {
+                data[curator] = loginInitials;
+            }
+
+            //save curator column to local storage for backup here
+            //{value, row, columnName}
+            //data[curator], row.getPosition(), "Curator"
+            if (data[curator] !== "" && data[curator] !== null) {
+                cellValue = data[curator];
+                rowValue = row.getPosition();//save absolute row position
+                columnValue = "Curator"; //column name
+                updateChanges(cellValue, rowValue, columnValue); //todo: refactored updateChanges, does it work?
+                /*
+                var alreadyChanged = false;
+                //check for previously edited cell, and overwrite if already changed before
+                for (var i = 0; i < changes.length; i++) {
+                    if (rowValue == changes[i]) { //matches row number
+                        if (columnValue == changes[i + 1]) { //matches column name as well
+                            console.log("already edited this field");
+                            changes.splice(i - 1, 3, data[curator], rowValue, columnValue);
+                            alreadyChanged = true;
+                        }
+                    }
+                }
+                if (!alreadyChanged) {
+                    changes.push(data[curator]);
+                    changes.push(rowValue);
+                    changes.push(columnValue);
+                }
+            */
+            }
+        }
+
+    }
+
+    function backupChanges() {
+        var tableArray = table.getData();
+        //whole table:
+        var jsonArray = JSON.stringify(tableArray);
+        localStorage.setItem("savedTableData" + thisSheet, jsonArray);
+        //changed cells:
+        if (changes.length > 0) {
+            var cellArray = JSON.stringify(changes);
+            localStorage.setItem("savedChanges" + thisSheet, cellArray);
+            // console.log("changes.length = " + changes.length);
+        }
+        // console.log("changes backed up");
+    }
+
+    function clearFormatting() {
+        table.clearSort(); //clear sorting as well
+        table.clearFilter(true); //clear header filters       
+    }
+
+    function updateChanges(cellValue, rowValue, columnValue) {
+        //{value, row, columnName}            
+        // rowValue = row.getPosition();//save absolute row position
+        // columnValue = cell.getField(); //column name
+        var alreadyChanged = false;
+        //check for previously edited cell, and overwrite if already changed before
+        for (var i = 0; i < changes.length; i++) {
+            if (rowValue == changes[i]) { //matches row number
+                if (columnValue == changes[i + 1]) { //matches column name as well
+                    // console.log("already edited this field");
+                    changes.splice(i - 1, 3, cellValue, rowValue, columnValue);
+                    alreadyChanged = true;
+                }
+            }
+        }
+        if (!alreadyChanged) {
+            changes.push(cellValue);
+            changes.push(rowValue);
+            changes.push(columnValue);
+        }
+
+    }
+    
+    var download_spreadsheet = function (repo_key, folder, spreadsheet) {
+        if(!tableEdited) {
+        var request = new XMLHttpRequest();
+        // Define a function to handle a state change of the request:
+        request.onreadystatechange = function () {
+            
+            // console.log("request status is: " + request.status);
+            if (request.readyState === 4) {
+                if (!request.status) {
+                    bootbox.alert("Problem communicating with server");
+                }
+                else if (request.status === 200) {
+                    var response = JSON.parse(request.responseText);
+                    var url = response['download_url'];                    
+                    console.log(url);       
+                    window.open(url);              
+
+                } else if (request.status === 400) { //repo not found error
+                    var response = JSON.parse(request.responseText);
+                    var errInfo = response['Error'];
+                    console.log(response);
+                } else {
+                    var response = JSON.parse(request.responseText);
+                    //console.log(response);
+                    var errInfo = response['Error'];
+                    $("#saveAlert").addClass("alert-danger");
+                    $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
+                    $("#saveAlert").show();
+                }
+            } else {
+                console.log("request status is: " + request.status);
+            }
+        }
+        // Post the request to the server.    
+        request.open('POST', '/download_spreadsheet', true);
+        request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+        request.send('repo_key=' + repo_key +
+            '&folder=' + folder +
+            '&spreadsheet=' + spreadsheet);
+    } else {
+        bootbox.alert("Please save the sheet first, then download");
+    }
+    };
+
+    /**
+    * Submit a pull request to github to update the given configuration file in the repository.
+    */
+    var save_changes = function (repo_key, folder, spreadsheet, rowData, initialData, overwrite) {
+        //check for validate errors:
+        var saveValidationMessage = "";
+        var combinedValidationMessages = "";
+        if (validateErrorMessages.length > 0) {
+            console.log("validate errors!!!");
+
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                var errorCell = validateErrorMessages[i];
+                var errorCol = errorCell.getColumn().getDefinition().title;
+                var errorRow = errorCell.getRow().getPosition(true); //position in filtered data
+                console.log(errorCol + " " + errorRow);
+                combinedValidationMessages += "<p>";
+                saveValidationMessage = (i / 2 + 1) + " : " + errorCol + ", row " + errorRow + " -> " + validateErrorMessages[i + 1];
+                combinedValidationMessages += saveValidationMessage + "</p>";
+            }
+
+            var saveValidation = bootbox.dialog({
+                title: "There are validation errors, are you sure you want to save?",
+                message: combinedValidationMessages,
+                buttons: {
+                    confirm: {
+                        label: 'Submit anyway',
+                        className: 'btn-danger',
+                        callback: function () {
+                            submit();
+                        }
+                    },
+                    fix: {
+                        label: 'Show errors in table',
+                        className: 'btn-primary',
+                        callback: function () {
+                            validateButtons();
+                        }
+                    },
+                    cancel: {
+                        label: 'Cancel',
+                        className: 'btn-success',
+                    },
+                }
+            });
+        } else {
+            submit();
+        }
+
+        function submit() {
+            $("#commit-msg").attr('value', 'Updating ' + spreadsheet);
+
+            // Get a confirmation from the user:
+            var modal = bootbox.dialog({
+                title: "You are about to submit changes. Please describe the changes you have made to " + spreadsheet,
+                message: $("#message-box").html(),
+                buttons: {
+                    confirm: {
+                        label: 'Submit',
+                        className: 'btn-danger',
+                        callback: function () {
+                            var aForm = modal.find(".form");
+                            var formData = aForm.serializeArray(),
+                                dataObj = {};
+                            $(formData).each(function (i, field) {
+                                dataObj[field.name] = field.value;
+                            });
+                            var commit_msg = dataObj["commit-msg"];
+                            var msgBody = dataObj["descr"];
+                            if (commit_msg !== null && commit_msg !== undefined) {
+                                if (!commit_msg || commit_msg.trim() === "") {
+                                    bootbox.alert({
+                                        closeButton: false,
+                                        message: "Commit message cannot be empty. Your change has not been submitted."
+                                    });
+                                    return;
+                                }
+                                var saveIndicator = bootbox.dialog({
+                                    message: '<p class="text-center mb-0"><i class="fas fa-spin fa-cog"></i> SAVING...</p>',
+                                    closeButton: false //true for testing
+                                });
+
+                                saveIndicator.init(function () {
+                                    // console.log("showing dialog");
+                                    saveIndicator.attr("id", "save_indicator");
+                                    setTimeout(() => {
+                                        saveIndicator.modal('hide');
+                                        // bootbox.alert("Save taking too long, please check your internet connection");
+                                    }, 30000);
+                                });
+                                // console.log("indicator text: " + $("#save_indicator, p").text());
+                                // Embed the code into a request.
+                                var request = new XMLHttpRequest();
+                                // Define a function to handle a state change of the request:
+                                request.onreadystatechange = function () {
+                                    $("*").css("cursor", "default");
+                                    $('#saveDialog').modal('hide');
+                                    // console.log("request status is: " + request.status);
+                                    if (request.readyState === 4) {
+                                        if (!request.status) {
+                                            hide_save_indicator();
+                                            bootbox.alert("Problem communicating with server");
+                                        }
+                                        else if (request.status === 200) {
+                                            window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                            changes = []; //no changes anymore to save
+                                            backupChanges();
+                                            var response = JSON.parse(request.responseText);
+                                            var new_file_sha = response['file_sha'];
+                                            file_sha = new_file_sha;
+                                            $('#saveAlert').removeClass('alert-danger');
+                                            $('#saveAlert').addClass('alert-success');
+                                            $("#saveMessage").text('Changes were saved successfully to the repository. ');
+                                            $("#saveAlert").dismissed = false;
+                                            $("#saveAlert").show();
+                                            $('#save-btn').hide(); //saved successfully, hide save button
+                                            $('#updates').hide();
+                                            $('#merge-btns').hide(); //if there was a merge conflict, hide these after saving
+                                            $("#validation-btns").hide(); //if there were validation errors being dealt with, hide these
+
+                                            //clear validation cell colours: 
+                                            if (validateErrorMessages.length > 0) {
+                                                for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                                                    cellToClear = validateErrorMessages[i];
+                                                    cellToClear.getElement().style.backgroundColor = null; //remove style backgroundColor
+                                                }
+                                            }
+                                            //delete validation message array: 
+                                            validateErrorMessages = [];
+
+                                            var rows = table.getRows();
+                                            for (i = 0; i < rows.length; i++) {
+                                                var cells = rows[i].getCells();
+                                                for (j = 0; j < cells.length; j++) {
+                                                    cells[j].getElement().style.color = 'black'; //do we want to change all to black?
+                                                }
+                                            }
+                                            if (tableEdited) {
+                                                tableEdited = false;
+                                            }
+                                            //todo: should we re-load spreadsheet like this on every successful save? 
+                                            if (overwrite == 'true') { //true for merge, where there is different data to load in. 
+                                                //re-load here to get updated data - need alert not bootbox (for blocking):
+                                                bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
+                                                tableEdited = false; //stops page from warning about unsaved changes
+                                                //showSaveMessage localStorage for reload: 
+                                                showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
+                                                localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
+                                                location.reload(true); //todo: can tabulator just update without re-loading the page? 
+                                            }
+                                            //for "Discussed" Curation status - need to re-load sheet to avoid new data bug
+                                            if (reloadTable) { //true for "Discussed" Curation status 
+                                                //re-load here to get updated data - need alert not bootbox (for blocking):
+                                                bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
+                                                tableEdited = false; //stops page from warning about unsaved changes
+                                                //showSaveMessage localStorage for reload: 
+                                                showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
+                                                localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
+                                                location.reload(true); //todo: can tabulator just update without re-loading the page? 
+                                            }
+                                            //todo: handle more error codes here and do merge in correct circumstance
+                                        } else if (request.status === 400) { //repo not found error
+                                            var response = JSON.parse(request.responseText);
+                                            var errInfo = response['Error'];
+                                            $("#saveAlert").addClass("alert-danger");
+                                            $("#saveMessage").text('REPO not found - ' + errInfo);
+                                            $("#saveAlert").show();
+                                        } else if (request.status === 300) { //error code for merge
+                                            var response = JSON.parse(request.responseText);
+                                            var errInfo = response['Error'];
+                                            var mergeInfo = response['merge_diff'];
+                                            mergedTable = response['merged_table']
+
+                                            var conflicted = false; // not using this right now..
+
+                                            $('#saveAlert').removeClass('alert-success');
+                                            $('#saveAlert').addClass('alert-danger');
+                                            $("#saveMessage").append(errInfo);
+                                            $("#saveMessage").append('<br> SEE THE BUTTONS ABOVE THIS MESSAGE FOR OPTIONS TO DEAL WITH THIS <br>');
+                                            $("#saveMessage").append('Merge info: ' + mergeInfo);
+                                            // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
+                                            $(".alert").alert() //???
+                                            $("#saveAlert").show();
+                                            $('#save-btn').hide();
+                                            $("#validation-btns").hide(); //I think we don't want these here
+                                            $('#updates').hide();
+                                            $('#conflict-btns').show();
+                                            // $("#saveMessage").text(''); //reset message
+                                            // $("#saveAlert").hide();
+                                            $("tr").each(function () {
+                                                if ($(this).hasClass("remove")) {
+                                                    // console.log("REMOVE DETECTED");
+                                                }
+                                                if ($(this).hasClass("add")) {
+                                                    // console.log("ADD DETECTED");
+                                                }
+                                            });
+                                            $("td").each(function () {
+                                                if ($(this).hasClass("modify")) {
+                                                    // console.log("MODIFY DETECTED");
+                                                }
+                                                if ($(this).hasClass("conflict")) {
+                                                    // console.log("CONFLICT DETECTED");
+                                                }
+                                            });
+                                            $("tr.remove").css('background-color', '#DAA520'); //orange
+                                            $("tr.add").css('background-color', '#7CFC00'); //green
+                                            $("td.modify").css('background-color', '#00FF00'); //lighter green
+                                            $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
+                                        } else if (request.status === 360) { //same as 200 only with restart to show new ID's
+                                            window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
+                                            bootbox.alert("Save successful - new ID's were generated.<br>The page will now refresh to load new data.");
+                                            tableEdited = false; //stops page from warning about unsaved changes
+                                            showSaveMessageMessage = 'Changes were saved successfully to the repository, New ID\'s have been generated';
+                                            localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
+                                            location.reload(true);
+                                        } else {
+                                            saveIndicator.modal('hide'); // hide save indicator if no response
+                                            var response = JSON.parse(request.responseText);
+                                            //console.log(response);
+                                            var errInfo = response['Error'];
+                                            $("#saveAlert").addClass("alert-danger");
+                                            $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
+                                            $("#saveAlert").show();
+                                        }
+                                    } else {
+                                        saveIndicator.modal('hide'); //doesn't trigger if there is no internet?!
+                                    }
+                                }
+                                // Post the request to the server.
+                                //get rid of ampersands first:
+
+                                rowData = rowData.replaceAll('&', 'and');
+                                initialData = initialData.replaceAll('&', 'and');
+                                // console.log("rowData: " + rowData);
+                                // console.log("initialData: " + initialData);
+                                request.open('POST', '/save', true);
+                                request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                                request.send('repo_key=' + repo_key +
+                                    '&folder=' + folder +
+                                    '&spreadsheet=' + spreadsheet +
+                                    '&rowData=' + rowData +
+                                    '&initialData=' + initialData +
+                                    '&commit_msg=' + commit_msg +
+                                    '&commit_msg_extra=' + msgBody +
+                                    '&file_sha= ' + file_sha +
+                                    '&overwrite=' + overwrite);
+                                $("*").css("cursor", "progress");
+                            }
+                        }
+                    },
+                    cancel: {
+                        label: 'Cancel',
+                        className: 'btn-primary'
+                    }
+                }
+            });
+        };
+
+    }
+
+    function validateButtons() {
+        if (validateErrorMessages.length == 0) {
+            $("#validation-btns").hide();
+            // console.log("validation buttons lenth 0");
+        } else {
+            $("#validation-btns").empty(); //first remove any old buttons
+            $("#validation-btns").append("<h4>VALIDATION ERRORS:</h4>");
+            //create buttons for each validation error:
+            for (var i = 0; i < validateErrorMessages.length; i += 2) {
+                var filterValidateBtn = "";
+                var errorCell = validateErrorMessages[i];
+                var errorCol = errorCell.getColumn().getDefinition().title;
+                var errorRow = errorCell.getRow().getPosition(); //position 
+                var number = (i / 2 + 1);
+                // console.log(errorCol + " " + errorRow);
+                var btnID = "merge-overwrite-btn" + number;
+                var cellFilter = errorCell.getValue();
+
+                var $filterValidateBtn = $("<button id='" + btnID + "' class='btn btn-sm btn-outline-info' \
+                                >" + number + ": " + errorCol + ", " + errorRow + "</button>");
+
+                // $("#validation-btns").append(filterValidateBtn);
+                //add handler to button:
+                (function (errorCol, cellFilter, errorRow) {
+                    $filterValidateBtn.click(function () {
+                        clearFormatting(); //make sure we are showing the whole table
+                        // table.redraw(); //does nothing for this issue
+                        // alert(cellFilter + " " + errorCol + " " + errorRow);
+
+                        table.scrollToRow(errorRow, "center", true)
+                            .then(function () {
+                                //cool, this works now!
+                            })
+                            .catch(function (error) {
+                                console.log("error scrolling to row");
+                                console.log("number of rows: " + table.getDataCount());
+                            });
+                        table.scrollToColumn(errorCol, "middle", true).then(function () {
+                            var rowToScrollTo = table.getRowFromPosition(errorRow);
+                            // console.log(rowToScrollTo);
+                            var cellToScrollTo = rowToScrollTo.getCell(errorCol);
+                            cellToScrollTo.getElement().focus();
+                        })
+                            .catch(function (error) {
+                                console.log("error scrolling to column");
+                                console.log("supposed to be at : " + errorCol);
+                            });
+                    });
+                }(errorCol, cellFilter, errorRow));
+                $("#validation-btns").append($filterValidateBtn);
+            }
+            $("#validation-btns").show();
+        }
+    }
+
+    function hide_save_indicator() {
+        $("#save_indicator").removeClass("in");
+        $(".modal-backdrop").remove();
+        $("#save_indicator").hide();
+    }
+
+    var keep_both = function () {
+        //backup old data:
+        previousData = table.getData();
+        table.setData(mergedTable);
+        $("#saveMessage").text('IMPORTANT: This is your new Merged Table. You can edit it, and click on SAVE above, or click REVERT to go back. PLEASE CHOOSE NOW');
+        $('#conflict-btns').hide();
+        $('#merge-btns').show();
+    };
+
+    var revert_changes = function () {
+        table.setData(previousData);
+        $('#merge-btns').hide();
+        $("#saveMessage").removeClass('alert-danger'); //not working!
+        $("#saveMessage").text('');
+        $("#saveAlert").hide();
+        $('#save-btn').show();
+    };
+
+    var lose_changes = function () {
+        //delete saved changes?
+        unsavedChanges = false;
+        //using tabulator reactive data to update the table. No refresh needed...
+        //remove previous table array?
+        // window.localStorage.removeItem("savedTableData" + thisSheet); //is this necessary? 
+        //refresh sheet
+        //todo: show another message?
+        // showSaveMessageMessage = 'Your changes have been reverted. ';
+        // localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
+        location.reload(true);
+    };
+
+
+
+    /** Hide save results message */
+    $("#closeSaveMsgBtn").click(function () {
+        $("#saveMessage").text('');
+        $('#conflict-btns').hide();
+        $('#merge-btns').hide();
+        //keep save button though if present? OK no..
+        $(this).parent().hide();
+    });
+
+    //override ctrl-s save:
+    jQuery(document).keydown(function (event) {
+        // If Control or Command key is pressed and the S key is pressed
+        // run save function. 83 is the key code for S.
+        if ((event.ctrlKey || event.metaKey) && event.which == 83) {
+            // Save Function
+            event.preventDefault();
+            // console.log("Save!");
+            if (tableEdited) {
+                $('#save-btn').trigger('click');
+            }
+            return false;
+        }
+    });
+
+    //validations function: 
+    function validate(cell, column, rowData, headers, table) {
+
+        //todo: handle errors!
+        return $.ajax({
+            url: '/validate',
+            dataType: 'text',
+            type: 'POST',
+            data: { cell: JSON.stringify(cell.getValue()), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
+            success: function (message) {
+                // console.log("no validation errors?")
+            }, error: function () {
+                console.log("validate message error: " + message);
+            }
+        });
+
+    }
+
+    //generate ID function: 
+    function generate(rowsToGenerate) {
+        //todo: handle errors!
+        return $.ajax({
+            url: '/generate',
+            dataType: 'json',
+            type: 'POST',
+            data: { rowData: JSON.stringify(rowsToGenerate), repo_key: '{{repo_name}}' },
+            success: function (message) {
+                // console.log("got new ID's?")
+            }, error: function () {
+                console.log("generate error: " + message);
+            }
+        });
+
+    }
+
+    //update matches
+    /*
+    function getMatches() {
+        var result = [];
+        var term = "test"; //should be current row "Label" cell value
+        suggestValuesArray.forEach(function (value) {
+            //value - one of the values from the value property
+
+            if (value == term) {
+                //same don't show
+            } else {
+
+                // console.log("value is: " + value + ", term is: " + term);
+                result.push(value);
+            }
+        });
+
+        return result;
+    }
+    */
+
+
+
+
+    //todo: use below to update and check for new data: 
+    window.onload = setupRefresh;
+    function setupRefresh() {
+        setInterval("refreshBlock();", 60000);
+    }
+
+    function refreshBlock() {
+        // console.log("update every minute ");
+        checkForUpdates('{{repo_name}}', '{{folder}}', '{{ spreadsheet_name }}', file_sha);
+
+    }
+
+    function checkForUpdates(repo_key, folder, spreadsheet_name, file_sha) {
+        // console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
+
+        jQuery.ajax({
+            url: '/checkForUpdates',
+            contentType: "application/x-www-form-urlencoded",
+            dataType: "json",
+            type: 'POST',
+            async: 'false',
+            data: { repo_key: repo_key, folder: folder, spreadsheet: spreadsheet_name, file_sha },
+            success: function (data) {
+                var msg = data.message;
+                // console.log(msg);
+                if (msg == "Success") {
+
+                } else {
+                    $('#updates').show(); //todo: need to hide on save and keep hidden during merger
+                }
+            },
+            error: function (request, status, error) {
+                console.log(error);
+            }
+        });
+    }
+
+
+    setInterval(function () {
+        $.ajax({
+            type: "POST",
+            url: "/keepalive",
+            data: '{ sendData: "ok" }',
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (result) {
+                var d = new Date();
+                var n = d.toLocaleTimeString();
+                $("#keepAlive").text(n + " | server alive");
+            },
+            error: function (request, status, error) {
+                var d = new Date();
+                var n = d.toLocaleTimeString();
+                $("#keepAlive").text(n + " | server not alive " + status);
+            }
+        });
+    }, 1000 * 60 * 5);
+
+
+</script>
+
+{% endblock %}

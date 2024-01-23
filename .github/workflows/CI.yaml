@@ -1,0 +1,71 @@
+name: CI
+on:
+  push:
+    branches:
+      - release_workflow
+      - main
+      - develop
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v4
+      - name: Install typescript
+        run: >
+          npm install typescript
+      - name: Build typescript
+        run: >
+          npx tsc
+      - name: Build deploy package
+        run: >
+          tar -czf onto-ed.tar.gz app.py requirements.txt onto_spread_ed
+      - uses: actions/upload-artifact@v3
+        with:
+          name: app
+          path: onto-ed.tar.gz
+  deploy-dev:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment:
+      name: development
+      url: https://test.onto-ed.hbcptools.org/
+    needs:
+      - build
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: app
+    - name: Deploy app
+      env:
+        PRIVATE_KEY: ${{ secrets.deploymentKey }}
+      run: >
+        echo $PRIVATE_KEY | base64 --decode > privkey &&
+        chmod 600 privkey &&
+        mkdir -p $HOME/.ssh &&
+        echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
+        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
+        ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
+  deploy-prod:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: hbcptools
+      url: https://test.onto-ed.hbcptools.org/
+    needs:
+      - build
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: app
+    - name: Deploy app
+      env:
+        PRIVATE_KEY: ${{ secrets.deploymentKey }}
+      run: >
+        echo $PRIVATE_KEY | base64 --decode > privkey &&
+        chmod 600 privkey &&
+        mkdir -p $HOME/.ssh &&
+        echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
+        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
+        ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"

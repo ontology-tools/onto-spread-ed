@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+
+
+	<!-- Required meta tags -->
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<!-- Optional JavaScript -->
+	<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+	<script src="https://code.jquery.com/jquery-3.4.1.min.js"
+		integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+	<!-- <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script> -->
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+		integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous">
+	</script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+		integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous">
+	</script>
+	<!-- Bootbox -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.4.1/bootbox.min.js"></script>
+	<!-- Bootstrap CSS -->
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+		integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+	<!-- Bootstrap filter table CSS -->
+	<link rel="stylesheet" href="/onto-spread-ed/staticbootstrap-table-filter-style.css">
+
+	<!-- //fontawesome: -->
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.0/css/all.css" crossorigin="anonymous">
+
+	<link rel="shortcut icon" href="#" />
+
+	<title>Ontology Spreadsheet Editor</title>
+
+
+
+</head>
+
+<body>
+	<div class="container-fluid">
+		<div id="content">
+			<h1>Ontology Spreadsheet Editor</h1>
+
+			<div class="container-fluid">
+				<div class="row">
+
+				</div>
+			</div>
+			<hr />
+
+
+			<style>
+				body {
+					margin: 0px;
+					padding: 0px;
+				}
+
+				#wrapper {
+					position: relative;
+					border: 0px;
+					width: 1920px;
+					height: 1080px;
+					top: 80px;
+					left: 0px
+				}
+
+				#buttonWrapper {
+					position: fixed;
+					width: 30px;
+					top: 150px;
+					left: 40px
+				}
+
+				#downloadWrapper {
+					position: fixed;
+					width: 100px;
+					top: 160px;
+					left: 100px
+				}
+			</style>
+
+			<!-- <h1>VISUALISATIONS</h1> -->
+
+			<div class="row mb-3">
+				<div class="col-md-12">
+					<h1 id="s-name"> VISUALISATIONS: selection </h2>
+				</div>
+			</div>
+			<!--<p>digraph  {
+ADDICTO_0000322 [font=helvetica, label=&#34;alcohol-related\nmortality&#34;, shape=box, style=rounded];
+ADDICTO_0000326 [font=helvetica, label=&#34;quality-adjusted\nlife\nyear&#34;, shape=box, style=rounded];
+ADDICTO_0000324 [font=helvetica, label=mortality, shape=box, style=rounded];
+ADDICTO_0000325 [font=helvetica, label=&#34;population\nhealth&#34;, shape=box, style=rounded];
+ADDICTO_0000323 [font=helvetica, label=&#34;HIV\nepidemic&#34;, shape=box, style=rounded];
+ADDICTO_0000324 -&gt; ADDICTO_0000322  [dir=back, key=0];
+}
+</p> -->
+
+			<body onmousedown="return false;">
+				<!-- todo: move all styles inline, or at least remove redundancies -->
+				<div id="wrapper">
+					<canvas id="myCanvas" width="1920" height="1080"></canvas>
+					<div id="buttonWrapper">
+						<button id="plus" class="btn btn-outline-dark btn-sm"><i class="fas fa-plus"></i></button>
+						<button id="minus" class="btn btn-outline-dark btn-sm"><i class="fas fa-minus"></i></button>
+					</div>
+					<div id="downloadWrapper">
+						<input type="button" id="download" class="btn btn-outline-dark" value="Download Visualisation">
+        </div>
+					</div>
+
+					<!-- WASM GRAPHVIZ -->
+					<script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm/dist/index.min.js"></script>
+					<script>
+						var hpccWasm = window["@hpcc-js/wasm"];
+					</script>
+
+					<script>
+						var loaded = false;
+        var img1 = new Image();
+        //zoom canvas code from https://stackoverflow.com/questions/3420975/html5-canvas-zooming
+        function draw(scale, translatePos) {
+            var canvas = document.getElementById("myCanvas");
+            var context = canvas.getContext("2d");
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!loaded) {
+                var dotStr = `
+            digraph  {
+ADDICTO_0000322 [font=helvetica, label="alcohol-related\nmortality", shape=box, style=rounded];
+ADDICTO_0000326 [font=helvetica, label="quality-adjusted\nlife\nyear", shape=box, style=rounded];
+ADDICTO_0000324 [font=helvetica, label=mortality, shape=box, style=rounded];
+ADDICTO_0000325 [font=helvetica, label="population\nhealth", shape=box, style=rounded];
+ADDICTO_0000323 [font=helvetica, label="HIV\nepidemic", shape=box, style=rounded];
+ADDICTO_0000324 -> ADDICTO_0000322  [dir=back, key=0];
+}
+
+            `;
+                // Asynchronous call to layout
+                hpccWasm.graphviz.layout(dotStr, "svg", "dot").then(svg => {
+                    var data = svg;
+                    var DOMURL = window.URL || window.webkitURL || window;
+
+                    var svg = new Blob([data], { type: 'image/svg+xml' });
+                    var url = DOMURL.createObjectURL(svg);
+                    img1.onload = function () {
+                        //resize canvas if image is larger than screen
+                        //or resize canvas to size of screen if image is smaller.. 
+                        if (this.naturalWidth > window.screen.availWidth && this.naturalHeight > window.screen.availHeight) {
+                            canvas.width = this.naturalWidth;
+                            canvas.height = this.naturalHeight;
+                        } else {
+                            if (this.naturalWidth > window.screen.availWidth) {
+                                canvas.width = this.naturalWidth;
+                            } else if (this.naturalHeight > window.screen.availHeight) {
+                                canvas.height = this.naturalHeight;
+                            } else {
+                                canvas.width = window.screen.availWidth;
+                                canvas.height = window.screen.availHeight;
+                            }
+                        }
+                        context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+                        // DOMURL.revokeObjectURL(url); //no we need url for updates to canvas
+
+                    }
+                    img1.src = url;
+                    loaded = true;
+
+
+                });
+            } else {
+                context.drawImage(img1, 0, 0, img1.width, img1.height, translatePos.x, translatePos.y, img1.width * scale, img1.height * scale);
+            }
+        }
+
+        window.onload = function () {
+            var canvas = document.getElementById("myCanvas");
+
+            var translatePos = {
+                x: 0,
+                y: 0
+            };
+
+            var scale = 1.0;
+            var scaleMultiplier = 0.8;
+            var startDragOffset = {};
+            var mouseDown = false;
+
+            // add button event listeners
+            document.getElementById("plus").addEventListener("click", function () {
+                scale /= scaleMultiplier;
+                draw(scale, translatePos);
+            }, false);
+
+            document.getElementById("minus").addEventListener("click", function () {
+                scale *= scaleMultiplier;
+                draw(scale, translatePos);
+            }, false);
+
+
+
+            // add event listeners to handle screen drag
+            canvas.addEventListener("mousedown", function (evt) {
+                mouseDown = true;
+                startDragOffset.x = evt.clientX - translatePos.x;
+                startDragOffset.y = evt.clientY - translatePos.y;
+            });
+
+            canvas.addEventListener("mouseup", function (evt) {
+                mouseDown = false;
+            });
+
+            canvas.addEventListener("mouseover", function (evt) {
+                mouseDown = false;
+            });
+
+            canvas.addEventListener("mouseout", function (evt) {
+                mouseDown = false;
+            });
+
+            canvas.addEventListener("mousemove", function (evt) {
+                if (mouseDown) {
+                    translatePos.x = evt.clientX - startDragOffset.x;
+                    translatePos.y = evt.clientY - startDragOffset.y;
+                    draw(scale, translatePos);
+                }
+            });
+
+            draw(scale, translatePos);
+
+            document.getElementById("download").addEventListener("click", function () {
+                console.log("download clicked");
+                var dotStr2 = `
+                digraph  {
+ADDICTO_0000322 [font=helvetica, label="alcohol-related\nmortality", shape=box, style=rounded];
+ADDICTO_0000326 [font=helvetica, label="quality-adjusted\nlife\nyear", shape=box, style=rounded];
+ADDICTO_0000324 [font=helvetica, label=mortality, shape=box, style=rounded];
+ADDICTO_0000325 [font=helvetica, label="population\nhealth", shape=box, style=rounded];
+ADDICTO_0000323 [font=helvetica, label="HIV\nepidemic", shape=box, style=rounded];
+ADDICTO_0000324 -> ADDICTO_0000322  [dir=back, key=0];
+}
+
+                `;
+                // Asynchronous call to layout
+                hpccWasm.graphviz.layout(dotStr2, "svg", "dot").then(svg2 => {
+                    var data2 = svg2;
+                    var DOMURL2 = window.URL || window.webkitURL || window;
+
+                    var svg2 = new Blob([data2], { type: 'image/svg+xml' });
+                    var url2 = DOMURL2.createObjectURL(svg2);
+                    let saveImage = (img_name) => {
+                        let a = document.createElement('a');
+                        a.href = url2;
+                        // a.href = pic.toDataURL("image/png"); //todo: should we convert to png image? needs work..
+                        // a.download = img_name; //this saves as .xlsx in chrome
+                        //change to .svg:
+                        a.download = img_name.slice(0, -5)+".svg";                        
+                        document.body.appendChild(a);
+                        a.click();
+                    }
+                    saveImage("selection");
+                    DOMURL.revokeObjectURL(url2);
+                });
+            });
+
+        }
+
+					</script>
+
+
+				</div>
+
+				<div id="footer">
+
+					<hr />
+					<p class="text-center">
+						<a href="mailto:j.hastings@ucl.ac.uk">Contact</a>
+					</p>
+
+				</div>
+		</div>
+
+
+
+
+
+
+
+
+</body>
+
+</html> 

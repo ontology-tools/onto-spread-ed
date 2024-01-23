@@ -1,0 +1,42 @@
+
+    <h3>File selection</h3>
+    <p>
+        Select the files to be included in the release. Every selected file will create a .owl file next to it.
+        Also, every selected file will be included in the final bcio.owl file.
+    </p>
+
+    <div class="callout callout-info"><b>Hint:</b> Keep the current selection for a standard release.</div>
+
+    <div class="selection p-2 border" style="max-height: 400px; overflow: scroll">
+
+        {% macro render_tree(tree, depth=0, id='root', full_path="") -%}
+            <ul class="list-unstyled collapse show" style="margin-left: {{ depth * 20 }}px"
+                id="selection-tree-{{ id }}">
+                {% for path, entries in tree.items() %}
+                    {% if path == "." %}
+                        {% for file, selected in entries %}
+                            <li class="form-check mb-2">
+                                <input class="form-check-input" data-ose-file-name="{{ full_path + file }}"
+                                       type="checkbox" {{ "checked" if selected }}
+                                       id="selection-{{ id }}-{{ loop.index }}">
+                                <label class="form-check-label" for="selection-{{ id }}-{{ loop.index }}">
+                                    {{ file }}
+                                </label>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="mb-2"><a class="btn btn-toggle border-0 p-0 mb-2" data-bs-toggle="collapse"
+                                            href="#selection-tree-{{ id + "-" + path | replace(" ", "_") }}"><i
+                                class="fa fa-folder"></i> {{ path }}</a>
+                            {{ render_tree(entries, depth + 1, id + "-" + path | replace(" ", "_"), full_path + path + "/") }}
+                        </li>
+                    {% endif %}
+
+                {% endfor %}
+            </ul>
+        {%- endmacro %}
+
+        {{ render_tree(selection) }}
+    </div>
+
+    <button class="btn btn-primary w-100 mt-2" href="#" id="btn-start-release">Start release</button>
