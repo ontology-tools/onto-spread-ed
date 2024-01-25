@@ -2,13 +2,37 @@ name: CI
 on:
   push:
     branches:
-      - release_workflow
       - main
       - develop
   pull_request:
 jobs:
+  run-linters:
+    name: Run linters
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install Python dependencies
+        run: pip install black flake8
+
+      - name: Run linters
+        uses: wearerequired/lint-action@v2
+        with:
+          auto_fix: true
+          autopep8: true
+          autopep8_auto_fix: true
+          flake8: true
+          flake8_auto_fix: false
   build:
     runs-on: ubuntu-latest
+    needs: run-linters
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v4
