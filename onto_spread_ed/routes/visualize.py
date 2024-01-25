@@ -93,6 +93,7 @@ def openVisualise(ontodb: OntologyDataStore):
     return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list,
                            filter=filter)
 
+
 @bp.route('/openVisualiseAcrossSheets', methods=['POST'])
 @verify_logged_in
 def openVisualiseAcrossSheets(ontodb: OntologyDataStore):
@@ -104,4 +105,3 @@ def openVisualiseAcrossSheets(ontodb: OntologyDataStore):
     # todo: do we need to support more than one repo at a time here?
     dotStr = ontodb.getDotForIDs(repo, idList).to_string()
     return render_template("visualise.html", sheet="selection", repo=repo, dotStr=dotStr)
-

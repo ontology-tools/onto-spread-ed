@@ -208,7 +208,7 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     return jsonify(release.as_dict())
 
 
-@bp.route("/rerun-step", methods=("POST","GET"))
+@bp.route("/rerun-step", methods=("POST", "GET"))
 @verify_admin
 def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
     q: Query[Release] = db.session.query(Release)

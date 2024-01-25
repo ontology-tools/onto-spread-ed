@@ -44,5 +44,3 @@ class AppModule(Module):
     @request
     def executor(self, app: Flask) -> Executor:
         return Executor(app)
-
-

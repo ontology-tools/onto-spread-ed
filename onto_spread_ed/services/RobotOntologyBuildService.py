@@ -76,7 +76,8 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         merge_cmd.extend(
             ['annotate', '--ontology-iri', merged_iri, '--version-iri', merged_iri, '--annotation rdfs:comment ',
-             '"This file contains externally imported content for the ' + main_ontology_name + '. It was prepared using ROBOT and a custom script from a spreadsheet of imported terms."',
+             '"This file contains externally imported content for the ' + main_ontology_name +
+             '. It was prepared using ROBOT and a custom script from a spreadsheet of imported terms."',
              '--output', merged_file])
 
         merge_cmd = " ".join(merge_cmd)
@@ -178,7 +179,8 @@ class RobotOntologyBuildService(OntologyBuildService):
                     dependency_f.write(" </owl:Ontology> \n</rdf:RDF> ")
 
                 with open(catalog_file_name, "w") as f:
-                    entries = "\n".join([f'<uri id="external" name="{ontology.iri()[:ontology.iri().rindex("/")]}/{d}" uri="{d}" />' for d in dependency_file_names])
+                    entries = "\n".join(
+                        [f'<uri id="external" name="{ontology.iri()[:ontology.iri().rindex("/")]}/{d}" uri="{d}" />' for d in dependency_file_names])
                     f.write(f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <catalog prefer="public" xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
     <group id="Folder Repository, directory=, recursive=true, Auto-Update=true, version=2" prefer="public" xml:base="">

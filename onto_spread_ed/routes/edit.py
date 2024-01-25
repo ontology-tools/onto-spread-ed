@@ -47,9 +47,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     suggestions = ontodb.getReleaseLabels(repo_key)
     suggestions = list(dict.fromkeys(suggestions))
 
-
     breadcrumb_segments = [repo_key, *folder.split("/"), spreadsheet]
-
 
     return render_template('edit.html',
                            login=g.user.github_login,
@@ -278,10 +276,10 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
             return (
                 json.dumps({
-                    'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="' \
+                    'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="'
                              + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha,
                     "file_sha_2": new_file_sha, "pr_branch": branch, "merge_diff": merge_diff,
-                    "merged_table": json.dumps(merged_table), \
+                    "merged_table": json.dumps(merged_table),
                     "rows3": rows3, "header3": header3}), 300  # 400 for missing REPO
             )
         else:
@@ -350,7 +348,6 @@ def checkForUpdates(github: GitHub):
         repo_key = request.form.get("repo_key")
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
-        # initialData = request.form.get("initialData") 
         old_sha = request.form.get("file_sha")
         repositories = current_app.config['REPOSITORIES']
         repo_detail = repositories[repo_key]
@@ -362,6 +359,7 @@ def checkForUpdates(github: GitHub):
             return (json.dumps({"message": "Success"}), 200)
         else:
             return (json.dumps({"message": "Fail"}), 200)
+
 
 @bp.route("/generate", methods=["POST"])
 @verify_logged_in
@@ -402,6 +400,7 @@ def verify():
         return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
     return ('success')
 
+
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
     for index, (key, value) in enumerate(
             rowData.items()):  # todo: really, we need to loop here, surely there is a faster way?
@@ -430,6 +429,7 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
     if current >= len(rowData):
         return (blank, unique)
     return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
+
 
 def checkNotUnique(cell, column, headers, table):
     counter = 0

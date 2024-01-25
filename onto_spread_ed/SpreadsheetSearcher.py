@@ -67,7 +67,7 @@ class SpreadsheetSearcher:
             mparser = MultifieldParser(["repo", "spreadsheet"],
                                        schema=ix.schema)
             self._logger.debug("About to delete for query string: " +
-                  "repo:" + repo_name + " AND spreadsheet:'" + folder + "/" + sheet_name + "'")
+                               "repo:" + repo_name + " AND spreadsheet:'" + folder + "/" + sheet_name + "'")
             writer.delete_by_query(
                 mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder + "/" + sheet_name + "\""))
             writer.commit()
@@ -134,7 +134,6 @@ class SpreadsheetSearcher:
 
         return stats
 
-
     def rebuild_index(self, repository_keys: Optional[List[str]] = None) -> List[str]:
         """
         Rebuild the index for entity data stored in Excel files.
@@ -181,7 +180,8 @@ class SpreadsheetSearcher:
                     entity_data = to_entity_data_list(data)
 
                     spreadsheet = file
-                    self._logger.debug(f"Rewriting entity data for repository '{repository_key} ({repository})' and file '{spreadsheet}'")
+                    self._logger.debug(
+                        f"Rewriting entity data for repository '{repository_key} ({repository})' and file '{spreadsheet}'")
                     re_write_entity_data_set(repository_key, index, spreadsheet, entity_data)
                     sheets.append(f"{repository}/{file}")
 
@@ -192,5 +192,3 @@ class SpreadsheetSearcher:
             self.threadLock.release()
 
         return sheets
-
-

@@ -1,3 +1,4 @@
+# autopep8: off
 # Allow custom serialisation to json with __json__ function
 from json import JSONEncoder
 
@@ -22,6 +23,7 @@ from .config import PREFIXES
 
 from . import config
 from .database.User import User
+# autopep8: on
 
 
 def create_app(test_config=None):

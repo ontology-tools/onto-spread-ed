@@ -120,8 +120,9 @@ class ExcelOntology:
 
         return r
 
-    def _parse_import(self, row: List[Tuple[ColumnMapping, Optional[str]]], err_default: dict) -> Result[
-        OntologyImport]:
+    def _parse_import(self,
+                      row: List[Tuple[ColumnMapping, Optional[str]]],
+                      err_default: dict) -> Result[OntologyImport]:
         r = Result(template=err_default)
         ontology = OntologyImport(id=None)
         unprocessable_columns = []

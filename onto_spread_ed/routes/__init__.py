@@ -20,5 +20,3 @@ def init_app(app: Flask):
 
     for bp in api_blueprints:
         app.register_blueprint(bp)
-
-

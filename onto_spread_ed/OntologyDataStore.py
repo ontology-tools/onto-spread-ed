@@ -67,7 +67,7 @@ class OntologyDataStore:
                         if plabel and plabel.strip() in self.label_to_id:
                             self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
                                                        classId.replace(":", "_"), dir="back")
-                    axioms: List[AnnotatedAxiom] = self.releases[repo].get_axioms_for_iri(classIri)  # other relationships
+                    axioms = self.releases[repo].get_axioms_for_iri(classIri)  # other relationships
                     for a in axioms:
                         # Example: ['SubClassOf', 'http://purl.obolibrary.org/obo/CHEBI_27732', ['ObjectSomeValuesFrom', 'http://purl.obolibrary.org/obo/RO_0000087', 'http://purl.obolibrary.org/obo/CHEBI_60809']]
                         if isinstance(a.axiom, SubClassOf) and isinstance(a.axiom.sup, ObjectSomeValuesFrom) and isinstance(a.axiom.sup.ope, ObjectProperty) and isinstance(a.axiom.sup.bce, Class):
