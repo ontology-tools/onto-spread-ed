@@ -180,8 +180,8 @@ class SpreadsheetSearcher:
                     entity_data = to_entity_data_list(data)
 
                     spreadsheet = file
-                    self._logger.debug(
-                        f"Rewriting entity data for repository '{repository_key} ({repository})' and file '{spreadsheet}'")
+                    self._logger.debug(f"Rewriting entity data for repository '{repository_key} ({repository})' "
+                                       f"and file '{spreadsheet}'")
                     re_write_entity_data_set(repository_key, index, spreadsheet, entity_data)
                     sheets.append(f"{repository}/{file}")
 

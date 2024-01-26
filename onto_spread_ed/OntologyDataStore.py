@@ -4,8 +4,7 @@ from urllib.request import urlopen
 
 import networkx
 import pyhornedowl
-
-from pyhornedowl.model import *
+from pyhornedowl.model import SubClassOf, ObjectSomeValuesFrom, ObjectProperty, Class
 
 
 class OntologyDataStore:
@@ -69,8 +68,10 @@ class OntologyDataStore:
                                                        classId.replace(":", "_"), dir="back")
                     axioms = self.releases[repo].get_axioms_for_iri(classIri)  # other relationships
                     for a in axioms:
-                        # Example: ['SubClassOf', 'http://purl.obolibrary.org/obo/CHEBI_27732', ['ObjectSomeValuesFrom', 'http://purl.obolibrary.org/obo/RO_0000087', 'http://purl.obolibrary.org/obo/CHEBI_60809']]
-                        if isinstance(a.axiom, SubClassOf) and isinstance(a.axiom.sup, ObjectSomeValuesFrom) and isinstance(a.axiom.sup.ope, ObjectProperty) and isinstance(a.axiom.sup.bce, Class):
+                        if isinstance(a.axiom, SubClassOf) and \
+                                isinstance(a.axiom.sup, ObjectSomeValuesFrom) and \
+                                isinstance(a.axiom.sup.ope, ObjectProperty) and \
+                                isinstance(a.axiom.sup.bce, Class):
                             relIri = str(a.axiom.sup.ope.first)
                             targetIri = str(a.axiom.sup.bce.first)
                             rel_name = self.releases[repo].get_annotation(relIri, self.config['RDFSLABEL'])
@@ -112,7 +113,7 @@ class OntologyDataStore:
                     'Definition' in entry and \
                     'Parent' in entry and \
                     len(entry['ID']) > 0:
-                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                 if entryParent in self.label_to_id:  # Subclass relations
                     # Subclass relations must be reversed for layout
                     self.graphs[repo].add_edge(self.label_to_id[entryParent],
@@ -159,7 +160,7 @@ class OntologyDataStore:
                             if 'ID' in entry and len(entry['ID']) > 0:
                                 ids.append(entry['ID'].replace(":", "_"))
                             if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                                entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
                             if ":" in entry['ID'] or "_" in entry['ID']:
@@ -196,7 +197,7 @@ class OntologyDataStore:
                             ids.append(entry['ID'].replace(":", "_"))
 
                         if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                            entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
 
@@ -223,7 +224,7 @@ class OntologyDataStore:
                         ids.append(entry['ID'].replace(":", "_"))
 
                     if 'Parent' in entry:
-                        entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                        entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                         print("found entryParent: ", entryParent)
                         if entryParent in self.label_to_id:
                             ids.append(self.label_to_id[entryParent])
@@ -263,7 +264,7 @@ class OntologyDataStore:
                                 if 'ID' in entry and len(entry['ID']) > 0:
                                     ids.append(entry['ID'].replace(":", "_"))
                                 if 'Parent' in entry:
-                                    entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                                    entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                     if entryParent in self.label_to_id:
                                         ids.append(self.label_to_id[entryParent])
                                 if ":" in entry['ID'] or "_" in entry['ID']:
@@ -301,7 +302,7 @@ class OntologyDataStore:
                             if 'ID' in entry and len(entry['ID']) > 0:
                                 ids.append(entry['ID'].replace(":", "_"))
                             if 'Parent' in entry:
-                                entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                                entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
                             if ":" in entry['ID'] or "_" in entry['ID']:
@@ -327,7 +328,7 @@ class OntologyDataStore:
                         if 'ID' in entry and len(entry['ID']) > 0:
                             ids.append(entry['ID'].replace(":", "_"))
                         if 'Parent' in entry:
-                            entryParent = re.sub("[\[].*?[\]]", "", str(entry['Parent'])).strip()
+                            entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
                         if ":" in entry['ID'] or "_" in entry['ID']:
@@ -420,23 +421,23 @@ class OntologyDataStore:
         synonyms = ""
         entries = []
 
-        all_labels = set()
         for classIri in self.releases[repo].get_classes():
             classId = self.releases[repo].get_id_for_iri(classIri).replace(":", "_")
             for id in allIDS:
                 if id is not None:
                     if classId == id:
                         label = self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL'])  # yes
-                        iri = self.releases[repo].get_iri_for_label(label)
                         if self.releases[repo].get_annotation(classIri, DEFN) is not None:
                             definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace(
                                 "'", "").replace("\"", "")
                         else:
                             definition = ""
                         if self.releases[repo].get_annotation(classIri, SYN) is not None:
-                            synonyms = self.releases[repo].get_annotation(classIri, SYN).replace(",", "").replace("'",
-                                                                                                                  "").replace(
-                                "\"", "")
+                            synonyms = self.releases[repo] \
+                                .get_annotation(classIri, SYN) \
+                                .replace(",", "") \
+                                .replace("'", "") \
+                                .replace("\"", "")
                         else:
                             synonyms = ""
                         entries.append({

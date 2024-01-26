@@ -3,7 +3,6 @@ from typing import Any, Optional, Union, List, Tuple
 
 from typing_extensions import Self
 
-from .Relation import Relation, UnresolvedRelation
 from .TermIdentifier import TermIdentifier
 
 

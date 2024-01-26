@@ -179,8 +179,9 @@ class RobotOntologyBuildService(OntologyBuildService):
                     dependency_f.write(" </owl:Ontology> \n</rdf:RDF> ")
 
                 with open(catalog_file_name, "w") as f:
+                    base_iri = ontology.iri()[:ontology.iri().rindex("/")]
                     entries = "\n".join(
-                        [f'<uri id="external" name="{ontology.iri()[:ontology.iri().rindex("/")]}/{d}" uri="{d}" />' for d in dependency_file_names])
+                        [f'<uri id="external" name="{base_iri}/{d}" uri="{d}" />' for d in dependency_file_names])
                     f.write(f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <catalog prefer="public" xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
     <group id="Folder Repository, directory=, recursive=true, Auto-Update=true, version=2" prefer="public" xml:base="">
@@ -188,8 +189,10 @@ class RobotOntologyBuildService(OntologyBuildService):
     </group>
 </catalog>
 """)
-                template_command.extend(
-                    ['--catalog', catalog_file_name, '--input', dependency_f.name, "--merge-before", "--collapse-import-closure", "false"])
+                template_command.extend(['--catalog', catalog_file_name,
+                                         '--input', dependency_f.name,
+                                         "--merge-before",
+                                         "--collapse-import-closure", "false"])
 
         return self._execute_command(" ".join(template_command), cwd=tmp_dir)
 

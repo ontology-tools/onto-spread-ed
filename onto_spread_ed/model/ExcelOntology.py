@@ -1,11 +1,10 @@
 import logging
-import re
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set
-from typing_extensions import Self
 
 import openpyxl
+from typing_extensions import Self
 
 from .ColumnMapping import Schema, ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
     ParentMapping, DEFAULT_MAPPINGS, DEFAULT_IMPORT_SCHEMA, TermMapping, PrefixColumnMapping
@@ -474,46 +473,5 @@ class ExcelOntology:
 
         return result
 
-    # print("Duplicate:")
-    # print("===========")
-    # for term in self._terms:
-    #     if not term.is_unresolved() and self.:
-    #         print(term)
-
-    #
-    # if term.id is None:
-    #     matching_terms = self._unresolved_term_by_label(term.label, term)
-    #     if len(matching_terms) == 0:
-    #         errors.append(dict(
-    #             type="no-label",
-    #             message=f"term with id {term.id} has no label",
-    #             term=term
-    #         ))
-    #     elif len(matching_terms) > 1:
-    #         errors.append(dict(
-    #             type="duplicate-label",
-    #             message=f"terms with the ids {', '.join([t.id for t in matching_terms])} have the same label '{term.label}'",
-    #             terms=[term, *matching_terms]
-    #         ))
-    #     else:
-    #         term.complement(matching_terms[0])
-    #
-    # if term.label is None:
-    #     matching_terms = self._unresolved_term_by_id(term.id, term)
-    #     if len(matching_terms) == 0:
-    #         errors.append(dict(
-    #             type="no-id",
-    #             message=f"term with label {term.label} has no id",
-    #             term=term
-    #         ))
-    #     elif len(matching_terms) > 1:
-    #         errors.append(dict(
-    #             type="duplicate-label",
-    #             message="terms with the labels " + ', '.join(
-    #                 [f"'{t.label}'" for t in matching_terms]) + f" have the same id '{term.id}'",
-    #             terms=[term, *matching_terms]
-    #         ))
-    #     else:
-    #         term.complement(matching_terms[0])
     def iri(self) -> str:
         return self._iri

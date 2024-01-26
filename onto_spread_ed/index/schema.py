@@ -1,5 +1,4 @@
-from whoosh.fields import Schema, TEXT, KEYWORD, ID, SchemaClass
-from whoosh.formats import Existence, Positions, Frequency
+from whoosh.fields import TEXT, KEYWORD, ID, SchemaClass
 
 
 class OntologyContentSchema(SchemaClass):

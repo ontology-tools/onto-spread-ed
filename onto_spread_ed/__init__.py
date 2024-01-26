@@ -1,29 +1,13 @@
-# autopep8: off
-# Allow custom serialisation to json with __json__ function
-from json import JSONEncoder
-
-from flask_sqlalchemy import SQLAlchemy
-
-
-def wrapped_default(self, obj):
-    return getattr(obj.__class__, "__json__", wrapped_default.default)(obj)
-
-
-wrapped_default.default = JSONEncoder().default
-
-# apply the patch
-JSONEncoder.original_default = JSONEncoder.default
-JSONEncoder.default = wrapped_default
+# Do the custom json serialization
+from .custom_json import *  # noqa: F403, F401
 
 from flask import Flask, session, g
 from flask_cors import CORS
 from flask_injector import FlaskInjector
-
-from .config import PREFIXES
+from flask_sqlalchemy import SQLAlchemy
 
 from . import config
 from .database.User import User
-# autopep8: on
 
 
 def create_app(test_config=None):

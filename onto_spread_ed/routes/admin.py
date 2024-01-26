@@ -54,21 +54,16 @@ def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
 
         selection = sorted([(f, f in default) for f in spreadsheets])
 
-        def to_tree(l: List[Tuple[str, bool]]) -> Dict[str, Union[List[Tuple[str, bool]], Dict]]:
-            tree: Dict[str, Union[List[Tuple[str, bool]], Dict]] = {".": []}
-            for entry, selected in l:
-                parts = entry.split("/")
-                subtree = tree
-                for part in parts[:-1]:
-                    subtree = subtree.setdefault(part, {".": []})
-                subtree["."].append((parts[-1], selected))
-
-            return tree
-
-        selection = to_tree(selection)
+        tree: Dict[str, Union[List[Tuple[str, bool]], Dict]] = {".": []}
+        for entry, selected in selection:
+            parts = entry.split("/")
+            subtree = tree
+            for part in parts[:-1]:
+                subtree = subtree.setdefault(part, {".": []})
+            subtree["."].append((parts[-1], selected))
 
     return dict(
-        selection=selection,
+        selection=tree,
         release=current_release,
         login=g.user.github_login,
     )

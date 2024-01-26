@@ -1,7 +1,6 @@
-from flask import Blueprint, session, redirect, url_for, render_template, jsonify, g
+from flask import Blueprint, session, redirect, url_for, render_template, jsonify
 from flask_github import GitHub
 
-from ..database.User import User
 from ..guards.verify_login import verify_logged_in
 
 bp = Blueprint("authentication", __name__, template_folder="../templates")

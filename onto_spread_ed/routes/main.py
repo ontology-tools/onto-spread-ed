@@ -1,5 +1,4 @@
 import json
-from functools import reduce
 
 from flask import Blueprint, current_app, g, render_template, redirect, url_for, request, session, jsonify
 from flask_github import GitHub
