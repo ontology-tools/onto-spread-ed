@@ -62,5 +62,3 @@ class UnresolvedRelation:
 
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)
-
-

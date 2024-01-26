@@ -278,7 +278,8 @@ DEFAULT_MAPPINGS = [
     singleton(["Name", "Label", "Label (synonym)", "Relationship"], LabelMapping),
     singleton(["Parent", "Parent class/ BFO class"], ParentMapping, kind=ColumnMappingKind.SUB_CLASS_OF),
     singleton(["Parent relationship"], ParentMapping, kind=ColumnMappingKind.SUB_PROPERTY_OF),
-    singleton(["Logical definition", "Equivalent to relationship"], ManchesterSyntaxMapping, kind=ColumnMappingKind.EQUIVALENT_TO),
+    singleton(["Logical definition", "Equivalent to relationship"],
+              ManchesterSyntaxMapping, kind=ColumnMappingKind.EQUIVALENT_TO),
     singleton(["Disjoint classes"], TermMapping, kind=ColumnMappingKind.DISJOINT_WITH, separator=";"),
     relation(["Definition"], TermIdentifier(id="IAO:0000115", label="definition")),
     relation(["Definition_ID"], TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy")),
@@ -289,7 +290,9 @@ DEFAULT_MAPPINGS = [
     relation(["Synonyms"], TermIdentifier(id="IAO:0000118", label="alternative label"), ";"),
     relation(["Comment"], TermIdentifier(id="rdfs:comment", label="rdfs:comment")),
     relation(["Curation status"], TermIdentifier(id="IAO:0000114", label="has curation status")),
-    relation_pattern(r"REL '([^']+)'", lambda name, match: TermIdentifier(label=match.group(1)), relation_kind=OWLPropertyType.ObjectProperty, split=";")
+    relation_pattern(r"REL '([^']+)'",
+                     lambda name, match: TermIdentifier(label=match.group(1)),
+                     relation_kind=OWLPropertyType.ObjectProperty, split=";")
 ]
 
 DEFAULT_IMPORT_SCHEMA = Schema([

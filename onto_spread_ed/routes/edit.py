@@ -22,13 +22,13 @@ bp = Blueprint("edit", __name__, template_folder="../templates")
 @bp.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
 def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStore):
-    if session.get('label') == None:
+    if session.get('label') is None:
         go_to_row = ""
     else:
         go_to_row = session.get('label')
         session.pop('label', None)
 
-    if session.get('type') == None:
+    if session.get('type') is None:
         type = ""
     else:
         type = session.get('type')
@@ -47,9 +47,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     suggestions = ontodb.getReleaseLabels(repo_key)
     suggestions = list(dict.fromkeys(suggestions))
 
-
     breadcrumb_segments = [repo_key, *folder.split("/"), spreadsheet]
-
 
     return render_template('edit.html',
                            login=g.user.github_login,
@@ -83,35 +81,6 @@ def download_spreadsheet(github: GitHub):
     current_app.logger.debug(f"Downloading spreadsheet from {download_url}")
     return (json.dumps({"message": "Success",
                         "download_url": download_url}), 200)
-    # return redirect(download_url) #why not?
-    # r = requests.get(url)
-    # strIO = StringIO.StringIO(r.content)
-    # return send_file(strIO, as_attachment=True, attachment_filename={spreadsheet})
-
-    # todo: get spreadsheet location and return it  f"repos/{repo_detail}/contents/{folder}/{spreadsheet}"
-    # spreadsheet_file = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}");
-    # spreadsheet_file = github.get(
-    #     f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
-    # )
-    # base64_bytes = spreadsheet_file['content'].encode('utf-8')
-    # decoded_data = base64.decodebytes(base64_bytes)
-    # bytesIO = io.BytesIO(decoded_data)
-    # wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
-    # sheet = wb.active
-    # wb.save(spreadsheet)
-    # bytesIO.seek(0)  # go to the beginning of the stream
-    # #
-    # return send_file(
-    #     bytesIO,
-    #     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    #     attachment_filename=f"{spreadsheet}.xlsx",
-    #     as_attachment=True,
-    #     cache_timeout=0
-    # )
-    # return ( json.dumps({"message":"Success",
-    #                             "spreadsheet_file": spreadsheet_file}), 200 )
-    # return send_file(spreadsheet_file, as_attachment=True, attachment_filename=spreadsheet)
-    # return redirect(f"https://raw.githubusercontent.com/{repo_key}/{folder}/{spreadsheet}?token={g.user.github_access_token}")
 
 
 @bp.route('/save', methods=['POST'])
@@ -230,12 +199,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
         (new_file_sha, new_rows, new_header) = get_spreadsheet(github, repo_detail, folder, spreadsheet)
 
         # Commit changes to branch (replace code with sheet)
-        data = {
-            "message": commit_msg,
-            "content": base64_string,
-            "branch": branch,
-        }
-        data["sha"] = new_file_sha
+        data = {"message": commit_msg, "content": base64_string, "branch": branch, "sha": new_file_sha}
         current_app.logger.debug("About to commit file to branch %s",
                                  f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
         response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
@@ -265,8 +229,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             current_app.logger.info("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header,
-                                               initial_data_parsed)  # getDiff(saving version, latest server version, header for both)
+            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed)
             # update rows for comparison:
             (file_sha3, rows3, header3) = get_spreadsheet(github, repo_detail, folder, spreadsheet)
             # todo: delete transient branch here? Github delete code is a test for now.
@@ -278,10 +241,11 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                 raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
             return (
                 json.dumps({
-                    'Error': 'Your change was submitted to the repository but could not be automatically merged due to a conflict. You can view the change <a href="' \
+                    'Error': 'Your change was submitted to the repository but could not be automatically merged due '
+                             'to a conflict. You can view the change <a href="'
                              + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha,
                     "file_sha_2": new_file_sha, "pr_branch": branch, "merge_diff": merge_diff,
-                    "merged_table": json.dumps(merged_table), \
+                    "merged_table": json.dumps(merged_table),
                     "rows3": rows3, "header3": header3}), 300  # 400 for missing REPO
             )
         else:
@@ -350,7 +314,6 @@ def checkForUpdates(github: GitHub):
         repo_key = request.form.get("repo_key")
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
-        # initialData = request.form.get("initialData") 
         old_sha = request.form.get("file_sha")
         repositories = current_app.config['REPOSITORIES']
         repo_detail = repositories[repo_key]
@@ -362,6 +325,7 @@ def checkForUpdates(github: GitHub):
             return (json.dumps({"message": "Success"}), 200)
         else:
             return (json.dumps({"message": "Fail"}), 200)
+
 
 @bp.route("/generate", methods=["POST"])
 @verify_logged_in
@@ -402,14 +366,15 @@ def verify():
         return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
     return ('success')
 
+
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
     for index, (key, value) in enumerate(
             rowData.items()):  # todo: really, we need to loop here, surely there is a faster way?
         if index == current:
-            if key == "Label" or key == "Definition" or key == "Parent" or key == "Sub-ontology" or key == "Curation status":
+            if key in ["Label", "Definition", "Parent", "Sub-ontology", "Curation status"]:
                 if key == "Definition" or key == "Parent":
                     status = rowData.get("Curation status")  # check for "Curation status"
-                    if (status):
+                    if status:
                         if rowData["Curation status"] == "Proposed" or rowData["Curation status"] == "External":
                             pass
                         else:
@@ -430,6 +395,7 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
     if current >= len(rowData):
         return (blank, unique)
     return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
+
 
 def checkNotUnique(cell, column, headers, table):
     counter = 0
@@ -521,7 +487,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
     # table2 = daff.PythonTableView([list(r.values()) for r in row_data_2])
 
-    alignment = daff.Coopy.compareTables3(table3, table2, table1).align()  # 3 way: initial vs server vs saving
+    # alignment = daff.Coopy.compareTables3(table3, table2, table1).align()  # 3 way: initial vs server vs saving
 
     # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
     alignment2 = daff.Coopy.compareTables(table2, table1).align()  # saving vs server
@@ -542,10 +508,10 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     highlighter.hilite(table_diff)
     # hasDifference() should return true - and it does.
     if highlighter.hasDifference():
-        current_app.logger.debug(f'HASDIFFERENCE')
+        current_app.logger.debug('HASDIFFERENCE')
         current_app.logger.debug(highlighter.getSummary().row_deletes)
     else:
-        current_app.logger.debug(f'no difference found')
+        current_app.logger.debug('no difference found')
     diff2html = daff.DiffRender()
     diff2html.usePrettyArrows(False)
     diff2html.render(table_diff)

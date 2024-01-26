@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime, Boolean
-from sqlalchemy.orm import QueryPropertyDescriptor
 
 from .Base import Base
 

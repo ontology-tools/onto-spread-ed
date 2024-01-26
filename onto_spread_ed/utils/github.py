@@ -13,8 +13,10 @@ from flask_github import GitHub, GitHubError
 _logger = logging.getLogger(__name__)
 
 
-def get_csv(github: GitHub, repository_name: str, folder: str, spreadsheet_name: str) -> Tuple[
-    str, List[List[str]], List[str]]:
+def get_csv(github: GitHub,
+            repository_name: str,
+            folder: str,
+            spreadsheet_name: str) -> Tuple[str, List[List[str]], List[str]]:
     csv_file = github.get(
         f'repos/{repository_name}/contents/{folder}/{spreadsheet_name}'
     )

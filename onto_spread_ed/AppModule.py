@@ -3,7 +3,7 @@ from flask_executor import Executor
 from flask_github import GitHub
 from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
-from injector import Module, singleton, Binder, provider
+from injector import Module, provider
 
 from . import database
 from . import gh
@@ -44,5 +44,3 @@ class AppModule(Module):
     @request
     def executor(self, app: Flask) -> Executor:
         return Executor(app)
-
-

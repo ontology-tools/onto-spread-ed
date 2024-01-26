@@ -135,7 +135,13 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
         external_iri="http://humanbehaviourchange.org/ontology/bcio_external.owl",
         upper_level_iri="http://humanbehaviourchange.org/ontology/bcio_upper.owl",
         ontology_annotations={
-            "rdfs:comment": "The Behaviour Change Intervention Ontology (BCIO) is an ontology for all aspects of human behaviour change interventions and their evaluation. It is being developed as a part of the Human Behaviour Change Project (http://www.humanbehaviourchange.org). The BCIO is developed across several modules. This ontology file contains the merged version of the BCIO, encompassing the upper level and the modules for Setting, Mode of Delivery, Style of Delivery, Source, Mechanisms of Action, Behaviour and Behaviour Change Techniques. Additional modules will be added soon.",
+            "rdfs:comment": "The Behaviour Change Intervention Ontology (BCIO) is an ontology for all aspects of "
+                            "human behaviour change interventions and their evaluation. It is being developed "
+                            "as a part of the Human Behaviour Change Project (http://www.humanbehaviourchange.org). "
+                            "The BCIO is developed across several modules. This ontology file contains the merged "
+                            "version of the BCIO, encompassing the upper level and the modules for Setting, "
+                            "Mode of Delivery, Style of Delivery, Source, Mechanisms of Action, Behaviour and "
+                            "Behaviour Change Techniques. Additional modules will be added soon.",
             "dc:title": "Behaviour Change Intervention Ontology"
         },
         full_repository_name=current_app.config["REPOSITORIES"][repo],
@@ -208,7 +214,7 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     return jsonify(release.as_dict())
 
 
-@bp.route("/rerun-step", methods=("POST","GET"))
+@bp.route("/rerun-step", methods=("POST", "GET"))
 @verify_admin
 def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
     q: Query[Release] = db.session.query(Release)
@@ -524,9 +530,10 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 _raise_if_canceled()
 
             release_month = datetime.datetime.utcnow().strftime('%B %Y')
+            release_body = f"Released the {release_month} version of {release_script.short_repository_name}"
             pr_nr = github.create_pr(gh, release_script.full_repository_name,
                                      title=f"{release_month} Release",
-                                     body=f"Released the {release_month} version of {release_script.short_repository_name}",
+                                     body=release_body,
                                      source=branch,
                                      target="master")
             _raise_if_canceled()
@@ -556,8 +563,8 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
 
                 current_step = q.get(release_id).step
                 if current_step <= last_step and i != len(release_steps) - 1:
-                    current_app.logger.error(
-                        "The step did not change after a release step was executed. Did an error occur? Not running further release steps.")
+                    current_app.logger.error("The step did not change after a release step was executed. "
+                                             "Did an error occur? Not running further release steps.")
                     return
 
                 last_step = current_step

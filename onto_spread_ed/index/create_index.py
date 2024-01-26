@@ -63,7 +63,8 @@ def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, 
 def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name: str, writer: SegmentWriter):
     header, rowdata = entity_data
 
-    _logger.debug(f"Adding entity data '{entity_data[1][0]}' to index for repository '{repo_name}' and sheet '{sheet_name}'")
+    _logger.debug(
+        f"Adding entity data '{entity_data[1][0]}' to index for repository '{repo_name}' and sheet '{sheet_name}'")
 
     if "ID" in header:
         class_id = rowdata[header.index("ID")]
