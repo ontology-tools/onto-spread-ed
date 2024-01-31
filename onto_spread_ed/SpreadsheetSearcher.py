@@ -104,8 +104,8 @@ class SpreadsheetSearcher:
         query = mparser.parse(updated_repo_name.upper() + "*")
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id", reverse=True)
-            top_hit = results[0]
-            next_id = int(top_hit['class_id'].split(":")[1]) + 1
+            top_hit = next((hit['class_id'].split(":")[1] for hit in results), 0)
+            next_id = top_hit + 1
 
         ix.close()
 
@@ -169,10 +169,11 @@ class SpreadsheetSearcher:
                 if repository_keys is not None and repository_key not in repository_keys:
                     continue
 
+                branch = self.config["DEFAULT_BRANCH"][repository_key]
                 active_sheets = self.config["ACTIVE_SPREADSHEETS"][repository_key]
                 regex = "|".join(f"({r})" for r in active_sheets)
 
-                excel_files = get_spreadsheets(self.github, repository, include_pattern=regex)
+                excel_files = get_spreadsheets(self.github, repository, branch, include_pattern=regex)
 
                 for file in excel_files:
                     _, data, _ = get_spreadsheet(self.github, repository, "", file)

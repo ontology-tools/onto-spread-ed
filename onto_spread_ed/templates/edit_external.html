@@ -29,7 +29,7 @@
 
 <div class="btn-group" role="group" aria-label="Basic example">
     <div class="dropright">
-        <button class="btn btn-outline-success dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown"
+        <button class="btn btn-outline-success dropdown-toggle" type="button" id="dropdownMenu2" data-bs-toggle="dropdown"
             aria-haspopup="true" aria-expanded="false">
             Choose Ontology
         </button>
@@ -40,7 +40,8 @@
     <form id="submitText" class="form-inline">
         <!-- <input id="inputText" name="inputText" value="" placeholder='new Ontology ID'> -->
         <button type="submit" id="show-all-assigned" name="show_all_assigned" value="show_assigned"
-            class="btn btn-outline-warning fas fa-plus" onclick="return submitForm(this)">
+            class="btn btn-outline-warning" onclick="return submitForm(this)">
+            <i class="fas fa-plus"></i>
             Create New Ontology
         </button>
     </form>

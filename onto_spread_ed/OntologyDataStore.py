@@ -30,7 +30,8 @@ class OntologyDataStore:
         ontofilename = self.config['RELEASE_FILES'][repo]
         repositories = self.config['REPOSITORIES']
         repo_detail = repositories[repo]
-        location = f"https://raw.githubusercontent.com/{repo_detail}/master/{ontofilename}"
+        branch = self.config["DEFAULT_BRANCH"][repo]
+        location = f"https://raw.githubusercontent.com/{repo_detail}/{branch}/{ontofilename}"
         print("Fetching release file from", location)
         data = urlopen(location).read()  # bytes
         ontofile = data.decode('utf-8')

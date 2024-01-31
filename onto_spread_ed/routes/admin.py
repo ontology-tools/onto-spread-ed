@@ -49,7 +49,7 @@ def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
 
     selection = {}
     if not current_release or not current_release.included_files:
-        spreadsheets = get_spreadsheets(gh, current_app.config["REPOSITORIES"]["BCIO"], "", "Upper Level BCIO/")
+        spreadsheets = get_spreadsheets(gh, current_app.config["REPOSITORIES"]["BCIO"], "master", "", "Upper Level BCIO/")
         default = current_app.config["ACTIVE_SPREADSHEETS"]["BCIO"]
 
         selection = sorted([(f, f in default) for f in spreadsheets])

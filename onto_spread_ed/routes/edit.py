@@ -101,6 +101,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
 
     repositories = current_app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
+    default_branch = current_app.config["DEFAULT_BRANCH"][repo_key]
     restart = False  # for refreshing the sheet (new ID's)
     try:
         initial_data_parsed = json.loads(initial_data)
@@ -129,6 +130,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                 "While saving: No Label column present, so not sorting this.")  # do we need to sort - yes, for diff!
 
         current_app.logger.debug(f"Got file_sha: {file_sha}")
+
+        next_id = searcher.get_next_id(repo_key)
 
         wb = openpyxl.Workbook()
         sheet = wb.active
@@ -168,7 +171,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                         if (row[header.index("Label")] and row[header.index("Parent")] and
                                 row[header.index("Definition")]):  # not blank
                             # generate ID here:
-                            nextIdStr = str(searcher.get_next_id(repo_key))
+                            nextIdStr = str(next_id)
+                            next_id += 1
                             fill_num = current_app.config['DIGIT_COUNT']
                             if repo_key == "BCIO":
                                 fill_num = fill_num - 1
@@ -191,7 +195,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
 
         # Create a new branch to commit the change to (in case of simultaneous updates)
         branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
-        create_branch(github, repo_detail, branch)
+        create_branch(github, repo_detail, branch, default_branch)
 
         current_app.logger.debug("About to get latest version of the spreadsheet file %s",
                                  f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
@@ -215,7 +219,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             data={
                 "title": commit_msg,
                 "head": branch,
-                "base": "master",
+                "base": default_branch,
                 "body": commit_msg_extra
             },
         )
@@ -255,7 +259,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                 f"repos/{repo_detail}/merges",
                 data={
                     "head": branch,
-                    "base": "master",
+                    "base": default_branch,
                     "commit_message": commit_msg
                 },
             )
@@ -615,7 +619,7 @@ def edit_external(repo_key, folder_path, github: GitHub):
     # not a spreadsheet but a csv file:
     (file_sha2, rows2, header2) = get_csv(github, repo_detail, folder, sheet2)
     (file_sha3, rows3, header3) = get_csv(github, repo_detail, folder, sheet3)
-    return render_template('templates/edit_external.html',
+    return render_template('edit_external.html',
                            login=g.user.github_login,
                            repo_name=repo_key,
                            folder_path=folder_path,
