@@ -441,7 +441,7 @@ class ExcelOntology:
                         result.error(type="missing-relation-value",
                                      term=term.__dict__,
                                      relation=relation,
-                                     value=value,)
+                                     value=value)
 
         for relation in self._relations:
             result.template = {"row": relation.origin[1]} if relation.origin is not None else {}

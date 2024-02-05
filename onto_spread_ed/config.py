@@ -78,9 +78,17 @@ GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
 SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
 
 if os.environ.get("FLASK_ENV") == 'development':
-    REPOSITORIES = {"BCIO": "b-gehrke/ontologies", "AddictO": "b-gehrke/addiction-ontology", "GMHO": "b-gehrke/mental-health-ontology"}
+    REPOSITORIES = {
+        "BCIO": "b-gehrke/ontologies",
+        "AddictO": "b-gehrke/addiction-ontology",
+        "GMHO": "b-gehrke/mental-health-ontology"
+    }
 else:
-    REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology", "BCIO": "HumanBehaviourChangeProject/ontologies", "GMHO": "galenos-project/mental-health-ontology"}
+    REPOSITORIES = {
+        "AddictO": "addicto-org/addiction-ontology",
+        "BCIO": "HumanBehaviourChangeProject/ontologies",
+        "GMHO": "galenos-project/mental-health-ontology"
+    }
 
 DEFAULT_BRANCH = {
     "BCIO": "master",

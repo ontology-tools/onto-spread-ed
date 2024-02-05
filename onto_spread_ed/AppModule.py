@@ -5,8 +5,7 @@ from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
 from injector import Module, provider
 
-from . import database
-from . import gh
+from . import database, gh
 from .OntologyDataStore import OntologyDataStore
 from .SpreadsheetSearcher import SpreadsheetSearcher
 
