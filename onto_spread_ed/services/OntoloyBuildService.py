@@ -1,11 +1,11 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Optional, Any, Dict, List
 
 from ..model.ExcelOntology import OntologyImport, ExcelOntology
 from ..model.Result import Result
 
 
-class OntologyBuildService:
+class OntologyBuildService(ABC):
     @abstractmethod
     def merge_imports(self,
                       imports: List[OntologyImport],
