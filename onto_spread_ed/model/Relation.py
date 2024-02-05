@@ -10,6 +10,8 @@ class OWLPropertyType(enum.Enum):
     AnnotationProperty = 1
     DataProperty = 2
     ObjectProperty = 3
+    Internal = 4
+    "Only internal usage. Do not expose to OWL"
 
 
 @dataclass

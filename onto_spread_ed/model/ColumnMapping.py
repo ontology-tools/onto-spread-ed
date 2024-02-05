@@ -186,7 +186,7 @@ class RelationColumnMapping(ColumnMapping):
         return self.relation
 
     def get_value(self, value: str) -> List[Tuple[TermIdentifier, Any]]:
-        values = [x.strip() for x in value.split(self.separator)] if self.separator is not None else [value.strip()]
+        values = [x.strip() for x in str(value).split(self.separator)] if self.separator is not None else [str(value).strip()]
 
         if self.relation.owl_property_type == OWLPropertyType.ObjectProperty:
             values = [TermIdentifier(label=x) for x in values]
@@ -256,6 +256,10 @@ def relation(excel_name: List[str], relation: TermIdentifier, name: Optional[str
         excel_name[0] if name is None else name, split))
 
 
+def internal(excel_names: List[str], name: str, split: Optional[str] = None) -> ColumnMappingFactory:
+    return relation(excel_names, TermIdentifier(id=None, label=name), name, split, OWLPropertyType.Internal)
+
+
 def relation_pattern(pattern: Union[str, re.Pattern],
                      factory: Callable[[str, re.Match], TermIdentifier],
                      split: Optional[str] = None,
@@ -292,7 +296,14 @@ DEFAULT_MAPPINGS = [
     relation(["Curation status"], TermIdentifier(id="IAO:0000114", label="has curation status")),
     relation_pattern(r"REL '([^']+)'",
                      lambda name, match: TermIdentifier(label=match.group(1)),
-                     relation_kind=OWLPropertyType.ObjectProperty, split=";")
+                     relation_kind=OWLPropertyType.ObjectProperty, split=";"),
+    internal(["Informal definition"], "informalDefinition"),
+    internal(["Sub-ontology"], "lowerLevelOntology"),
+    internal(["Fuzzy set"], "fuzzySet"),
+    internal(["Why fuzzy"], "fuzzyExplanation"),
+    internal(["Cross reference"], "crossReference"),
+
+
 ]
 
 DEFAULT_IMPORT_SCHEMA = Schema([
