@@ -7,6 +7,7 @@ def verify_admin(fn):
     """
     Decorator used to make sure that the user is logged in
     """
+
     @functools.wraps(fn)
     def wrapped(*args, **kwargs):
         # If the user is not logged in, then redirect him to the "logged out" page:

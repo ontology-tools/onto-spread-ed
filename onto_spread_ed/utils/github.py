@@ -75,11 +75,12 @@ def get_spreadsheet(github: GitHub,
 
 def get_spreadsheets(github: GitHub,
                      repository_name: str,
+                     branch: str,
                      folder: str = "",
                      exclude_pattern: Optional[Union[re.Pattern, str]] = None,
                      include_pattern: Optional[Union[re.Pattern, str]] = None) -> list[str]:
     tree = github.get(
-        f'repos/{repository_name}/git/trees/master',
+        f'repos/{repository_name}/git/trees/{branch}',
         params={"recursive": "true"}
     )
     entries = tree["tree"]
@@ -91,7 +92,7 @@ def get_spreadsheets(github: GitHub,
             ]
 
 
-def create_branch(github: GitHub, repo: str, branch: str, parent_branch: Optional[str] = "master") -> None:
+def create_branch(github: GitHub, repo: str, branch: str, parent_branch: str) -> None:
     response = github.get(f"repos/{repo}/git/ref/heads/{parent_branch}")
     if not response or "object" not in response or "sha" not in response["object"]:
         raise Exception(f"Unable to get SHA for HEAD of {parent_branch} in {repo}")
@@ -124,7 +125,7 @@ def save_file(github: GitHub, repo: str, path: str, content: bytes, message: str
     github.put(f"repos/{repo}/contents/{path}", data=data)
 
 
-def create_pr(github: GitHub, repo: str, title: str, body: str, source: str, target: str = "master") -> int:
+def create_pr(github: GitHub, repo: str, title: str, body: str, source: str, target: str) -> int:
     response = github.post(
         f"repos/{repo}/pulls",
         data={

@@ -207,7 +207,7 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     if release.worker_id is None:
         release_script = ReleaseScript.from_json(release.release_script)
 
-        executor.submit(do_release,  db, gh, release_script, release.id)
+        executor.submit(do_release, db, gh, release_script, release.id)
 
         sleep(1)
 

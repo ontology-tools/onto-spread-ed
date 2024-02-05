@@ -476,20 +476,12 @@
                         if (rowObj["ID"] == "" || rowObj["ID"] == null) {
                             //not External
                         } else {
-                            //different repo's: 
-                            if (repo_name == "BCIO") {
-                                //todo: is there no change for "" and null here as well? 
-                                if (rowObj["ID"].includes("BCIO")) {
-                                    //not external
-                                } else {
-                                    rowObj[headers[j]] = "External";
-                                }
-                            } else { //"AddictO repo"
-                                if (rowObj["ID"].includes("ADDICTO")) {
-                                    //not external
-                                } else {
-                                    rowObj[headers[j]] = "External";
-                                }
+                            //different repo's:
+                            //todo: is there no change for "" and null here as well?
+                            if (rowObj["ID"].includes(repo_name.toUpperCase())) {
+                                //not external
+                            } else {
+                                rowObj[headers[j]] = "External";
                             }
                         }
                     }

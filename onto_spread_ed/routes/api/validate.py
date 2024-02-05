@@ -105,7 +105,7 @@ def validate_line(entity: Dict[str, Any],
 
     if old_label != entity["Label"]:
         references = searcher.search_for(repository, f"parent:'{old_label}'")
-        references = [r for r in references if r['parent'] == old_label]   # Do strict filtering
+        references = [r for r in references if r['parent'] == old_label]  # Do strict filtering
         warnings += [{
             "type": "dangling-reference",
             "id": r["class_id"],

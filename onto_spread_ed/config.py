@@ -7,7 +7,8 @@ DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:////tmp/github-flask-ontos
 SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
 RELEASE_FILES = {"AddictO": "addicto.owl",
-                 "BCIO": "Upper%20Level%20BCIO/bcio.owl"}
+                 "BCIO": "Upper%20Level%20BCIO/bcio.owl",
+                 "GMHO": "gmho.owl"}
 
 PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["BFO", "http://purl.obolibrary.org/obo/BFO_"],
@@ -15,6 +16,7 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["UBERON", "http://purl.obolibrary.org/obo/UBERON_"],
             ["PATO", "http://purl.obolibrary.org/obo/PATO_"],
             ["BCIO", "http://humanbehaviourchange.org/ontology/BCIO_"],
+            ["GMHO", "https://galenos.org.uk/ontology/GMHO_"],
             ["SEPIO", "http://purl.obolibrary.org/obo/SEPIO_"],
             ["OMRSE", "http://purl.obolibrary.org/obo/OMRSE_"],
             ["OBCS", "http://purl.obolibrary.org/obo/OBCS_"],
@@ -49,6 +51,9 @@ ACTIVE_SPREADSHEETS = {
     ],
     "AddictO": [
         r".*\.xlsx"
+    ],
+    "GMHO": [
+        r".*\.xlsx"
     ]
 }
 
@@ -73,9 +78,23 @@ GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET')
 SECRET_KEY = os.environ.get('FLASK_SECRET_KEY')
 
 if os.environ.get("FLASK_ENV") == 'development':
-    REPOSITORIES = {"BCIO": "b-gehrke/ontologies", "AddictO": "b-gehrke/addiction-ontology"}
+    REPOSITORIES = {
+        "BCIO": "b-gehrke/ontologies",
+        "AddictO": "b-gehrke/addiction-ontology",
+        "GMHO": "b-gehrke/mental-health-ontology"
+    }
 else:
-    REPOSITORIES = {"AddictO": "addicto-org/addiction-ontology", "BCIO": "HumanBehaviourChangeProject/ontologies"}
+    REPOSITORIES = {
+        "AddictO": "addicto-org/addiction-ontology",
+        "BCIO": "HumanBehaviourChangeProject/ontologies",
+        "GMHO": "galenos-project/mental-health-ontology"
+    }
+
+DEFAULT_BRANCH = {
+    "BCIO": "master",
+    "AddictO": "master",
+    "GMHO": "main"
+}
 
 if DEPLOYMENT_MODE == "GOOGLE_CLOUD":
     # Connect to the Google cloud Secret Manager client
@@ -119,8 +138,8 @@ elif DEPLOYMENT_MODE == "LOCAL":
     INDEX_PATH = os.environ.get("INDEX_PATH")
 
 USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "BCIO"]},
-                  "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO"], "admin": True},
-                  "robertjwest": {"initials": "RW", "repositories": ["AddictO", "BCIO"]},
+                  "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
+                  "robertjwest": {"initials": "RW", "repositories": ["AddictO", "BCIO", "GMHO"]},
                   "sharoncox": {"initials": "SC", "repositories": ["AddictO"]},
                   "ksoar": {"initials": "KS", "repositories": ["AddictO"]},
                   "CaitlinNotley702": {"initials": "CN", "repositories": ["AddictO"]},
@@ -130,6 +149,7 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "candicemooreucl": {"initials": "CM", "repositories": ["BCIO"]},
                   "oscarcastroserrano": {"initials": "OC", "repositories": ["BCIO"]},
                   "emilyjhayes": {"initials": "EJH", "repositories": ["BCIO"]},
-                  "paulinaschenk": {"initials": "PS", "repositories": ["BCIO"]},
-                  "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO"], "admin": True}}
+                  "paulinaschenk": {"initials": "PS", "repositories": ["BCIO", "GMHO"], "admin": True},
+                  "lzhang01": {"initials": "LZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
+                  "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]

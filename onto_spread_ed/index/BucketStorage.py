@@ -1,8 +1,7 @@
 import logging
 
 import whoosh.filedb.filestore
-
-from index.ExtendedStorage import ExtendedStorage
+from .ExtendedStorage import ExtendedStorage
 
 
 # Implementation of Google Cloud Storage for index
