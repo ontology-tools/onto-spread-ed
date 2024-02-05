@@ -1,3 +1,4 @@
+import typing
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union, List, Tuple
 
@@ -19,6 +20,51 @@ class Term:
 
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)
+
+    def curation_status(self) -> typing.Optional[str]:
+        """
+        Convenience function to retrieve the value of the annotation property 'has curation status' (IAO:0000114)
+
+        :return: The curation status if defined.
+        """
+        return next((v.strip() for r, v in self.relations if r.id == "IAO:0000114"), None)
+
+    def is_external(self) -> Optional[bool]:
+        curation_status = self.curation_status()
+        if curation_status is None:
+            return None
+
+        return curation_status in ["External"]
+
+    def get_relation_value(self, id: TermIdentifier) -> Optional[Any]:
+        return next((v for r, v in self.relations if ((id.id is None or id.id == r.id) and
+                                                       id.label is None or id.label == r.label)), None)
+
+    def __eq__(self, other):
+        if other is None or not isinstance(other, Term):
+            return False
+
+        return all([
+            self.id == other.id,
+            self.label == other.label,
+            sorted(self.synonyms) == sorted(other.synonyms),
+            sorted(self.sub_class_of) == sorted(other.sub_class_of),
+            sorted(self.equivalent_to) == sorted(other.equivalent_to),
+            sorted(self.disjoint_with) == sorted(other.disjoint_with),
+            sorted(self.relations) == sorted(other.relations),
+        ])
+
+    def __hash__(self):
+        return sum(hash(x) for x in [
+            self.id,
+            self.label,
+            self.origin,
+            sorted(self.synonyms),
+            sorted(self.sub_class_of),
+            sorted(self.equivalent_to),
+            sorted(self.disjoint_with),
+            sorted(self.relations)
+        ])
 
 
 @dataclass
