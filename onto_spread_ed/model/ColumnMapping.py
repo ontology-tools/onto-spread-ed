@@ -27,7 +27,7 @@ class ColumnMappingKind(enum.Enum):
     RANGE = 9
 
 
-class ColumnMapping:
+class ColumnMapping(abc.ABC):
 
     @abc.abstractmethod
     def get_name(self) -> str:
@@ -194,7 +194,7 @@ class RelationColumnMapping(ColumnMapping):
         return [(self.relation.identifier(), x) for x in values]
 
 
-class ColumnMappingFactory:
+class ColumnMappingFactory(abc.ABC):
     @abc.abstractmethod
     def maps(self, column_name: str) -> bool:
         pass
