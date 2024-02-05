@@ -19,6 +19,8 @@ from ...database.Release import Release
 from ...guards.admin import verify_admin
 from ...model.ExcelOntology import ExcelOntology
 from ...model.Result import Result
+from ...model.Term import Term
+from ...search_api.BCIOSearchService import BCIOSearchService
 from ...services.RobotOntologyBuildService import RobotOntologyBuildService
 from ...utils import github
 from ...utils.github import download_file
@@ -33,7 +35,8 @@ RELEASE_STEP_UPPER = 3
 RELEASE_STEP_LOWER = 4
 RELEASE_STEP_FINAL = 5
 RELEASE_STEP_HUMAN = 6
-RELEASE_STEP_PUBLISH = 7
+RELEASE_STEP_BCIO_SEARCH = 7
+RELEASE_STEP_PUBLISH = 8
 
 
 class ReleaseCanceledException(Exception):
@@ -167,7 +170,7 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
     db.session.add(release)
     db.session.commit()
 
-    executor.submit(do_release, db, gh, release_script, release.id)
+    executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
 
     return jsonify(release.as_dict())
 
@@ -207,7 +210,7 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     if release.worker_id is None:
         release_script = ReleaseScript.from_json(release.release_script)
 
-        executor.submit(do_release, db, gh, release_script, release.id)
+        executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
 
         sleep(1)
 
@@ -232,7 +235,7 @@ def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
     if release.worker_id is None:
         release_script = ReleaseScript.from_json(release.release_script)
 
-        executor.submit(do_release, db, gh, release_script, release.id)
+        executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
 
     return jsonify(release.as_dict())
 
@@ -282,7 +285,7 @@ def local_name(tmp: str, remote_name: str, file_ending=None) -> str:
     return external_xlsx
 
 
-def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int) -> None:
+def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, config: Dict) -> None:
     q: Query[Release] = db.session.query(Release)
 
     builder = RobotOntologyBuildService()
@@ -513,6 +516,27 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
 
             return False
 
+        def release_step_to_bcio_search():
+            # get ontology
+            result, ontology = _load_upper()
+            _raise_if_canceled()
+
+            for excel_file in release.included_files:
+                local_xlsx = _local_name(excel_file)
+                result += ontology.add_terms_from_excel(excel_file, local_xlsx)
+                _raise_if_canceled()
+
+            ontology.resolve()
+
+            service = BCIOSearchService(config)
+            service.update_api(
+                ontology,
+                "Test release - should not be published",
+                lambda step, total, msg: set_release_info(q, release_id, {
+                    "__progress": step/total
+                }
+            ))
+
         def release_step_publish():
             branch = f"release/{datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"
             github.create_branch(gh, release_script.full_repository_name, branch)
@@ -552,6 +576,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             release_step_build_lower,
             release_step_final_merge,
             release_step_human_verification,
+            release_step_to_bcio_search,
             release_step_publish
         ]
 

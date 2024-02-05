@@ -2,7 +2,7 @@
 
 {% if release.state == "waiting-for-user" and details["errors"] | length > 0 %}
     <div class="alert alert-danger">
-        <h4>An error occurred while publishing to BCIOSearch.</h4>
+        <h4>An error occurred while communicating with github.</h4>
         <p>
             A technical error occurred. Please contact an administrator.
         </p>
@@ -24,7 +24,15 @@
             {% endif %}
         </div>
     {% endfor %}
+
+{% elif release.state == "completed" %}
+    <p>
+        The ontologies are now published to github and the release is completed.
+    </p>
+    <div class="text-center w-100 text-success" style="font-size: 100px">
+        <i class="fa fa-check-double"></i>
+    </div>
 {% else %}
 
-    {{ loading_indicator("The ontologies are being published to BCIOSearch.") }}
+    {{ loading_indicator("The ontologies are being published to github.") }}
 {% endif %}
