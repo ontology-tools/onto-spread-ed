@@ -180,6 +180,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                                 fill_num = fill_num
                             id = repo_key.upper() + ":" + nextIdStr.zfill(fill_num)
                             new_id = id
+                            row_data_parsed[r]["ID"] = new_id
                             for c in range(len(header)):
                                 if c == 0:
                                     restart = True
