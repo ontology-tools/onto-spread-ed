@@ -53,7 +53,13 @@ ACTIVE_SPREADSHEETS = {
         r".*\.xlsx"
     ],
     "GMHO": [
-        r".*\.xlsx"
+        "Non-GMHO entities mapped to LSRs/Non-GMHO entities mapped to LSRs.xlsx",
+        "Intervention mechanism/Intervention mechanism of action.xlsx",
+        "Intervention setting/Intervention setting.xlsx",
+        "Intervention population/Intervention population.xlsx",
+        "Intervention outcomes and spillover effects/Intervention outcomes and spillover effects.xlsx",
+        "Intervention content and delivery/Intervention content and delivery.xlsx",
+        "Research methods/Research methods.xlsx",
     ]
 }
 
