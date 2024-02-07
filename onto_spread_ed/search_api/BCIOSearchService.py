@@ -63,7 +63,7 @@ class BCIOSearchService(APIService):
                 ext_parents = external_ontology.get_superclasses(term_iri)
                 ext_parents = [TermIdentifier(id=external_ontology.get_id_for_iri(cls)) for cls in ext_parents]
                 ext_relations = [
-                    (TermIdentifier("IAO:0000600", "definition"), ext_definition),
+                    (TermIdentifier("IAO:0000115", "definition"), ext_definition),
                     (TermIdentifier("IAO:0000114", "has curation status"), "External")
                 ]
                 ext_term = Term(term_id, ext_label, [], ("<external>", -1), ext_relations, ext_parents, [], [])

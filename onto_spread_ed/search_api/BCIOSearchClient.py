@@ -22,6 +22,7 @@ class BCIOSearchClient:
         "informalDefinition": TermIdentifier(label="informalDefinition"),
         "lowerLevelOntology": TermIdentifier(label="lowerLevelOntology"),
         "curatorNote": TermIdentifier(id="IAO:0000232", label="curator note"),
+        "curationStatus": TermIdentifier(id="IAO:0000114", label="has curation status"),
         "comment": TermIdentifier(id="rdfs:comment", label="rdfs:comment"),
         "examples": TermIdentifier(id="IAO:0000112", label="example of usage"),
         "fuzzySet": TermIdentifier(label="fuzzySet"),
@@ -74,9 +75,10 @@ class BCIOSearchClient:
         }
 
         if with_references:
-            key_fn = lambda r: (r[0] if isinstance(r, tuple) else r).label
+            def key_fn(r: Union[Tuple[TermIdentifier, Any], TermIdentifier]) -> str:
+                return (r[0] if isinstance(r, tuple) else r).label
 
-            relations = [r for r, v in term.relations if isinstance(r, TermIdentifier) and not r.is_unresolved()]
+            relations = [(r, v) for r, v in term.relations if isinstance(r, TermIdentifier) and not r.is_unresolved()]
             relations.sort(key=key_fn)
 
             data = {
@@ -86,7 +88,7 @@ class BCIOSearchClient:
                 "termLinks": [{
                     "type": r,
                     "linkedTerms": [v for _, v in g]
-                } for r, g in groupby(relations, key_fn)]
+                } for r, g in groupby(term.relations, key_fn)]
             }
 
             data['eCigO'] = data.get('eCigO', "false").lower() in ["true", "1"]
@@ -124,14 +126,6 @@ class BCIOSearchClient:
         relations += [(identifier, rev[key]) for key, identifier in self._term_link_to_relation_mapping.items() if
                       key in rev]
 
-        definition = rev.get("definition", None)
-        if definition is not None:
-            relations.append((TermIdentifier(id="IAO:0000115", label="definition"), definition))
-
-        definition_source = rev.get("definition", None)
-        if definition_source is not None:
-            relations.append((TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy"), definition_source))
-
         return Term(id, label, synonyms, ("web", -1), relations, parents, equivalent_to, disjoint_with)
 
     def get_term(self, term: Union[Term, str, TermIdentifier], with_references=True) -> Optional[Term]:
@@ -168,10 +162,50 @@ class BCIOSearchClient:
 
         return Result(r)
 
+    @staticmethod
+    def _terms_equal(term1: Term, term2: Term, with_references: bool = True) -> bool:
+        ignore_if_not_exists = [
+            "informalDefinition",
+            "lowerLevelOntology",
+            "fuzzySet",
+            "fuzzyExplanation",
+            "crossReference"
+        ]
+
+        if with_references:
+            def value_eq(v1, v2) -> bool:
+                if isinstance(v1, str) and isinstance(v2, str):
+                    return v1.lower() == v2.lower()
+                if v1 is None and v2 == 'None' or v2 is None and v1 == 'None':
+                    return True
+
+
+                return v1 == v2
+
+            relations1 = dict(term1.relations)
+            relations2 = dict(term2.relations)
+
+            for r, v in term1.relations:
+                if not value_eq(relations2[r], v) if r in relations2 else r.label not in ignore_if_not_exists:
+                    return False
+
+            for r, v in term2.relations:
+                if not value_eq(relations1[r], v) if r in relations1 else r.label not in ignore_if_not_exists:
+                    return False
+
+        return all([
+            term1.id == term2.id,
+            term1.label == term2.label,
+            sorted(term1.synonyms) == sorted(term2.synonyms),
+            sorted(term1.sub_class_of) == sorted(term2.sub_class_of),
+            sorted(term1.equivalent_to) == sorted(term2.equivalent_to),
+            sorted(term1.disjoint_with) == sorted(term2.disjoint_with)
+        ])
+
     def update_term(self, term: Term, msg: str, with_references=True):
-        existing = self.get_term(term)
+        existing = self.get_term(term, with_references)
         if existing is not None:
-            if existing != term:
+            if not self._terms_equal(existing, term, with_references):
                 api_term = self._convert_to_api_term(term)
                 api_term['revisionMessage'] = msg
                 self._request("terms", "patch", api_term, headers={
