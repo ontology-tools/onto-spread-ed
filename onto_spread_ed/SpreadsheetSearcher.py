@@ -105,7 +105,7 @@ class SpreadsheetSearcher:
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id", reverse=True)
             top_hit = next((hit['class_id'].split(":")[1] for hit in results), 0)
-            next_id = top_hit + 1
+            next_id = int(top_hit) + 1
 
         ix.close()
 
