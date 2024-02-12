@@ -81,6 +81,26 @@
                         {% endif %} <br>
                         {{ error_link(error, error.term) }}
                     </p>
+                {% elif error.type == "duplicate-label" %}
+                    <h5>Duplicate label</h5>
+                    <p>
+                        The label <code>{{ error.label }}</code> is used multiple times on different terms:<br>
+                    </p>
+                    <ul>
+                        {% for d in error.duplicates %}
+                            <li><a href="{{ origin_link(d) }}"><code>{{ d.label }}</code> (<code>{{ d.id }}</code>)</a></li>
+                        {% endfor %}
+                    </ul>
+                {% elif error.type == "duplicate-id" %}
+                    <h5>Duplicate id</h5>
+                    <p>
+                        The id <code>{{ error.id }}</code> is used multiple times on different terms:<br>
+                    </p>
+                    <ul>
+                        {% for d in error.duplicates %}
+                            <li><a href="{{ origin_link(d) }}"><code>{{ d.label }}</code> (<code>{{ d.id }}</code>)</a></li>
+                        {% endfor %}
+                    </ul>
                 {% elif error.type == "missing-label" %}
                     <h5>Unknown label</h5>
                     <p>
@@ -158,6 +178,21 @@
                         {{ error_link(warning) }}
                     </p>
 
+                {% elif warning.type == "duplicate-term" %}
+                    <h5>Duplicate terms</h5>
+                    <p>
+                        The term <code>{{ warning.duplicates[0].label }}</code> (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
+                    </p>
+                    <ul>
+                        {% for d in warning.duplicates %}
+                            <li><a href="{{ origin_link(d) }}"><code>{{ d.origin[0] }}</code></a></li>
+                        {% endfor %}
+                    </ul>
+                {% elif warning.type == "unknown-column" %}
+                    <h5>Unmapped column</h5>
+                    <p>
+                    The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped to any OWL property or internal field.
+                    </p>
                 {% else %}
                     <h5>{{ warning.type.replace("-", " ") | capitalize }}</h5>
                     <p>
