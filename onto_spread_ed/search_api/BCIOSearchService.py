@@ -61,12 +61,20 @@ class BCIOSearchService(APIService):
                 if ext_definition is None:
                     ext_definition = external_ontology.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000600")
                 ext_parents = external_ontology.get_superclasses(term_iri)
+                # If multiple parents check if they are (immediate) subclasses of each other and only take the most
+                # specific parent.
+                ext_parents -= set().union(*[external_ontology.get_superclasses(i) for i in ext_parents])
                 ext_parents = [TermIdentifier(id=external_ontology.get_id_for_iri(cls)) for cls in ext_parents]
+
+                if len(ext_parents) == 0:
+                    self._logger.warning(f"External term has no parents: {term_id}")
+                    continue
+
                 ext_relations = [
-                    (TermIdentifier("IAO:0000600", "definition"), ext_definition),
+                    (TermIdentifier("IAO:0000115", "definition"), ext_definition),
                     (TermIdentifier("IAO:0000114", "has curation status"), "External")
                 ]
-                ext_term = Term(term_id, ext_label, [], ("<external>", -1), ext_relations, ext_parents, [], [])
+                ext_term = Term(term_id, ext_label, ("<external>", -1), ext_relations, ext_parents, [], [])
 
                 self._api_client.declare_term(ext_term)
 
