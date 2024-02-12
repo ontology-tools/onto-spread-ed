@@ -162,7 +162,7 @@ class RobotOntologyBuildService(OntologyBuildService):
             # A bit of hacking to deal appropriately with external dependency files:
             if dependency_files is not None:
                 dependency_file_name = os.path.join(tmp_dir, "imports.owl")
-                catalog_file_name = os.path.join(tmp_dir, "catalog.xml")
+                catalog_file_name = os.path.join(tmp_dir, "catalog-v001.xml")
                 # with NamedTemporaryFile("w", suffix="import.owl") as dependency_f:
                 with open(dependency_file_name, "w") as dependency_f:
 
