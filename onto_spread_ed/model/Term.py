@@ -85,6 +85,9 @@ class UnresolvedTerm:
             len(self.disjoint_with) + len(self.sub_class_of) + len(relation_values) > 0 and \
             any(t.is_unresolved() for t in [*self.sub_class_of, *self.disjoint_with, *relation_values])
 
+    def is_resolved(self) -> bool:
+        return not self.is_unresolved()
+
     def to_resolved(self) -> Optional[Term]:
         if self.is_unresolved():
             return None

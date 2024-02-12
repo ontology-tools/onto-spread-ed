@@ -12,6 +12,9 @@ class TermIdentifier:
     def is_unresolved(self) -> bool:
         return self.id is None or self.label is None
 
+    def is_resolved(self) -> bool:
+        return not self.is_unresolved()
+
     def complement(self, other: Self) -> None:
         if self.id is None:
             self.id = other.id

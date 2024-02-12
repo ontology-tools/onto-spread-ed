@@ -340,29 +340,11 @@ class ExcelOntology:
         imported = self.imported_terms()
 
         for term in self._terms:
-            if not term.is_unresolved():
+            if term.id is None or term.label is None:
+                self._logger.error(f"Term without id or label encountered. This should not happen. Term: {term}")
                 continue
 
-            if term.id is None and term.label is None:
-                self._logger.error(f"Term without id and label encountered. This should not happen. Term: {term}")
-                continue
-
-            matching_terms = [t for t in self._terms if t != term and
-                              (term.label is not None and term.label == t.label or
-                               term.id is not None and term.id == t.id)]
-
-            for m in matching_terms:
-                term.complement(m)
-
-            if term.is_unresolved():
-                matching_import = next((t for t in imported if
-                                        (term.label is not None and term.label == t.label or
-                                         term.id is not None and term.id == t.id)), None)
-                if matching_import is not None:
-                    term.complement(matching_import)
-
-        for term in self._terms:
-            if not term.is_unresolved():
+            if term.is_resolved():
                 continue
 
             relation_values = [x for r, x in term.relations if isinstance(x, TermIdentifier)]
@@ -493,6 +475,20 @@ class ExcelOntology:
             result.value = ()
 
         return result
+
+    def remove_duplicates(self) -> int:
+        to_remove: List[UnresolvedTerm] = []
+        hashset: Set[TermIdentifier] = set()
+        for term in self._terms:
+            if term.identifier() in hashset:
+                to_remove.append(term)
+            else:
+                hashset.add(term.identifier())
+
+        for term in to_remove:
+            self._terms.remove(term)
+
+        return len(to_remove)
 
     def iri(self) -> str:
         return self._iri

@@ -526,6 +526,10 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 _raise_if_canceled()
 
             ontology.resolve()
+            _raise_if_canceled()
+
+            ontology.remove_duplicates()
+            _raise_if_canceled()
 
             service = BCIOSearchService(config)
             service.update_api(
