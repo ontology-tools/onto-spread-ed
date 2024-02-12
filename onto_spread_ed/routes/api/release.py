@@ -231,7 +231,7 @@ def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
             message="Cannot resume a completed or canceled release!"
         )), 400
 
-    if release.worker_id is None:
+    if release.worker_id is None or request.args.get("force", False) == 'true':
         release_script = ReleaseScript.from_json(release.release_script)
 
         executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
