@@ -232,10 +232,20 @@ class PatternMappingFactory(ColumnMappingFactory):
 class Schema:
     _mapping_factories: List[ColumnMappingFactory]
 
-    def __init__(self, mapping_factories: List[ColumnMappingFactory]):
+    def __init__(self, mapping_factories: List[ColumnMappingFactory], ignored_fields: Optional[List[str]]=None) -> None:
+        if ignored_fields is None:
+            ignored_fields = []
+
         self._mapping_factories = mapping_factories
+        self._ignored_fields = ignored_fields
+
+    def is_ignored(self, header_name: str) -> bool:
+        return header_name in self._ignored_fields
 
     def get_mapping(self, header_name: str) -> Optional[ColumnMapping]:
+        if self.is_ignored(header_name):
+            return None
+
         return next(
             iter(m.create_mapping(header_name) for m in self._mapping_factories if m.maps(header_name)), None)
 
@@ -317,4 +327,6 @@ DEFAULT_IMPORT_SCHEMA = Schema([
 
 ])
 
-DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS)
+DEFAULT_IGNORED_FIELDS = ["Curator", "To be reviewed by", "Reviewer query", "BFO entity", "Structure"]
+
+DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS, DEFAULT_IGNORED_FIELDS)

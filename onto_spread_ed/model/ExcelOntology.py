@@ -1,13 +1,15 @@
 import logging
+import os.path
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set
 
 import openpyxl
+from openpyxl.worksheet.worksheet import Worksheet
 from typing_extensions import Self
 
 from .ColumnMapping import Schema, ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
-    ParentMapping, DEFAULT_MAPPINGS, DEFAULT_IMPORT_SCHEMA, TermMapping, PrefixColumnMapping
+    ParentMapping, DEFAULT_IMPORT_SCHEMA, TermMapping, PrefixColumnMapping, DEFAULT_SCHEMA
 from .Relation import Relation, UnresolvedRelation, OWLPropertyType
 from .Result import Result
 from .Term import Term, UnresolvedTerm
@@ -202,9 +204,10 @@ class ExcelOntology:
         if schema is None:
             schema = DEFAULT_IMPORT_SCHEMA
 
-        data, mapped = self._open_excel(file, schema)
+        result = self._open_excel(file, schema)
+        data, mapped = result.value
 
-        result = Result((), template=dict(file=name))
+        result += Result((), template=dict(file=name))
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
@@ -234,9 +237,10 @@ class ExcelOntology:
     def import_excel_ontology_from_file(self, name: str, file: Union[bytes, str, BytesIO],
                                         schema: Optional[Schema] = None) -> Result[tuple]:
         imported_terms = []
-        data, mapped = self._open_excel(file, schema)
+        result = self._open_excel(file, schema)
+        data, mapped = result.value
 
-        result = Result((), template=dict(file=name))
+        result += Result((), template=dict(file=name))
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
@@ -256,13 +260,14 @@ class ExcelOntology:
 
     def add_terms_from_excel(self, name: str, file: Union[bytes, str, BytesIO],
                              schema: Optional[Schema] = None) -> Result[tuple]:
-        data, mapped = self._open_excel(file, schema)
+        result = self._open_excel(file, schema)
+        data, mapped = result.value
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
                 self._used_relations.add(c.relation)
 
-        result = Result((), template=dict(file=name))
+        result += Result((), template=dict(file=name))
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
@@ -279,13 +284,14 @@ class ExcelOntology:
 
     def add_relations_from_excel(self, name: str, file: Union[bytes, str, BytesIO],
                                  schema: Optional[Schema] = None) -> Result[tuple]:
-        data, mapped = self._open_excel(file, schema)
+        result = self._open_excel(file, schema)
+        data, mapped = result.value
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
                 self._used_relations.add(c.relation)
 
-        result = Result((), template=dict(file=name))
+        result += Result((), template=dict(file=name))
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
@@ -302,17 +308,32 @@ class ExcelOntology:
         return result.merge(Result(()))
 
     def _open_excel(self, file: Union[bytes, str, BytesIO], schema: Optional[Schema] = None) -> \
-            Tuple[Iterator[Iterator[Optional[str]]], List[ColumnMapping]]:
+            Result[Tuple[Iterator[Iterator[Optional[str]]], List[ColumnMapping]]]:
+        result = Result()
         if schema is None:
-            schema = Schema(DEFAULT_MAPPINGS)
+            schema = DEFAULT_SCHEMA
         if isinstance(file, bytes):
             file = BytesIO(file)
         wb = openpyxl.load_workbook(file)
-        sheet = wb.active
+        sheet: Worksheet = wb.active
         data = sheet.rows
         header = next(data)
-        mapped = [schema.get_mapping(h.value) for h in header if h.value is not None]
-        return data, mapped
+        mapped: List[ColumnMapping] = []
+        for h in header:
+            if h.value is None:
+                continue
+
+            header_name = h.value.strip()
+            mapping = schema.get_mapping(header_name)
+            if mapping is None and not schema.is_ignored(header_name):
+                result.warning(type='unknown-column',
+                               column=header_name,
+                               sheet=os.path.basename(file) if isinstance(file, str) else sheet.title)
+
+            mapped.append(mapping)
+
+        result.value = (data, mapped)
+        return result
 
     def resolve(self) -> Result[tuple]:
         result = Result(())
