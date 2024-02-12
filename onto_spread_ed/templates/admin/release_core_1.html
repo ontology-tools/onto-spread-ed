@@ -19,6 +19,12 @@
         {% set warnings = details[sheet]["warnings"] %}
         {% set errors = details[sheet]["errors"] %}
 
+        {% macro origin_link(term) -%}
+            {% set typ = "id" if has_id else "search" -%}
+            {% set goto = term.id if has_id else term.label -%}
+            /direct?type={{ typ }}&repo={{ release.release_script['short_repository_name'] }}&sheet={{ term.origin[0] }}&go_to_row={{ goto }}
+        {%- endmacro %}
+
         {% macro error_link(error, term=None) %}
             {% set term = term if term != None else error %}
             {% if term.origin is defined %}
@@ -27,7 +33,7 @@
                 {% set typ = "id" if has_id else "search" %}
                 {% set goto = term.id if has_id else term.label %}
                 <a target="_blank"
-                   href="/direct?type={{ typ }}&repo={{ release.release_script['short_repository_name'] }}&sheet={{ term.origin[0] }}&go_to_row={{ goto }}">
+                   href="{{ origin_link(term) }}">
                     <i>
                         at <b>{{ term.origin[0] }}</b>
                         {% if "row" in error %}row <b>{{ error.row }}</b>{% endif %}

@@ -11,7 +11,6 @@ from .TermIdentifier import TermIdentifier
 class Term:
     id: str
     label: str
-    synonyms: List[str]
     origin: Tuple[str, int]
     relations: List[Tuple[TermIdentifier, Any]]
     sub_class_of: List[TermIdentifier]
@@ -71,7 +70,6 @@ class Term:
 class UnresolvedTerm:
     id: Optional[str] = None
     label: Optional[str] = None
-    synonyms: List[str] = field(default_factory=list)
     origin: Optional[Tuple[str, int]] = None
     relations: List[Tuple[TermIdentifier, Any]] = field(default_factory=list)
     sub_class_of: List[TermIdentifier] = field(default_factory=list)

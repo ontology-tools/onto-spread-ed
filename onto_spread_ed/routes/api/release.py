@@ -19,7 +19,6 @@ from ...database.Release import Release
 from ...guards.admin import verify_admin
 from ...model.ExcelOntology import ExcelOntology
 from ...model.Result import Result
-from ...model.Term import Term
 from ...search_api.BCIOSearchService import BCIOSearchService
 from ...services.RobotOntologyBuildService import RobotOntologyBuildService
 from ...utils import github
@@ -533,9 +532,10 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 ontology,
                 "Test release - should not be published",
                 lambda step, total, msg: set_release_info(q, release_id, {
-                    "__progress": step/total
-                }
-            ))
+                    "__progress": step / total
+                }))
+
+            pass
 
         def release_step_publish():
             branch = f"release/{datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"

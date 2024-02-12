@@ -58,7 +58,7 @@ class BCIOSearchClient:
         if method == "get":
             return requests.request(method, url, headers=headers, json=data)
         else:
-            self._logger.info(f"Would {method} {url} with {json.dumps(data)}")
+            self._logger.info(f"{method} {json.dumps(data)}")
             response = Response()
             response.status_code = 200
             return response
@@ -74,7 +74,8 @@ class BCIOSearchClient:
         }
 
         if with_references:
-            key_fn = lambda r: (r[0] if isinstance(r, tuple) else r).label
+            def key_fn(r: Union[Tuple[TermIdentifier, Any], TermIdentifier]) -> str:
+                return (r[0] if isinstance(r, tuple) else r).label
 
             relations = [r for r, v in term.relations if isinstance(r, TermIdentifier) and not r.is_unresolved()]
             relations.sort(key=key_fn)
@@ -102,7 +103,6 @@ class BCIOSearchClient:
 
         id: str = data["id"]
         label: str = rev["label"]
-        synonyms: List[str] = rev.get("synonyms", [])
 
         parent_term = rev.get("parentTerm", None)
         parents: List[TermIdentifier] = [TermIdentifier(id=parent_term.split("/")[-1])] if parent_term else []
