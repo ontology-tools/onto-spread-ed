@@ -1,8 +1,10 @@
 import logging
+import os
 import tempfile
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Tuple
 
 import requests
+from requests import HTTPError
 
 from .APIService import APIService
 from ..model.ExcelOntology import ExcelOntology
@@ -10,6 +12,7 @@ from .BCIOSearchClient import BCIOSearchClient
 
 import pyhornedowl
 
+from ..model.Result import Result
 from ..model.Term import Term
 from ..model.TermIdentifier import TermIdentifier
 
@@ -27,13 +30,14 @@ class BCIOSearchService(APIService):
         super().__init__(config)
 
         path = config.get(PROP_BCIO_SEARCH_API_PATH)
-        authtoken = config.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, None)
+        authtoken = config.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, os.environ.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, None))
 
         self._config = config
 
         self._api_client = BCIOSearchClient(path, authtoken)
 
-    def update_api(self, ontology: ExcelOntology, revision_message: str, update_fn: Optional[Callable[[int, int, str], None]] = None):
+    def update_api(self, ontology: ExcelOntology, revision_message: str, update_fn: Optional[Callable[[int, int, str], None]] = None) -> Result[Tuple]:
+        result = Result()
         response = requests.get(BCIO_SEARCH_RELEASED_EXTERNALS_OWL)
         external_ontology = pyhornedowl.open_ontology(response.text)
 
@@ -60,6 +64,10 @@ class BCIOSearchService(APIService):
                 ext_definition = external_ontology.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000115")
                 if ext_definition is None:
                     ext_definition = external_ontology.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000600")
+                if ext_definition is None:
+                    ext_definition = "no definition provided for external entity"
+                    result.warning(type='external-no-definition',
+                                   msg=f"No definition was provided for the external entity '{ext_label}' ({term_id}). Using default instead.")
                 ext_parents = external_ontology.get_superclasses(term_iri)
                 # If multiple parents check if they are (immediate) subclasses of each other and only take the most
                 # specific parent.
@@ -76,9 +84,11 @@ class BCIOSearchService(APIService):
                 ]
                 ext_term = Term(term_id, ext_label, ("<external>", -1), ext_relations, ext_parents, [], [])
 
-                self._api_client.declare_term(ext_term)
+                r = self._api_client.declare_term(ext_term)
+                if r.value == ():
+                    # not created - TESTING ONLY
+                    queue.append(ext_term)
 
-                queue.append(ext_term)
                 total += 1
 
         for term in ontology.terms():
@@ -99,6 +109,14 @@ class BCIOSearchService(APIService):
             if update_fn:
                 update_fn(step, total, f"Create '{term.label}' ({term.id})")
 
-            self._api_client.update_term(term, revision_message)
+            try:
+                self._api_client.update_term(term, revision_message)
+            except HTTPError as e:
+                result.error(type='http-error',
+                             details=str(e),
+                             response=e.response.json())
+
+        result.value = ()
+        return result
 
 

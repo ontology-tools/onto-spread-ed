@@ -111,9 +111,12 @@ class ExcelOntology:
                           msg=f"The column '{col.get_name()}' could not be processed")
                 unprocessable_columns.append(col)
 
+        if any(1 for t, v in term.relations if t.label == "has curation status" and v is not None and v.lower().strip() == "obsolete"):
+            r.info(type='skipping-obsolete',
+                   msg=f"Skipping obsolete term '{term.label}' ({term.id})'")
         # If a term has no id, label, or parents it is probably an empty line.
         # Ignore it but issue a warning.
-        if str_empty(term.id) and str_empty(term.label) and not any(term.sub_class_of):
+        elif str_empty(term.id) and str_empty(term.label) and not any(term.sub_class_of):
             r.warning(type="incomplete-term",
                       msg="Empty or incomplete term")
         else:

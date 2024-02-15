@@ -28,22 +28,27 @@ class BCIOSearchClient:
         "examples": (TermIdentifier(id="IAO:0000112", label="example of usage"), "single"),
         "fuzzySet": (TermIdentifier(label="fuzzySet"), "single"),
         "fuzzyExplanation": (TermIdentifier(label="fuzzyExplanation"), "single"),
-        "crossReference": (TermIdentifier(label="crossReference"), "multiple"),
+        "crossReferences": (TermIdentifier(label="crossReference"), "multiple"),
     }
 
-    def __init__(self, api_url: str, auth_token: Optional[str] = None):
+    def __init__(self, api_url: str, auth_token: Optional[str] = None, debug=False):
         self._auth_token = auth_token
         self._base = api_url
+        self._default_params = {"test": "1"} if debug else {}
 
     def _request(self,
                  sub_url: Union[str, List[str]],
-                 method: Literal["get", "post", "patch", "delete"],
+                 method: Literal["get", "post", "put", "patch", "delete"],
                  data: Optional[Dict] = None,
-                 headers: Optional[Dict] = None) -> Response:
+                 headers: Optional[Dict] = None,
+                 query_params: Optional[Dict[str, str]] = None) -> Response:
         if data is None:
             data = {}
         if headers is None:
             headers = {}
+        if query_params is None:
+            query_params = {} if method == "get" else self._default_params
+
         default_headers = {
             "accept": "application/ld+json",
             "Content-Type": "application/ld+json",
@@ -56,14 +61,18 @@ class BCIOSearchClient:
         else:
             url = urllib.parse.urljoin(url, sub_url)
 
+        query_string = urllib.parse.urlencode(query_params)
+        if query_string != "":
+            url += "?" + query_string
+
         headers = {**default_headers, **headers}
-        if method == "get":
-            return requests.request(method, url, headers=headers, json=data)
-        else:
+        if method != "get":
             self._logger.info(f"{method} {json.dumps(data)}")
-            response = Response()
-            response.status_code = 200
-            return response
+            # response = Response()
+            # response.status_code = 200
+            # return response
+            # else:
+        return requests.request(method, url, headers=headers, json=data)
 
     def _convert_to_api_term(self, term: Term, with_references=True) -> Dict:
         data = {
@@ -76,6 +85,13 @@ class BCIOSearchClient:
 
         if data['curationStatus'] in ['To Be Discussed','In Discussion', None]:
             data['curationStatus'] = 'Proposed'
+
+        if "lowerLevelOntology" in data and data["lowerLevelOntology"] is not None:
+                lower_level_ontology = data["lowerLevelOntology"].lower().strip()
+                if lower_level_ontology == "upper level":
+                    data["lowerLevelOntology"] = None
+                else:
+                    data["lowerLevelOntology"] = lower_level_ontology
 
         definition_source = self._merge_definition_source_and_id(term)
         if definition_source:
@@ -176,12 +192,14 @@ class BCIOSearchClient:
     def create_term(self, term: Term):
         data = self._convert_to_api_term(term)
 
-        self._request("terms", "post", data)
+        response = self._request("terms", "post", data)
 
-    def declare_term(self, term: Union[Term, TermIdentifier]) -> Result[Term]:
+        response.raise_for_status()
+
+    def declare_term(self, term: Union[Term, TermIdentifier]) -> Result[Union[Term, Tuple]]:
         exists = self.get_term(term, with_references=False) is not None
         if exists:
-            return Result()
+            return Result(())
 
         data = self._convert_to_api_term(term, False)
 
@@ -283,9 +301,13 @@ class BCIOSearchClient:
             if not self._terms_equal(existing, term):
                 api_term = self._convert_to_api_term(term)
                 api_term['revisionMessage'] = msg
-                self._request("terms", "patch", api_term, headers={
-                    "Content-Type": "application/merge-patch+json"
-                })
+                test = True
+                if test:
+                    response = self._request(["terms", term.id], "put", api_term, headers={
+                        "Content-Type": "application/json"
+                    })
+
+                    response.raise_for_status()
 
     def delete_term(self, term: Union[Term, str, TermIdentifier]):
         pass

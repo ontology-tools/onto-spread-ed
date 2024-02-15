@@ -575,14 +575,17 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             _raise_if_canceled()
 
             service = BCIOSearchService(config)
-            service.update_api(
+            result += service.update_api(
                 ontology,
-                "Test release - should not be published",
+                f"{datetime.datetime.utcnow().strftime('%B %Y')} Release",
                 lambda step, total, msg: set_release_info(q, release_id, {
                     "__progress": step / total
                 }))
 
-            pass
+            _raise_if_canceled()
+
+            set_release_result(q, release_id, result)
+            return result.ok()
 
         def release_step_publish():
             branch = f"release/{datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"
