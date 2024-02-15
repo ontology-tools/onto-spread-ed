@@ -40,7 +40,7 @@ class Term:
 
     def get_relation_values(self, id: TermIdentifier) -> List[Any]:
         return [v for r, v in self.relations if ((id.id is None or id.id == r.id) and
-                                                       id.label is None or id.label == r.label)]
+                                                 id.label is None or id.label == r.label)]
 
     def __eq__(self, other):
         if other is None or not isinstance(other, Term):

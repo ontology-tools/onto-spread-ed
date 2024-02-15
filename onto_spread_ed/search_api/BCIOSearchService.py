@@ -1,17 +1,14 @@
 import logging
 import os
-import tempfile
 from typing import List, Callable, Optional, Tuple
 
+import pyhornedowl
 import requests
 from requests import HTTPError
 
 from .APIService import APIService
-from ..model.ExcelOntology import ExcelOntology
 from .BCIOSearchClient import BCIOSearchClient
-
-import pyhornedowl
-
+from ..model.ExcelOntology import ExcelOntology
 from ..model.Result import Result
 from ..model.Term import Term
 from ..model.TermIdentifier import TermIdentifier
@@ -36,7 +33,8 @@ class BCIOSearchService(APIService):
 
         self._api_client = BCIOSearchClient(path, authtoken)
 
-    def update_api(self, ontology: ExcelOntology, revision_message: str, update_fn: Optional[Callable[[int, int, str], None]] = None) -> Result[Tuple]:
+    def update_api(self, ontology: ExcelOntology, revision_message: str,
+                   update_fn: Optional[Callable[[int, int, str], None]] = None) -> Result[Tuple]:
         result = Result()
         response = requests.get(BCIO_SEARCH_RELEASED_EXTERNALS_OWL)
         external_ontology = pyhornedowl.open_ontology(response.text)
@@ -61,9 +59,11 @@ class BCIOSearchService(APIService):
             term = ontology.term_by_id(term_id)
             if term is None:
                 ext_label = external_ontology.get_annotation(term_iri, "http://www.w3.org/2000/01/rdf-schema#label")
-                ext_definition = external_ontology.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000115")
+                ext_definition = external_ontology.get_annotation(term_iri,
+                                                                  "http://purl.obolibrary.org/obo/IAO_0000115")
                 if ext_definition is None:
-                    ext_definition = external_ontology.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000600")
+                    ext_definition = external_ontology.get_annotation(term_iri,
+                                                                      "http://purl.obolibrary.org/obo/IAO_0000600")
                 if ext_definition is None:
                     ext_definition = "no definition provided for external entity"
                     result.warning(type='external-no-definition',
@@ -118,5 +118,3 @@ class BCIOSearchService(APIService):
 
         result.value = ()
         return result
-
-

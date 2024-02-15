@@ -1,8 +1,8 @@
 import functools
 import json
 import logging
-import urllib.parse
 import urllib
+import urllib.parse
 from itertools import groupby
 from typing import Optional, Union, Literal, Dict, List, Any, Tuple
 
@@ -83,15 +83,15 @@ class BCIOSearchClient:
                     for k, (id, multiplicity) in self._term_link_to_relation_mapping.items()]),
         }
 
-        if data['curationStatus'] in ['To Be Discussed','In Discussion', None]:
+        if data['curationStatus'] in ['To Be Discussed', 'In Discussion', None]:
             data['curationStatus'] = 'Proposed'
 
         if "lowerLevelOntology" in data and data["lowerLevelOntology"] is not None:
-                lower_level_ontology = data["lowerLevelOntology"].lower().strip()
-                if lower_level_ontology == "upper level":
-                    data["lowerLevelOntology"] = None
-                else:
-                    data["lowerLevelOntology"] = lower_level_ontology
+            lower_level_ontology = data["lowerLevelOntology"].lower().strip()
+            if lower_level_ontology == "upper level":
+                data["lowerLevelOntology"] = None
+            else:
+                data["lowerLevelOntology"] = lower_level_ontology
 
         definition_source = self._merge_definition_source_and_id(term)
         if definition_source:
@@ -108,7 +108,8 @@ class BCIOSearchClient:
             def key_fn(r: Union[Tuple[TermIdentifier, Any], TermIdentifier]) -> str:
                 return (r[0] if isinstance(r, tuple) else r).label
 
-            relations: List[Tuple[TermIdentifier, TermIdentifier]] = [(r, v) for r, v in term.relations if isinstance(v, TermIdentifier) and v.is_resolved()]
+            relations: List[Tuple[TermIdentifier, TermIdentifier]] = [(r, v) for r, v in term.relations if
+                                                                      isinstance(v, TermIdentifier) and v.is_resolved()]
             relations.sort(key=key_fn)
 
             data = {

@@ -88,7 +88,8 @@ class RobotOntologyBuildService(OntologyBuildService):
                        dependency_files: Optional[List[str]], tmp_dir: str):
         # with NamedTemporaryFile("w",) as f:
         with open(os.path.join(tmp_dir, os.path.basename(outfile)) + ".csv", "w") as csv_file:
-            internal_relations = [r.id for r in ontology.used_relations() if r.owl_property_type == OWLPropertyType.Internal]
+            internal_relations = [r.id for r in ontology.used_relations() if
+                                  r.owl_property_type == OWLPropertyType.Internal]
 
             header = [
                 ("type", "TYPE"),

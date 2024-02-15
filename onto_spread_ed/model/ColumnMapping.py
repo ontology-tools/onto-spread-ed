@@ -186,7 +186,8 @@ class RelationColumnMapping(ColumnMapping):
         return self.relation
 
     def get_value(self, value: str) -> List[Tuple[TermIdentifier, Any]]:
-        values = [x.strip() for x in str(value).split(self.separator)] if self.separator is not None else [str(value).strip()]
+        values = [x.strip() for x in str(value).split(self.separator)] if self.separator is not None else [
+            str(value).strip()]
 
         if self.relation.owl_property_type == OWLPropertyType.ObjectProperty:
             values = [TermIdentifier(label=x) for x in values]
@@ -232,7 +233,8 @@ class PatternMappingFactory(ColumnMappingFactory):
 class Schema:
     _mapping_factories: List[ColumnMappingFactory]
 
-    def __init__(self, mapping_factories: List[ColumnMappingFactory], ignored_fields: Optional[List[str]]=None) -> None:
+    def __init__(self, mapping_factories: List[ColumnMappingFactory],
+                 ignored_fields: Optional[List[str]] = None) -> None:
         if ignored_fields is None:
             ignored_fields = []
 
@@ -297,7 +299,8 @@ DEFAULT_MAPPINGS = [
     singleton(["Disjoint classes"], TermMapping, kind=ColumnMappingKind.DISJOINT_WITH, separator=";"),
     relation(["Definition"], TermIdentifier(id="IAO:0000115", label="definition")),
     relation(["Definition_ID"], TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy")),
-    relation(["Definition_Source", "Definition source", "Definition Source"], TermIdentifier(id="IAO:0000119", label="definition source")),
+    relation(["Definition_Source", "Definition source", "Definition Source"],
+             TermIdentifier(id="IAO:0000119", label="definition source")),
     relation(["Examples", "Examples of usage", "Elaboration"],
              TermIdentifier(id="IAO:0000112", label="example of usage")),
     relation(["Curator note"], TermIdentifier(id="IAO:0000232", label="curator note")),
@@ -312,7 +315,6 @@ DEFAULT_MAPPINGS = [
     internal(["Fuzzy set"], "fuzzySet"),
     internal(["Why fuzzy"], "fuzzyExplanation"),
     internal(["Cross reference", "Cross-reference"], "crossReference"),
-
 
 ]
 

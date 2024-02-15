@@ -48,4 +48,3 @@ class TermIdentifier:
             return False
 
         return self.id < other.id
-

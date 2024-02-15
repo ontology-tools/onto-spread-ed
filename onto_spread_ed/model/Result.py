@@ -47,4 +47,3 @@ class Result(Generic[A]):
 
     def has_errors(self) -> bool:
         return len(self.errors) > 0
-
