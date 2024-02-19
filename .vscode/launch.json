@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Flask",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "app.py",
+                "GITHUB_CLIENT_ID": "e58434903bd6cba96a63",
+                "GITHUB_CLIENT_SECRET": "c2c0267951e30967df497d20bbb7411036d9eef0",
+                "FLASK_SECRET_KEY":"hahshshshshbaedsdasdadadasdasadabwcb12",
+                "LOG_LEVEL" : "debug",
+                "INDEX_PATH" : "./indexdir",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--port=8080",
+                "--no-reload"
+            ],
+            "jinja": true
+        }
+    ]
+}

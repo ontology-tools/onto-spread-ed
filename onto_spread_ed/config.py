@@ -87,7 +87,8 @@ if os.environ.get("FLASK_ENV") == 'development':
     REPOSITORIES = {
         "BCIO": "b-gehrke/ontologies",
         "AddictO": "b-gehrke/addiction-ontology",
-        "GMHO": "b-gehrke/mental-health-ontology"
+        "GMHO": "b-gehrke/mental-health-ontology",
+        "BCIO": "zaidishz/ontologies"
     }
 else:
     REPOSITORIES = {
@@ -157,5 +158,6 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "emilyjhayes": {"initials": "EJH", "repositories": ["BCIO"]},
                   "paulinaschenk": {"initials": "PS", "repositories": ["BCIO", "GMHO"], "admin": True},
                   "lzhang01": {"initials": "LZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
-                  "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}}
+                  "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
+                  "zaidishz": {"initials": "HZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
