@@ -320,13 +320,11 @@ class BCIOSearchClient:
             if not self._terms_equal(existing, term):
                 api_term = self._convert_to_api_term(term)
                 api_term['revisionMessage'] = msg
-                test = True
-                if test:
-                    response = self._request(["terms", term.id], "put", api_term, headers={
-                        "Content-Type": "application/json"
-                    })
+                response = self._request(["terms", term.id], "put", api_term, headers={
+                    "Content-Type": "application/json"
+                })
 
-                    response.raise_for_status()
+                response.raise_for_status()
 
     def delete_term(self, term: Union[Term, str, TermIdentifier]):
         pass

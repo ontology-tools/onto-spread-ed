@@ -428,7 +428,10 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             )
 
             set_release_info(q, release_id, validation_info)
-            if not validation_result.has_errors() and validation_result.ok() and not merged_result.has_errors() and merged_result.ok():
+            if (not validation_result.has_errors() and
+                    validation_result.ok() and
+                    not merged_result.has_errors() and
+                    merged_result.ok()):
                 next_release_step(q, release_id)
             else:
                 update_release(q, release_id, dict(state="waiting-for-user"))

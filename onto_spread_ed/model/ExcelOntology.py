@@ -71,8 +71,9 @@ class ExcelOntology:
     def term_by_id(self, id: str) -> Optional[Union[Term, TermIdentifier]]:
         return next(iter(t for t in (self.terms() + self.imported_terms()) if t.id == id), None)
 
-    def _raw_term_by_id(self, id: str, exclude: Optional[UnresolvedTerm] = None) -> Optional[
-        Union[Term, TermIdentifier]]:
+    def _raw_term_by_id(self,
+                        id: str,
+                        exclude: Optional[UnresolvedTerm] = None) -> Optional[Union[Term, TermIdentifier]]:
         return next(
             (t for t in (self._terms + self.imported_terms()) if t.id == id and (exclude is None or exclude != t)),
             None)
@@ -363,11 +364,9 @@ class ExcelOntology:
                                    unresolved_term.id is not None and unresolved_term.id == t.id)]
 
                 matching_terms.sort(key=lambda t: 1 if isinstance(t, UnresolvedTerm) and (
-                            lower(t.curation_status()) == "obsolete") else 0)
+                        lower(t.curation_status()) == "obsolete") else 0)
 
                 for m in matching_terms:
-                    # if self._obsolete_handling != "ignore" and isinstance(unresolved, UnresolvedTerm) and lower(
-                    #         unresolved.curation_status()) == "obsolete":
                     unresolved_term.complement(m)
 
         for relation in self._relations:
