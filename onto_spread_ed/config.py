@@ -94,7 +94,8 @@ else:
     REPOSITORIES = {
         "AddictO": "addicto-org/addiction-ontology",
         "BCIO": "HumanBehaviourChangeProject/ontologies",
-        "GMHO": "galenos-project/mental-health-ontology"
+        "GMHO": "galenos-project/mental-health-ontology",
+        "BCIO": "zaidishz/ontologies"
     }
 
 DEFAULT_BRANCH = {

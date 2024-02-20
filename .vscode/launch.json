@@ -16,7 +16,8 @@
                 "FLASK_SECRET_KEY":"hahshshshshbaedsdasdadadasdasadabwcb12",
                 "LOG_LEVEL" : "debug",
                 "INDEX_PATH" : "./indexdir",
-                "FLASK_DEBUG": "1"
+                "FLASK_DEBUG": "1",
+                "FLASK_ENV": "development"
             },
             "args": [
                 "run",
