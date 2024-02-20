@@ -20,18 +20,16 @@
         {% set errors = details[sheet]["errors"] %}
 
         {% macro origin_link(term) -%}
-            {% set typ = "id" if has_id else "search" -%}
-            {% set goto = term.id if has_id else term.label -%}
-            /direct?type={{ typ }}&repo={{ release.release_script['short_repository_name'] }}&sheet={{ term.origin[0] }}&go_to_row={{ goto }}
+            {% set has_id = term.id is defined and term.id != None %}
+            {% set has_label = term.label is defined and term.label != None %}
+            {%- set typ = "id" if has_id else "search" -%}
+            {%- set goto = term.id if has_id else term.label -%}
+            {{ "/direct?type=" + typ + "&repo=" + release.release_script['short_repository_name'] + "&sheet=" + term.origin[0] + "&go_to_row=" + goto }}
         {%- endmacro %}
 
         {% macro error_link(error, term=None) %}
             {% set term = term if term != None else error %}
             {% if term.origin is defined %}
-                {% set has_id = term.id is defined and term.id != None %}
-                {% set has_label = term.label is defined and term.label != None %}
-                {% set typ = "id" if has_id else "search" %}
-                {% set goto = term.id if has_id else term.label %}
                 <a target="_blank"
                    href="{{ origin_link(term) }}">
                     <i>
@@ -70,15 +68,25 @@
                 {% elif error.type == "missing-parent" %}
                     <h5>Missing parent</h5>
                     <p>
-                        The parent <code>{{ error.parent.label }}</code> (<code>{{ error.parent.id }}</code>) of <code>{{ error.term.label }}</code>
-                        (<code>{{ error.term.id | default("<no id>") }}</code>) is neither defined in the Excel files or imported.
+                        The parent <code>{{ error.parent.label }}</code> (<code>{{ error.parent.id }}</code>) of
+                        <code>{{ error.term.label }}</code>
+                        (<code>{{ error.term.id | default("<no id>") }}</code>) is neither defined in the Excel files or
+                        imported.
                         {% if error.term.id != None and not error.term.id.startswith(release.release_script["short_repository_name"]) %}
                             The term appears external. If you redefine an external entity ensure to import its
                             parent and all of its related terms as well. <br>
-                            If it is an external term, is missing import the entry with <code>{{ error.parent.label }} [{{ error.parent.id }}]</code>.
+                            If it is an external term, is missing import the entry with
+                            <code>{{ error.parent.label }} [{{ error.parent.id }}]</code>.
                         {% else %}
                             If it is an external term, ensure that it is imported correctly.
                         {% endif %} <br>
+                        {{ error_link(error, error.term) }}
+                    </p>
+                {% elif error.type == "obsolete-parent" %}
+                    <h5>Obsolete parent</h5>
+                    <p>
+                        The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
+                        (<code>{{ error.term.id | default("<no id>") }}</code>) is obsolete.<br>
                         {{ error_link(error, error.term) }}
                     </p>
                 {% elif error.type == "duplicate-label" %}
@@ -88,7 +96,8 @@
                     </p>
                     <ul>
                         {% for d in error.duplicates %}
-                            <li><a href="{{ origin_link(d) }}"><code>{{ d.label }}</code> (<code>{{ d.id }}</code>)</a></li>
+                            <li><a href="{{ origin_link(d) }}"><code>{{ d.label }}</code> (<code>{{ d.id }}</code>)</a>
+                            </li>
                         {% endfor %}
                     </ul>
                 {% elif error.type == "duplicate-id" %}
@@ -98,7 +107,8 @@
                     </p>
                     <ul>
                         {% for d in error.duplicates %}
-                            <li><a href="{{ origin_link(d) }}"><code>{{ d.label }}</code> (<code>{{ d.id }}</code>)</a></li>
+                            <li><a href="{{ origin_link(d) }}"><code>{{ d.label }}</code> (<code>{{ d.id }}</code>)</a>
+                            </li>
                         {% endfor %}
                     </ul>
                 {% elif error.type == "missing-label" %}
@@ -138,6 +148,20 @@
                         (<code>{{ error.term.id | default("<no id>") }}</code>) is not known. <br>
                         {{ error_link(error, error.term) }}
                     </p>
+                {% elif error.type == "missing-relation-value" %}
+                    <h5>Missing relation value <code>{{ error.value.label }}</code> (<code>{{ error.value.id }}</code>)
+                    </h5>
+                    <p>
+                        The term <code>{{ error.term.label }}</code> (<code>{{ error.term.id }}</code>) is related via
+                        <code>{{ error.relation.label }}</code> to
+                        <code>{{ error.value.label }}</code> (<code>{{ error.value.id }}</code>).
+                        But <code>{{ error.value.label }}</code> (<code>{{ error.value.id }}</code>) is neither defined
+                        in the Excel files nor imported.
+                        If it is an external term, ensure that it is imported correctly.
+                    <p>
+
+                        {{ error_link(error, error.term) }}
+                    </p>
                 {% elif error.type == "unknown-range" %}
                     <h5>Unknown range</h5>
                     <p>
@@ -172,7 +196,8 @@
                 {% if warning.type == "incomplete-term" %}
                     <h5>Incomplete term</h5>
                     <p>
-                        There is an incomplete term with no an ID, a label, or a parent defined. Is there an empty line in the spreadsheet?<br>
+                        There is an incomplete term with no an ID, a label, or a parent defined. Is there an empty line
+                        in the spreadsheet?<br>
                         The line was ignored.<br>
 
                         {{ error_link(warning) }}
@@ -181,7 +206,8 @@
                 {% elif warning.type == "duplicate-term" %}
                     <h5>Duplicate terms</h5>
                     <p>
-                        The term <code>{{ warning.duplicates[0].label }}</code> (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
+                        The term <code>{{ warning.duplicates[0].label }}</code>
+                        (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
                     </p>
                     <ul>
                         {% for d in warning.duplicates %}
@@ -191,7 +217,8 @@
                 {% elif warning.type == "unknown-column" %}
                     <h5>Unmapped column</h5>
                     <p>
-                    The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped to any OWL property or internal field.
+                        The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped
+                        to any OWL property or internal field.
                     </p>
                 {% else %}
                     <h5>{{ warning.type.replace("-", " ") | capitalize }}</h5>
