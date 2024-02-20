@@ -23,8 +23,6 @@ def create_app(test_config=None):
 
     app.config.from_object(config)
 
-    app.logger.info("cache initialised")
-
     from . import routes
     routes.init_app(app)
 
