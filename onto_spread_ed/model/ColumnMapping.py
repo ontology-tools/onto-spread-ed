@@ -27,7 +27,7 @@ class ColumnMappingKind(enum.Enum):
     RANGE = 9
 
 
-class ColumnMapping:
+class ColumnMapping(abc.ABC):
 
     @abc.abstractmethod
     def get_name(self) -> str:
@@ -186,7 +186,8 @@ class RelationColumnMapping(ColumnMapping):
         return self.relation
 
     def get_value(self, value: str) -> List[Tuple[TermIdentifier, Any]]:
-        values = [x.strip() for x in value.split(self.separator)] if self.separator is not None else [value.strip()]
+        values = [x.strip() for x in str(value).split(self.separator)] if self.separator is not None else [
+            str(value).strip()]
 
         if self.relation.owl_property_type == OWLPropertyType.ObjectProperty:
             values = [TermIdentifier(label=x) for x in values]
@@ -194,7 +195,7 @@ class RelationColumnMapping(ColumnMapping):
         return [(self.relation.identifier(), x) for x in values]
 
 
-class ColumnMappingFactory:
+class ColumnMappingFactory(abc.ABC):
     @abc.abstractmethod
     def maps(self, column_name: str) -> bool:
         pass
@@ -232,10 +233,21 @@ class PatternMappingFactory(ColumnMappingFactory):
 class Schema:
     _mapping_factories: List[ColumnMappingFactory]
 
-    def __init__(self, mapping_factories: List[ColumnMappingFactory]):
+    def __init__(self, mapping_factories: List[ColumnMappingFactory],
+                 ignored_fields: Optional[List[str]] = None) -> None:
+        if ignored_fields is None:
+            ignored_fields = []
+
         self._mapping_factories = mapping_factories
+        self._ignored_fields = ignored_fields
+
+    def is_ignored(self, header_name: str) -> bool:
+        return header_name in self._ignored_fields
 
     def get_mapping(self, header_name: str) -> Optional[ColumnMapping]:
+        if self.is_ignored(header_name):
+            return None
+
         return next(
             iter(m.create_mapping(header_name) for m in self._mapping_factories if m.maps(header_name)), None)
 
@@ -249,23 +261,27 @@ def simple(excel_names: List[str], kind: ColumnMappingKind, name: Optional[str] 
 
 
 def relation(excel_name: List[str], relation: TermIdentifier, name: Optional[str] = None,
-             split: Optional[str] = None,
+             separator: Optional[str] = None,
              property_type: OWLPropertyType = OWLPropertyType.AnnotationProperty) -> ColumnMappingFactory:
     return SingletonMappingFactory(excel_name, RelationColumnMapping(
         Relation(relation.id, relation.label, [], [], property_type, [], None, None, ("<schema>", 0)),
-        excel_name[0] if name is None else name, split))
+        excel_name[0] if name is None else name, separator))
+
+
+def internal(excel_names: List[str], name: str, split: Optional[str] = None) -> ColumnMappingFactory:
+    return relation(excel_names, TermIdentifier(id=None, label=name), name, split, OWLPropertyType.Internal)
 
 
 def relation_pattern(pattern: Union[str, re.Pattern],
                      factory: Callable[[str, re.Match], TermIdentifier],
-                     split: Optional[str] = None,
+                     separator: Optional[str] = None,
                      relation_kind: OWLPropertyType = OWLPropertyType.AnnotationProperty) -> ColumnMappingFactory:
     def f(rel_name: str, match: re.Match) -> RelationColumnMapping:
         identifier = factory(rel_name, match)
         return RelationColumnMapping(
             Relation(identifier.id, identifier.label, [], [], relation_kind, [], None, None, ("<schema>", 0)),
             f"REL {rel_name}",
-            split
+            separator
         )
 
     return PatternMappingFactory(pattern, f)
@@ -278,21 +294,28 @@ DEFAULT_MAPPINGS = [
     singleton(["Name", "Label", "Label (synonym)", "Relationship"], LabelMapping),
     singleton(["Parent", "Parent class/ BFO class"], ParentMapping, kind=ColumnMappingKind.SUB_CLASS_OF),
     singleton(["Parent relationship"], ParentMapping, kind=ColumnMappingKind.SUB_PROPERTY_OF),
-    singleton(["Logical definition", "Equivalent to relationship"],
+    singleton(["Logical definition", "Equivalent to relationship", "Logical Definition"],
               ManchesterSyntaxMapping, kind=ColumnMappingKind.EQUIVALENT_TO),
     singleton(["Disjoint classes"], TermMapping, kind=ColumnMappingKind.DISJOINT_WITH, separator=";"),
     relation(["Definition"], TermIdentifier(id="IAO:0000115", label="definition")),
     relation(["Definition_ID"], TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy")),
-    relation(["Definition_Source"], TermIdentifier(id="IAO:0000119", label="definition source")),
+    relation(["Definition_Source", "Definition source", "Definition Source"],
+             TermIdentifier(id="IAO:0000119", label="definition source")),
     relation(["Examples", "Examples of usage", "Elaboration"],
              TermIdentifier(id="IAO:0000112", label="example of usage")),
     relation(["Curator note"], TermIdentifier(id="IAO:0000232", label="curator note")),
-    relation(["Synonyms"], TermIdentifier(id="IAO:0000118", label="alternative label"), ";"),
+    relation(["Synonyms"], TermIdentifier(id="IAO:0000118", label="alternative label"), separator=";"),
     relation(["Comment"], TermIdentifier(id="rdfs:comment", label="rdfs:comment")),
     relation(["Curation status"], TermIdentifier(id="IAO:0000114", label="has curation status")),
     relation_pattern(r"REL '([^']+)'",
                      lambda name, match: TermIdentifier(label=match.group(1)),
-                     relation_kind=OWLPropertyType.ObjectProperty, split=";")
+                     relation_kind=OWLPropertyType.ObjectProperty, separator=";"),
+    internal(["Informal definition", "Informal Definition"], "informalDefinition"),
+    internal(["Sub-ontology", "Subontology"], "lowerLevelOntology"),
+    internal(["Fuzzy set"], "fuzzySet"),
+    internal(["Why fuzzy"], "fuzzyExplanation"),
+    internal(["Cross reference", "Cross-reference"], "crossReference"),
+
 ]
 
 DEFAULT_IMPORT_SCHEMA = Schema([
@@ -306,4 +329,6 @@ DEFAULT_IMPORT_SCHEMA = Schema([
 
 ])
 
-DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS)
+DEFAULT_IGNORED_FIELDS = ["Curator", "To be reviewed by", "Reviewer query", "BFO entity", "Structure"]
+
+DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS, DEFAULT_IGNORED_FIELDS)

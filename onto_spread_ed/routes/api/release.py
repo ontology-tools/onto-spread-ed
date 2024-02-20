@@ -19,6 +19,7 @@ from ...database.Release import Release
 from ...guards.admin import verify_admin
 from ...model.ExcelOntology import ExcelOntology
 from ...model.Result import Result
+from ...search_api.BCIOSearchService import BCIOSearchService
 from ...services.RobotOntologyBuildService import RobotOntologyBuildService
 from ...utils import github
 from ...utils.github import download_file
@@ -33,7 +34,8 @@ RELEASE_STEP_UPPER = 3
 RELEASE_STEP_LOWER = 4
 RELEASE_STEP_FINAL = 5
 RELEASE_STEP_HUMAN = 6
-RELEASE_STEP_PUBLISH = 7
+RELEASE_STEP_BCIO_SEARCH = 7
+RELEASE_STEP_PUBLISH = 8
 
 
 class ReleaseCanceledException(Exception):
@@ -167,7 +169,7 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
     db.session.add(release)
     db.session.commit()
 
-    executor.submit(do_release, db, gh, release_script, release.id)
+    executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
 
     return jsonify(release.as_dict())
 
@@ -207,7 +209,7 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     if release.worker_id is None:
         release_script = ReleaseScript.from_json(release.release_script)
 
-        executor.submit(do_release, db, gh, release_script, release.id)
+        executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
 
         sleep(1)
 
@@ -229,10 +231,10 @@ def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
             message="Cannot resume a completed or canceled release!"
         )), 400
 
-    if release.worker_id is None:
+    if release.worker_id is None or request.args.get("force", False) == 'true':
         release_script = ReleaseScript.from_json(release.release_script)
 
-        executor.submit(do_release, db, gh, release_script, release.id)
+        executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
 
     return jsonify(release.as_dict())
 
@@ -282,7 +284,7 @@ def local_name(tmp: str, remote_name: str, file_ending=None) -> str:
     return external_xlsx
 
 
-def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int) -> None:
+def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, config: Dict) -> None:
     q: Query[Release] = db.session.query(Release)
 
     builder = RobotOntologyBuildService()
@@ -346,7 +348,8 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             validation_info = dict()
             validation_result = Result(())
 
-            result, upper = _load_upper()
+            result = _load_upper()
+            upper = result.value
             _raise_if_canceled()
             result += upper.validate()
             _raise_if_canceled()
@@ -357,6 +360,9 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 errors=result.errors
             )
             validation_result += result
+
+            merged_result = _load_upper()
+            merged = merged_result.value
 
             external_xlsx = _local_name(release_script.external[0])
             for excel_file in release.included_files:
@@ -379,6 +385,9 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 result += lower.validate()
                 _raise_if_canceled()
 
+                merged_result += merged.add_terms_from_excel(excel_file, local_xlsx)
+                _raise_if_canceled()
+
                 validation_info[excel_file] = dict(
                     valid=result.ok(),
                     warnings=result.warnings,
@@ -386,15 +395,50 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 )
                 validation_result += result
 
+            merged_result += merged.resolve()
+            _raise_if_canceled()
+
+            merged_result += merged.validate()
+            _raise_if_canceled()
+
+            def freeze(d):
+                if isinstance(d, dict):
+                    return frozenset((key, freeze(value)) for key, value in d.items())
+                elif isinstance(d, list):
+                    return tuple(freeze(value) for value in d)
+                return d
+
+            def unfreeze(d):
+                if isinstance(d, dict):
+                    return dict((key, unfreeze(value)) for key, value in d.items())
+                if isinstance(d, list):
+                    return [unfreeze(v) for v in d]
+                if isinstance(d, frozenset):
+                    return dict((key, unfreeze(value)) for key, value in d)
+                elif isinstance(d, tuple):
+                    return list(unfreeze(value) for value in d)
+                return d
+
+            local_warnings = set().union(*[set(freeze(v["warnings"])) for v in validation_info.values()])
+            local_errors = set().union(*[set(freeze(v["warnings"])) for v in validation_info.values()])
+            validation_info["Global"] = dict(
+                valid=merged_result.ok(),
+                warnings=unfreeze(list(set(freeze(merged_result.warnings)) - local_warnings)),
+                errors=unfreeze(list(set(freeze(merged_result.errors)) - local_errors))
+            )
+
             set_release_info(q, release_id, validation_info)
-            if not validation_result.has_errors() and validation_result.ok():
+            if (not validation_result.has_errors() and
+                    validation_result.ok() and
+                    not merged_result.has_errors() and
+                    merged_result.ok()):
                 next_release_step(q, release_id)
             else:
                 update_release(q, release_id, dict(state="waiting-for-user"))
 
             return result.ok()
 
-        def _load_upper():
+        def _load_upper() -> Result[ExcelOntology]:
             result = Result(())
             upper = ExcelOntology(release_script.upper_level_iri)
 
@@ -409,7 +453,8 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 result += upper.add_relations_from_excel(release_script.upper_level_rels, upper_level_rels_xlsx)
 
             result += upper.resolve()
-            return result, upper
+            result.value = upper
+            return result
 
         def release_step_import():
             result = Result(())
@@ -433,7 +478,8 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             return result.ok()
 
         def release_step_build_upper():
-            result, upper = _load_upper()
+            result = _load_upper()
+            upper: ExcelOntology = result.value
             _raise_if_canceled()
 
             result += builder.build_ontology(
@@ -449,7 +495,8 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             return result.ok()
 
         def release_step_build_lower():
-            result, upper = _load_upper()
+            result = _load_upper()
+            upper = result.value
             _raise_if_canceled()
 
             total = len(release.included_files)
@@ -513,6 +560,36 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
 
             return False
 
+        def release_step_to_bcio_search():
+            # get ontology
+            result = _load_upper()
+            ontology = result.value
+            _raise_if_canceled()
+
+            for excel_file in release.included_files:
+                local_xlsx = _local_name(excel_file)
+                result += ontology.add_terms_from_excel(excel_file, local_xlsx)
+                _raise_if_canceled()
+
+            ontology.resolve()
+            _raise_if_canceled()
+
+            ontology.remove_duplicates()
+            _raise_if_canceled()
+
+            service = BCIOSearchService(config)
+            result += service.update_api(
+                ontology,
+                f"{datetime.datetime.utcnow().strftime('%B %Y')} Release",
+                lambda step, total, msg: set_release_info(q, release_id, {
+                    "__progress": step / total
+                }))
+
+            _raise_if_canceled()
+
+            set_release_result(q, release_id, result)
+            return result.ok()
+
         def release_step_publish():
             branch = f"release/{datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"
             github.create_branch(gh, release_script.full_repository_name, branch)
@@ -552,6 +629,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             release_step_build_lower,
             release_step_final_merge,
             release_step_human_verification,
+            release_step_to_bcio_search,
             release_step_publish
         ]
 
