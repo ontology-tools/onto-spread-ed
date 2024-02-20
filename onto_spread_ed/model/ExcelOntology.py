@@ -362,7 +362,8 @@ class ExcelOntology:
                                   (unresolved_term.label is not None and unresolved_term.label == t.label or
                                    unresolved_term.id is not None and unresolved_term.id == t.id)]
 
-                matching_terms.sort(key=lambda t: 1 if isinstance(t, UnresolvedTerm) and (lower(t.curation_status()) == "obsolete") else 0)
+                matching_terms.sort(key=lambda t: 1 if isinstance(t, UnresolvedTerm) and (
+                            lower(t.curation_status()) == "obsolete") else 0)
 
                 for m in matching_terms:
                     # if self._obsolete_handling != "ignore" and isinstance(unresolved, UnresolvedTerm) and lower(

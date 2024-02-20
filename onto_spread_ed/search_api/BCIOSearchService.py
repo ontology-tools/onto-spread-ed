@@ -16,7 +16,8 @@ from ..model.TermIdentifier import TermIdentifier
 PROP_BCIO_SEARCH_API_PATH = "BCIO_SEARCH_API_PATH"
 PROP_BCIO_SEARCH_API_AUTH_TOKEN = "BCIO_SEARCH_API_AUTH_TOKEN"
 
-BCIO_SEARCH_RELEASED_EXTERNALS_OWL = "https://raw.githubusercontent.com/HumanBehaviourChangeProject/ontologies/master/Upper%20Level%20BCIO/bcio_external.owl"
+BCIO_SEARCH_RELEASED_EXTERNALS_OWL = ("https://raw.githubusercontent.com/HumanBehaviourChangeProject/"
+                                      "ontologies/master/Upper%20Level%20BCIO/bcio_external.owl")
 
 
 class BCIOSearchService(APIService):
@@ -67,7 +68,8 @@ class BCIOSearchService(APIService):
                 if ext_definition is None:
                     ext_definition = "no definition provided for external entity"
                     result.warning(type='external-no-definition',
-                                   msg=f"No definition was provided for the external entity '{ext_label}' ({term_id}). Using default instead.")
+                                   msg=f"No definition was provided for the external entity '{ext_label}' ({term_id}). "
+                                       f"Using default instead.")
                 ext_parents = external_ontology.get_superclasses(term_iri)
                 # If multiple parents check if they are (immediate) subclasses of each other and only take the most
                 # specific parent.
