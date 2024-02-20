@@ -1,3 +1,4 @@
+import abc
 import typing
 from dataclasses import dataclass, field
 from typing import Any, Optional, Union, List, Tuple
@@ -7,16 +8,7 @@ from typing_extensions import Self
 from .TermIdentifier import TermIdentifier
 
 
-@dataclass
-class Term:
-    id: str
-    label: str
-    origin: Tuple[str, int]
-    relations: List[Tuple[TermIdentifier, Any]]
-    sub_class_of: List[TermIdentifier]
-    equivalent_to: List[str]
-    disjoint_with: List[TermIdentifier]
-
+class _TermBase(abc.ABC):
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)
 
@@ -27,6 +19,14 @@ class Term:
         :return: The curation status if defined.
         """
         return next((v.strip() for r, v in self.relations if r.id == "IAO:0000114"), None)
+
+    def synonyms(self) -> List[str]:
+        """
+        Convenience function to retrieve the values of the annotation property 'alternative label' (IAO:0000118)
+
+        :return: All defined synonyms.
+        """
+        return [v.strip() for r, v in self.relations if r.id == "IAO:0000118"]
 
     def is_external(self) -> Optional[bool]:
         curation_status = self.curation_status()
@@ -49,7 +49,6 @@ class Term:
         return all([
             self.id == other.id,
             self.label == other.label,
-            sorted(self.synonyms) == sorted(other.synonyms),
             sorted(self.sub_class_of) == sorted(other.sub_class_of),
             sorted(self.equivalent_to) == sorted(other.equivalent_to),
             sorted(self.disjoint_with) == sorted(other.disjoint_with),
@@ -61,7 +60,6 @@ class Term:
             self.id,
             self.label,
             self.origin,
-            sorted(self.synonyms),
             sorted(self.sub_class_of),
             sorted(self.equivalent_to),
             sorted(self.disjoint_with),
@@ -70,7 +68,18 @@ class Term:
 
 
 @dataclass
-class UnresolvedTerm:
+class Term(_TermBase):
+    id: str
+    label: str
+    origin: Tuple[str, int]
+    relations: List[Tuple[TermIdentifier, Any]]
+    sub_class_of: List[TermIdentifier]
+    equivalent_to: List[str]
+    disjoint_with: List[TermIdentifier]
+
+
+@dataclass
+class UnresolvedTerm(_TermBase):
     id: Optional[str] = None
     label: Optional[str] = None
     origin: Optional[Tuple[str, int]] = None
@@ -78,9 +87,6 @@ class UnresolvedTerm:
     sub_class_of: List[TermIdentifier] = field(default_factory=list)
     equivalent_to: List[str] = field(default_factory=list)
     disjoint_with: List[TermIdentifier] = field(default_factory=list)
-
-    def identifier(self) -> TermIdentifier:
-        return TermIdentifier(self.id, self.label)
 
     def is_unresolved(self) -> bool:
         relation_values = [x for r, x in self.relations if isinstance(x, TermIdentifier)]
