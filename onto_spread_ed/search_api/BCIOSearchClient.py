@@ -17,7 +17,8 @@ from onto_spread_ed.model.TermIdentifier import TermIdentifier
 class BCIOSearchClient:
     _logger = logging.getLogger(__name__)
 
-    _term_link_to_relation_mapping: Dict[str, Tuple[TermIdentifier, Literal["single", "multiple"]]] = {
+    _term_link_to_relation_mapping: Dict[
+        str, Tuple[TermIdentifier, Literal["single", "multiple", "multiple-per-line"]]] = {
         "synonyms": (TermIdentifier(id="IAO:0000118", label="alternative label"), "multiple"),
         "definition": (TermIdentifier(id="IAO:0000115", label="definition"), "single"),
         "informalDefinition": (TermIdentifier(label="informalDefinition"), "single"),
@@ -25,7 +26,7 @@ class BCIOSearchClient:
         "curatorNote": (TermIdentifier(id="IAO:0000232", label="curator note"), "single"),
         "curationStatus": (TermIdentifier(id="IAO:0000114", label="has curation status"), "single"),
         "comment": (TermIdentifier(id="rdfs:comment", label="rdfs:comment"), "single"),
-        "examples": (TermIdentifier(id="IAO:0000112", label="example of usage"), "single"),
+        "examples": (TermIdentifier(id="IAO:0000112", label="example of usage"), "multiple-per-line"),
         "fuzzySet": (TermIdentifier(label="fuzzySet"), "single"),
         "fuzzyExplanation": (TermIdentifier(label="fuzzyExplanation"), "single"),
         "crossReferences": (TermIdentifier(label="crossReference"), "multiple"),
@@ -79,8 +80,10 @@ class BCIOSearchClient:
             "id": term.id.strip(),
             "uri": f"/terms/{term.id.strip()}",
             "label": term.label.strip(),
-            **dict([(k, term.get_relation_values(id) if multiplicity == "multiple" else term.get_relation_value(id))
-                    for k, (id, multiplicity) in self._term_link_to_relation_mapping.items()]),
+            **dict([(k,
+                     (((lambda x: x) if multiplicity == "multiple" else "\n".join)(term.get_relation_values(i)))
+                     if multiplicity.startswith("multiple") else term.get_relation_value(i))
+                    for k, (i, multiplicity) in self._term_link_to_relation_mapping.items()]),
         }
 
         if data['curationStatus'] in ['To Be Discussed', 'In Discussion', None]:
@@ -132,7 +135,7 @@ class BCIOSearchClient:
     def _convert_from_api_term(self, data: Dict, with_references=True) -> Term:
         rev = data["termRevisions"][0]
 
-        id: str = data["id"]
+        i: str = data["id"]
         label: str = rev["label"]
 
         parent_term = rev.get("parentTerm", None)
@@ -154,7 +157,9 @@ class BCIOSearchClient:
 
         relations += [(identifier, v)
                       for key, (identifier, multiplicity) in self._term_link_to_relation_mapping.items() if key in rev
-                      for v in (rev[key] if multiplicity == "multiple" else [rev[key]])
+                      for v in (
+                          ((lambda x: x) if multiplicity == "multiple" else str.splitlines)(rev[key])
+                          if multiplicity.startswith("multiple") else [rev[key]])
                       ]
         definition_source = rev.get("definitionSource", None)
         if definition_source is not None:
@@ -167,7 +172,7 @@ class BCIOSearchClient:
                     (TermIdentifier(id="IAO:0000119", label="definition source"), parts[1])
                 ]
 
-        return Term(id, label, ("web", -1), relations, parents, equivalent_to, disjoint_with)
+        return Term(i, label, ("web", -1), relations, parents, equivalent_to, disjoint_with)
 
     @functools.lru_cache(maxsize=None)
     def _get_term(self, term: str) -> Optional[Dict]:
@@ -245,7 +250,7 @@ class BCIOSearchClient:
         relations_new = dict([(k, [e[1] for e in g]) for k, g in groupby(sorted(new.relations), key=lambda x: x[0])])
 
         for r, v in relations_old.items():
-            if r.label in ["rdfs:isDefinedBy", "definition source"]:
+            if r.label in ["rdfs:isDefinedBy", "definition source", "example of usage"]:
                 continue
 
             if r in relations_new:
@@ -271,6 +276,19 @@ class BCIOSearchClient:
 
         if not (value_eq(old_definition_source, new_definition_source)):
             self._logger.debug(f"DIFF <definitionSource>\n  {[old_definition_source]}\n  {[new_definition_source]}")
+            result = False
+
+        old_examples = old.get_relation_values(TermIdentifier(label="example of usage"))
+        new_examples = new.get_relation_values(TermIdentifier(label="example of usage"))
+
+        if isinstance(old_examples, list):
+            old_examples = "\n".join(old_examples)
+
+        if isinstance(new_examples, list):
+            new_examples = "\n".join(new_examples)
+
+        if not (value_eq(old_examples, new_examples)):
+            self._logger.debug(f"DIFF <examples>\n  {[old_examples]}\n  {[new_examples]}")
             result = False
 
         if not (old.id == new.id):
