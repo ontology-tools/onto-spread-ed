@@ -63,8 +63,10 @@ def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
                 subtree = subtree.setdefault(part, {".": []})
             subtree["."].append((parts[-1], selected))
 
+        selection = tree
+
     return dict(
-        selection=tree,
+        selection=selection,
         release=current_release,
         login=g.user.github_login,
     )

@@ -159,3 +159,6 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "lzhang01": {"initials": "LZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
                   "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
+
+
+BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"

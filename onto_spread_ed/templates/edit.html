@@ -1077,6 +1077,7 @@
     var table = new Tabulator("#contentTable", {
         groupToggleElement: "header",
         height: window.innerHeight / 3 * 2,
+        nestedFieldSeparator: "|>",
         layout: "fitColumns",
         // pagination:"local",
         // paginationSize:"20",
@@ -1376,19 +1377,11 @@
                     if (data["ID"] == "" || data["ID"] == null) {
                         //not External
                     } else {
-                        //different repo's: 
-                        if (repo_name == "BCIO") {
-                            if (data["ID"].includes("BCIO")) {
-                                //not external
-                            } else {
-                                data[curation_status] = "External";
-                            }
-                        } else { //"AddictO repo"
-                            if (data["ID"].includes("ADDICTO")) {
-                                //not external
-                            } else {
-                                data[curation_status] = "External";
-                            }
+                        //different repo's:
+                        if (rowObj["ID"].includes(repo_name.toUpperCase())) {
+                            //not external
+                        } else {
+                            rowObj[headers[j]] = "External";
                         }
                     }
                 }
