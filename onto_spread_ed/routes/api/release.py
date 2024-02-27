@@ -1,28 +1,23 @@
+import dataclasses
 import datetime
 import json
 import os
-import tempfile
-import threading
-import traceback
-from dataclasses import dataclass
 from time import sleep
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional
 
 import jsonschema
-from flask import jsonify, Blueprint, current_app, request, url_for, make_response, Response, g
+from flask import jsonify, Blueprint, current_app, request, make_response, Response, g
 from flask_executor import Executor
-from flask_github import GitHub, GitHubError
+from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
+from werkzeug.exceptions import NotFound
 
 from ...database.Release import Release
 from ...guards.admin import verify_admin
-from ...model.ExcelOntology import ExcelOntology
-from ...model.Result import Result
-from ...search_api.BCIOSearchService import BCIOSearchService
-from ...services.RobotOntologyBuildService import RobotOntologyBuildService
-from ...utils import github
-from ...utils.github import download_file
+from ...model.ReleaseScript import ReleaseScript
+from ...release import do_release
+from ...release.common import next_release_step, local_name
 
 bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 
@@ -34,33 +29,7 @@ RELEASE_STEP_UPPER = 3
 RELEASE_STEP_LOWER = 4
 RELEASE_STEP_FINAL = 5
 RELEASE_STEP_HUMAN = 6
-RELEASE_STEP_BCIO_SEARCH = 7
-RELEASE_STEP_PUBLISH = 8
-
-
-class ReleaseCanceledException(Exception):
-    pass
-
-
-@dataclass
-class ReleaseScript:
-    iri_prefix: str
-    upper_level_iri: str
-    external_iri: str
-    ontology_annotations: Dict[str, str]
-    full_repository_name: str
-    short_repository_name: str
-    prefixes: Dict[str, str]
-    external: Tuple[str, str]
-    upper_level: Tuple[str, str]
-    upper_level_rels: Optional[str] = None
-
-    @classmethod
-    def from_json(cls, json: dict):
-        r = ReleaseScript(**json)
-        r.external = tuple(r.external)
-        r.upper_level = tuple(r.upper_level)
-        return r
+RELEASE_STEP_PUBLISH = 7
 
 
 def get_current_release(q: Query[Release]) -> Tuple[Optional[Release], Optional[Tuple[Response, int]]]:
@@ -83,6 +52,24 @@ def get_current_release(q: Query[Release]) -> Tuple[Optional[Release], Optional[
     return ongoing[0], None
 
 
+@bp.route("/<repo>/release_script")
+@verify_admin
+def get_release_script(repo: str):
+    if repo not in current_app.config["REPOSITORIES"]:
+        raise NotFound(f"No such repository '{repo}'.")
+
+    path = os.path.join(current_app.static_folder, f"{repo.lower()}.release.json")
+    if not os.path.exists(path):
+        raise NotFound(f"No release script for '{repo}'.")
+
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    release_script = ReleaseScript.from_json(data)
+
+    return jsonify(dataclasses.asdict(release_script))
+
+
 @bp.route("/cancel", methods=("POST",))
 @verify_admin
 def release_cancel(db: SQLAlchemy):
@@ -102,9 +89,9 @@ def release_cancel(db: SQLAlchemy):
     return jsonify(q.get(release.id).as_dict())
 
 
-@bp.route("/<repo>/start", methods=("POST",))
+@bp.route("/start", methods=("POST",))
 @verify_admin
-def release_start(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
+def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
     q: Query[Release] = db.session.query(Release)
     ongoing = q.filter_by(running=True).all()
     if len(ongoing) > 0:
@@ -115,15 +102,8 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
             releases=[r.as_dict() for r in ongoing]
         )), 400
 
-    if repo not in current_app.config["REPOSITORIES"]:
-        return jsonify(dict(
-            success=False,
-            error="no-such-repository",
-            message=f"No repository '{repo}' found. Possible values are {current_app.config['REPOSITORIES'].keys()}",
-        )), 400
-
     schema: dict
-    with open(os.path.join(current_app.static_folder, "schema", "req_body_release_start.json"), "r") as f:
+    with open(os.path.join(current_app.static_folder, "schema", "release_script.json"), "r") as f:
         schema = json.load(f)
 
     data = request.json
@@ -132,31 +112,15 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
     except jsonschema.ValidationError as e:
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
-    release_script = ReleaseScript(
-        iri_prefix="http://humanbehaviourchange.org/ontology/",
-        external_iri="http://humanbehaviourchange.org/ontology/bcio_external.owl",
-        upper_level_iri="http://humanbehaviourchange.org/ontology/bcio_upper.owl",
-        ontology_annotations={
-            "rdfs:comment": "The Behaviour Change Intervention Ontology (BCIO) is an ontology for all aspects of "
-                            "human behaviour change interventions and their evaluation. It is being developed "
-                            "as a part of the Human Behaviour Change Project (http://www.humanbehaviourchange.org). "
-                            "The BCIO is developed across several modules. This ontology file contains the merged "
-                            "version of the BCIO, encompassing the upper level and the modules for Setting, "
-                            "Mode of Delivery, Style of Delivery, Source, Mechanisms of Action, Behaviour and "
-                            "Behaviour Change Techniques. Additional modules will be added soon.",
-            "dc:title": "Behaviour Change Intervention Ontology"
-        },
-        full_repository_name=current_app.config["REPOSITORIES"][repo],
-        short_repository_name=repo,
-        prefixes={
-            "BCIOR": 'http://humanbehaviourchange.org/ontology/BCIOR_',
-            "BCIO": 'http://humanbehaviourchange.org/ontology/BCIO_',
-            "ADDICTO": "http://addictovocab.org/ADDICTO_"
-        },
-        external=("Upper Level BCIO/inputs/BCIO_External_Imports.xlsx", "Upper Level BCIO/bcio_external.owl"),
-        upper_level=("Upper Level BCIO/inputs/BCIO_Upper_Defs.xlsx", "Upper Level BCIO/bcio_upper_level.owl"),
-        upper_level_rels="Upper Level BCIO/inputs/BCIO_Upper_Rels.xlsx"
-    )
+    release_script = ReleaseScript.from_json(data)
+
+    repo = release_script.short_repository_name
+    if repo not in current_app.config["REPOSITORIES"]:
+        return jsonify(dict(
+            success=False,
+            error="no-such-repository",
+            message=f"No repository '{repo}' found. Possible values are {current_app.config['REPOSITORIES'].keys()}",
+        )), 400
 
     release = Release(state="starting",
                       start=datetime.datetime.utcnow(),
@@ -165,7 +129,7 @@ def release_start(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
                       details={},
                       running=True,
                       included_files=data["files"],
-                      release_script=release_script.__dict__)
+                      release_script=dataclasses.asdict(release_script))
     db.session.add(release)
     db.session.commit()
 
@@ -197,7 +161,8 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
             message="The release is still running. It can only be continued if paused or interrupted."
         )), 400
 
-    if release.step != RELEASE_STEP_HUMAN:
+    release_script = ReleaseScript.from_json(release.release_script)
+    if release_script.steps[release.step].name != "HUMAN_VERIFICATION":
         return jsonify(dict(
             success=False,
             error="cannot-be-continued",
@@ -207,8 +172,6 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     next_release_step(q, release.id)
 
     if release.worker_id is None:
-        release_script = ReleaseScript.from_json(release.release_script)
-
         executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
 
         sleep(1)
@@ -231,7 +194,7 @@ def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
             message="Cannot resume a completed or canceled release!"
         )), 400
 
-    if release.worker_id is None or request.args.get("force", False) == 'true':
+    if release.worker_id is None or request.args.get('force', "false").lower() == "true":
         release_script = ReleaseScript.from_json(release.release_script)
 
         executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
@@ -248,7 +211,10 @@ def download_release_file(db: SQLAlchemy):
     if err is not None:
         return err
 
-    if release.step < RELEASE_STEP_HUMAN:
+    release_script = ReleaseScript.from_json(release.release_script)
+    index = str(next((i for i, s in enumerate(release_script.steps) if s.name == "HUMAN_VERIFICATION")))
+
+    if index not in release.details or 'files' not in release.details[str(release.step)]:
         return jsonify(dict(success=False,
                             error="invalid-step",
                             message="The release does not contain files to download.")), 404
@@ -259,7 +225,7 @@ def download_release_file(db: SQLAlchemy):
                             message="Expected 'file' argument.")), 400
 
     file = request.args.get("file")
-    details = release.details[str(RELEASE_STEP_HUMAN)]
+    details = release.details[index]
     for f in details['files']:
         if f["name"] == file:
             name = local_name(release.local_dir, file, ".owl")
@@ -275,399 +241,187 @@ def download_release_file(db: SQLAlchemy):
                         message=f"No such file '{file}' in the release.")), 404
 
 
-def local_name(tmp: str, remote_name: str, file_ending=None) -> str:
-    external_xlsx = os.path.join(tmp, os.path.basename(remote_name))
+# def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int) -> None:
+#     q: Query[Release] = db.session.query(Release)
+#
+#     builder = RobotOntologyBuildService()
+#
+#     release: Release = q.get(release_id)
+#     if release.local_dir:
+#         tmp = release.local_dir
+#     else:
+#         tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
+#         tmp = tmp_dir
+#
+#     try:
+#         update_release(q, release_id, {
+#             Release.state: "running",
+#             Release.worker_id: f"{os.getpid()}-{threading.current_thread().ident}",
+#             Release.local_dir: tmp
+#         })
+#
+#         # external_xlsx = os.path.join(tmp, "externals.xlsx")
+#         # upper_level_defs_xlsx = os.path.join(tmp, "upper_level_defs.xlsx")
+#         # upper_level_rels_xlsx = os.path.join(tmp, "upper_level_rels.xlsx")
+#         #
+#         # external_owl = os.path.join(tmp, 'external.owl')
+#         # upper_rel_csv = os.path.join(tmp, "upper_rel.csv")
+#         # upper_rel_owl = os.path.join(tmp, "upper_rel.owl")
+#
+#         def _raise_if_canceled():
+#             r: Release = q.get(release_id)
+#             if r.state == "canceled":
+#                 raise ReleaseCanceledException("Release has been canceled!")
+#
+#         def _local_name(remote_name, file_ending=None) -> str:
+#             return local_name(tmp, remote_name, file_ending)
+#
+#         def release_step_preparation():
+#             pass
+#
+#         def release_step_validation():
+#             pass
+#
+#         # def _load_upper():
+#         #     result = Result(())
+#         #     upper = ExcelOntology(release_script.upper_level_iri)
+#         #
+#         #     external_xlsx = _local_name(release_script.external[0])
+#         #     result += upper.add_imported_terms(release_script.external[0], external_xlsx)
+#         #
+#         #     upper_level_defs_xlsx = _local_name(release_script.upper_level[0])
+#         #     result += upper.add_terms_from_excel(release_script.upper_level[0], upper_level_defs_xlsx)
+#         #
+#         #     if release_script.upper_level_rels is not None:
+#         #         upper_level_rels_xlsx = _local_name(release_script.upper_level_rels)
+#         #         result += upper.add_relations_from_excel(release_script.upper_level_rels, upper_level_rels_xlsx)
+#         #
+#         #     result += upper.resolve()
+#         #     return result, upper
+#
+#         def release_step_import():
+#             pass
+#
+#         def release_step_build_upper():
+#             pass
+#             # result, upper = _load_upper()
+#             # _raise_if_canceled()
+#             #
+#             # result += builder.build_ontology(
+#             #     upper,
+#             #     _local_name(release_script.upper_level[1]),
+#             #     release_script.prefixes,
+#             #     [os.path.basename(release_script.external[1])],
+#             #     tmp
+#             # )
+#             # _raise_if_canceled()
+#             #
+#             # set_release_result(q, release_id, result)
+#             # return result.ok()
+#
+#         def release_step_build_lower():
+#             pass
+#             # result, upper = _load_upper()
+#             # _raise_if_canceled()
+#             #
+#             # total = len(release.included_files)
+#             # for index, f in enumerate(release.included_files):
+#             #     set_release_info(q, release_id, dict(__progress=(index + 1) / total))
+#             #     ontology_name = os.path.basename(f)
+#             #     ontology_name = ontology_name[:ontology_name.rfind(".")] + ".owl"
+#             #     iri = release_script.iri_prefix + ontology_name
+#             #
+#             #     onto = ExcelOntology(iri)
+#             #
+#             #     external_xlsx = _local_name(release_script.external[0])
+#             #     result += onto.add_imported_terms(release_script.external[0], external_xlsx)
+#             #     _raise_if_canceled()
+#             #
+#             #     result += onto.import_other_excel_ontology(upper)
+#             #     _raise_if_canceled()
+#             #
+#             #     result += onto.add_terms_from_excel(f, _local_name(f))
+#             #     result += onto.resolve()
+#             #     _raise_if_canceled()
+#             #
+#             #     result += builder.build_ontology(onto, _local_name(f, ".owl"), release_script.prefixes, [
+#             #         os.path.basename(release_script.external[1]),
+#             #         os.path.basename(release_script.upper_level[1])
+#             #     ], tmp)
+#             #     _raise_if_canceled()
+#             #
+#             # result.warnings = []
+#             # set_release_result(q, release_id, result)
+#             # return result.ok()
+#
+#         def release_step_final_merge():
+#             pass
+#
+#         def release_step_human_verification():
+#             pass
+#
+#         def release_step_publish():
+#             pass
+#
+#         last_step = q.get(release_id).step
+#         release_steps = [
+#             release_step_preparation,
+#             release_step_validation,
+#             release_step_import,
+#             release_step_build_upper,
+#             release_step_build_lower,
+#             release_step_final_merge,
+#             release_step_human_verification,
+#             release_step_publish
+#         ]
+#
+#         for i, step in enumerate(release_steps):
+#             if last_step <= i:
+#                 continu = step()
+#                 if not continu:
+#                     return
+#
+#                 current_step = q.get(release_id).step
+#                 if current_step <= last_step and i != len(release_steps) - 1:
+#                     current_app.logger.error("The step did not change after a release step was executed. "
+#                                              "Did an error occur? Not running further release steps.")
+#                     return
+#
+#                 last_step = current_step
+#
+#         update_release(q, release_id, {
+#             Release.state: "completed",
+#             Release.end: datetime.datetime.utcnow(),
+#             Release.running: False
+#         })
+#
+#     except ReleaseCanceledException:
+#         pass
+#     except GitHubError as e:
+#         set_release_info(q, release_id, {"error": {
+#             "short": "GitHub " + str(e),
+#             "long": f"While communicating with github ({e.response.url}) the error {str(e)} occurred.",
+#             "url": e.response.url
+#         }})
+#         update_release(q, release_id, {Release.state: "errored"})
+#     except Exception as e:
+#         set_release_info(q, release_id, {"error": {"short": str(e), "long": traceback.format_exc()}})
+#         update_release(q, release_id, {Release.state: "errored"})
+#         current_app.logger.error(traceback.format_exc())
+#     finally:
+#         update_release(q, release_id, {Release.worker_id: None})
 
-    if file_ending is not None:
-        return external_xlsx[:external_xlsx.rfind(".")] + file_ending
 
-    return external_xlsx
-
-
-def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, config: Dict) -> None:
+@bp.route("/running", methods=("POST", "GET"))
+@verify_admin
+def get_running_release(db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)
+    release, _ = get_current_release(q)
 
-    builder = RobotOntologyBuildService()
+    if release is None:
+        raise NotFound()
 
-    release: Release = q.get(release_id)
-    if release.local_dir:
-        tmp = release.local_dir
-    else:
-        tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
-        tmp = tmp_dir
-
-    try:
-        update_release(q, release_id, {
-            Release.state: "running",
-            Release.worker_id: f"{os.getpid()}-{threading.current_thread().ident}",
-            Release.local_dir: tmp
-        })
-
-        # external_xlsx = os.path.join(tmp, "externals.xlsx")
-        # upper_level_defs_xlsx = os.path.join(tmp, "upper_level_defs.xlsx")
-        # upper_level_rels_xlsx = os.path.join(tmp, "upper_level_rels.xlsx")
-        #
-        # external_owl = os.path.join(tmp, 'external.owl')
-        # upper_rel_csv = os.path.join(tmp, "upper_rel.csv")
-        # upper_rel_owl = os.path.join(tmp, "upper_rel.owl")
-
-        def _raise_if_canceled():
-            r: Release = q.get(release_id)
-            if r.state == "canceled":
-                raise ReleaseCanceledException("Release has been canceled!")
-
-        def _local_name(remote_name, file_ending=None) -> str:
-            return local_name(tmp, remote_name, file_ending)
-
-        def release_step_preparation():
-            external_xlsx = _local_name(release_script.external[0])
-            download_file(gh, release_script.full_repository_name, release_script.external[0], external_xlsx)
-            _raise_if_canceled()
-
-            upper_level_defs_xlsx = _local_name(release_script.upper_level[0])
-            download_file(gh, release_script.full_repository_name, release_script.upper_level[0],
-                          upper_level_defs_xlsx)
-            _raise_if_canceled()
-
-            if release_script.upper_level_rels is not None:
-                upper_level_rels_xlsx = _local_name(release_script.upper_level_rels)
-                download_file(gh, release_script.full_repository_name, release_script.upper_level_rels,
-                              upper_level_rels_xlsx)
-                _raise_if_canceled()
-
-            for f in release.included_files:
-                download_file(gh, release_script.full_repository_name, f, _local_name(f))
-                _raise_if_canceled()
-
-            next_release_step(q, release_id)
-
-            return True
-
-        def release_step_validation():
-            # Validate
-            validation_info = dict()
-            validation_result = Result(())
-
-            result = _load_upper()
-            upper = result.value
-            _raise_if_canceled()
-            result += upper.validate()
-            _raise_if_canceled()
-
-            validation_info["upper"] = dict(
-                valid=result.ok(),
-                warnings=result.warnings,
-                errors=result.errors
-            )
-            validation_result += result
-
-            merged_result = _load_upper()
-            merged = merged_result.value
-
-            external_xlsx = _local_name(release_script.external[0])
-            for excel_file in release.included_files:
-                result = Result(())
-                local_xlsx = _local_name(excel_file)
-                iri = release_script.iri_prefix + os.path.basename(excel_file).replace(".xlsx", ".owl")
-                lower = ExcelOntology(iri)
-
-                result += lower.import_other_excel_ontology(upper)
-                result += lower.add_imported_terms(release_script.external[0], external_xlsx)
-
-                _raise_if_canceled()
-
-                result += lower.add_terms_from_excel(excel_file, local_xlsx)
-                _raise_if_canceled()
-
-                result += lower.resolve()
-                _raise_if_canceled()
-
-                result += lower.validate()
-                _raise_if_canceled()
-
-                merged_result += merged.add_terms_from_excel(excel_file, local_xlsx)
-                _raise_if_canceled()
-
-                validation_info[excel_file] = dict(
-                    valid=result.ok(),
-                    warnings=result.warnings,
-                    errors=result.errors
-                )
-                validation_result += result
-
-            merged_result += merged.resolve()
-            _raise_if_canceled()
-
-            merged_result += merged.validate()
-            _raise_if_canceled()
-
-            def freeze(d):
-                if isinstance(d, dict):
-                    return frozenset((key, freeze(value)) for key, value in d.items())
-                elif isinstance(d, list):
-                    return tuple(freeze(value) for value in d)
-                return d
-
-            def unfreeze(d):
-                if isinstance(d, dict):
-                    return dict((key, unfreeze(value)) for key, value in d.items())
-                if isinstance(d, list):
-                    return [unfreeze(v) for v in d]
-                if isinstance(d, frozenset):
-                    return dict((key, unfreeze(value)) for key, value in d)
-                elif isinstance(d, tuple):
-                    return list(unfreeze(value) for value in d)
-                return d
-
-            local_warnings = set().union(*[set(freeze(v["warnings"])) for v in validation_info.values()])
-            local_errors = set().union(*[set(freeze(v["warnings"])) for v in validation_info.values()])
-            validation_info["Global"] = dict(
-                valid=merged_result.ok(),
-                warnings=unfreeze(list(set(freeze(merged_result.warnings)) - local_warnings)),
-                errors=unfreeze(list(set(freeze(merged_result.errors)) - local_errors))
-            )
-
-            set_release_info(q, release_id, validation_info)
-            if (not validation_result.has_errors() and
-                    validation_result.ok() and
-                    not merged_result.has_errors() and
-                    merged_result.ok()):
-                next_release_step(q, release_id)
-            else:
-                update_release(q, release_id, dict(state="waiting-for-user"))
-
-            return result.ok()
-
-        def _load_upper() -> Result[ExcelOntology]:
-            result = Result(())
-            upper = ExcelOntology(release_script.upper_level_iri)
-
-            external_xlsx = _local_name(release_script.external[0])
-            result += upper.add_imported_terms(release_script.external[0], external_xlsx)
-
-            upper_level_defs_xlsx = _local_name(release_script.upper_level[0])
-            result += upper.add_terms_from_excel(release_script.upper_level[0], upper_level_defs_xlsx)
-
-            if release_script.upper_level_rels is not None:
-                upper_level_rels_xlsx = _local_name(release_script.upper_level_rels)
-                result += upper.add_relations_from_excel(release_script.upper_level_rels, upper_level_rels_xlsx)
-
-            result += upper.resolve()
-            result.value = upper
-            return result
-
-        def release_step_import():
-            result = Result(())
-            ontology = ExcelOntology(release_script.external_iri)
-
-            external_xlsx = _local_name(release_script.external[0])
-            result += ontology.add_imported_terms(release_script.external[0], external_xlsx)
-
-            _raise_if_canceled()
-
-            result += builder.merge_imports(
-                ontology.imports(),
-                _local_name(release_script.external[1]),
-                release_script.external_iri,
-                release_script.short_repository_name,
-                tmp
-            )
-            _raise_if_canceled()
-
-            set_release_result(q, release_id, result)
-            return result.ok()
-
-        def release_step_build_upper():
-            result = _load_upper()
-            upper: ExcelOntology = result.value
-            _raise_if_canceled()
-
-            result += builder.build_ontology(
-                upper,
-                _local_name(release_script.upper_level[1]),
-                release_script.prefixes,
-                [os.path.basename(release_script.external[1])],
-                tmp
-            )
-            _raise_if_canceled()
-
-            set_release_result(q, release_id, result)
-            return result.ok()
-
-        def release_step_build_lower():
-            result = _load_upper()
-            upper = result.value
-            _raise_if_canceled()
-
-            total = len(release.included_files)
-            for index, f in enumerate(release.included_files):
-                set_release_info(q, release_id, dict(__progress=(index + 1) / total))
-                ontology_name = os.path.basename(f)
-                ontology_name = ontology_name[:ontology_name.rfind(".")] + ".owl"
-                iri = release_script.iri_prefix + ontology_name
-
-                onto = ExcelOntology(iri)
-
-                external_xlsx = _local_name(release_script.external[0])
-                result += onto.add_imported_terms(release_script.external[0], external_xlsx)
-                _raise_if_canceled()
-
-                result += onto.import_other_excel_ontology(upper)
-                _raise_if_canceled()
-
-                result += onto.add_terms_from_excel(f, _local_name(f))
-                result += onto.resolve()
-                _raise_if_canceled()
-
-                result += builder.build_ontology(onto, _local_name(f, ".owl"), release_script.prefixes, [
-                    os.path.basename(release_script.external[1]),
-                    os.path.basename(release_script.upper_level[1])
-                ], tmp)
-                _raise_if_canceled()
-
-            result.warnings = []
-            set_release_result(q, release_id, result)
-            return result.ok()
-
-        def release_step_final_merge():
-            result = Result(())
-
-            sub_ontologies = [_local_name(f, ".owl") for f in release.included_files]
-            ontology_name = release_script.short_repository_name.lower() + ".owl"
-            result += builder.merge_ontologies(
-                sub_ontologies, _local_name(ontology_name),
-                release_script.iri_prefix + ontology_name,
-                release_script.iri_prefix + ontology_name + "/" + datetime.datetime.utcnow().strftime("%Y-%m-%d"),
-                release_script.ontology_annotations
-            )
-            _raise_if_canceled()
-
-            set_release_result(q, release_id, result)
-            return result.ok()
-
-        def release_step_human_verification():
-            sub_ontologies = [r[:r.rfind(".")] + ".owl" for r in release.included_files]
-            ontologies = [
-                release_script.short_repository_name.lower() + ".owl",
-                release_script.upper_level[1],
-                *sub_ontologies
-            ]
-            set_release_info(q, release_id, dict(
-                ok=False,
-                files=[{"link": url_for(".download_release_file", file=f), "name": f} for f in ontologies]
-            ))
-            update_release(q, release_id, dict(state="waiting-for-user"))
-
-            return False
-
-        def release_step_to_bcio_search():
-            # get ontology
-            result = _load_upper()
-            ontology = result.value
-            _raise_if_canceled()
-
-            for excel_file in release.included_files:
-                local_xlsx = _local_name(excel_file)
-                result += ontology.add_terms_from_excel(excel_file, local_xlsx)
-                _raise_if_canceled()
-
-            ontology.resolve()
-            _raise_if_canceled()
-
-            ontology.remove_duplicates()
-            _raise_if_canceled()
-
-            service = BCIOSearchService(config)
-            result += service.update_api(
-                ontology,
-                f"{datetime.datetime.utcnow().strftime('%B %Y')} Release",
-                lambda step, total, msg: set_release_info(q, release_id, {
-                    "__progress": step / total
-                }))
-
-            _raise_if_canceled()
-
-            set_release_result(q, release_id, result)
-            return result.ok()
-
-        def release_step_publish():
-            branch = f"release/{datetime.datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"
-            github.create_branch(gh, release_script.full_repository_name, branch)
-            _raise_if_canceled()
-
-            files = release.details[str(RELEASE_STEP_HUMAN)]["files"]
-            total = len(files)
-            for index, file in enumerate(files):
-                set_release_info(q, release_id, dict(__progress=(index + 1) / total))
-                with open(_local_name(file["name"]), "rb") as f:
-                    content = f.read()
-                    github.save_file(gh, release_script.full_repository_name, file["name"], content,
-                                     f"Release {file['name']}.", branch)
-                sleep(1)  # Wait a second to avoid rate limit
-                _raise_if_canceled()
-
-            release_month = datetime.datetime.utcnow().strftime('%B %Y')
-            release_body = f"Released the {release_month} version of {release_script.short_repository_name}"
-            pr_nr = github.create_pr(gh, release_script.full_repository_name,
-                                     title=f"{release_month} Release",
-                                     body=release_body,
-                                     source=branch,
-                                     target="master")
-            _raise_if_canceled()
-
-            github.merge_pr(gh, release_script.full_repository_name, pr_nr, "squash")
-            _raise_if_canceled()
-
-            return True
-
-        last_step = q.get(release_id).step
-        release_steps = [
-            release_step_preparation,
-            release_step_validation,
-            release_step_import,
-            release_step_build_upper,
-            release_step_build_lower,
-            release_step_final_merge,
-            release_step_human_verification,
-            release_step_to_bcio_search,
-            release_step_publish
-        ]
-
-        for i, step in enumerate(release_steps):
-            if last_step <= i:
-                continu = step()
-                if not continu:
-                    return
-
-                current_step = q.get(release_id).step
-                if current_step <= last_step and i != len(release_steps) - 1:
-                    current_app.logger.error("The step did not change after a release step was executed. "
-                                             "Did an error occur? Not running further release steps.")
-                    return
-
-                last_step = current_step
-
-        update_release(q, release_id, {
-            Release.state: "completed",
-            Release.end: datetime.datetime.utcnow(),
-            Release.running: False
-        })
-
-    except ReleaseCanceledException:
-        pass
-    except GitHubError as e:
-        set_release_info(q, release_id, {"error": {
-            "short": "GitHub " + str(e),
-            "long": f"While communicating with github ({e.response.url}) the error {str(e)} occurred.",
-            "url": e.response.url
-        }})
-        update_release(q, release_id, {Release.state: "errored"})
-    except Exception as e:
-        set_release_info(q, release_id, {"error": {"short": str(e), "long": traceback.format_exc()}})
-        update_release(q, release_id, {Release.state: "errored"})
-        current_app.logger.error(traceback.format_exc())
-    finally:
-        update_release(q, release_id, {Release.worker_id: None})
+    return jsonify(release.as_dict())
 
 
 @bp.route("/<id>", methods=("GET",))
@@ -686,6 +440,7 @@ def get_release(id: int, db: SQLAlchemy):
     return jsonify(release.as_dict())
 
 
+
 @bp.route("/", methods=("GET",))
 @verify_admin
 def get_releases(db: SQLAlchemy):
@@ -696,28 +451,3 @@ def get_releases(db: SQLAlchemy):
         return jsonify("Not found"), 404
 
     return jsonify([r.as_dict() for r in releases])
-
-
-def set_release_info(q: Query[Release], release_id: int, details) -> None:
-    r = q.get(release_id)
-    update_release(q, release_id, {Release.details: {**r.details, r.step: details}})
-
-
-def update_release(q: Query[Release], release_id: int, patch: dict) -> None:
-    q.filter(Release.id == release_id).update(patch)
-    q.session.commit()
-
-
-def next_release_step(q: Query[Release], release_id: int) -> None:
-    return update_release(q, release_id, {Release.step: Release.step + 1})
-
-
-def set_release_result(q, release_id, result):
-    set_release_info(q, release_id, dict(
-        errors=result.errors,
-        warnings=result.warnings
-    ))
-    if not result.has_errors() and result.ok():
-        next_release_step(q, release_id)
-    else:
-        update_release(q, release_id, dict(state="waiting-for-user"))

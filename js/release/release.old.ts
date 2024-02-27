@@ -1,5 +1,7 @@
 declare var release: Release | null;
 declare var bootstrap: any;
+declare var bootbox: any;
+declare var $: any;
 
 if (release) {
     release.start = new Date(release.start)
@@ -17,6 +19,32 @@ interface Release<D = Date> {
     end: D
     worker_id: string,
     included_files: string[]
+}
+
+interface ReleaseScriptFile {
+    needs: string[];
+    sources: {
+        file: string;
+        type: "classes" | "relations" | "individuals";
+    }[];
+    target: {
+        file: string;
+        iri: string;
+        ontology_annotations: { [K: string]: string };
+    };
+}
+
+interface ReleaseScript {
+    external: ReleaseScriptFile;
+    files: { [K: string]: ReleaseScriptFile };
+    full_repository_name: string;
+    iri_prefix: string;
+    prefixes: { [K: string]: string };
+    short_repository_name: string;
+    steps: {
+        args: any,
+        name: string
+    }[];
 }
 
 function activate_tooltips() {
@@ -182,7 +210,7 @@ document.body.onload = async () => {
             release.start = new Date(release.start)
             release.end = new Date(release.end)
         }
-            core.innerHTML = data["html"]
+        core.innerHTML = data["html"]
 
         await update()
     }
@@ -273,6 +301,82 @@ document.body.onload = async () => {
                 const i = window.location.pathname.match(/(\/\d+)?$/)?.index ?? window.location.pathname.length
                 window.location.pathname = window.location.pathname.substring(0, i) + "/" + started_release.id
             }
+
+        })
+    }
+
+    // For release configuration
+    const short_repo = 'BCIO'
+    const initial_release_script: ReleaseScript = await (await fetch(`/api/release/${short_repo}/release_script`)).json()
+    const btns_settings: HTMLLinkElement[] = Array.from(document.querySelectorAll(".btn-release-file-settings"))
+    for (const btn of btns_settings) {
+        btn.addEventListener('click', (ev) => {
+            ev.preventDefault()
+
+            const file_path = btn.getAttribute("data-ose-release-file")
+            const file = Object.values(initial_release_script.files).find(x => x.sources.find(y => y.file === file_path))
+
+            if (!file) {
+                console.error("Unknown file!")
+                return
+            }
+
+            let dialog = bootbox.dialog({
+                size: "xl",
+                title: "Settings for ???",
+                message: `<form class="release-file-settings">
+    <h4>Target settings</h4>
+    <label for="release-file-setting-target-path" class="col-form-label">Path</label>
+    <input type="text" id="release-file-setting-target-path" class="form-control" aria-describedby="release-file-setting-target-path-d">
+    <span id="release-file-setting-target-path-d" class="form-text">
+        Path of the target owl file
+    </span>
+
+    <label for="release-file-setting-target-iri" class="col-form-label">IRI</label>
+    <input type="text" id="release-file-setting-target-iri" class="form-control" aria-describedby="release-file-setting-target-iri-d">
+    <span id="release-file-setting-target-iri-d" class="form-text">
+        IRI of the target ontology
+    </span>
+
+    <label for="release-file-setting-target-annotations" class="col-form-label">Annotations</label>
+    <textarea type="text" id="release-file-setting-target-annotations" class="form-control" aria-describedby="release-file-setting-target-annotations-d"></textarea>
+    <span id="release-file-setting-target-annotations-d" class="form-text">
+        Annotations added to the ontology
+    </span>
+    
+    <h4>Source settings</h4>
+    <label for="release-file-setting-sources" class="col-form-label">Sources</label>
+    <textarea type="text" id="release-file-setting-sources" class="form-control" aria-describedby="release-file-setting-sources-d"></textarea>
+    <span id="release-file-setting-sources-d" class="form-text">
+        Source files
+    </span>
+    
+    <h4>Dependency settings</h4>
+    <label for="release-file-setting-dependencies" class="col-form-label">Dependencies</label>
+    <textarea type="text" id="release-file-setting-dependencies" class="form-control" aria-describedby="release-file-setting-dependencies-d"></textarea>
+    <span id="release-file-setting-dependencies-d" class="form-text">
+        Other dependency source files
+    </span>
+</form>
+<button type="submit" class="btn btn-primary w-100 mt-4">Save</button>
+                `,
+                closeButton: true
+            });
+
+            const txt_release_file_setting_target_path = $("#release-file-setting-target-path", dialog)
+            const txt_release_file_setting_target_iri = $("#release-file-setting-target-iri", dialog)
+            const txt_release_file_setting_target_annotations = $("#release-file-setting-target-annotations", dialog)
+            const txt_release_file_setting_sources = $("#release-file-setting-sources", dialog)
+            const txt_release_file_setting_dependencies = $("#release-file-setting-dependencies", dialog)
+
+            console.log(txt_release_file_setting_target_path)
+
+            txt_release_file_setting_target_path.val(file.target.file)
+            txt_release_file_setting_target_iri.val(file.target.iri)
+            txt_release_file_setting_target_annotations.val(Object.entries(file.target.ontology_annotations).map((k,v) => `${k}: ${v}`).join("\n"))
+            txt_release_file_setting_sources.val(file.sources.map(x => `${x.file} [${x.type}]`).join("\n"))
+            txt_release_file_setting_dependencies.val(file.needs.join("\n"))
+
 
         })
     }

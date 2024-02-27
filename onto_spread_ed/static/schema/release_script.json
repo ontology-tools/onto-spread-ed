@@ -1,0 +1,185 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "definitions": {
+    "release-step-name": {
+      "type": "string",
+      "enum": [
+        "GITHUB_PUBLISH",
+        "HUMAN_VERIFICATION",
+        "IMPORT_EXTERNAL",
+        "BUILD",
+        "MERGE",
+        "PREPARATION",
+        "VALIDATION"
+      ]
+    },
+    "file": {
+      "type": "object",
+      "properties": {
+        "sources": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "classes",
+                          "individuals",
+                          "relations",
+                          "owl"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "file",
+                      "type"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "iri": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "ontology_annotations": {
+                  "type": "object",
+                  "properties": {},
+                  "additionalProperties": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "file",
+                "iri"
+              ]
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "needs": {
+          "type": "array",
+          "minLength": 0,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "sources",
+        "target"
+      ]
+    }
+  },
+  "description": "Release script schema",
+  "type": "object",
+  "properties": {
+    "external": {
+      "$ref": "#/definitions/file"
+    },
+    "files": {
+      "type": "object",
+      "properties": {
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/file"
+      },
+      "propertyNames": {
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      }
+    },
+    "iri_prefix": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prefixes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "properties": {}
+    },
+    "short_repository_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "full_repository_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "steps": {
+      "type": "array",
+      "minLength": 1,
+      "default": [
+        "PREPARATION",
+        "VALIDATION",
+        "IMPORT_EXTERNAL",
+        "BUILD",
+        "MERGE",
+        "HUMAN_VERIFICATION",
+        "GITHUB_PUBLISH"
+      ],
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/release-step-name"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "$ref": "#/definitions/release-step-name"
+              },
+              "args": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "external",
+    "files",
+    "iri_prefix",
+    "short_repository_name",
+    "full_repository_name",
+    "steps"
+  ],
+  "additionalProperties": false
+}
