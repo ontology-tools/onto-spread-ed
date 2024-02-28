@@ -49,9 +49,9 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
         if release.local_dir:
             tmp = release.local_dir
         else:
-            tmp_dir = os.path.abspath("./release-working-dir/")
-            os.makedirs(tmp_dir, exist_ok=True)
-            # tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
+            # tmp_dir = os.path.abspath("./release-working-dir/")
+            # os.makedirs(tmp_dir, exist_ok=True)
+            tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
             tmp = tmp_dir
 
         last_step = q.get(release_id).step
