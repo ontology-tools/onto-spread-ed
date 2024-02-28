@@ -145,16 +145,20 @@ async function startRelease(releaseScript: ReleaseScript) {
   }
 }
 
-async function cancelRelease() {
+async function cancelRelease(with_redirect=true) {
   await _request(() => fetch("/api/release/cancel", {
     method: "post"
   }))
+
+  if (with_redirect) {
+    window.location.pathname = `/admin/release`
+  }
 }
 
 async function restartRelease() {
   const script = release.value?.release_script
   if (script) {
-    await cancelRelease()
+    await cancelRelease(false)
     await startRelease(script)
   }
 }
