@@ -14,7 +14,7 @@ class ValidationReleaseStep(ReleaseStep):
         validation_info = dict()
         validation_result = Result(())
 
-        queue = order_sources(self._release_script)
+        queue = order_sources(self._release_script.files)
 
         self._total_items = len(queue)
 

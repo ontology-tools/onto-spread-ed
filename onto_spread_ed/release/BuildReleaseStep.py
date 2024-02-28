@@ -11,7 +11,7 @@ class BuildReleaseStep(ReleaseStep):
     def run(self) -> bool:
         result = Result(())
         builder = RobotOntologyBuildService()
-        sources = order_sources(self._release_script)
+        sources = order_sources(self._release_script.files)
 
         self._total_items = len(sources)
 

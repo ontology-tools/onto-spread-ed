@@ -39,7 +39,7 @@ def rebuild_index(searcher: SpreadsheetSearcher):
                                login=g.user.github_login, )
 
 
-def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
+def release_data(db: SQLAlchemy, id: Optional[int] = None) -> dict:
     if id is None:
         current_release = db.session.query(Release).filter_by(running=True).first()
     else:
@@ -47,26 +47,7 @@ def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
         if current_release is None:
             raise NotFound(f"Cannot find release with id '{id}'.")
 
-    tree = {}
-    if not current_release or not current_release.included_files:
-        spreadsheets = get_spreadsheets(gh, current_app.config["REPOSITORIES"]["BCIO"], "master", "",
-                                        "Upper Level BCIO/")
-        default = current_app.config["ACTIVE_SPREADSHEETS"]["BCIO"]
-
-        selection = sorted([(f, f in default) for f in spreadsheets])
-
-        tree: Dict[str, Union[List[Tuple[str, bool]], Dict]] = {".": []}
-        for entry, selected in selection:
-            parts = entry.split("/")
-            subtree = tree
-            for part in parts[:-1]:
-                subtree = subtree.setdefault(part, {".": []})
-            subtree["."].append((parts[-1], selected))
-
-        selection = tree
-
     return dict(
-        selection=selection,
         release=current_release,
         login=g.user.github_login,
     )
@@ -76,7 +57,7 @@ def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
 @verify_admin
 def release(id: Optional[str], db: SQLAlchemy, gh: GitHub):
     id = int(id) if id != "" else None
-    data = release_data(db, gh, id)
+    data = release_data(db, id)
 
     current_release = data["release"]
 

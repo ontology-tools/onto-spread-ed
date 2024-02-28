@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple, Set
+from typing import List, Tuple, Set, Dict
 
 from flask_sqlalchemy.query import Query
 
@@ -45,9 +45,9 @@ def set_release_result(q, release_id, result):
         update_release(q, release_id, dict(state="waiting-for-user"))
 
 
-def order_sources(release_script: ReleaseScript) -> List[Tuple[str, ReleaseScriptFile]]:
+def order_sources(files: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, ReleaseScriptFile]]:
     queue: List[Tuple[str, ReleaseScriptFile]] = []
-    files: List[Tuple[str, ReleaseScriptFile]] = list(release_script.files.items())
+    files: List[Tuple[str, ReleaseScriptFile]] = list(files.items())
     seen: Set[int] = set()
     while len(files) > 0:
         (k, file) = files.pop(0)

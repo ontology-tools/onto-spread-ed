@@ -9,6 +9,7 @@ import Build from "./steps/Build.vue";
 import Merge from "./steps/Merge.vue";
 import HumanVerification from "./steps/HumanVerification.vue";
 import GithubPublish from "./steps/GithubPublish.vue";
+import BCIOSearch from "./steps/BCIOSearch.vue";
 
 const release = ref<Release | null>(null);
 
@@ -24,14 +25,20 @@ const _steps: { [k: string]: any } = {
   "BUILD": Build,
   "MERGE": Merge,
   "HUMAN_VERIFICATION": HumanVerification,
-  "GITHUB_PUBLISH": GithubPublish
+  "GITHUB_PUBLISH": GithubPublish,
+  "BCIO_SEARCH": BCIOSearch
 }
 
 const stepComponent = computed(() => {
-  const step = selected_step.value ?? release.value?.step
-  const currentStep = release.value?.release_script.steps[step]
-  return _steps[currentStep?.name ?? ""]
+  if (release.value) {
+    const step = (selected_step.value ?? release.value.step)
+    const currentStep = release.value?.release_script.steps[step]
+    return _steps[currentStep?.name ?? ""]
+  }
+  return null
 })
+
+const details = computed(() => release.value?.details[(selected_step.value ?? release.value.step).toString()])
 
 
 async function poll(withLoading: boolean = false) {
@@ -90,9 +97,9 @@ const icon_classes = computed(() => {
   }
 })
 
-async function _request<T = any, S = T>(request: () => Promise<Response>): Promise<T>
+async function _request<T = any, S = T>(request: () => Promise<Response>): Promise<T | undefined>
 
-async function _request<T = any, S = T>(request: () => Promise<Response>, post: ((json: T) => Promise<S>)): Promise<S>
+async function _request<T = any, S = T>(request: () => Promise<Response>, post: ((json: T) => Promise<S>)): Promise<S | undefined>
 async function _request<T = any, S = T>(request: () => Promise<Response>, post: ((json: T) => Promise<S>) | null = null): Promise<S | T | undefined> {
   try {
     loading.value = true;
@@ -123,7 +130,7 @@ async function _request<T = any, S = T>(request: () => Promise<Response>, post: 
 }
 
 async function startRelease(releaseScript: ReleaseScript) {
-  release.value = await _request(() =>
+  const r = await _request<Release>(() =>
       fetch("/api/release/start", {
         method: "post",
         body: JSON.stringify(releaseScript),
@@ -132,7 +139,10 @@ async function startRelease(releaseScript: ReleaseScript) {
         }
       }))
 
-  window.location.reload()
+  if (r) {
+    release.value = r
+    window.location.pathname = `/admin/release/${r.id}`
+  }
 }
 
 async function cancelRelease() {
@@ -201,10 +211,6 @@ function formatText(str: string): string {
 
 <template>
   <div class="release">
-    <div class="alert alert-danger" v-if="error !== null">
-      <h6>An error occurred</h6>
-      {{ error }}
-    </div>
     <div class="d-flex gap-2 align-items-center">
       <h1 id="lbl-release-title">
         <i id="icon-release" class="fa" :class="icon_classes"></i>
@@ -213,7 +219,7 @@ function formatText(str: string): string {
       <span id="release-info" class="align-self-end mb-2 text-muted"></span>
       <span class="flex-fill"></span>
 
-      <template v-if="release && (release.state === 'running' || release.state === 'waiting-for-user')">
+      <template v-if="release && (['running', 'waiting-for-user', 'errored'].indexOf(release.state) >= 0)">
         <button class="btn btn-warning" id="btn-release-restart" @click="restartRelease">
           <i class="fa fa-rotate-left"></i> Restart
         </button>
@@ -224,8 +230,15 @@ function formatText(str: string): string {
       </template>
     </div>
 
-    <Setup v-if="!release" style="max-width: 1080px; margin: 0 auto"
-           @settingsConfirmed="startRelease($event)"></Setup>
+    <template v-if="!release">
+      <div class="alert alert-danger" v-if="error !== null">
+        <h4>An error occurred</h4>
+        {{ error }}
+      </div>
+      <Setup v-if="!release" style="max-width: 1080px; margin: 0 auto"
+             @settingsConfirmed="startRelease($event)"></Setup>
+    </template>
+
 
     <template v-if="release !== null">
       <div style="display: grid;grid-template-columns: 240px 1fr;grid-gap: 50px" class="text-start w-100"
@@ -235,14 +248,26 @@ function formatText(str: string): string {
             <li class="mb-1 d-flex align-items-center" v-for="(step, i) in release.release_script.steps">
               <i :class="stepIconClasses(i)"></i>
               <a class="btn border-0" href="#" @click="selected_step = i">
-                <strong v-if="selected_step !== null ? selected_step == i : release.step == i">{{ formatText(step.name) }}</strong>
+                <strong v-if="selected_step !== null ? selected_step == i : release.step == i">
+                  {{ formatText(step.name) }}
+                </strong>
                 <template v-else>{{ formatText(step.name) }}</template>
               </a>
             </li>
           </ul>
         </div>
         <div class="main" style="grid-column: 2">
-          <component :is="stepComponent" :data="release.details[(selected_step ?? release.step).toString()]" :release="release"
+          <div class="alert alert-danger" v-if="error !== null">
+            <h4>An error occurred</h4>
+            {{ error }}
+          </div>
+
+          <div class="alert alert-danger" v-if="details?.error">
+            <h4>An error occurred: {{ details.error.short }}</h4>
+            <pre>{{ details.error.long }}</pre>
+          </div>
+
+          <component :is="stepComponent" :data="details" :release="release"
                      @release-control="doReleaseControl"></component>
         </div>
       </div>

@@ -10,6 +10,7 @@ from flask_github import GitHub, GitHubError
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
 
+from .BCIOSearchReleaseStep import BCIOSearchReleaseStep
 from .BuildReleaseStep import BuildReleaseStep
 from .GithubPublishReleaseStep import GithubPublishReleaseStep
 from .HumanVerificationReleaseStep import HumanVerificationReleaseStep
@@ -29,6 +30,7 @@ ALL_RELEASE_STEPS: List[Type[ReleaseStep]] = [
     BuildReleaseStep,
     MergeReleaseStep,
     HumanVerificationReleaseStep,
+    BCIOSearchReleaseStep,
     GithubPublishReleaseStep,
 ]
 
@@ -59,16 +61,22 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             Release.local_dir: tmp
         })
 
-        RELEASE_STEPS = [ALL_RELEASE_STEPS_DICT.get(step.name)(db, gh, release_script, release_id, tmp, config, **step.args) for step in release_script.steps]
+        release_steps = []
+        for step in release_script.steps:
+            step_ctor = ALL_RELEASE_STEPS_DICT.get(step.name, None)
+            if step_ctor is None:
+                raise ValueError(f"Unknown release step '{step.name}")
 
-        for i, step in enumerate(RELEASE_STEPS):
+            release_steps.append(step_ctor(db, gh, release_script, release_id, tmp, config, **step.args))
+
+        for i, step in enumerate(release_steps):
             if last_step <= i:
                 continu = step.run()
                 if not continu:
                     return
 
                 current_step = q.get(release_id).step
-                if current_step <= last_step and i != len(RELEASE_STEPS) - 1:
+                if current_step <= last_step and i != len(release_steps) - 1:
                     logger.error("The step did not change after a release step was executed. "
                                  "Did an error occur? Not running further release steps.")
                     return

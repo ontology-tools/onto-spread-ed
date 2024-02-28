@@ -40,7 +40,6 @@ const shortRepoName = computed(() => props.release.release_script.short_reposito
 <template>
   <h3>Validation</h3>
 
-<!--    <pre>{{ JSON.stringify(data, undefined, 2)}}</pre>-->
   <template v-if="!data || Object.keys(data).length === 1 && '__progress' in data">
     <ProgressIndicator :release="release" :details="data">
       All excel files are now being validated. The results will be presented here soon.
@@ -108,6 +107,15 @@ const shortRepoName = computed(() => props.release.release_script.short_reposito
               If it is an external term, ensure that it is imported correctly.
             </template>
             <br>
+            <ErrorLink :short_repository_name="shortRepoName" :error="error"
+                       :term="error.term"></ErrorLink>
+          </p>
+        </template>
+        <template v-else-if="error.type === 'obsolete-parent'">
+          <h5>Obsolete parent</h5>
+          <p>
+            The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
+            (<code>{{ error.term.id ?? 'no id' }}</code>) is obsolete.<br>
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
                        :term="error.term"></ErrorLink>
           </p>

@@ -10,7 +10,8 @@
         "BUILD",
         "MERGE",
         "PREPARATION",
-        "VALIDATION"
+        "VALIDATION",
+        "BCIO_SEARCH"
       ]
     },
     "file": {
