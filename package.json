@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx esbuild js/release/main.ts --bundle --outfile=js/release.js --minify"
+    "build": "node build/release.build.js"
   },
   "author": "",
   "license": "ISC",
