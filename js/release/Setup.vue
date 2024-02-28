@@ -4,7 +4,7 @@ import {ReleaseScript} from "./model.ts"
 import RepositorySelector from "./RepositorySelector.vue";
 import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
 
-const showAdvanced = ref<boolan>()
+const showAdvanced = ref<boolean>()
 const repos: Ref<{ short: string, full: string }[]> = ref([]);
 const releaseScript: Ref<ReleaseScript | null> = ref(null);
 const repo: Ref<string | null> = ref(null);
@@ -22,6 +22,7 @@ defineEmits<{
 }>()
 
 async function setRepo(repoKey: string) {
+  releaseScript.value = null
   releaseScript.value = await (await fetch(`/api/release/${repoKey}/release_script`)).json()
 }
 </script>
