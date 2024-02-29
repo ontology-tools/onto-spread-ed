@@ -145,7 +145,7 @@ async function startRelease(releaseScript: ReleaseScript) {
   }
 }
 
-async function cancelRelease(with_redirect=true) {
+async function cancelRelease(with_redirect = true) {
   await _request(() => fetch("/api/release/cancel", {
     method: "post"
   }))
@@ -207,6 +207,11 @@ async function doReleaseControl(type: string) {
   }
 }
 
+function formatDate(d: string | Date): string {
+  const date = d instanceof Date ? d : new Date(d)
+  return new Intl.DateTimeFormat("default", {dateStyle: "long", timeStyle: "short"}).format(date)
+}
+
 function formatText(str: string): string {
   const s = str.trim().toLowerCase().replace("_", " ")
   return s.charAt(0).toUpperCase() + s.substring(1)
@@ -220,7 +225,9 @@ function formatText(str: string): string {
         <i id="icon-release" class="fa" :class="icon_classes"></i>
         Release
       </h1>
-      <span id="release-info" class="align-self-end mb-2 text-muted"></span>
+      <span id="release-info" class="align-self-end mb-2 text-muted" v-if="release">
+          started by {{ release.started_by }} on {{ formatDate(release.start) }}
+      </span>
       <span class="flex-fill"></span>
 
       <template v-if="release && (['running', 'waiting-for-user', 'errored'].indexOf(release.state) >= 0)">
