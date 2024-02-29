@@ -218,6 +218,23 @@ const shortRepoName = computed(() => props.release.release_script.short_reposito
             <ErrorLink :short_repository_name="shortRepoName" :error="warning"></ErrorLink>
           </p>
         </template>
+        <template v-else-if="warning.type === 'duplicate-term'">
+                    <h5>Duplicate terms</h5>
+                    <p>
+                        The term <code>{{ warning.duplicates[0].label }}</code>
+                        (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
+                    </p>
+                    <ul>
+                          <li v-for="d in warning.duplicates"><a href="#{{ origin_link(d) }}"><code>{{ d.origin[0] }}</code></a></li>
+                    </ul>
+          </template>
+        <template v-else-if="warning.type === 'unknown-column'">
+                    <h5>Unmapped column</h5>
+                    <p>
+                        The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped
+                        to any OWL property or internal field.
+                    </p>
+        </template>
         <template v-else>
           <h5>{{ warning.type.replace("-", " ") }}</h5>
           <p>
