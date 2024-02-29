@@ -16,6 +16,9 @@ class PreparationReleaseStep(ReleaseStep):
 
         for file in self._release_script.files.values():
             for source in file.sources:
+                if source.type == "owl":
+                    continue
+
                 xlsx = self._local_name(source.file)
                 download_file(self._gh, self._release_script.full_repository_name, source.file, xlsx)
 
