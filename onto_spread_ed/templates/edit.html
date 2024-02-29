@@ -273,6 +273,9 @@
     var testTableData = [];
     var previousData = [];
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const navigateToRow = urlParams.has("row") ? Number.parseInt(urlParams.get("row")) - 2 : null;
+
 
 
     //get saved table data, compare to current table:
@@ -1851,6 +1854,11 @@
         } else {
             row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
         }
+
+        if(navigateToRow === row.getIndex()) {
+            row.getElement().style.boxShadow = "inset 0 0 10px 5px #ffcb00"
+            console.log("styled", row)
+        }
     }
     //below recommended for Firefox in particular by Tabulator issue responseText
     //reference: https://github.com/olifolkerd/tabulator/issues/2117
@@ -3010,7 +3018,9 @@
         });
     }, 1000 * 60 * 5);
 
-
+    if (navigateToRow !== null) {
+        table.scrollToRow(navigateToRow, "middle")
+    }
 </script>
 
 {% endblock %}

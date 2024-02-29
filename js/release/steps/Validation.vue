@@ -225,7 +225,12 @@ const shortRepoName = computed(() => props.release.release_script.short_reposito
                         (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
                     </p>
                     <ul>
-                          <li v-for="d in warning.duplicates"><a href="#{{ origin_link(d) }}"><code>{{ d.origin[0] }}</code></a></li>
+                          <li v-for="d in warning.duplicates">
+                            <ErrorLink :short_repository_name="release.release_script.short_repository_name"
+                                       :term="d">
+                              <code>{{ d.origin[0] }}</code>
+                            </ErrorLink>
+                          </li>
                     </ul>
           </template>
         <template v-else-if="warning.type === 'unknown-column'">
