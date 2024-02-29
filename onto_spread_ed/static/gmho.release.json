@@ -16,76 +16,6 @@
     ]
   },
   "files": {
-    "setting": {
-      "target": {
-        "file": "setting.owl",
-        "iri": "https://galenos.org.uk/ontologies/setting.owl"
-      },
-      "sources": [
-        "Intervention setting/Intervention setting.xlsx"
-      ],
-      "needs": []
-    },
-    "cad": {
-      "target": {
-        "file": "cad.owl",
-        "iri": "https://galenos.org.uk/ontologies/cad.owl"
-      },
-      "sources": [
-        "Intervention content and delivery/Intervention content and delivery.xlsx"
-      ],
-      "needs": []
-    },
-    "cse": {
-      "target": {
-        "file": "cse.owl",
-        "iri": "https://galenos.org.uk/ontologies/cse.owl"
-      },
-      "sources": [
-        "Intervention outcomes and spillover effects/Intervention outcomes and spillover effects.xlsx"
-      ],
-      "needs": []
-    },
-    "methods": {
-      "target": {
-        "file": "methods.owl",
-        "iri": "https://galenos.org.uk/ontologies/methods.owl"
-      },
-      "sources": [
-        "Research methods/Research methods.xlsx"
-      ],
-      "needs": []
-    },
-    "population": {
-      "target": {
-        "file": "population.owl",
-        "iri": "https://galenos.org.uk/ontologies/population.owl"
-      },
-      "sources": [
-        "Intervention population/Intervention population.xlsx"
-      ],
-      "needs": []
-    },
-    "mapped": {
-      "target": {
-        "file": "mapped.owl",
-        "iri": "https://galenos.org.uk/ontologies/mapped.owl"
-      },
-      "sources": [
-        "Non-GMHO entities mapped to LSRs/Non-GMHO entities mapped to LSRs.xlsx"
-      ],
-      "needs": []
-    },
-    "moa": {
-      "target": {
-        "file": "moa.owl",
-        "iri": "https://galenos.org.uk/ontologies/moa.owl"
-      },
-      "sources": [
-        "Intervention mechanism/Intervention mechanism of action.xlsx"
-      ],
-      "needs": []
-    },
     "gmho": {
       "target": {
         "file": "gmho.owl",
@@ -93,13 +23,13 @@
       },
       "needs": [],
       "sources": [
-        "setting.owl",
-        "cad.owl",
-        "cse.owl",
-        "methods.owl",
-        "population.owl",
-        "mapped.owl",
-        "moa.owl"
+        "Intervention setting/Intervention setting.xlsx",
+        "Intervention content and delivery/Intervention content and delivery.xlsx",
+        "Intervention outcomes and spillover effects/Intervention outcomes and spillover effects.xlsx",
+        "Research methods/Research methods.xlsx",
+        "Intervention population/Intervention population.xlsx",
+        "Non-GMHO entities mapped to LSRs/Non-GMHO entities mapped to LSRs.xlsx",
+        "Intervention mechanism/Intervention mechanism of action.xlsx"
       ]
     }
   },
