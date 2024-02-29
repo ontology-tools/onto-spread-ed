@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from "vue";
-import {Release, ReleaseScript} from "./model.ts";
+import {Diagnostic, Release, ReleaseScript} from "./model.ts";
 import Setup from "./Setup.vue";
 import Preparation from "./steps/Preparation.vue";
 import Validation from "./steps/Validation.vue";
@@ -40,6 +40,22 @@ const stepComponent = computed(() => {
 
 const details = computed(() => release.value?.details[(selected_step.value ?? release.value.step).toString()])
 
+type SubStepContent = { errors: Diagnostic[], warnings: Diagnostic[] };
+
+function subSteps(data?: any): null | { [k: string]: SubStepContent } {
+  if (data instanceof Object) {
+    const val = data as { [key: string]: Partial<SubStepContent> }
+    const steps = Object.entries(val)
+        .filter(([k, v]) =>
+            !k.startsWith("_") &&
+            ["warnings", "errors", "infos"].indexOf(k) < 0 &&
+            Array.isArray(v?.warnings) && Array.isArray(v?.errors)
+        ) as unknown as [string, SubStepContent][]
+    return steps.length > 0 ? Object.fromEntries(steps) : null;
+  }
+
+  return null
+}
 
 async function poll(withLoading: boolean = false) {
   const id = release.value?.id ?? 'running'
@@ -64,7 +80,7 @@ onMounted(async () => {
   console.log({lastPathSegment, releaseId})
 
   if (!isNaN(releaseId)) {
-    release.value = await _request(() => fetch(`/api/release/${releaseId}`))
+    release.value = await _request<Release>(() => fetch(`/api/release/${releaseId}`)) ?? null
   } else {
     await poll(true)
   }
@@ -145,20 +161,16 @@ async function startRelease(releaseScript: ReleaseScript) {
   }
 }
 
-async function cancelRelease(with_redirect = true) {
+async function cancelRelease() {
   await _request(() => fetch("/api/release/cancel", {
     method: "post"
   }))
-
-  if (with_redirect) {
-    window.location.pathname = `/admin/release`
-  }
 }
 
 async function restartRelease() {
   const script = release.value?.release_script
   if (script) {
-    await cancelRelease(false)
+    await cancelRelease()
     await startRelease(script)
   }
 }
@@ -256,14 +268,24 @@ function formatText(str: string): string {
            id="release-core">
         <div class="sidebar border" style="grid-column: 1">
           <ul class="list-unstyled ps-2">
-            <li class="mb-1 d-flex align-items-center" v-for="(step, i) in release.release_script.steps">
-              <i :class="stepIconClasses(i)"></i>
-              <a class="btn border-0" href="#" @click="selected_step = i">
-                <strong v-if="selected_step !== null ? selected_step == i : release.step == i">
-                  {{ formatText(step.name) }}
-                </strong>
-                <template v-else>{{ formatText(step.name) }}</template>
-              </a>
+            <li class="mb-1" v-for="(step, i) in release.release_script.steps">
+              <div class="d-flex align-items-center">
+                <i :class="stepIconClasses(i)"></i>
+                <a class="btn border-0" href="#" @click="selected_step = i">
+                  <strong v-if="selected_step !== null ? selected_step == i : release.step == i">
+                    {{ formatText(step.name) }}
+                  </strong>
+                  <template v-else>{{ formatText(step.name) }}</template>
+                </a>
+              </div>
+              <ul class="list-unstyled ms-4" v-if="subSteps">
+                <li v-for="(val, key) in subSteps(release.details[i])" style="display: flex; align-items: center">
+                  <i v-if="(val.errors?.length ?? 0) > 0" class="fa fa-circle-exclamation text-danger"></i>
+                  <i v-else-if="(val.warnings?.length ?? 0) > 0" class="fa fa-triangle-exclamation text-warning"></i>
+                  <i v-else class="fa fa-check-circle text-success"></i>
+                  <a class="btn border-0 text-truncate">{{ key }}</a>
+                </li>
+              </ul>
             </li>
           </ul>
         </div>
