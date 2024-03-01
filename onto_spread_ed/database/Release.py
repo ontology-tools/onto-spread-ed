@@ -4,7 +4,7 @@ from .Base import Base
 
 
 class Release(Base):
-    __tablename__ = 'release'
+    __tablename__ = 'releases'
 
     id = Column(Integer, primary_key=True)
     state = Column(String(20))

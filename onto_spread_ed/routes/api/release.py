@@ -32,8 +32,8 @@ RELEASE_STEP_HUMAN = 6
 RELEASE_STEP_PUBLISH = 7
 
 
-def get_current_release(q: Query[Release]) -> Tuple[Optional[Release], Optional[Tuple[Response, int]]]:
-    ongoing = q.filter_by(running=True).all()
+def get_current_release(q: Query[Release], repo: str) -> Tuple[Optional[Release], Optional[Tuple[Response, int]]]:
+    ongoing = q.filter_by(running=True, repo=repo).all()
     if len(ongoing) > 1:
         return None, (jsonify(dict(
             success=False,
@@ -70,11 +70,11 @@ def get_release_script(repo: str):
     return jsonify(dataclasses.asdict(release_script))
 
 
-@bp.route("/cancel", methods=("POST",))
+@bp.route("/<repo>/cancel", methods=("POST",))
 @verify_admin
-def release_cancel(db: SQLAlchemy):
+def release_cancel(repo: str, db: SQLAlchemy):
     q = db.session.query(Release)
-    release, err = get_current_release(q)
+    release, err = get_current_release(q, repo)
     if err is not None:
         return err
 
@@ -92,16 +92,6 @@ def release_cancel(db: SQLAlchemy):
 @bp.route("/start", methods=("POST",))
 @verify_admin
 def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
-    q: Query[Release] = db.session.query(Release)
-    ongoing = q.filter_by(running=True).all()
-    if len(ongoing) > 0:
-        return jsonify(dict(
-            success=False,
-            error="already-running",
-            message="An other release is already running.",
-            releases=[r.as_dict() for r in ongoing]
-        )), 400
-
     schema: dict
     with open(os.path.join(current_app.static_folder, "schema", "release_script.json"), "r") as f:
         schema = json.load(f)
@@ -114,6 +104,16 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
 
     release_script = ReleaseScript.from_json(data)
 
+    q: Query[Release] = db.session.query(Release)
+    ongoing = q.filter_by(running=True, repo=release_script.short_repository_name).all()
+    if len(ongoing) > 0:
+        return jsonify(dict(
+            success=False,
+            error="already-running",
+            message="An other release is already running.",
+            releases=[r.as_dict() for r in ongoing]
+        )), 400
+
     repo = release_script.short_repository_name
     if repo not in current_app.config["REPOSITORIES"]:
         return jsonify(dict(
@@ -124,11 +124,11 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
 
     release = Release(state="starting",
                       start=datetime.datetime.utcnow(),
-                      step=RELEASE_STEP_PREPARATION,
+                      step=0,
                       started_by=g.user.github_login,
                       details={},
                       running=True,
-                      included_files=data["files"],
+                      repo=repo,
                       release_script=dataclasses.asdict(release_script))
     db.session.add(release)
     db.session.commit()
@@ -138,12 +138,12 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
     return jsonify(release.as_dict())
 
 
-@bp.route("/continue")
+@bp.route("/<repo>/continue")
 @verify_admin
-def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
+def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
     q: Query[Release] = db.session.query(Release)
 
-    release, err = get_current_release(q)
+    release, err = get_current_release(q, repo)
     if err is not None:
         return err
 
@@ -179,11 +179,11 @@ def release_continue(db: SQLAlchemy, gh: GitHub, executor: Executor):
     return jsonify(release.as_dict())
 
 
-@bp.route("/rerun-step", methods=("POST", "GET"))
+@bp.route("/<repo>/rerun-step", methods=("POST", "GET"))
 @verify_admin
-def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
+def release_rerun_step(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
     q: Query[Release] = db.session.query(Release)
-    release, err = get_current_release(q)
+    release, err = get_current_release(q, repo)
     if err is not None:
         return err
 
@@ -202,12 +202,12 @@ def release_rerun_step(db: SQLAlchemy, gh: GitHub, executor: Executor):
     return jsonify(release.as_dict())
 
 
-@bp.route("/download", methods=("GET",))
+@bp.route("/<repo>/download", methods=("GET",))
 @verify_admin
-def download_release_file(db: SQLAlchemy):
+def download_release_file(repo: str, db: SQLAlchemy):
     q = db.session.query(Release)
 
-    release, err = get_current_release(q)
+    release, err = get_current_release(q, repo)
     if err is not None:
         return err
 
@@ -241,11 +241,11 @@ def download_release_file(db: SQLAlchemy):
                         message=f"No such file '{file}' in the release.")), 404
 
 
-@bp.route("/running", methods=("POST", "GET"))
+@bp.route("/<repo>/running", methods=("POST", "GET"))
 @verify_admin
-def get_running_release(db: SQLAlchemy):
+def get_running_release(repo: str, db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)
-    release, _ = get_current_release(q)
+    release, _ = get_current_release(q, repo)
 
     if release is None:
         raise NotFound()
@@ -253,7 +253,7 @@ def get_running_release(db: SQLAlchemy):
     return jsonify(release.as_dict())
 
 
-@bp.route("/<id>", methods=("GET",))
+@bp.route("/<int:id>", methods=("GET",))
 @verify_admin
 def get_release(id: int, db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)
@@ -268,6 +268,16 @@ def get_release(id: int, db: SQLAlchemy):
 
     return jsonify(release.as_dict())
 
+@bp.route("/<string:repo>", methods=("GET",))
+@verify_admin
+def get_releases_for_repo(repo: str, db: SQLAlchemy):
+    q: Query[Release] = db.session.query(Release)
+    releases = q.filter_by(repo=repo)
+
+    if releases is None:
+        return jsonify("Not found"), 404
+
+    return jsonify([r.as_dict() for r in releases])
 
 
 @bp.route("/", methods=("GET",))

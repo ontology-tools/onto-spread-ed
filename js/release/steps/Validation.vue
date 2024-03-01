@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {computed} from "vue";
-import {Diagnostic, Release} from "../model.ts";
+import {computed, ref} from "vue";
+import {Diagnostic, Release, Term, TermIdentifier} from "../model.ts";
 import ErrorLink from "../ErrorLink.vue";
 import ProgressIndicator from "../ProgressIndicator.vue";
 
@@ -19,6 +19,14 @@ defineEmits<{
   (e: 'release-control', type: string, ...args: any[]): void
 }>()
 
+type AutoFixState = "loading" | "impossible" | "fixed" | "loaded";
+const autoFixStates = ref<{ [k: string]: AutoFixState }>({})
+
+function autoFixState(diag: Diagnostic): AutoFixState | null {
+  const id = JSON.stringify(diag)
+  return autoFixStates.value[id] ?? null
+}
+
 const errors = computed<Diagnostic[] | null>(() => {
   if (!props.data) {
     return null
@@ -35,6 +43,99 @@ const warnings = computed<any[] | null>(() => {
 })
 
 const shortRepoName = computed(() => props.release.release_script.short_repository_name)
+
+
+interface ParentGuess {
+  ontology_id: string,
+  term: TermIdentifier
+}
+
+const guessedParents = ref<{ [k: string]: ParentGuess | null }>({})
+
+async function guessParent(term: Term): Promise<ParentGuess | null> {
+  if (!term?.id) {
+    return null
+  }
+
+  if (term.id in guessedParents.value) {
+    return guessedParents.value[term.id]
+  }
+  try {
+    const response = await fetch(`/api/external/guess-parent/${term.id}`)
+    const parent = await response.json()
+    if (parent) {
+      guessedParents.value[term.id] = parent
+      return parent
+    }
+  } catch {
+  }
+
+  guessedParents.value[term.id] = null
+  return null
+}
+
+async function autofix(error: Diagnostic) {
+  let id = JSON.stringify(error);
+  autoFixStates.value[id] = "loading"
+  if (error.type === "unknown-parent") {
+    const guess = await guessParent(error.term)
+    if (guess !== null) {
+      const parent = guess.term
+      await new Promise((resolve) => {
+        bootbox.confirm({
+          title: "Found a parent",
+          message: `A parent <code>${parent.label}</code> (<code>${parent.id}</code>) was found. Import the term?`,
+          buttons: {
+            confirm: {
+              label: `Import ${parent.id}`,
+              className: "btn-success",
+            },
+            cancel: {
+              label: "Cancel",
+              className: "btn-danger"
+            }
+          },
+          async callback(result: boolean) {
+            if (result) {
+              try {
+                const response = await fetch(`/api/external/${props.release.release_script.short_repository_name}/import`, {
+                  method: "post",
+                  body: JSON.stringify({
+                    terms: [{
+                      id: parent.id,
+                      label: parent.label
+                    }],
+                    ontologyId: guess.ontology_id
+                  }),
+                  headers: {
+                    "Content-Type": "application/json"
+                  }
+                })
+
+                if (response.ok) {
+                  autoFixStates.value[id] = "fixed"
+                } else {
+                  autoFixStates.value[id] = "impossible"
+                }
+              } catch {
+                autoFixStates.value[id] = "impossible"
+              }
+            }
+            resolve(result)
+          }
+        })
+      })
+    } else {
+      autoFixStates.value[id] = "impossible"
+    }
+  } else {
+    autoFixStates.value[id] = "impossible"
+  }
+
+  if (autoFixStates.value[id] == "loading") {
+    autoFixStates.value[id] = "loaded"
+  }
+}
 </script>
 
 <template>
@@ -79,6 +180,10 @@ const shortRepoName = computed(() => props.release.release_script.short_reposito
               The term appears external. If you redefine an external entity ensure to import its
               parent and all of its related terms as well.
             </template>
+            <template v-if="guessedParents?.[error.term.id]">
+              OLS suggests <code>{{ guessedParents?.[error.term.id]?.label }}</code>
+              (<code>{{ guessedParents?.[error.term.id]?.id }}</code>).
+            </template>
             <template v-else>
               If it is an external term, ensure that it is imported correctly.
             </template>
@@ -87,6 +192,17 @@ const shortRepoName = computed(() => props.release.release_script.short_reposito
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
                        :term="error.term"></ErrorLink>
           </p>
+
+          <button class="btn btn-primary"
+                  :class="{'btn-success': autoFixState(error) === 'fixed', 'btn-danger': autoFixState(error) === 'impossible'}"
+                  @click="autofix(error)">
+            <i class="fa fa-spin fa-spinner" v-if="autoFixState(error) === 'loading'"></i>
+            <i class="fa fa-check" v-if="autoFixState(error) === 'fixed'"></i>
+            <i class="fa fa-close" v-if="autoFixState(error) === 'impossible'"></i>
+            Try auto fix
+          </button>
+
+
         </template>
         <template v-else-if="error.type === 'missing-parent'">
           <h5>Missing parent</h5>
@@ -219,26 +335,26 @@ const shortRepoName = computed(() => props.release.release_script.short_reposito
           </p>
         </template>
         <template v-else-if="warning.type === 'duplicate-term'">
-                    <h5>Duplicate terms</h5>
-                    <p>
-                        The term <code>{{ warning.duplicates[0].label }}</code>
-                        (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
-                    </p>
-                    <ul>
-                          <li v-for="d in warning.duplicates">
-                            <ErrorLink :short_repository_name="release.release_script.short_repository_name"
-                                       :term="d">
-                              <code>{{ d.origin[0] }}</code>
-                            </ErrorLink>
-                          </li>
-                    </ul>
-          </template>
+          <h5>Duplicate terms</h5>
+          <p>
+            The term <code>{{ warning.duplicates[0].label }}</code>
+            (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
+          </p>
+          <ul>
+            <li v-for="d in warning.duplicates">
+              <ErrorLink :short_repository_name="release.release_script.short_repository_name"
+                         :term="d">
+                <code>{{ d.origin[0] }}</code>
+              </ErrorLink>
+            </li>
+          </ul>
+        </template>
         <template v-else-if="warning.type === 'unknown-column'">
-                    <h5>Unmapped column</h5>
-                    <p>
-                        The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped
-                        to any OWL property or internal field.
-                    </p>
+          <h5>Unmapped column</h5>
+          <p>
+            The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped
+            to any OWL property or internal field.
+          </p>
         </template>
         <template v-else>
           <h5>{{ warning.type.replace("-", " ") }}</h5>

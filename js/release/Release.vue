@@ -1,4 +1,6 @@
 <script setup lang="ts">
+declare var SERVER_DATA: {[key: string]: any}
+
 import {computed, onMounted, ref, watch} from "vue";
 import {Diagnostic, Release, ReleaseScript} from "./model.ts";
 import Setup from "./Setup.vue";
@@ -10,6 +12,8 @@ import Merge from "./steps/Merge.vue";
 import HumanVerification from "./steps/HumanVerification.vue";
 import GithubPublish from "./steps/GithubPublish.vue";
 import BCIOSearch from "./steps/BCIOSearch.vue";
+
+const repo = SERVER_DATA.repo
 
 const release = ref<Release | null>(null);
 
@@ -58,7 +62,7 @@ function subSteps(data?: any): null | { [k: string]: SubStepContent } {
 }
 
 async function poll(withLoading: boolean = false) {
-  const id = release.value?.id ?? 'running'
+  const id = release.value?.id ?? `${repo}/running`
   loading.value = withLoading;
   try {
     let response = await fetch(`/api/release/${id}`);
@@ -76,8 +80,6 @@ async function poll(withLoading: boolean = false) {
 onMounted(async () => {
   const lastPathSegment = window.location.pathname.split("/").slice(-1)[0]
   const releaseId = parseInt(lastPathSegment)
-
-  console.log({lastPathSegment, releaseId})
 
   if (!isNaN(releaseId)) {
     release.value = await _request<Release>(() => fetch(`/api/release/${releaseId}`)) ?? null
@@ -162,9 +164,9 @@ async function startRelease(releaseScript: ReleaseScript) {
 }
 
 async function cancelRelease() {
-  await _request(() => fetch("/api/release/cancel", {
+  release.value = await _request<Release>(() => fetch(`/api/release/${repo}/cancel`, {
     method: "post"
-  }))
+  })) ?? null
 }
 
 async function restartRelease() {
@@ -189,7 +191,7 @@ function warningsOfStep(step: number) {
   if (details?.hasOwnProperty("warnings") && Array.isArray(details["warnings"])) {
     return details["warnings"].length
   } else if (details) {
-    return Object.values(details).map(x => x["warnings"]?.length).reduce((p, c) => c + p, 0)
+    return Object.values(details).map((x: any) => x["warnings"]?.length).reduce((p, c) => c + p, 0)
   }
 }
 
@@ -212,21 +214,11 @@ function stepIconClasses(step: number): string[] {
 async function doReleaseControl(type: string) {
   switch (type) {
     case "continue":
-      await fetch("/api/release/continue")
+      await fetch(`/api/release/${repo}/continue`)
       break;
     default:
       console.warn(`No such release control type: '${type}'`)
   }
-}
-
-function formatDate(d: string | Date): string {
-  const date = d instanceof Date ? d : new Date(d)
-  return new Intl.DateTimeFormat("default", {dateStyle: "long", timeStyle: "short"}).format(date)
-}
-
-function formatText(str: string): string {
-  const s = str.trim().toLowerCase().replace("_", " ")
-  return s.charAt(0).toUpperCase() + s.substring(1)
 }
 </script>
 
@@ -235,10 +227,10 @@ function formatText(str: string): string {
     <div class="d-flex gap-2 align-items-center">
       <h1 id="lbl-release-title">
         <i id="icon-release" class="fa" :class="icon_classes"></i>
-        Release
+        Release {{repo}}
       </h1>
       <span id="release-info" class="align-self-end mb-2 text-muted" v-if="release">
-          started by {{ release.started_by }} on {{ formatDate(release.start) }}
+          started by {{ release.started_by }} on {{ $filters.formatDate(release.start) }}
       </span>
       <span class="flex-fill"></span>
 
@@ -253,12 +245,13 @@ function formatText(str: string): string {
       </template>
     </div>
 
-    <template v-if="!release">
+    <template v-if="!release && !loading">
       <div class="alert alert-danger" v-if="error !== null">
         <h4>An error occurred</h4>
         {{ error }}
       </div>
       <Setup v-if="!release" style="max-width: 1080px; margin: 0 auto"
+             :repo="repo"
              @settingsConfirmed="startRelease($event)"></Setup>
     </template>
 
@@ -273,9 +266,9 @@ function formatText(str: string): string {
                 <i :class="stepIconClasses(i)"></i>
                 <a class="btn border-0" href="#" @click="selected_step = i">
                   <strong v-if="selected_step !== null ? selected_step == i : release.step == i">
-                    {{ formatText(step.name) }}
+                    {{ $filters.formatText(step.name) }}
                   </strong>
-                  <template v-else>{{ formatText(step.name) }}</template>
+                  <template v-else>{{ $filters.formatText(step.name) }}</template>
                 </a>
               </div>
               <ul class="list-unstyled ms-4" v-if="subSteps">

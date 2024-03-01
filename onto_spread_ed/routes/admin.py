@@ -39,9 +39,12 @@ def rebuild_index(searcher: SpreadsheetSearcher):
                                login=g.user.github_login, )
 
 
-def release_data(db: SQLAlchemy, id: Optional[int] = None) -> dict:
+def release_data(db: SQLAlchemy, id: Optional[int] = None, repo: Optional[str] = None) -> dict:
     if id is None:
-        current_release = db.session.query(Release).filter_by(running=True).first()
+        if repo is not None:
+            current_release = db.session.query(Release).filter_by(running=True, repo=repo).first()
+        else:
+            current_release = None
     else:
         current_release = db.session.query(Release).get(id)
         if current_release is None:
@@ -52,22 +55,45 @@ def release_data(db: SQLAlchemy, id: Optional[int] = None) -> dict:
         login=g.user.github_login,
     )
 
-@bp.route("/release", methods=("GET",))
-@bp.route("/release/<id>", methods=("GET",))
+
+@bp.route("/release/", methods=("GET",), defaults={"repo": None, "id": None})
+@bp.route("/release/<string:repo>", methods=("GET",), defaults={"id": None})
+@bp.route("/release/<int:id>", methods=("GET",), defaults={"repo": None})
 @verify_admin
-def release(id: Optional[str], db: SQLAlchemy, gh: GitHub):
-    id = int(id) if id != "" else None
-    data = release_data(db, id)
+def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy):
+    data = release_data(db, id, repo)
 
-    current_release = data["release"]
+    current_release: Release = data["release"]
+    repositories = None
 
-    if id is None and current_release is not None:
-        return redirect(url_for("admin.release", id=current_release.id))
+    if id is None and repo is None:
+        repositories = current_app.config['REPOSITORIES']
+
+        user_repos = repositories.keys()
+        # Filter just the repositories that the user can see
+        if g.user.github_login in current_app.config['USERS_METADATA']:
+            user_repos = current_app.config['USERS_METADATA'][g.user.github_login]["repositories"]
+
+        repositories = {k: v for k, v in repositories.items() if k in user_repos}
+
+        if len(repositories) == 1:
+            return redirect(url_for("admin.release", repo=list(repositories.keys())[0]))
+    elif id is None and repo is not None:
+        if current_release is not None:
+            return redirect(url_for("admin.release", id=current_release.id))
+    elif id is not None and repo is None:
+        if current_release is not None:
+            repo = current_release.repo
+
+    paths = [dict(name=repo.upper(), path=f"admin/release/{repo}") if repo is not None else None]
 
     return render_template("release.html",
                            breadcrumb=[
                                dict(name="Admin", path="admin/dashboard"),
-                               dict(name="Release", path="admin/release")
+                               dict(name="Release", path="admin/release"),
+                               *[p for p in paths if p is not None]
                            ],
+                           repo=repo,
+                           repos=repositories,
                            **data
                            )

@@ -11,6 +11,9 @@ from .database.User import User
 
 
 def create_app(test_config=None):
+    # Clear type annotations to get around errors using url_for in jinja template
+    # Source: https://github.com/python-injector/flask_injector/issues/78
+    Flask.url_for.__annotations__ = {}
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
