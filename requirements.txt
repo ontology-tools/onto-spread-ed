@@ -16,3 +16,4 @@ flask-cors==3.0.10
 flask-executor
 aiohttp
 async-lru
+Flask-Migrate

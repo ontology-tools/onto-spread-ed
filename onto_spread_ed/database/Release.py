@@ -11,10 +11,10 @@ class Release(Base):
     running = Column(Boolean(), default=True)
     step = Column(Integer)
     details = Column(JSON(none_as_null=True))  # Dict from step nr to step info
-    included_files = Column(JSON())
     start = Column(DateTime)
     started_by = Column(String())
     end = Column(DateTime)
+    repo = Column(String(20))
     release_script = Column(JSON(none_as_null=True))
     worker_id = Column(String(20))
     local_dir = Column(String())
