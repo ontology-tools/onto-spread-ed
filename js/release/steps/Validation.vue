@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import {Diagnostic, Release, Term, TermIdentifier} from "../model.ts";
+import {AutoFixState, Diagnostic, Release} from "../model.ts";
 import ErrorLink from "../ErrorLink.vue";
+import {guessParent} from "../autofix/guessParent.ts"
 import ProgressIndicator from "../ProgressIndicator.vue";
 
 const props = defineProps<{
@@ -19,7 +20,6 @@ defineEmits<{
   (e: 'release-control', type: string, ...args: any[]): void
 }>()
 
-type AutoFixState = "loading" | "impossible" | "fixed" | "loaded";
 const autoFixStates = ref<{ [k: string]: AutoFixState }>({})
 
 function autoFixState(diag: Diagnostic): AutoFixState | null {
@@ -45,89 +45,15 @@ const warnings = computed<any[] | null>(() => {
 const shortRepoName = computed(() => props.release.release_script.short_repository_name)
 
 
-interface ParentGuess {
-  ontology_id: string,
-  term: TermIdentifier
-}
-
-const guessedParents = ref<{ [k: string]: ParentGuess | null }>({})
-
-async function guessParent(term: Term): Promise<ParentGuess | null> {
-  if (!term?.id) {
-    return null
-  }
-
-  if (term.id in guessedParents.value) {
-    return guessedParents.value[term.id]
-  }
-  try {
-    const response = await fetch(`/api/external/guess-parent/${term.id}`)
-    const parent = await response.json()
-    if (parent) {
-      guessedParents.value[term.id] = parent
-      return parent
-    }
-  } catch {
-  }
-
-  guessedParents.value[term.id] = null
-  return null
-}
-
 async function autofix(error: Diagnostic) {
-  let id = JSON.stringify(error);
+  let id = JSON.stringify(error)
+  if (id in autoFixStates.value && autoFixStates.value[id] !== "loaded") {
+    return
+  }
+
   autoFixStates.value[id] = "loading"
   if (error.type === "unknown-parent") {
-    const guess = await guessParent(error.term)
-    if (guess !== null) {
-      const parent = guess.term
-      await new Promise((resolve) => {
-        bootbox.confirm({
-          title: "Found a parent",
-          message: `A parent <code>${parent.label}</code> (<code>${parent.id}</code>) was found. Import the term?`,
-          buttons: {
-            confirm: {
-              label: `Import ${parent.id}`,
-              className: "btn-success",
-            },
-            cancel: {
-              label: "Cancel",
-              className: "btn-danger"
-            }
-          },
-          async callback(result: boolean) {
-            if (result) {
-              try {
-                const response = await fetch(`/api/external/${props.release.release_script.short_repository_name}/import`, {
-                  method: "post",
-                  body: JSON.stringify({
-                    terms: [{
-                      id: parent.id,
-                      label: parent.label
-                    }],
-                    ontologyId: guess.ontology_id
-                  }),
-                  headers: {
-                    "Content-Type": "application/json"
-                  }
-                })
-
-                if (response.ok) {
-                  autoFixStates.value[id] = "fixed"
-                } else {
-                  autoFixStates.value[id] = "impossible"
-                }
-              } catch {
-                autoFixStates.value[id] = "impossible"
-              }
-            }
-            resolve(result)
-          }
-        })
-      })
-    } else {
-      autoFixStates.value[id] = "impossible"
-    }
+    autoFixStates.value[id] = await guessParent(error, props.release.release_script.short_repository_name)
   } else {
     autoFixStates.value[id] = "impossible"
   }
@@ -136,6 +62,7 @@ async function autofix(error: Diagnostic) {
     autoFixStates.value[id] = "loaded"
   }
 }
+
 </script>
 
 <template>
@@ -179,10 +106,6 @@ async function autofix(error: Diagnostic) {
             <template v-if="!!error.term.id && !error.term.id.startsWith(shortRepoName)">
               The term appears external. If you redefine an external entity ensure to import its
               parent and all of its related terms as well.
-            </template>
-            <template v-if="guessedParents?.[error.term.id]">
-              OLS suggests <code>{{ guessedParents?.[error.term.id]?.label }}</code>
-              (<code>{{ guessedParents?.[error.term.id]?.id }}</code>).
             </template>
             <template v-else>
               If it is an external term, ensure that it is imported correctly.

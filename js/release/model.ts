@@ -60,3 +60,5 @@ export interface Term {
     equivalent_to: string[]
     disjoint_with: TermIdentifier[]
 }
+
+export type AutoFixState = "loading" | "impossible" | "fixed" | "loaded";

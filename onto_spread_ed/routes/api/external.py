@@ -3,6 +3,7 @@ import io
 import json
 import os
 import re
+from typing import Optional
 from urllib import parse
 
 import jsonschema
@@ -19,17 +20,43 @@ from onto_spread_ed.utils import github
 bp = Blueprint("api_external", __name__, url_prefix="/api/external")
 
 
-@bp.route("/guess-parent/<string:prefix>:<string:id>", methods=["GET"])
+@bp.route("/guess-parent", methods=["POST"])
 @verify_admin
-def guess_parent(prefix: str, id: str):
-    if not prefix or not id or not re.match("^[A-Za-z0-9_]+$", prefix) or not re.match("^[A-Za-z0-9_]+$", id):
-        return jsonify(dict(msg="Invalid prefix or id", success=False)), 400
+def guess_parent():
+    schema: dict
+    with open(os.path.join(current_app.static_folder, "schema", "req_body_guess_parent.json"), "r") as f:
+        schema = json.load(f)
+
+    data = request.json
+    try:
+        jsonschema.validate(data, schema)
+    except jsonschema.ValidationError as e:
+        return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
+
 
     try:
+        term = TermIdentifier(**data.get("term"))
+        origin_ontology = data.get("origin_ontology", None)
+        parent = TermIdentifier(**data.get("parent"))
+        [prefix, id] = term.id.split(":")
+
+        # Try to get the term from OLS. Then get the parent from there.
         response = requests.get(f"https://www.ebi.ac.uk/ols4/api/ontologies/{prefix}/terms?short_form={prefix}:{id}")
 
         if not response.ok:
-            return jsonify(None)
+            # Not found. Just search for the term
+            response = requests.get(f"https://www.ebi.ac.uk/ols4/api/v2/entities", params={
+                "search": parent.label,
+                "lang": "en",
+                "exactMatch": "false",
+                "includeObsoleteEntities": "false"
+            })
+
+            guesses = [dict(ontology_id=e.get("definedBy", e["curie"].split(":"))[0],
+                            purl=e.get("ontologyIri", None),
+                            term=TermIdentifier(id=e["curie"], label=e["label"])) for e in response.json()["elements"]]
+
+            return jsonify(guesses)
 
         data = response.json()
         term_iri = next((x["iri"] for x in data["_embedded"]["terms"] if x["obo_id"] == f"{prefix}:{id}"), None)
@@ -45,11 +72,12 @@ def guess_parent(prefix: str, id: str):
 
         ols_term = response.json()
         parent_iri = ols_term["directParent"]
-        parent = ols_term["linkedEntities"][parent_iri]
-        return jsonify(dict(
-            term=TermIdentifier(id=parent["curie"], label=parent["label"]),
-            ontology_id=parent["curie"].split(":")[0],
-        ))
+        parent_ols = ols_term["linkedEntities"][parent_iri]
+        return jsonify([dict(
+            term=TermIdentifier(id=parent_ols["curie"], label=parent_ols["label"]),
+            purl=parent_ols.get("ontologyIri", None),
+            ontology_id=parent_ols["curie"].split(":")[0],
+        )])
     except Exception:
         return jsonify(None)
 
@@ -98,7 +126,7 @@ def import_term(repo: str, gh: GitHub):
         next(data)
         found = False
         for row in data:
-            if row[0].value == import_ontology_id:
+            if row[0].value.lower() == import_ontology_id.lower():
                 current = row[3].value
                 if current is None:
                     ids = set()
