@@ -237,7 +237,7 @@ async function autofix(error: Diagnostic) {
           </p>
         </template>
         <template v-else-if="error.type === 'missing-label'">
-          <h5>Unknown label</h5>
+          <h5>Missing label</h5>
           <p>
             The term <code>{{ error.term.id }}</code> has no label. <br>
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
@@ -245,7 +245,7 @@ async function autofix(error: Diagnostic) {
           </p>
         </template>
         <template v-else-if="error.type === 'unknown-label'">
-          <h5>Missing label</h5>
+          <h5>Unknown label</h5>
           <p>
             The term <code>{{ error.term.label }}</code> could not be resolved. Ensure it has an ID and
             if it is external ensure it is imported properly. <br>
