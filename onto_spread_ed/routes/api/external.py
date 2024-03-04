@@ -2,8 +2,6 @@ import base64
 import io
 import json
 import os
-import re
-from typing import Optional
 from urllib import parse
 
 import jsonschema
@@ -32,7 +30,6 @@ def guess_parent():
         jsonschema.validate(data, schema)
     except jsonschema.ValidationError as e:
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
-
 
     try:
         term = TermIdentifier(**data.get("term"))
@@ -64,8 +61,8 @@ def guess_parent():
         if not term_iri:
             return jsonify(None)
 
-        response = requests.get(
-            f"https://www.ebi.ac.uk/ols4/api/v2/ontologies/{prefix.lower()}/classes/{parse.quote(parse.quote(term_iri, safe=''))}", )
+        response = requests.get(f"https://www.ebi.ac.uk/ols4/api/v2/ontologies/{prefix.lower()}/" +
+                                f"classes/{parse.quote(parse.quote(term_iri, safe=''))}")
 
         if not response.ok:
             return jsonify(None)
@@ -156,6 +153,7 @@ def import_term(repo: str, gh: GitHub):
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
-        github.save_file(gh, repository, external_file, spreadsheet_stream.getvalue(), f"Imported {ids_str}", branch)
+        github.save_file(gh, repository, external_file, spreadsheet_stream.getvalue(),
+                         f"Imported {ids_str}", branch)
 
         return Response(status=201)

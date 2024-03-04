@@ -12,5 +12,6 @@ class APIService(abc.ABC):
         self._config = config
 
     @abc.abstractmethod
-    def update_api(self, ontology: ExcelOntology, external_ontologies: List[str], revision_message: str) -> Result[Tuple]:
+    def update_api(self, ontology: ExcelOntology, external_ontologies: List[str], revision_message: str) -> \
+            Result[Tuple]:
         ...

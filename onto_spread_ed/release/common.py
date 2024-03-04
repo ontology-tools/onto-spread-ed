@@ -4,7 +4,7 @@ from typing import List, Tuple, Set, Dict
 from flask_sqlalchemy.query import Query
 
 from onto_spread_ed.database.Release import Release
-from onto_spread_ed.model.ReleaseScript import ReleaseScriptFile, ReleaseScript
+from onto_spread_ed.model.ReleaseScript import ReleaseScriptFile
 
 
 def local_name(tmp: str, remote_name: str, file_ending=None) -> str:

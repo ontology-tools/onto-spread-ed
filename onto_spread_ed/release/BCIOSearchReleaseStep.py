@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List, Type
+from typing import Dict, Any, List
 
 import aiohttp
 from flask_github import GitHub
@@ -29,7 +29,8 @@ class BCIOSearchReleaseStep(ReleaseStep):
 
     def run(self) -> bool:
         result = Result()
-        sources = order_sources(dict([(k, f) for k, f in self._release_script.files.items() if k in self._included_files]))
+        sources = order_sources(
+            dict([(k, f) for k, f in self._release_script.files.items() if k in self._included_files]))
 
         ontology = ExcelOntology("")
         for s in self._release_script.external.sources:
@@ -67,5 +68,3 @@ class BCIOSearchReleaseStep(ReleaseStep):
                 externals,
                 f"{datetime.utcnow().strftime('%B %Y')} Release",
                 lambda step, total, msg: self._update_progress(position=(step, total), current_item=msg))
-
-

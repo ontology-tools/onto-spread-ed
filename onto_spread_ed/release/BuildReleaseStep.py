@@ -41,9 +41,12 @@ class BuildReleaseStep(ReleaseStep):
             result += ontology.resolve()
             self._raise_if_canceled()
 
-            result += builder.build_ontology(ontology, self._local_name(file.target.file), self._release_script.prefixes, [
-                os.path.basename(f) for f in ([self._release_script.files[n].target.file for n in file.needs] + [self._release_script.external.target.file])
-            ], self._working_dir)
+            result += builder.build_ontology(ontology, self._local_name(file.target.file),
+                                             self._release_script.prefixes, [
+                                                 os.path.basename(f) for f in (
+                                [self._release_script.files[n].target.file for n in file.needs] + [
+                            self._release_script.external.target.file])
+                                             ], self._working_dir)
             self._raise_if_canceled()
 
             loaded[k] = ontology

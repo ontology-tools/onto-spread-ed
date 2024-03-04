@@ -39,7 +39,8 @@ ALL_RELEASE_STEPS_DICT: Dict[str, Type[ReleaseStep]] = dict(
 )
 
 
-def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, config: Dict[str, Any]) -> None:
+def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int,
+               config: Dict[str, Any]) -> None:
     logger = logging.getLogger(__name__)
 
     try:

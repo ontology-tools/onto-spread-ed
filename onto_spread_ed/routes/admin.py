@@ -1,14 +1,12 @@
-from typing import Union, Optional, List, Tuple, Dict
+from typing import Optional
 
 from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for
-from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import NotFound
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
 from ..guards.admin import verify_admin
-from ..utils.github import get_spreadsheets
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
 

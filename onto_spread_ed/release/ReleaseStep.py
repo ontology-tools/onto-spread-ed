@@ -1,6 +1,6 @@
 import abc
 from dataclasses import dataclass
-from typing import Callable, Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any
 
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
@@ -38,7 +38,8 @@ class ReleaseStep(abc.ABC):
     _total_items: Optional[int] = None
     _current_item: int = 1
 
-    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str, config: Dict[str, Any]) -> None:
+    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
+                 config: Dict[str, Any]) -> None:
         self._config = config
         self._db = db
         self._gh = gh
@@ -55,17 +56,11 @@ class ReleaseStep(abc.ABC):
                          message: Optional[str] = None):
         self._set_release_info(dict(__progress=dict(
             position=position,
-            progress=progress if progress is not None else ((position[0] / position[1]) if position is not None else None),
+            progress=progress if progress is not None else (
+                (position[0] / position[1]) if position is not None else None),
             current_item=current_item,
             message=message
         )))
-        # if self._progress_callback is not None:
-        #     self._progress_callback(ProgressUpdate(
-        #         position=position,
-        #         progress=progress if progress is not None else ((position[0] / position[1]) if position is not None else None),
-        #         current_item=current_item,
-        #         message=message
-        #     ))
 
     def _next_item(self, *, item: Optional[str] = None, message: Optional[str] = None):
         position = (self._current_item, self._total_items) if self._total_items is not None else None

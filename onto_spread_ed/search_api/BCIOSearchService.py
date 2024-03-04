@@ -5,8 +5,6 @@ from typing import List, Callable, Optional, Tuple
 
 import aiohttp
 import pyhornedowl
-import requests
-from requests import HTTPError
 
 from .APIService import APIService
 from .BCIOSearchClient import BCIOSearchClient
@@ -78,15 +76,15 @@ class BCIOSearchService(APIService):
                 if term is None:
                     ext_label = o.get_annotation(term_iri, "http://www.w3.org/2000/01/rdf-schema#label")
                     ext_definition = o.get_annotation(term_iri,
-                                                                      "http://purl.obolibrary.org/obo/IAO_0000115")
+                                                      "http://purl.obolibrary.org/obo/IAO_0000115")
                     if ext_definition is None:
                         ext_definition = o.get_annotation(term_iri,
-                                                                          "http://purl.obolibrary.org/obo/IAO_0000600")
+                                                          "http://purl.obolibrary.org/obo/IAO_0000600")
                     if ext_definition is None:
                         ext_definition = "no definition provided for external entity"
                         result.warning(type='external-no-definition',
-                                       msg=f"No definition was provided for the external entity '{ext_label}' ({term_id}). "
-                                           f"Using default instead.")
+                                       msg=f"No definition was provided for the external " +
+                                           f"entity '{ext_label}' ({term_id}). Using default instead.")
                     ext_parents = o.get_superclasses(term_iri)
                     # If multiple parents check if they are (immediate) subclasses of each other and only take the most
                     # specific parent.

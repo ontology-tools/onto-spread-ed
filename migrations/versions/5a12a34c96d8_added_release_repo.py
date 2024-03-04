@@ -5,10 +5,8 @@ Revises: bbe766649a99
 Create Date: 2024-02-29 14:28:14.569365
 
 """
-import sqlalchemy
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import table, column
+from alembic import op
 from sqlalchemy.dialects import sqlite
 
 # revision identifiers, used by Alembic.
@@ -29,4 +27,3 @@ def upgrade():
     op.drop_column("release", "included_files")
 
     op.execute('update release set repo = json_extract(release_script, "$.short_repository_name")')
-

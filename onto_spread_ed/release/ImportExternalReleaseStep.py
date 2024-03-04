@@ -1,5 +1,3 @@
-from injector import Inject
-
 from .ReleaseStep import ReleaseStep
 from ..model.ExcelOntology import ExcelOntology
 from ..model.Result import Result

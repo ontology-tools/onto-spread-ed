@@ -14,6 +14,7 @@ from onto_spread_ed.utils import github
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
+
 @bp.route("/<repo>/<path:path>", methods=["PATCH"])
 @verify_admin
 def edit(repo: str, path: str, gh: GitHub):
@@ -51,7 +52,8 @@ def edit(repo: str, path: str, gh: GitHub):
     if parent_col is None and term_parent is not None:
         return jsonify({"msg": f"File has no parent column"}), 400
 
-    label_col = next((i for i, h in enumerate(header) if h.value in ["Name", "Label", "Label (synonym)", "Relationship"]), None)
+    label_col = next(
+        (i for i, h in enumerate(header) if h.value in ["Name", "Label", "Label (synonym)", "Relationship"]), None)
     if label_col is None and term_label is not None:
         return jsonify({"msg": f"File has no label column"}), 400
 
@@ -76,7 +78,7 @@ def edit(repo: str, path: str, gh: GitHub):
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
-        msg = f"Updating {path.split('/')[-1]}\n\n"+"\n".join([f"Set {f} to '{v}' for {term_id}" for f, v in changed])
+        msg = f"Updating {path.split('/')[-1]}\n\n" + "\n".join([f"Set {f} to '{v}' for {term_id}" for f, v in changed])
         github.save_file(gh, repository, path, spreadsheet_stream.getvalue(), msg, branch)
 
         return Response(status=200)
