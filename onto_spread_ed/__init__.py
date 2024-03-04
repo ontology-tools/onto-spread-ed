@@ -10,7 +10,7 @@ from . import config
 from .database.User import User
 
 
-def create_app(test_config=None):
+def create_app(config_filename=None):
     # Clear type annotations to get around errors using url_for in jinja template
     # Source: https://github.com/python-injector/flask_injector/issues/78
     Flask.url_for.__annotations__ = {}
@@ -25,6 +25,9 @@ def create_app(test_config=None):
     })
 
     app.config.from_object(config)
+
+    if config_filename is not None:
+        app.config.from_pyfile(config_filename)
 
     from . import routes
     routes.init_app(app)
