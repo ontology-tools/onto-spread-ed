@@ -100,7 +100,7 @@ function deleteFile(event: MouseEvent, name: string) {
 <template>
 
   <div class="files">
-    <h3>Files</h3>
+    <h3>Detailed release script</h3>
     <CollapsibleCard v-for="(file, name) in releaseScript.files">
       <template #title>
         {{ name }} - {{ file.target.file }}
@@ -110,8 +110,8 @@ function deleteFile(event: MouseEvent, name: string) {
           }} dependencies</span>
       </template>
       <template #buttons>
-        <button class="btn btn-primary btn-circle" @click="renameFile($event, name)"><i class="fa fa-edit"></i></button>
-        <button class="btn btn-danger btn-circle" @click="deleteFile($event, name)"><i class="fa fa-trash"></i></button>
+        <button class="btn btn-primary btn-sm btn-circle" @click="renameFile($event, name)"><i class="fa fa-edit"></i></button>
+        <button class="btn btn-danger btn-sm btn-circle" @click="deleteFile($event, name)"><i class="fa fa-trash"></i></button>
       </template>
       <template #body>
         <div class="release-file-settings">
@@ -190,10 +190,13 @@ function deleteFile(event: MouseEvent, name: string) {
         </div>
       </template>
     </CollapsibleCard>
-    <button class="mb-3 btn btn-sm btn-primary add-file" @click="addFile">
+    <div class="d-flex gap-2">
+      <button class="mb-3 btn btn-sm btn-primary add-file" @click="addFile">
       <i class="fa fa-add"></i>
       Add file
     </button>
+      <slot name="buttons"></slot>
+    </div>
   </div>
 
 </template>

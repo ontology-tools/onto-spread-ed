@@ -52,7 +52,7 @@ def get_current_release(q: Query[Release], repo: str) -> Tuple[Optional[Release]
     return ongoing[0], None
 
 
-@bp.route("/<repo>/release_script")
+@bp.route("/<repo>/release_script", methods=["GET"])
 @verify_admin
 def get_release_script(repo: str):
     if repo not in current_app.config["REPOSITORIES"]:
@@ -68,6 +68,32 @@ def get_release_script(repo: str):
     release_script = ReleaseScript.from_json(data)
 
     return jsonify(dataclasses.asdict(release_script))
+
+
+@bp.route("/<repo>/release_script", methods=["PUT"])
+@verify_admin
+def save_release_script(repo: str):
+    if repo not in current_app.config["REPOSITORIES"]:
+        raise NotFound(f"No such repository '{repo}'.")
+
+    schema: dict
+    with open(os.path.join(current_app.static_folder, "schema", "release_script.json"), "r") as f:
+        schema = json.load(f)
+
+    data = request.json
+    try:
+        jsonschema.validate(data, schema)
+    except jsonschema.ValidationError as e:
+        return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
+
+    release_script = ReleaseScript.from_json(data)
+
+    path = os.path.join(current_app.static_folder, f"{repo.lower()}.release.json")
+
+    with open(path, "w") as f:
+        json.dump(dataclasses.asdict(release_script), f, indent=2)
+
+    return jsonify({"success": True})
 
 
 @bp.route("/<repo>/cancel", methods=("POST",))
@@ -267,6 +293,7 @@ def get_release(id: int, db: SQLAlchemy):
         )), 404
 
     return jsonify(release.as_dict())
+
 
 @bp.route("/<string:repo>", methods=("GET",))
 @verify_admin
