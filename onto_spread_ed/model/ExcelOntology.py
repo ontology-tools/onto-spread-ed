@@ -68,8 +68,8 @@ class ExcelOntology:
     def find_term_label(self, id: str) -> Optional[str]:
         return next((t.label for t in (self._terms + self.imported_terms()) if t.id == id), None)
 
-    def term_by_id(self, id: str) -> Optional[Union[Term, TermIdentifier]]:
-        return next(iter(t for t in (self.terms() + self.imported_terms()) if t.id == id), None)
+    def term_by_id(self, id: str) -> Optional[Union[Term]]:
+        return next(iter(t for t in (self.terms()) if t.id == id), None)
 
     def _raw_term_by_id(self,
                         id: str,
@@ -264,6 +264,12 @@ class ExcelOntology:
         self._imports.append(ontology)
 
         return result.merge(Result(()))
+
+    def merge(self, other: Self) -> None:
+        self._terms += other._terms
+        self._used_relations += other._used_relations
+        self._imports += other._imports
+        self._relations += other._relations
 
     def add_terms_from_excel(self, name: str, file: Union[bytes, str, BytesIO],
                              schema: Optional[Schema] = None) -> Result[tuple]:

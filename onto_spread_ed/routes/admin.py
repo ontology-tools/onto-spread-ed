@@ -1,14 +1,12 @@
-from typing import Union, Optional, List, Tuple, Dict
+from typing import Optional
 
 from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for
-from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import NotFound
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
 from ..guards.admin import verify_admin
-from ..utils.github import get_spreadsheets
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
 
@@ -39,77 +37,61 @@ def rebuild_index(searcher: SpreadsheetSearcher):
                                login=g.user.github_login, )
 
 
-def release_data(db: SQLAlchemy, gh: GitHub, id: Optional[int] = None) -> dict:
+def release_data(db: SQLAlchemy, id: Optional[int] = None, repo: Optional[str] = None) -> dict:
     if id is None:
-        current_release = db.session.query(Release).filter_by(running=True).first()
+        if repo is not None:
+            current_release = db.session.query(Release).filter_by(running=True, repo=repo).first()
+        else:
+            current_release = None
     else:
         current_release = db.session.query(Release).get(id)
         if current_release is None:
             raise NotFound(f"Cannot find release with id '{id}'.")
 
-    selection = {}
-    if not current_release or not current_release.included_files:
-        spreadsheets = get_spreadsheets(gh, current_app.config["REPOSITORIES"]["BCIO"], "master", "",
-                                        "Upper Level BCIO/")
-        default = current_app.config["ACTIVE_SPREADSHEETS"]["BCIO"]
-
-        selection = sorted([(f, f in default) for f in spreadsheets])
-
-        tree: Dict[str, Union[List[Tuple[str, bool]], Dict]] = {".": []}
-        for entry, selected in selection:
-            parts = entry.split("/")
-            subtree = tree
-            for part in parts[:-1]:
-                subtree = subtree.setdefault(part, {".": []})
-            subtree["."].append((parts[-1], selected))
-
-        selection = tree
-
     return dict(
-        selection=selection,
         release=current_release,
         login=g.user.github_login,
     )
 
 
-@bp.route("/release/core", methods=("GET",))
-@bp.route("/release/core/<id>", methods=("GET",))
+@bp.route("/release/", methods=("GET",), defaults={"repo": None, "id": None})
+@bp.route("/release/<string:repo>", methods=("GET",), defaults={"id": None})
+@bp.route("/release/<int:id>", methods=("GET",), defaults={"repo": None})
 @verify_admin
-def release_body(id: str, db: SQLAlchemy, gh: GitHub):
-    step = int(request.args["step"]) if "step" in request.args else None
-    if step is not None and (step < -2 or step > 7):
-        return jsonify(dict(error=f"Invalid step argument '{step}'. It must be an integer.")), 400
+def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy):
+    data = release_data(db, id, repo)
 
-    id = int(id) if id != "" else None
+    current_release: Release = data["release"]
+    repositories = None
 
-    data = release_data(db, gh, id)
-    release = data["release"]
-    if step is not None and (release is None or step > release.step):
-        return redirect(url_for("admin.release_body", id=id))
+    if id is None and repo is None:
+        repositories = current_app.config['REPOSITORIES']
 
-    html = render_template("release_core.html", selected_step=step, **data)
-    return jsonify(dict(release=None if data["release"] is None else data["release"].as_dict(), html=html))
+        user_repos = repositories.keys()
+        # Filter just the repositories that the user can see
+        if g.user.github_login in current_app.config['USERS_METADATA']:
+            user_repos = current_app.config['USERS_METADATA'][g.user.github_login]["repositories"]
 
+        repositories = {k: v for k, v in repositories.items() if k in user_repos}
 
-@bp.route("/release", methods=("GET",))
-@bp.route("/release/<id>", methods=("GET",))
-@verify_admin
-def release(id: Optional[str], db: SQLAlchemy, gh: GitHub):
-    step = int(request.args["step"]) if "step" in request.args else None
-    if step is not None and (step < -2 or step > 7):
-        return jsonify(dict(error=f"Invalid step argument '{step}'. It must be an integer.")), 400
+        if len(repositories) == 1:
+            return redirect(url_for("admin.release", repo=list(repositories.keys())[0]))
+    elif id is None and repo is not None:
+        if current_release is not None:
+            return redirect(url_for("admin.release", id=current_release.id))
+    elif id is not None and repo is None:
+        if current_release is not None:
+            repo = current_release.repo
 
-    id = int(id) if id != "" else None
-    data = release_data(db, gh, id)
-    release = data["release"]
-    if step is not None and (release is None or step > release.step):
-        return redirect(url_for("admin.release", id=id))
+    paths = [dict(name=repo.upper(), path=f"admin/release/{repo}") if repo is not None else None]
 
     return render_template("release.html",
                            breadcrumb=[
                                dict(name="Admin", path="admin/dashboard"),
-                               dict(name="Release", path="admin/release")
+                               dict(name="Release", path="admin/release"),
+                               *[p for p in paths if p is not None]
                            ],
-                           selected_step=step,
+                           repo=repo,
+                           repos=repositories,
                            **data
                            )

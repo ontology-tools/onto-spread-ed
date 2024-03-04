@@ -1,4 +1,3 @@
-import functools
 import json
 import logging
 import urllib
@@ -6,15 +5,18 @@ import urllib.parse
 from itertools import groupby
 from typing import Optional, Union, Literal, Dict, List, Any, Tuple
 
-import requests
-from requests import Response
+import aiohttp
+import async_lru
+from aiohttp import ClientSession
 
-from onto_spread_ed.model.Result import Result
-from onto_spread_ed.model.Term import Term
-from onto_spread_ed.model.TermIdentifier import TermIdentifier
+from ..model.Result import Result
+from ..model.Term import Term
+from ..model.TermIdentifier import TermIdentifier
+from ..search_api.HttpError import HttpError
 
 
 class BCIOSearchClient:
+    _session: ClientSession
     _logger = logging.getLogger(__name__)
 
     _term_link_to_relation_mapping: Dict[
@@ -32,17 +34,20 @@ class BCIOSearchClient:
         "crossReferences": (TermIdentifier(label="crossReference"), "multiple"),
     }
 
-    def __init__(self, api_url: str, auth_token: Optional[str] = None, debug=False):
+    def __init__(self, api_url: str, session: aiohttp.ClientSession, auth_token: Optional[str] = None, debug=False):
         self._auth_token = auth_token
         self._base = api_url
         self._default_params = {"test": "1"} if debug else {}
+        self._session = session
+
+        self._logger.addHandler(logging.FileHandler("logs/release_bcio_search.log"))
 
     def _request(self,
                  sub_url: Union[str, List[str]],
                  method: Literal["get", "post", "put", "patch", "delete"],
                  data: Optional[Dict] = None,
                  headers: Optional[Dict] = None,
-                 query_params: Optional[Dict[str, str]] = None) -> Response:
+                 query_params: Optional[Dict[str, str]] = None) -> aiohttp.client._RequestContextManager:
         if data is None:
             data = {}
         if headers is None:
@@ -73,7 +78,7 @@ class BCIOSearchClient:
             # response.status_code = 200
             # return response
             # else:
-        return requests.request(method, url, headers=headers, json=data)
+        return self._session.request(method, url, headers=headers, json=data)
 
     def _convert_to_api_term(self, term: Term, with_references=True) -> Dict:
         data = {
@@ -132,7 +137,7 @@ class BCIOSearchClient:
         definition_source = term.get_relation_value(TermIdentifier(id="IAO:0000119", label="definition source"))
         return "\n".join(d for d in [defined_by, definition_source] if d is not None)
 
-    def _convert_from_api_term(self, data: Dict, with_references=True) -> Term:
+    async def _convert_from_api_term(self, data: Dict, with_references=True) -> Term:
         rev = data["termRevisions"][0]
 
         i: str = data["id"]
@@ -148,12 +153,14 @@ class BCIOSearchClient:
 
         relations: List[Tuple[TermIdentifier, Any]] = []
         if with_references:
-            term_links = self._request([rev["@id"], "term_links"], "get").json()["hydra:member"]
-            relations = [
-                (TermIdentifier(label=link["type"]), TermIdentifier(linked["id"], linked["termRevisions"][0]["label"]))
-                for link in term_links
-                for linked in link["linkedTerms"]
-            ]
+            async with self._request([rev["@id"], "term_links"], "get") as response:
+                term_links = (await response.json())["hydra:member"]
+                relations = [
+                    (TermIdentifier(label=link["type"]),
+                     TermIdentifier(linked["id"], linked["termRevisions"][0]["label"]))
+                    for link in term_links
+                    for linked in link["linkedTerms"]
+                ]
 
         relations += [(identifier, v)
                       for key, (identifier, multiplicity) in self._term_link_to_relation_mapping.items() if key in rev
@@ -174,49 +181,53 @@ class BCIOSearchClient:
 
         return Term(i, label, ("web", -1), relations, parents, equivalent_to, disjoint_with)
 
-    @functools.lru_cache(maxsize=None)
-    def _get_term(self, term: str) -> Optional[Dict]:
-        r = self._request(["terms", term], "get")
+    @async_lru.alru_cache(maxsize=None)
+    async def _get_term(self, term: str) -> Optional[Dict]:
+        async with self._request(["terms", term], "get") as r:
+            if r.status == 404:
+                return None
 
-        if r.status_code == 404:
-            return None
+            if not r.ok:
+                raise HttpError(r.status,
+                                f"{r.status}, message={r.reason!r}, url={r.request_info.real_url!r}",
+                                await r.json())
 
-        r.raise_for_status()
+            return await r.json()
 
-        return r.json()
-
-    def get_term(self, term: Union[Term, str, TermIdentifier], with_references=True) -> Optional[Term]:
+    async def get_term(self, term: Union[Term, str, TermIdentifier], with_references=True) -> Optional[Term]:
         term_id = term.id if isinstance(term, Term) or isinstance(term, TermIdentifier) else term
 
-        data = self._get_term(term_id)
+        data = await self._get_term(term_id)
 
         if data is None:
             return None
 
-        return self._convert_from_api_term(data, with_references)
+        return await self._convert_from_api_term(data, with_references)
 
-    def create_term(self, term: Term):
+    async def create_term(self, term: Term):
         data = self._convert_to_api_term(term)
 
-        response = self._request("terms", "post", data)
+        async with self._request("terms", "post", data) as r:
+            if not r.ok:
+                raise HttpError(r.status,
+                                f"{r.status}, message={r.reason!r}, url={r.request_info.real_url!r}",
+                                await r.json())
 
-        response.raise_for_status()
-
-    def declare_term(self, term: Union[Term, TermIdentifier]) -> Result[Union[Term, Tuple]]:
-        exists = self.get_term(term, with_references=False) is not None
+    async def declare_term(self, term: Union[Term, TermIdentifier]) -> Result[Union[bool]]:
+        exists = (await self.get_term(term, with_references=False)) is not None
         if exists:
-            return Result(())
+            return Result(False)
 
         data = self._convert_to_api_term(term, False)
 
-        r = self._request("terms", "post", data)
+        async with self._request("terms", "post", data) as r:
 
-        if not r.ok:
-            result = Result()
-            result.error(status_code=r.status_code, body=r.content)
-            return result
+            if not r.ok:
+                result = Result()
+                result.error(status_code=r.status, body=r.content)
+                return result
 
-        return Result(r)
+            return Result(True)
 
     def _terms_equal(self, old: Term, new: Term) -> bool:
         ignore_if_not_exists = [
@@ -314,17 +325,20 @@ class BCIOSearchClient:
 
         return result
 
-    def update_term(self, term: Term, msg: str, with_references=True):
-        existing = self.get_term(term, with_references)
+    async def update_term(self, term: Term, msg: str, with_references=True):
+        existing = await self.get_term(term, with_references)
         if existing is not None:
             if not self._terms_equal(existing, term):
                 api_term = self._convert_to_api_term(term)
                 api_term['revisionMessage'] = msg
-                response = self._request(["terms", term.id], "put", api_term, headers={
-                    "Content-Type": "application/json"
-                })
 
-                response.raise_for_status()
+                async with self._request(["terms", term.id], "put", api_term, headers={
+                    "Content-Type": "application/json"
+                }) as r:
+                    if not r.ok:
+                        raise HttpError(r.status,
+                                        f"{r.status}, message={r.reason!r}, url={r.request_info.real_url!r}",
+                                        await r.json())
 
     def delete_term(self, term: Union[Term, str, TermIdentifier]):
         pass

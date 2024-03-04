@@ -4,34 +4,37 @@
     {{ super() }}
 {% endblock %}
 {% block content %}
+    {% if repo == None %}
+        <div class="release">
 
-    <div class="d-flex gap-2 align-items-center">
-        <h1 id="lbl-release-title"><i id="icon-release" class="fa fa-spinner fa-spin text-black-50"></i> Release</h1>
-        <span id="release-info" class="align-self-end mb-2 text-muted"></span>
-        <span class="flex-fill"></span>
-        <div class="form-check form-switch">
-            <input class="btn-check" type="checkbox" role="switch" id="tgl-auto-refresh" checked>
-            <label class="btn btn-outline-primary" for="tgl-auto-refresh">Auto refresh</label>
+
+            <div class="row align-stretch" style="max-width: 1080px; margin: 0 auto">
+
+                <h4>Which repository should be released?</h4>
+                {% for short, long in repos.items() %}
+                    <div class="col-sm-6 col-md-4 col-lg-3 m-2">
+
+                        <a class="card bg-light"
+                           href="{{ url_for('admin.release', repo=short) }}"
+                           style="cursor: pointer; height: 100%; text-decoration: none;; border-width: 2px 2px 4px 2px">
+                            <div class="section p-2 text-center fs-2" style="">
+                                {{ short }}
+                            </div>
+                            <div class="card-body text-center">
+                                {{ long }}
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
         </div>
 
-        <button class="btn btn-primary" id="btn-release-refresh"><i class="fa fa-refresh"></i> Refresh</button>
-        <button class="btn btn-warning" id="btn-release-restart"><i class="fa fa-rotate-left"></i> Restart
-        </button>
-        <button class="btn btn-danger" id="btn-release-cancel"><i class="fa fa-cancel"></i> Cancel</button>
-    </div>
-
-
-    <div style="display: grid;grid-template-columns: 240px 1fr;grid-gap: 50px" class="text-start w-100"
-         id="release-core">
-        {% include "release_core.html" %}
-    </div>
-
-    <script>
-        release =
-        {{ release.as_dict() | tojson if release else "null" }};
-    </script>
-    <script src="/static/release.js"></script>
-
+    {% else %}
+        <div class="release" id="vue-app-release">
+        </div>
+        <script>var SERVER_DATA={repo: "{{repo}}" }</script>
+        <script type="module" src="/static/js/release.js"></script>
+    {% endif %}
 {% endblock %}
 
 

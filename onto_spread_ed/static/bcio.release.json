@@ -1,0 +1,141 @@
+{
+  "$schema": "schema/release_script.json",
+  "iri_prefix": "http://humanbehaviourchange.org/ontology/",
+  "full_repository_name": "b-gehrke/ontologies",
+  "short_repository_name": "BCIO",
+  "prefixes": {
+    "BCIOR": "http://humanbehaviourchange.org/ontology/BCIOR_",
+    "BCIO": "http://humanbehaviourchange.org/ontology/BCIO_",
+    "ADDICTO": "http://addictovocab.org/ADDICTO_"
+  },
+  "external": {
+    "target": {
+      "file": "Upper Level BCIO/bcio_external.owl",
+      "iri": "http://humanbehaviourchange.org/ontology/bcio_external.owl"
+    },
+    "sources": [
+      "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx"
+    ]
+  },
+  "files": {
+    "upper": {
+      "target": {
+        "file": "Upper Level BCIO/bcio_upper_level.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_upper.owl"
+      },
+      "sources": [
+        "Upper Level BCIO/inputs/BCIO_Upper_Defs.xlsx",
+        {
+          "type": "relations",
+          "file": "Upper Level BCIO/inputs/BCIO_Upper_Rels.xlsx"
+        }
+      ]
+    },
+    "bcio_setting": {
+      "sources": [
+        "Setting/bcio_setting.xlsx"
+      ],
+      "target": "Setting/bcio_setting.owl",
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio_mode_of_delivery": {
+      "sources": [
+        "ModeOfDelivery/bcio_mode_of_delivery.xlsx"
+      ],
+      "target": "ModeOfDelivery/bcio_mode_of_delivery.owl",
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio_source": {
+      "sources": [
+        "Source/bcio_source.xlsx"
+      ],
+      "target": "Source/bcio_source.owl",
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio_moa": {
+      "sources": [
+        "MechanismOfAction/bcio_moa.xlsx"
+      ],
+      "target": "MechanismOfAction/bcio_moa.owl",
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio_behaviour": {
+      "sources": [
+        "Behaviour/bcio_behaviour.xlsx"
+      ],
+      "target": "Behaviour/bcio_behaviour.owl",
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcto": {
+      "sources": [
+        "BehaviourChangeTechniques/bcto.xlsx"
+      ],
+      "target": "BehaviourChangeTechniques/bcto.owl",
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio_style": {
+      "sources": [
+        "StyleOfDelivery/bcio_style.xlsx"
+      ],
+      "target": "StyleOfDelivery/bcio_style.owl",
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio": {
+      "sources": [
+        "Setting/bcio_setting.owl",
+        "ModeOfDelivery/bcio_mode_of_delivery.owl",
+        "Source/bcio_source.owl",
+        "MechanismOfAction/bcio_moa.owl",
+        "Behaviour/bcio_behaviour.owl",
+        "BehaviourChangeTechniques/bcto.owl",
+        "StyleOfDelivery/bcio_style.owl"
+      ],
+      "target": {
+        "file": "Upper Level BCIO/bcio.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio.owl",
+        "ontology_annotations": {
+          "rdfs:comment": "The Behaviour Change Intervention Ontology (BCIO) is an ontology for all aspects of human behaviour change interventions and their evaluation. It is being developed as a part of the Human Behaviour Change Project (http://www.humanbehaviourchange.org). The BCIO is developed across several modules. This ontology file contains the merged version of the BCIO, encompassing the upper level and the modules for Setting, Mode of Delivery, Style of Delivery, Source, Mechanisms of Action, Behaviour and Behaviour Change Techniques. Additional modules will be added soon.",
+          "dc:title": "Behaviour Change Intervention Ontology"
+        }
+      }
+    }
+  },
+  "steps": [
+    "PREPARATION",
+    "VALIDATION",
+    "IMPORT_EXTERNAL",
+    "BUILD",
+    "MERGE",
+    "HUMAN_VERIFICATION",
+    {
+      "name": "BCIO_SEARCH",
+      "args": {
+        "included_files": [
+          "upper",
+          "bcio_setting",
+          "bcio_mode_of_delivery",
+          "bcio_source",
+          "bcio_moa",
+          "bcio_behaviour",
+          "bcto",
+          "bcio_style"
+        ]
+      }
+    },
+    "GITHUB_PUBLISH"
+  ]
+}
