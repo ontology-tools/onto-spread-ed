@@ -5,6 +5,8 @@ Revises: bbe766649a99
 Create Date: 2024-02-29 14:28:14.569365
 
 """
+import sqlite3
+
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import sqlite
@@ -19,7 +21,10 @@ depends_on = None
 def downgrade():
     op.add_column('release',
                   sa.Column("included_files", sqlite.JSON(), nullable=True))
-    op.drop_column("release", "repo")
+
+    # Dropping columns is only supported for sqlite >= 3.35.0
+    if sqlite3.sqlite_version_info >= (3, 35, 0):
+        op.drop_column("release", "repo")
 
 
 def upgrade():
