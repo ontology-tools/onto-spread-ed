@@ -33,7 +33,6 @@ def guess_parent():
 
     try:
         term = TermIdentifier(**data.get("term"))
-        origin_ontology = data.get("origin_ontology", None)
         parent = TermIdentifier(**data.get("parent"))
         [prefix, id] = term.id.split(":")
 
@@ -42,7 +41,7 @@ def guess_parent():
 
         if not response.ok:
             # Not found. Just search for the term
-            response = requests.get(f"https://www.ebi.ac.uk/ols4/api/v2/entities", params={
+            response = requests.get("https://www.ebi.ac.uk/ols4/api/v2/entities", params={
                 "search": parent.label,
                 "lang": "en",
                 "exactMatch": "false",

@@ -50,12 +50,12 @@ def edit(repo: str, path: str, gh: GitHub):
 
     parent_col = next((i for i, h in enumerate(header) if h.value in ["Parent", "Parent class/ BFO class"]), None)
     if parent_col is None and term_parent is not None:
-        return jsonify({"msg": f"File has no parent column"}), 400
+        return jsonify({"msg": "File has no parent column"}), 400
 
     label_col = next(
         (i for i, h in enumerate(header) if h.value in ["Name", "Label", "Label (synonym)", "Relationship"]), None)
     if label_col is None and term_label is not None:
-        return jsonify({"msg": f"File has no label column"}), 400
+        return jsonify({"msg": "File has no label column"}), 400
 
     found = False
     changed = []

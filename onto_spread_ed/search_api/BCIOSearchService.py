@@ -83,7 +83,7 @@ class BCIOSearchService(APIService):
                     if ext_definition is None:
                         ext_definition = "no definition provided for external entity"
                         result.warning(type='external-no-definition',
-                                       msg=f"No definition was provided for the external " +
+                                       msg="No definition was provided for the external " +
                                            f"entity '{ext_label}' ({term_id}). Using default instead.")
                     ext_parents = o.get_superclasses(term_iri)
                     # If multiple parents check if they are (immediate) subclasses of each other and only take the most
