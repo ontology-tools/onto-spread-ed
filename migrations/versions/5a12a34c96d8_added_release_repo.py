@@ -29,6 +29,9 @@ def downgrade():
 
 def upgrade():
     op.add_column("release", sa.Column("repo", sa.String(20)))
-    op.drop_column("release", "included_files")
+
+    # Dropping columns is only supported for sqlite >= 3.35.0
+    if sqlite3.sqlite_version_info >= (3, 35, 0):
+        op.drop_column("release", "included_files")
 
     op.execute('update release set repo = json_extract(release_script, "$.short_repository_name")')
