@@ -95,8 +95,6 @@ onMounted(() => update())
       </template>
     </p>
 
-    <!--    <RepositorySelector :repositories="repos" v-model="repo" @update:modelValue="setRepo"></RepositorySelector>-->
-
     <div class="btn-group  w-100">
 
       <button :disabled="!releaseScript" class="btn btn-success"

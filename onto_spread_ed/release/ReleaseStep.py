@@ -1,5 +1,4 @@
 import abc
-from dataclasses import dataclass
 from typing import Tuple, Optional, Dict, Any
 
 from flask_github import GitHub
@@ -10,14 +9,6 @@ from .common import ReleaseCanceledException, local_name, set_release_info, upda
     set_release_result
 from ..database.Release import Release
 from ..model.ReleaseScript import ReleaseScript
-
-
-@dataclass(frozen=True, eq=True, order=True)
-class ProgressUpdate:
-    position: Optional[Tuple[int, int]]
-    progress: Optional[float]
-    current_item: Optional[str]
-    message: Optional[str]
 
 
 class ReleaseStep(abc.ABC):

@@ -14,7 +14,7 @@
     "build": "node build/release.build.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "AGPL",
   "description": "",
   "dependencies": {
     "vue": "^3.4.19"
