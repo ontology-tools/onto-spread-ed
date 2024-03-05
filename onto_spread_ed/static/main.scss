@@ -39,6 +39,12 @@
   border-left: 0.25rem solid var(--bd-callout-border, var(--bs-gray-300));
 }
 
+.banner {
+  text-align: center;
+  background: yellow;
+  background: repeating-linear-gradient(-45deg, darken(yellow, 30), darken(yellow, 30), 20px, black 20px, black 40px);
+  color: white
+}
 
 //.release {
   .modal-dialog .release-file-settings {
