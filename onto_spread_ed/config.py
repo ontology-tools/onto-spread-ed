@@ -3,7 +3,7 @@ import os
 
 APP_TITLE = "Ontology Spreadsheet Editor"
 
-ENVIRONMENT=os.environ.get("FLASK_ENV")
+ENVIRONMENT = os.environ.get("FLASK_ENV")
 
 DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:////tmp/github-flask-ontospreaded.db')
 SQLALCHEMY_DATABASE_URI = DATABASE_URI
