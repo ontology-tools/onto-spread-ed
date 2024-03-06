@@ -192,7 +192,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                             fill_num = fill_num - 1
                         else:
                             fill_num = fill_num
-                        id = repo_key.upper()  + id_suffix + ":" + nextIdStr.zfill(fill_num)
+                        id = repo_key.upper() + id_suffix + ":" + nextIdStr.zfill(fill_num)
                         new_id = id
                         row_data_parsed[r]["ID"] = new_id
                         for c in range(len(header)):
