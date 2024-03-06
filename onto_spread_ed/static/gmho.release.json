@@ -1,0 +1,45 @@
+{
+  "$schema": "schema/release_script.json",
+  "iri_prefix": "https://galenos.org.uk/ontologies/",
+  "full_repository_name": "b-gehrke/mental-health-ontology",
+  "short_repository_name": "GMHO",
+  "prefixes": {
+    "GMHO": "https://galenos.org.uk/ontologies/GMHO_"
+  },
+  "external": {
+    "target": {
+      "file": "UpperLevel/gmho_external.owl",
+      "iri": "https://galenos.org.uk/ontologies/gmho_external.owl"
+    },
+    "sources": [
+      "UpperLevel/GMHO_External_Imports.xlsx"
+    ]
+  },
+  "files": {
+    "gmho": {
+      "target": {
+        "file": "gmho.owl",
+        "iri": "https://galenos.org.uk/ontologies/gmho.owl"
+      },
+      "needs": [],
+      "sources": [
+        "Intervention setting/Intervention setting.xlsx",
+        "Intervention content and delivery/Intervention content and delivery.xlsx",
+        "Intervention outcomes and spillover effects/Intervention outcomes and spillover effects.xlsx",
+        "Research methods/Research methods.xlsx",
+        "Intervention population/Intervention population.xlsx",
+        "Non-GMHO entities mapped to LSRs/Non-GMHO entities mapped to LSRs.xlsx",
+        "Intervention mechanism/Intervention mechanism of action.xlsx"
+      ]
+    }
+  },
+  "steps": [
+    "PREPARATION",
+    "VALIDATION",
+    "IMPORT_EXTERNAL",
+    "BUILD",
+    "MERGE",
+    "HUMAN_VERIFICATION",
+    "GITHUB_PUBLISH"
+  ]
+}

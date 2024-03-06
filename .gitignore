@@ -3,3 +3,13 @@ __pycache__/
 ontospreaded.json
 ontospreaded.json.test2
 .idea
+
+node_modules
+onto_spread_ed/static/js
+onto_spread_ed/static/main.css
+onto_spread_ed/static/main.css.map
+
+node_modules
+onto_spread_ed/static/js
+onto_spread_ed/static/main.css
+onto_spread_ed/static/main.css.map

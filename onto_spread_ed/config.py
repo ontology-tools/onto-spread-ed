@@ -3,6 +3,8 @@ import os
 
 APP_TITLE = "Ontology Spreadsheet Editor"
 
+ENVIRONMENT = os.environ.get("FLASK_ENV")
+
 DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:////tmp/github-flask-ontospreaded.db')
 SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
@@ -12,6 +14,7 @@ RELEASE_FILES = {"AddictO": "addicto.owl",
 
 PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["BFO", "http://purl.obolibrary.org/obo/BFO_"],
+            ["COB", "http://purl.obolibrary.org/obo/COB_"],
             ["CHEBI", "http://purl.obolibrary.org/obo/CHEBI_"],
             ["UBERON", "http://purl.obolibrary.org/obo/UBERON_"],
             ["PATO", "http://purl.obolibrary.org/obo/PATO_"],
@@ -159,6 +162,5 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "lzhang01": {"initials": "LZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
                   "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}}
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
-
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"

@@ -33,11 +33,13 @@ class SpreadsheetSearcher:
 
             self.storage.create_index(schema)
 
-    def search_for(self, repo_name, search_string="", assigned_user=""):
-        # self.storage.open_from_bucket()
+    def search_for(self, repo_name, search_string="", assigned_user="", fields=None):
+        if fields is None:
+            fields = ["class_id", "label", "definition", "parent", "tobereviewedby"]
+
         ix = self.storage.open_index()
 
-        mparser = MultifieldParser(["class_id", "label", "definition", "parent", "tobereviewedby"],
+        mparser = MultifieldParser(fields,
                                    schema=ix.schema)
 
         query = mparser.parse("repo:" + repo_name +
