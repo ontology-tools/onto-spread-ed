@@ -32,8 +32,6 @@ class BCIOSearchService(APIService):
 
         self._api_client = BCIOSearchClient(path, session, authtoken, config.get("DEBUG", False))
 
-        self._logger.addHandler(logging.FileHandler("logs/release_bcio_search.log"))
-
     async def update_api(self, ontology: ExcelOntology,
                          external_ontologies: List[str],
                          revision_message: str,

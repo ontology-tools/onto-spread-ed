@@ -1,7 +1,7 @@
 {
   "$schema": "schema/release_script.json",
   "iri_prefix": "https://galenos.org.uk/ontologies/",
-  "full_repository_name": "b-gehrke/mental-health-ontology",
+  "full_repository_name": "galenos-project/mental-health-ontology",
   "short_repository_name": "GMHO",
   "prefixes": {
     "GMHO": "https://galenos.org.uk/ontologies/GMHO_"

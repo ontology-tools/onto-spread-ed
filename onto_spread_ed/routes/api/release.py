@@ -168,6 +168,7 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
 @verify_admin
 def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
     q: Query[Release] = db.session.query(Release)
+    force = request.args.get('force', "false").lower() == "true"
 
     release, err = get_current_release(q, repo)
     if err is not None:
@@ -180,7 +181,7 @@ def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
             message="Cannot resume a completed or canceled release!"
         )), 400
 
-    if release.state != "waiting-for-user":
+    if release.state != "waiting-for-user" and not force:
         return jsonify(dict(
             success=False,
             error="still-running",
@@ -188,7 +189,7 @@ def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
         )), 400
 
     release_script = ReleaseScript.from_json(release.release_script)
-    if release_script.steps[release.step].name != "HUMAN_VERIFICATION":
+    if release_script.steps[release.step].name != "HUMAN_VERIFICATION" and not force:
         return jsonify(dict(
             success=False,
             error="cannot-be-continued",

@@ -1,7 +1,7 @@
 {
   "$schema": "schema/release_script.json",
   "iri_prefix": "http://humanbehaviourchange.org/ontology/",
-  "full_repository_name": "b-gehrke/ontologies",
+  "full_repository_name": "HumanBehaviourChangeProject/ontologies",
   "short_repository_name": "BCIO",
   "prefixes": {
     "BCIOR": "http://humanbehaviourchange.org/ontology/BCIOR_",

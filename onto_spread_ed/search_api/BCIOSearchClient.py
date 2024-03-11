@@ -40,8 +40,6 @@ class BCIOSearchClient:
         self._default_params = {"test": "1"} if debug else {}
         self._session = session
 
-        self._logger.addHandler(logging.FileHandler("logs/release_bcio_search.log"))
-
     def _request(self,
                  sub_url: Union[str, List[str]],
                  method: Literal["get", "post", "put", "patch", "delete"],
