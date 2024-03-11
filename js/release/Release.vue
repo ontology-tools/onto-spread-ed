@@ -1,5 +1,5 @@
 <script setup lang="ts">
-declare var SERVER_DATA: {[key: string]: any}
+declare var SERVER_DATA: { [key: string]: any }
 
 import {computed, onMounted, ref, watch} from "vue";
 import {Diagnostic, Release, ReleaseScript} from "./model.ts";
@@ -90,10 +90,16 @@ onMounted(async () => {
 
 let pollInterval: number | null = null
 
+function startPolling() {
+  if (pollInterval === null) {
+    pollInterval = setInterval(poll, 2000)
+  }
+}
+
 const stopWaitingForReleaseStart = watch(release, (value, oldValue) => {
   if (oldValue === null && value !== null && pollInterval === null && value.state === "running") {
-    pollInterval = setInterval(poll, 2000)
     stopWaitingForReleaseStart()
+    startPolling()
   }
 })
 
@@ -215,6 +221,7 @@ async function doReleaseControl(type: string) {
   switch (type) {
     case "continue":
       await fetch(`/api/release/${repo}/continue`)
+      startPolling()
       break;
     default:
       console.warn(`No such release control type: '${type}'`)
@@ -227,7 +234,7 @@ async function doReleaseControl(type: string) {
     <div class="d-flex gap-2 align-items-center">
       <h1 id="lbl-release-title">
         <i id="icon-release" class="fa" :class="icon_classes"></i>
-        Release {{repo}}
+        Release {{ repo }}
       </h1>
       <span id="release-info" class="align-self-end mb-2 text-muted" v-if="release">
           started by {{ release.started_by }} on {{ $filters.formatDate(release.start) }}
