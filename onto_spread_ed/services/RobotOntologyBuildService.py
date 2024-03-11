@@ -22,7 +22,8 @@ class RobotOntologyBuildService(OntologyBuildService):
                       main_ontology_name: str,
                       tmp_dir: str) -> Result[str]:
 
-        download_path = os.path.join(tmp_dir, "robot-download-cache")
+        download_path = os.path.join("/", "tmp", "onto-ed-release", "robot-download-cache")
+        # download_path = os.path.join(tmp_dir, "robot-download-cache")
         os.makedirs(download_path, exist_ok=True)
         with Pool(4) as p:
             p.starmap(self._download_ontology, [(x, download_path) for x in imports])
