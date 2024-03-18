@@ -1381,10 +1381,10 @@
                         //not External
                     } else {
                         //different repo's:
-                        if (rowObj["ID"].includes(repo_name.toUpperCase())) {
+                        if (data["ID"].includes(repo_name.toUpperCase())) {
                             //not external
                         } else {
-                            rowObj[headers[j]] = "External";
+                            data[headers[j]] = "External";
                         }
                     }
                 }
