@@ -7,7 +7,7 @@ URL_PREFIX = '/onto-ed'
 
 ENVIRONMENT = os.environ.get("FLASK_ENV")
 
-DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:///C:\\Users\\nitin\\OneDrive\\Documents\\HIWI\\temp\\github-flask-ontospreaded.db')
+DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:///C:\\Users\\nitin\\OneDrive\\Documents\\HIWI\\tmp\\github-flask-ontospreaded.db')
 #DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:////tmp/github-flask-ontospreaded.db')
 SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
