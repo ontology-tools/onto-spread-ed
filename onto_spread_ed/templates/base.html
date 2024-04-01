@@ -24,12 +24,12 @@
               integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
               crossorigin="anonymous">
         <!-- Bootstrap filter table CSS -->
-        <link rel="stylesheet" href="/static/excel-bootstrap-table-filter-style.css">
+        <link rel="stylesheet" href="{{ config['URL_PREFIX'] }}/static/excel-bootstrap-table-filter-style.css">
 
         <!-- //fontawesome: -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous">
 
-        <link rel="stylesheet" href="/static/main.css">
+        <link rel="stylesheet" href="{{ config['URL_PREFIX'] }}/static/main.css">
 
         <link rel="shortcut icon" href="#"/>
 
@@ -52,7 +52,7 @@
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
                     {% if login is defined and config["USERS_METADATA"][login]["admin"] %}
-                    	<li class="nav-item"><a class="nav-link active" aria-current="page" href="/admin">Admin</a></li>
+                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/admin">Admin</a></li>
                     {% endif %}
         </ul>
     </div>
@@ -63,7 +63,7 @@
                    aria-expanded="false"><i class="fas fa-user"></i> {{ login }}</a>
 
                 <ul class="dropdown-menu  dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                    <li><a class="dropdown-item" href="{{url_for('authentication.logout')}}">Logout</a></li>
                 </ul>
 
             </div>
@@ -76,7 +76,7 @@
         <div class="container-fluid">
             <nav aria-label="breadcrumb" style="margin-top: 14px">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="/home">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{url_for('main.home')}}">Home</a></li> 
                     {% if breadcrumb is defined %}
                         {% for segment in breadcrumb %}
                             {% if loop.last %}
@@ -86,7 +86,7 @@
                             {% else %}
 
                                 <li class="breadcrumb-item">
-                                    <a href="/{{ segment.path }}">{{ segment.name }}</a>
+                                    <a href="{{config[URL_PREFIX]}}/{{ segment.path }}">{{ segment.name }}</a> 
                                 </li>
                             {% endif %}
                         {% endfor %}
@@ -95,11 +95,11 @@
 
                     {#                    {% if repo_name %}#}
                     {#                    <li class="breadcrumb-item"><a#}
-                    {#                            href="/repo/{{ repo_name }}">{{ repo_name }}</a></li>#}
+                    {#                            href="{{url_for('main.repo', repo_key=repo_name)}}">{{ repo_name }}</a></li>#}
                     {#                    {% if folder %}#}
-                    {#                    <li class="breadcrumb-item"><a href="/repo/{{ repo_name }}/{{ folder }}">{{ folder }}</a></li>#}
+                    {#                    <li class="breadcrumb-item"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder)}}">{{ folder }}</a></li>#}
                     {#                    {% if spreadsheet_name %}#}
-                    {#                    <li class="breadcrumb-item"><a href="/repo/{{ repo_name }}/{{ folder }}/{{ spreadsheet_name }}">{{ spreadsheet_name }}</a></li>#}
+                    {#                    <li class="breadcrumb-item"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder+'/'+spreadsheet_name)}}">{{ spreadsheet_name }}</a></li>#}
                     {#                    {% endif %}#}
                     {#                    {% endif %}#}
                     {#                    {% endif %}#}

@@ -12,11 +12,13 @@ from .database.User import User
 
 def create_app(test_config=None):
     # create and configure the app
+    Flask.url_for.__annotations__ = {}
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
     app.config['CORS_HEADERS'] = 'Content-Type'
+    app.config['URL_PREFIX'] = config.URL_PREFIX
     CORS(app, resources={
-        r"/api/*": {
+        rf"{app.config["URL_PREFIX"]}/api/*": {
             "origins": "*"
         }
     })

@@ -52,9 +52,9 @@
         <ul>
             {% for dir in directories %}
                 {% if folder_path|length %}
-                    <li class="twoSlash"><a href="/repo/{{ repo_name }}/{{ folder_path }}/{{ dir }}">{{ dir }}</a></li>
+                    <li class="twoSlash"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">{{ dir }}</a></li>
                 {% else %}
-                    <li class="oneSlash"><a href="/repo/{{ repo_name }}/{{ folder_path }}{{ dir }}">{{ dir }}</a></li>
+                    <li class="oneSlash"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">{{ dir }}</a></li>
                 {% endif %}
             {% endfor %}
         </ul>
@@ -64,7 +64,7 @@
         <H5>Spreadsheets available for editing: </H5>
         <ul>
             {% for spr in spreadsheets %}
-                <li><a href="/edit/{{ repo_name }}/{{ folder_path }}/{{ spr }}">{{ spr }}</a></li>
+                <li><a href="{{url_for('edit.edit', repo_key=repo_name, folder=folder_path, spreadsheet=spr)}}">{{ spr }}</a></li>
 
                 </p>
 
@@ -82,7 +82,7 @@
     </form>
 
     <script type="text/javascript">
-
+        var URL_PREFIX = '{{config["URL_PREFIX"]}}';
         var initials = '{{user_initials}}';
 
         //get all rows with "Show all assigned to me"
@@ -266,7 +266,7 @@
             console.log(sheet + " " + sheet + " " + go_to_row + " " + type);
 
             jQuery.ajax({
-                url: '/direct',
+                url: URL_PREFIX + '/direct',
                 dataType: 'text',
                 type: 'POST',
                 async: 'false',

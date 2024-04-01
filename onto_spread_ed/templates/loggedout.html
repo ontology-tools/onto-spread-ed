@@ -15,7 +15,7 @@
   <hr />
   <div>
 
-    Click <a href="/login">here</a> to log back in to <i>{{ appname }}</i> through GitHub.
+    Click <a href="{{url_for(authentication.login)}}">here</a> to log back in to <i>{{ appname }}</i> through GitHub.
   </div>
 
 {% endblock %}
