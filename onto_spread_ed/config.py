@@ -7,7 +7,8 @@ URL_PREFIX = '/onto-ed'
 
 ENVIRONMENT = os.environ.get("FLASK_ENV")
 
-DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:////tmp/github-flask-ontospreaded.db')
+DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:///C:\\Users\\nitin\\OneDrive\\Documents\\HIWI\\temp\\github-flask-ontospreaded.db')
+#DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:////tmp/github-flask-ontospreaded.db')
 SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
 RELEASE_FILES = {"AddictO": "addicto.owl",
@@ -93,14 +94,16 @@ if os.environ.get("FLASK_ENV") == 'development':
         "BCIO": "b-gehrke/ontologies",
         "AddictO": "b-gehrke/addiction-ontology",
         "GMHO": "b-gehrke/mental-health-ontology",
-        "BCIO": "zaidishz/ontologies"
+        "BCIO": "zaidishz/ontologies",
+        "BCIO": "nitinbharadwajnataraj/ontologies"
     }
 else:
     REPOSITORIES = {
         "AddictO": "addicto-org/addiction-ontology",
         "BCIO": "HumanBehaviourChangeProject/ontologies",
         "GMHO": "galenos-project/mental-health-ontology",
-        "BCIO": "zaidishz/ontologies"
+        "BCIO": "zaidishz/ontologies",
+        "BCIO": "nitinbharadwajnataraj/ontologies"
     }
 
 DEFAULT_BRANCH = {
@@ -165,7 +168,9 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "paulinaschenk": {"initials": "PS", "repositories": ["BCIO", "GMHO"], "admin": True},
                   "lzhang01": {"initials": "LZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
                   "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
-                  "zaidishz": {"initials": "HZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}}
+                  "zaidishz": {"initials": "HZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
+                  "nitinbharadwajnataraj": {"initials": "NB", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}
+                  }
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"

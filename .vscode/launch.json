@@ -13,9 +13,9 @@
                 "FLASK_APP": "app.py",
                 "GITHUB_CLIENT_ID": "e58434903bd6cba96a63",
                 "GITHUB_CLIENT_SECRET": "c2c0267951e30967df497d20bbb7411036d9eef0",
-                "FLASK_SECRET_KEY":"hahshshshshbaedsdasdadadasdasadabwcb12",
+                "FLASK_SECRET_KEY":"slkajkdflknnrlknslkdnfjsednflskendfl",
                 "LOG_LEVEL" : "debug",
-                "INDEX_PATH" : "./indexdir",
+                "INDEX_PATH" : ".\\indexdir",
                 "FLASK_DEBUG": "1",
                 "FLASK_ENV": "development"
             },
