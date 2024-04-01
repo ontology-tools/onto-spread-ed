@@ -15,6 +15,7 @@ class Result(Generic[A]):
     template: Message = field(default_factory=dict)
     errors: list[Message] = field(default_factory=list)
     warnings: list[Message] = field(default_factory=list)
+    infos: list[Message] = field(default_factory=list)
 
     def __add__(self, other):
         if isinstance(other, Result):
@@ -25,6 +26,9 @@ class Result(Generic[A]):
 
     def warning(self, **kwargs) -> None:
         self.warnings.append({**self.template, **kwargs})
+
+    def info(self, **kwargs) -> None:
+        self.infos.append({**self.template, **kwargs})
 
     def bind(self, fn: Callable[[A], Result[B]]) -> Result[B]:
         if self.value is None:

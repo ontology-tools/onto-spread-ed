@@ -39,7 +39,10 @@
 </head>
 
 <body>
-<nav class="navbar navbar-expand-lg p-3" style="background: {{ 'fuchsia' if config['DEBUG'] else '#123456' }}" data-bs-theme="dark">
+{% if config['ENVIRONMENT'] == 'test' %}
+<div class="banner"><i class="fa fa-exclamation-triangle"></i> THIS IS A TEST INSTANCE WORKING WITH (POSSIBLY OUTDATED) COPIES OF THE ONTOLOGIES <i class="fa fa-exclamation-triangle"></i></div>
+{% endif %}
+<nav class="navbar navbar-expand-lg p-3" style="background: {{ { 'development': '#48ff00', 'test': '#ff4800', 'production': '#123456'}.get(config['ENVIRONMENT'], 'fuchsia') }}" data-bs-theme="dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">
             {% if APP_TITLE2 is defined %}

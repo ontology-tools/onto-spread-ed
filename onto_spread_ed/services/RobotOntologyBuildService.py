@@ -22,7 +22,8 @@ class RobotOntologyBuildService(OntologyBuildService):
                       main_ontology_name: str,
                       tmp_dir: str) -> Result[str]:
 
-        download_path = os.path.join(tmp_dir, "robot-download-cache")
+        download_path = os.path.join("/", "tmp", "onto-ed-release", "robot-download-cache")
+        # download_path = os.path.join(tmp_dir, "robot-download-cache")
         os.makedirs(download_path, exist_ok=True)
         with Pool(4) as p:
             p.starmap(self._download_ontology, [(x, download_path) for x in imports])
@@ -88,6 +89,9 @@ class RobotOntologyBuildService(OntologyBuildService):
                        dependency_files: Optional[List[str]], tmp_dir: str):
         # with NamedTemporaryFile("w",) as f:
         with open(os.path.join(tmp_dir, os.path.basename(outfile)) + ".csv", "w") as csv_file:
+            internal_relations = [r.id for r in ontology.used_relations() if
+                                  r.owl_property_type == OWLPropertyType.Internal]
+
             header = [
                 ("type", "TYPE"),
                 ("id", "ID"),
@@ -121,11 +125,17 @@ class RobotOntologyBuildService(OntologyBuildService):
                 }
 
                 for relation, value in term.relations:
+                    if relation.id in internal_relations:
+                        continue
+
                     row[f"REL '{relation.label}'"] = value.label if isinstance(value, TermIdentifier) else value
 
                 writer.writerow(row)
 
             for relation in ontology.relations():
+                if relation.owl_property_type == OWLPropertyType.Internal:
+                    continue
+
                 typ = {
                     OWLPropertyType.AnnotationProperty: "annotation property",
                     OWLPropertyType.ObjectProperty: "object property",
@@ -154,7 +164,7 @@ class RobotOntologyBuildService(OntologyBuildService):
             # A bit of hacking to deal appropriately with external dependency files:
             if dependency_files is not None:
                 dependency_file_name = os.path.join(tmp_dir, "imports.owl")
-                catalog_file_name = os.path.join(tmp_dir, "catalog.xml")
+                catalog_file_name = os.path.join(tmp_dir, "catalog-v001.xml")
                 # with NamedTemporaryFile("w", suffix="import.owl") as dependency_f:
                 with open(dependency_file_name, "w") as dependency_f:
 

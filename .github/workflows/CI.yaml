@@ -39,15 +39,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v4
-      - name: Install typescript
+      - name: Install js dependencies
         run: >
-          npm install typescript
-      - name: Build typescript
+          npm install
+      - name: Build javascript
         run: >
-          npx tsc
+          npm run build
       - name: Build deploy package
         run: >
-          tar -czf onto-ed.tar.gz app.py requirements.txt onto_spread_ed
+          tar -czf onto-ed.tar.gz app.py requirements.txt migrations onto_spread_ed
       - uses: actions/upload-artifact@v3
         with:
           name: app

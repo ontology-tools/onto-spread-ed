@@ -63,6 +63,10 @@ def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, 
 def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name: str, writer: SegmentWriter):
     header, rowdata = entity_data
 
+    if 'Curation status' in entity_data and str(entity_data[header.index("Curation status")]) == "Obsolete":
+        _logger.info(f"Not adding obsolete entity '{entity_data[1][0]}' to index")
+        return
+
     _logger.debug(
         f"Adding entity data '{entity_data[1][0]}' to index for repository '{repo_name}' and sheet '{sheet_name}'")
 
@@ -86,6 +90,7 @@ def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name
         to_be_reviewed_by = rowdata[header.index("To be reviewed by")]
     else:
         to_be_reviewed_by = None
+
     if class_id or label or definition or parent:
         writer.add_document(repo=repo_name,
                             spreadsheet=sheet_name,

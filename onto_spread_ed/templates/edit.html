@@ -273,6 +273,9 @@
     var testTableData = [];
     var previousData = [];
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const navigateToRow = urlParams.has("row") ? Number.parseInt(urlParams.get("row")) - 2 : null;
+
 
 
     //get saved table data, compare to current table:
@@ -1077,6 +1080,7 @@
     var table = new Tabulator("#contentTable", {
         groupToggleElement: "header",
         height: window.innerHeight / 3 * 2,
+        nestedFieldSeparator: "|>",
         layout: "fitColumns",
         // pagination:"local",
         // paginationSize:"20",
@@ -1376,19 +1380,11 @@
                     if (data["ID"] == "" || data["ID"] == null) {
                         //not External
                     } else {
-                        //different repo's: 
-                        if (repo_name == "BCIO") {
-                            if (data["ID"].includes("BCIO")) {
-                                //not external
-                            } else {
-                                data[curation_status] = "External";
-                            }
-                        } else { //"AddictO repo"
-                            if (data["ID"].includes("ADDICTO")) {
-                                //not external
-                            } else {
-                                data[curation_status] = "External";
-                            }
+                        //different repo's:
+                        if (data["ID"].includes(repo_name.toUpperCase())) {
+                            //not external
+                        } else {
+                            data[headers[j]] = "External";
                         }
                     }
                 }
@@ -1857,6 +1853,11 @@
             }
         } else {
             row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
+        }
+
+        if(navigateToRow === row.getIndex()) {
+            row.getElement().style.boxShadow = "inset 0 0 10px 5px #ffcb00"
+            console.log("styled", row)
         }
     }
     //below recommended for Firefox in particular by Tabulator issue responseText
@@ -3017,7 +3018,9 @@
         });
     }, 1000 * 60 * 5);
 
-
+    if (navigateToRow !== null) {
+        table.scrollToRow(navigateToRow, "middle")
+    }
 </script>
 
 {% endblock %}

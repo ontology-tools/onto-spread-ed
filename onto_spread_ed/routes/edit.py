@@ -99,6 +99,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
     if overwriteVal == "true":
         overwrite = True
 
+    id_suffix = ""
+
     repositories = current_app.config['REPOSITORIES']
     repo_detail = repositories[repo_key]
     default_branch = current_app.config["DEFAULT_BRANCH"][repo_key]
@@ -125,13 +127,17 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
         # What if 'Label' column not present?
         if 'Label' in first_row:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
+        elif 'Relationship' in first_row:
+            row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Relationship'] if k['Relationship'] else "")
+
+            id_suffix = "R"  # For relations add a 'R' as a suffix
         else:
             current_app.logger.warning(
                 "While saving: No Label column present, so not sorting this.")  # do we need to sort - yes, for diff!
 
         current_app.logger.debug(f"Got file_sha: {file_sha}")
 
-        next_id = searcher.get_next_id(repo_key)
+        next_id = searcher.get_next_id(repo_key + id_suffix)
 
         wb = openpyxl.Workbook()
         sheet = wb.active
@@ -167,24 +173,32 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             # Generate identifiers:
             if 'ID' in first_row:
                 if not row[header.index("ID")]:  # blank
-                    if 'Label' and 'Parent' and 'Definition' in first_row:  # make sure we have the right sheet
-                        if (row[header.index("Label")] and row[header.index("Parent")] and
-                                row[header.index("Definition")]):  # not blank
-                            # generate ID here:
-                            nextIdStr = str(next_id)
-                            next_id += 1
-                            fill_num = current_app.config['DIGIT_COUNT']
-                            if repo_key == "BCIO":
-                                fill_num = fill_num - 1
-                            else:
-                                fill_num = fill_num
-                            id = repo_key.upper() + ":" + nextIdStr.zfill(fill_num)
-                            new_id = id
-                            row_data_parsed[r]["ID"] = new_id
-                            for c in range(len(header)):
-                                if c == 0:
-                                    restart = True
-                                    sheet.cell(row=r + 2, column=c + 1).value = new_id
+                    label, parent, definition = None, None, None
+                    if {'Label', 'Parent', 'Definition'} <= set(first_row):  # make sure we have the right sheet
+                        label = row[header.index("Label")]
+                        parent = row[header.index("Parent")]
+                        definition = row[header.index("Definition")]
+                    elif {'Relationship', 'Parent relationship', 'Definition'} <= set(first_row):
+                        label = row[header.index("Relationship")]
+                        parent = row[header.index("Parent relationship")]
+                        definition = row[header.index("Definition")]
+
+                    if label and parent and definition:
+                        # generate ID here:
+                        nextIdStr = str(next_id)
+                        next_id += 1
+                        fill_num = current_app.config['DIGIT_COUNT']
+                        if repo_key == "BCIO":
+                            fill_num = fill_num - 1
+                        else:
+                            fill_num = fill_num
+                        id = repo_key.upper() + id_suffix + ":" + nextIdStr.zfill(fill_num)
+                        new_id = id
+                        row_data_parsed[r]["ID"] = new_id
+                        for c in range(len(header)):
+                            if c == 0:
+                                restart = True
+                                sheet.cell(row=r + 2, column=c + 1).value = new_id
 
         # Create version for saving
         spreadsheet_stream = io.BytesIO()
