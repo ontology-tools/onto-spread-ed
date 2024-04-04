@@ -1,45 +1,138 @@
 {
-  "$schema": "schema/release_script.json",
   "iri_prefix": "https://galenos.org.uk/ontologies/",
-  "full_repository_name": "galenos-project/mental-health-ontology",
   "short_repository_name": "GMHO",
-  "prefixes": {
-    "GMHO": "https://galenos.org.uk/ontologies/GMHO_"
-  },
+  "full_repository_name": "b-gehrke/mental-health-ontology",
   "external": {
+    "sources": [
+      {
+        "file": "UpperLevel/GMHO_External_Imports.xlsx",
+        "type": "classes"
+      }
+    ],
     "target": {
       "file": "UpperLevel/gmho_external.owl",
-      "iri": "https://galenos.org.uk/ontologies/gmho_external.owl"
+      "iri": "https://galenos.org.uk/ontologies/gmho_external.owl",
+      "ontology_annotations": {}
     },
-    "sources": [
-      "UpperLevel/GMHO_External_Imports.xlsx"
-    ]
+    "needs": []
   },
   "files": {
     "gmho": {
+      "sources": [
+        {
+          "file": "Intervention setting/Intervention setting.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Intervention content and delivery/Intervention content and delivery.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Intervention outcomes and spillover effects/Intervention outcomes and spillover effects.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Research methods/Research methods.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Intervention population/Intervention population.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Non-GMHO entities mapped to LSRs/Non-GMHO entities mapped to LSRs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Intervention mechanism/Intervention mechanism of action.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Temporary entity spreadsheet/Temporary entity spreadsheet.xlsx",
+          "type": "classes"
+        }
+      ],
+      "target": {
+        "file": "gmho_with_imports.owl",
+        "iri": "https://galenos.org.uk/ontologies/gmho_with_imports.owl",
+        "ontology_annotations": {}
+      },
+      "needs": [
+        "gmho_upper"
+      ]
+    },
+    "gmho_final": {
+      "sources": [
+        {
+          "file": "gmho_with_imports.owl",
+          "type": "owl"
+        },
+        {
+          "file": "gmho_upper.owl",
+          "type": "owl"
+        }
+      ],
       "target": {
         "file": "gmho.owl",
-        "iri": "https://galenos.org.uk/ontologies/gmho.owl"
+        "iri": "https://galenos.org.uk/ontologies/gmho.owl",
+        "ontology_annotations": {}
       },
-      "needs": [],
+      "needs": []
+    },
+    "gmho_upper": {
       "sources": [
-        "Intervention setting/Intervention setting.xlsx",
-        "Intervention content and delivery/Intervention content and delivery.xlsx",
-        "Intervention outcomes and spillover effects/Intervention outcomes and spillover effects.xlsx",
-        "Research methods/Research methods.xlsx",
-        "Intervention population/Intervention population.xlsx",
-        "Non-GMHO entities mapped to LSRs/Non-GMHO entities mapped to LSRs.xlsx",
-        "Intervention mechanism/Intervention mechanism of action.xlsx"
-      ]
+        {
+          "file": "UpperLevel/GMHO_Upper_Rels.xlsx",
+          "type": "relations"
+        },
+        {
+          "file": "UpperLevel/GMHO_Upper_Defs.xlsx",
+          "type": "classes"
+        }
+      ],
+      "target": {
+        "file": "gmho_upper.owl",
+        "iri": "https://galenos.org.uk/ontologies/gmho_upper.owl",
+        "ontology_annotations": {}
+      },
+      "needs": []
     }
   },
   "steps": [
-    "PREPARATION",
-    "VALIDATION",
-    "IMPORT_EXTERNAL",
-    "BUILD",
-    "MERGE",
-    "HUMAN_VERIFICATION",
-    "GITHUB_PUBLISH"
-  ]
+    {
+      "name": "PREPARATION",
+      "args": {}
+    },
+    {
+      "name": "VALIDATION",
+      "args": {}
+    },
+    {
+      "name": "IMPORT_EXTERNAL",
+      "args": {}
+    },
+    {
+      "name": "BUILD",
+      "args": {}
+    },
+    {
+      "name": "MERGE",
+      "args": {}
+    },
+    {
+      "name": "HUMAN_VERIFICATION",
+      "args": {}
+    },
+    {
+      "name": "GITHUB_PUBLISH",
+      "args": {}
+    }
+  ],
+  "prefixes": {
+    "ADDICTO": "http://addictovocab.org/ADDICTO_",
+    "BCIO": "http://humanbehaviourchange.org/ontology/BCIO_",
+    "EFO": "http://www.ebi.ac.uk/efo/EFO_",
+    "GMHO": "https://galenos.org.uk/ontologies/GMHO_",
+    "GMHOR": "https://galenos.org.uk/ontologies/GMHOR_"
+  }
 }
