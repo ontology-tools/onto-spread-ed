@@ -60,7 +60,9 @@ def get_spreadsheet(github: GitHub,
     header = [cell.value for cell in sheet[1] if cell.value]
     rows = []
     try:
-        for row in sheet[2:sheet.max_row]:
+        row_iterator = sheet.rows
+        next(row_iterator)  # Skip header
+        for row in row_iterator:
             values = {}
             for key, cell in zip(header, row):
                 values[key] = cell.value

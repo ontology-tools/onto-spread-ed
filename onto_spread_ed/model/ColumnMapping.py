@@ -9,6 +9,7 @@ from .TermIdentifier import TermIdentifier
 
 
 class ColumnMappingKind(enum.Enum):
+    RELATION_TYPE = 15
     PREFIX = 14
     PLAIN = 13
     IMPORTED_ID = 12
@@ -54,6 +55,14 @@ class SimpleColumnMapping(ColumnMapping):
 
     def get_kind(self) -> ColumnMappingKind:
         return self.kind
+
+
+@dataclass
+class ChoiceColumnMapping(SimpleColumnMapping):
+    choices: List[str]
+
+    def valid(self, value: str) -> bool:
+        return value is not None and (value.strip() in self.choices)
 
 
 class PrefixColumnMapping(SimpleColumnMapping):
@@ -201,7 +210,7 @@ class ColumnMappingFactory(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def create_mapping(self, column_name: str) -> ColumnMapping:
+    def create_mapping(self, origin: str, column_name: str) -> ColumnMapping:
         pass
 
 
@@ -213,21 +222,21 @@ class SingletonMappingFactory(ColumnMappingFactory):
     def maps(self, column_name: str) -> bool:
         return column_name in self.column_names
 
-    def create_mapping(self, column_name: str) -> ColumnMapping:
+    def create_mapping(self, origin: str, column_name: str) -> ColumnMapping:
         return self.mapping
 
 
 @dataclass
 class PatternMappingFactory(ColumnMappingFactory):
     pattern: re.Pattern
-    mapping_factory: Callable[[str, re.Match], ColumnMapping]
+    mapping_factory: Callable[[str, str, re.Match], ColumnMapping]
 
     def maps(self, column_name: str) -> bool:
         return re.match(self.pattern, column_name) is not None
 
-    def create_mapping(self, column_name: str) -> ColumnMapping:
+    def create_mapping(self, origin: str, column_name: str) -> ColumnMapping:
         match = re.match(self.pattern, column_name)
-        return self.mapping_factory(column_name, match)
+        return self.mapping_factory(origin, column_name, match)
 
 
 class Schema:
@@ -244,12 +253,12 @@ class Schema:
     def is_ignored(self, header_name: str) -> bool:
         return header_name in self._ignored_fields
 
-    def get_mapping(self, header_name: str) -> Optional[ColumnMapping]:
+    def get_mapping(self, origin: str, header_name: str) -> Optional[ColumnMapping]:
         if self.is_ignored(header_name):
             return None
 
         return next(
-            iter(m.create_mapping(header_name) for m in self._mapping_factories if m.maps(header_name)), None)
+            iter(m.create_mapping(origin, header_name) for m in self._mapping_factories if m.maps(header_name)), None)
 
 
 def singleton(excel_names: List[str], mapping: Callable[..., ColumnMapping], *args, **kwargs) -> ColumnMappingFactory:
@@ -276,10 +285,10 @@ def relation_pattern(pattern: Union[str, re.Pattern],
                      factory: Callable[[str, re.Match], TermIdentifier],
                      separator: Optional[str] = None,
                      relation_kind: OWLPropertyType = OWLPropertyType.AnnotationProperty) -> ColumnMappingFactory:
-    def f(rel_name: str, match: re.Match) -> RelationColumnMapping:
+    def f(origin: str, rel_name: str, match: re.Match) -> RelationColumnMapping:
         identifier = factory(rel_name, match)
         return RelationColumnMapping(
-            Relation(identifier.id, identifier.label, [], [], relation_kind, [], None, None, ("<schema>", 0)),
+            Relation(identifier.id, identifier.label, [], [], relation_kind, [], None, None, (origin, 0)),
             f"REL {rel_name}",
             separator
         )
@@ -297,6 +306,9 @@ DEFAULT_MAPPINGS = [
     singleton(["Logical definition", "Equivalent to relationship", "Logical Definition"],
               ManchesterSyntaxMapping, kind=ColumnMappingKind.EQUIVALENT_TO),
     singleton(["Disjoint classes"], TermMapping, kind=ColumnMappingKind.DISJOINT_WITH, separator=";"),
+    singleton(["Relationship type"], ChoiceColumnMapping, kind=ColumnMappingKind.RELATION_TYPE,
+              choices=[t.name for t in OWLPropertyType]),
+    relation(["LSR no."], TermIdentifier(id="GMHOR:0000001", label="LSR no"), separator=";"),
     relation(["Definition"], TermIdentifier(id="IAO:0000115", label="definition")),
     relation(["Definition_ID"], TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy")),
     relation(["Definition_Source", "Definition source", "Definition Source"],
@@ -315,7 +327,7 @@ DEFAULT_MAPPINGS = [
     internal(["Fuzzy set"], "fuzzySet"),
     internal(["Why fuzzy"], "fuzzyExplanation"),
     internal(["Cross reference", "Cross-reference"], "crossReference"),
-
+    internal(["Ontology section"], "ontologySection")
 ]
 
 DEFAULT_IMPORT_SCHEMA = Schema([

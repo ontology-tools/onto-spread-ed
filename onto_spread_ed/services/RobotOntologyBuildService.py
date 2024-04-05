@@ -55,7 +55,18 @@ class RobotOntologyBuildService(OntologyBuildService):
             slim_cmd.append(term.id)
 
         slim_cmd = " ".join(slim_cmd)
+
+        if os.path.exists(filename) and os.path.exists(filename + ".cache"):
+            with open(filename + ".cache", "r") as f:
+                c = f.readlines()
+                if c is not None and len(c) >= 1:
+                    cache = c[0]
+                    if cache.strip() == slim_cmd.strip():
+                        return
+
         self._execute_command(slim_cmd, shell_flag=True)
+        with open(filename + ".cache", "w") as f:
+            f.writelines([slim_cmd])
 
     def _merge_imported_ontologies(self, merged_iri: str, merged_file: str, main_ontology_name: str, download_path: str,
                                    imports: List[OntologyImport]) -> Result[str]:
