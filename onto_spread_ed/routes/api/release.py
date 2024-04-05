@@ -68,7 +68,7 @@ def get_release_script(repo: str):
     release_script = ReleaseScript.from_json(data)
 
     if release_script.short_repository_name.lower() != repo.lower():
-        raise BadRequest(f"Release script repository does not match requested repository")
+        raise BadRequest("Release script repository does not match requested repository")
 
     release_script.full_repository_name = current_app.config["REPOSITORIES"][repo]
 
