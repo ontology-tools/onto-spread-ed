@@ -86,7 +86,6 @@ def direct():
     if any(x is None for x in [typ, repo_str, sheet_str, go_to_row]):
         return jsonify("invalid number of arguments for get"), 400
 
-    #url = current_app.config['URL_PREFIX'] + url_for('edit.edit', repo_str=repo_str, sheet_str=sheet_str, _external=True, _scheme='https')
     url = '/edit' + '/' + repo_str + '/' + sheet_str
 
 

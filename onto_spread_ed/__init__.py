@@ -15,7 +15,6 @@ def create_app(config_filename=None):
     # Source: https://github.com/python-injector/flask_injector/issues/78
     Flask.url_for.__annotations__ = {}
     # create and configure the app
-    Flask.url_for.__annotations__ = {}
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
     app.config['CORS_HEADERS'] = 'Content-Type'
