@@ -88,7 +88,6 @@ def direct():
 
     url = '/edit' + '/' + repo_str + '/' + sheet_str
 
-
     session['type'] = typ
     session['label'] = go_to_row
     session['url'] = url
