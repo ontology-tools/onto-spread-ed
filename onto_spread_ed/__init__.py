@@ -20,8 +20,8 @@ def create_app(config_filename=None):
     app.config['CORS_HEADERS'] = 'Content-Type'
     app.config['URL_PREFIX'] = config.URL_PREFIX
     CORS(app, resources={
-        rf"{app.config["URL_PREFIX"]}/api/*": {
-            "origins": "*"
+        rf'{app.config["URL_PREFIX"]}/api/*': {
+            'origins': '*'
         }
     })
 
