@@ -10,7 +10,8 @@ class HumanVerificationReleaseStep(ReleaseStep):
 
     def run(self) -> bool:
         files = [{
-            "link": url_for(".download_release_file", file=f.target.file, repo=self._release_script.short_repository_name),
+            "link": url_for(".download_release_file", file=f.target.file, 
+                            repo=self._release_script.short_repository_name),
             "name": f.target.file
         } for k, f in self._release_script.files.items()]
 
