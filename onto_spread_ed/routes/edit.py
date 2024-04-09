@@ -108,17 +108,9 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
     try:
         initial_data_parsed = json.loads(initial_data)
         row_data_parsed = json.loads(row_data)
-        # Get the data, skip the first 'id' column
-        initial_first_row = initial_data_parsed[0]
-        initial_header = [k for k in initial_first_row.keys()]
-        del initial_header[0]
         # Sort based on label
         # What if 'Label' column not present?
-        if 'Label' in initial_first_row:
-            initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
-        else:
-            current_app.logger.warning(
-                "While saving: No Label column present, so not sorting this.")  # do we need to sort - yes, for diff!
+        initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k.get('Label', None) or "")
 
         first_row = row_data_parsed[0]
         header = [k for k in first_row.keys()]

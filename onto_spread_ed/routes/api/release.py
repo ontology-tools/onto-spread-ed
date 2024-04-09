@@ -11,7 +11,7 @@ from flask_executor import Executor
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, BadRequest
 
 from ...database.Release import Release
 from ...guards.admin import verify_admin
@@ -66,6 +66,11 @@ def get_release_script(repo: str):
         data = json.load(f)
 
     release_script = ReleaseScript.from_json(data)
+
+    if release_script.short_repository_name.lower() != repo.lower():
+        raise BadRequest("Release script repository does not match requested repository")
+
+    release_script.full_repository_name = current_app.config["REPOSITORIES"][repo]
 
     return jsonify(dataclasses.asdict(release_script))
 

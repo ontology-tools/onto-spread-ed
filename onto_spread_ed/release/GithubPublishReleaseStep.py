@@ -33,7 +33,7 @@ class GithubPublishReleaseStep(ReleaseStep):
                                  title=f"{release_month} Release",
                                  body=release_body,
                                  source=branch,
-                                 target="master")
+                                 target=self._config['DEFAULT_BRANCH'][self._release_script.short_repository_name])
         self._raise_if_canceled()
 
         github.merge_pr(self._gh, self._release_script.full_repository_name, pr_nr, "squash")

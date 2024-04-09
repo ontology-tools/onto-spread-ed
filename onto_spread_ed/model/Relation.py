@@ -13,6 +13,9 @@ class OWLPropertyType(enum.Enum):
     Internal = 4
     "Only internal usage. Do not expose to OWL"
 
+    def __json__(self):
+        return self.name
+
 
 @dataclass
 class Relation:
@@ -64,3 +67,16 @@ class UnresolvedRelation:
 
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)
+
+    def __hash__(self) -> int:
+        fields = [
+            self.id,
+            self.label,
+            sum(map(hash, self.synonyms)),
+            sum(map(hash, self.relations)),
+            sum(map(hash, self.sub_property_of)),
+            self.owl_property_type,
+            self.domain,
+            self.range
+        ]
+        return sum(map(hash, fields))

@@ -33,7 +33,7 @@ class ExcelOntology:
     _terms: List[UnresolvedTerm]
     _relations: List[UnresolvedRelation]
     _imports: List[OntologyImport]
-    _used_relations: Set[Relation]
+    _used_relations: Set[UnresolvedRelation]
 
     def __init__(self, iri: str, version_iri: Optional[str] = None, *,
                  obsolete_handling: Literal["discard", "ignore", "keep"] = "keep"):
@@ -49,7 +49,7 @@ class ExcelOntology:
     def imports(self) -> List[OntologyImport]:
         return self._imports.copy()
 
-    def used_relations(self) -> FrozenSet[Relation]:
+    def used_relations(self) -> FrozenSet[UnresolvedRelation]:
         return frozenset(self._used_relations)
 
     def imported_terms(self) -> List[TermIdentifier]:
@@ -196,6 +196,8 @@ class ExcelOntology:
                 relation.range = TermIdentifier(label=col.get_value(val))
             elif isinstance(col, RelationColumnMapping):
                 relation.relations += col.get_value(val)
+            elif kind == ColumnMappingKind.RELATION_TYPE:
+                relation.owl_property_type = OWLPropertyType[col.get_value(val)]
 
             elif col not in unprocessable_columns:
                 r.warning(column=col.get_name(),
@@ -211,7 +213,7 @@ class ExcelOntology:
         if schema is None:
             schema = DEFAULT_IMPORT_SCHEMA
 
-        result = self._open_excel(file, schema)
+        result = self._open_excel(name, file, schema)
         data, mapped = result.value
 
         result += Result((), template=dict(file=name))
@@ -244,7 +246,7 @@ class ExcelOntology:
     def import_excel_ontology_from_file(self, name: str, file: Union[bytes, str, BytesIO],
                                         schema: Optional[Schema] = None) -> Result[tuple]:
         imported_terms = []
-        result = self._open_excel(file, schema)
+        result = self._open_excel(name, file, schema)
         data, mapped = result.value
 
         result += Result((), template=dict(file=name))
@@ -273,12 +275,12 @@ class ExcelOntology:
 
     def add_terms_from_excel(self, name: str, file: Union[bytes, str, BytesIO],
                              schema: Optional[Schema] = None) -> Result[tuple]:
-        result = self._open_excel(file, schema)
+        result = self._open_excel(name, file, schema)
         data, mapped = result.value
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
-                self._used_relations.add(c.relation)
+                self._used_relations.add(UnresolvedRelation(**c.relation.__dict__))
 
         result += Result((), template=dict(file=name))
         for i, row in enumerate(data):
@@ -297,12 +299,12 @@ class ExcelOntology:
 
     def add_relations_from_excel(self, name: str, file: Union[bytes, str, BytesIO],
                                  schema: Optional[Schema] = None) -> Result[tuple]:
-        result = self._open_excel(file, schema)
+        result = self._open_excel(name, file, schema)
         data, mapped = result.value
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
-                self._used_relations.add(c.relation)
+                self._used_relations.add(UnresolvedRelation(**c.relation.__dict__))
 
         result += Result((), template=dict(file=name))
         for i, row in enumerate(data):
@@ -320,7 +322,7 @@ class ExcelOntology:
 
         return result.merge(Result(()))
 
-    def _open_excel(self, file: Union[bytes, str, BytesIO], schema: Optional[Schema] = None) -> \
+    def _open_excel(self, origin: str, file: Union[bytes, str, BytesIO], schema: Optional[Schema] = None) -> \
             Result[Tuple[Iterator[Iterator[Optional[str]]], List[ColumnMapping]]]:
         result = Result()
         if schema is None:
@@ -337,7 +339,7 @@ class ExcelOntology:
                 continue
 
             header_name = h.value.strip()
-            mapping = schema.get_mapping(header_name)
+            mapping = schema.get_mapping(origin, header_name)
             if mapping is None and not schema.is_ignored(header_name):
                 result.warning(type='unknown-column',
                                column=header_name,
@@ -424,6 +426,26 @@ class ExcelOntology:
                         continue
 
                     sub.complement(m)
+
+        replacements: List[Tuple[UnresolvedRelation, UnresolvedRelation]] = []
+        for relation in self._used_relations:
+            if relation.is_unresolved():
+                matching = next((r for r in self._relations if not r.is_unresolved() and (
+                        r.label == relation.label or r.id == id)), None)
+
+                if matching is not None:
+                    replacements.append((relation, matching))
+                    continue
+
+                matching = next((t for i in self._imports for t in i.imported_terms if
+                                 t.id == relation.id or t.label == relation.label), None)
+                if matching is not None:
+                    relation.id = matching.id
+                    relation.label = matching.label
+
+        for old, new in replacements:
+            self._used_relations.remove(old)
+            self._used_relations.add(new)
 
         return result
 
@@ -556,6 +578,15 @@ class ExcelOntology:
                             result.error(type="obsolete-parent",
                                          relation=relation.__dict__,
                                          parent=p.__dict__)
+
+        for relation in self._used_relations:
+            if relation.owl_property_type == OWLPropertyType.Internal:
+                continue
+
+            result.template = {"row": relation.origin[1]} if relation.origin is not None else {}
+            if relation.is_unresolved():
+                result.error(type="unknown-relation",
+                             relation=relation.__dict__)
 
         if not any(result.errors):
             result.value = ()
