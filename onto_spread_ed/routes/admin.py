@@ -1,7 +1,14 @@
-from typing import Optional
+import base64
+import dataclasses
+import tempfile
+from typing import Optional, List, Tuple, Self, Set
 
-from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for
+import openpyxl
+import pyhornedowl
+from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for, Response, send_file
+from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
+from openpyxl.worksheet.worksheet import Worksheet
 from werkzeug.exceptions import NotFound
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
@@ -95,3 +102,96 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy):
                            repos=repositories,
                            **data
                            )
+
+
+@dataclasses.dataclass
+class Node:
+    item: str
+    label: str
+    definition: str
+    children: List[Self] = dataclasses.field(default_factory=list)
+    parent: Optional[Self] = None
+
+    def to_plain(self):
+        plain_children = []
+        for c in self.children:
+            plain_children.append(c.to_plain())
+
+        return dict(item=self.item, label=self.label, definition=self.definition, children=plain_children)
+
+    def height(self) -> int:
+        return max((c.height() for c in self.children), default=0) + 1
+
+
+def form_tree(edges: List[Tuple[Tuple[str, str, str], str]]) -> List[Node]:
+    all_nodes = set(n for n, _ in edges)
+    item_to_node = dict((c, Node(item=c, label=l, definition=d)) for (c, l, d) in all_nodes)
+
+    for (child, _, _), parent in edges:
+        if child == parent:
+            continue
+
+        child_node = item_to_node[child]
+        parent_node = item_to_node.setdefault(parent, Node(item=parent, label=parent, definition=""))
+
+        child_node.parent = parent_node
+        parent_node.children.append(child_node)
+
+    return [n for n in item_to_node.values() if n.parent is None]
+
+
+@bp.route("/hierarchical-overview")
+def hierarchical_overview(gh: GitHub):
+    repo = request.args.get("repo")
+    hierarchies, ontology = build_hierarchy(gh, repo)
+
+    return render_template("hierarchical_overview.html",
+                           breadcrumb=[
+                               dict(name="Admin", path="admin/dashboard"),
+                               dict(name="Hierarchical overviews", path="admin/hierarchical-overview")
+                           ],
+                           ontology=ontology,
+                           repo=repo,
+                           hierarchies=[h.to_plain() for h in hierarchies])
+
+
+@bp.route("/hierarchical-overview/download/<repo>")
+def hierarchical_overview_download(gh: GitHub, repo: str):
+    hierarchies, ontology = build_hierarchy(gh, repo)
+
+    wb = openpyxl.Workbook()
+    sheet: Worksheet = wb.active
+
+    height = max(h.height() for h in hierarchies)
+
+    sheet.append(["ID", "Label"] + [""]*(height-1) + ["Definition"])
+
+    def write_line(n: Node, depth: int) -> None:
+        sheet.append([ontology.get_id_for_iri(n.item)] + [""]*depth + [n.label] + [""]*(height - depth - 1) + [n.definition])
+
+        for child in n.children:
+            write_line(child, depth + 1)
+
+    for hierarchy in hierarchies:
+        write_line(hierarchy, 0)
+
+    with tempfile.NamedTemporaryFile("w") as f:
+        wb.save(f.name)
+
+        return send_file(f.name, download_name=f"{repo}-hierarchy.xlsx")
+
+
+def build_hierarchy(gh: GitHub, repo: str) -> Tuple[List[Node], pyhornedowl.PyIndexedOntology]:
+    release_file = current_app.config["RELEASE_FILES"][repo]
+    full_repo = current_app.config["REPOSITORIES"][repo]
+    response = gh.get(f"repos/{full_repo}/contents/{release_file}",
+                      headers={"Accept": "application/vnd.github.raw+json"})
+    ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
+    for p, d in current_app.config["PREFIXES"]:
+        ontology.add_prefix_mapping(p, d)
+    classes = [(c, ontology.get_annotation(c, "http://www.w3.org/2000/01/rdf-schema#label"),
+                ontology.get_annotation(c, "http://purl.obolibrary.org/obo/IAO_0000115")) for c in
+               ontology.get_classes()]
+    child_parent = [(c, p) for c in classes for p in ontology.get_superclasses(c[0])]
+    hierarchies = form_tree(child_parent)
+    return hierarchies, ontology
