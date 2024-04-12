@@ -1,4 +1,5 @@
 <script setup lang="ts">
+var URL_PREFIX = '{{config["URL_PREFIX"]}}';
 import {onMounted, Ref, ref} from "vue";
 import {ReleaseScript} from "./model.ts"
 import RepositorySelector from "./RepositorySelector.vue";
@@ -9,7 +10,7 @@ const releaseScript: Ref<ReleaseScript | null> = ref(null);
 const repo: Ref<string | null> = ref(null);
 
 async function fetchData() {
-  repos.value = await (await fetch("/api/repo")).json()
+  repos.value = await (await fetch(URL_PREFIX + "/api/repo")).json()
 }
 
 onMounted(async () => {

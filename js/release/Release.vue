@@ -21,7 +21,7 @@ const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
 
 const selected_step = ref<number | null>(null)
-
+var URL_PREFIX = '{{config["URL_PREFIX"]}}';
 const _steps: { [k: string]: any } = {
   "PREPARATION": Preparation,
   "VALIDATION": Validation,
@@ -155,7 +155,7 @@ async function _request<T = any, S = T>(request: () => Promise<Response>, post: 
 
 async function startRelease(releaseScript: ReleaseScript) {
   const r = await _request<Release>(() =>
-      fetch("/api/release/start", {
+      fetch(URL_PREFIX + "/api/release/start", {
         method: "post",
         body: JSON.stringify(releaseScript),
         headers: {
