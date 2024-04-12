@@ -95,7 +95,7 @@
             FD.append('initials', '{{user_initials}}');
             FD.append('repoName', '{{repo_name}}');
 
-            const response = await (await fetch("/searchAssignedToMe", {
+            const response = await (await fetch(URL_PREFIX + "/searchAssignedToMe", {
                 body: FD,
                 method: "POST"
             })).json()
@@ -114,7 +114,7 @@
             const FD = new FormData(form);
             FD.append('repoName', '{{repo_name}}');
 
-            const response = await (await fetch('/search', {
+            const response = await (await fetch(URL_PREFIX + '/search', {
                 body: FD,
                 method: "POST"
             })).json()
@@ -173,7 +173,7 @@
                 var data = FD2; //todo: build data from here
                 console.log("submitted " + FD2);
                 form2.setAttribute("method", "post");
-                form2.setAttribute("action", "/openVisualiseAcrossSheets");
+                form2.setAttribute("action", URL_PREFIX + "/openVisualiseAcrossSheets");
                 form2.setAttribute("target", 'VisualisationWindow');
                 var input = document.createElement('input');
                 input.type = 'hidden';
@@ -277,7 +277,7 @@
                     sheet: JSON.stringify({sheet})
                 },
                 success: function (data) {
-                    window.location.href = '/edit/' + repo + '/' + sheet;
+                    window.location.href = URL_PREFIX + '/edit/' + repo + '/' + sheet;
                 }
             });
         }
