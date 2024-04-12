@@ -79,7 +79,8 @@ async function autofix(error: Diagnostic) {
       Good work! All files are valid. The release process will continue.
     </div>
     <p v-else>
-      {{ errors?.length ?? 0 }} errors and {{ warnings?.length ?? 0 }} warnings were found during the validation. Please
+      <span class="text-danger bg-danger-subtle rounded ps-1 pe-1">{{ errors?.length ?? 0 }} {{ $filters.pluralise("error", errors)}}</span> and
+      <span class="text-warning bg-warning-subtle rounded ps-1 pe-1">{{ warnings?.length ?? 0 }} {{ $filters.pluralise("warning", warnings) }}</span> were found during the validation. Please
       fix the
       errors and save the spreadsheets. When you fixed all errors, restart the release. If you just want to rerun the
       validation, restart the release as well.
@@ -228,6 +229,26 @@ async function autofix(error: Diagnostic) {
             The domain <code>{{ error.relation.domain.label }}</code> of
             <code>{{ error.relation.label }}</code>
             (<code>{{ error.relation.id || "no id" }} </code>) is not known. <br>
+            <ErrorLink :short_repository_name="shortRepoName" :error="error"
+                       :term="error.relation"></ErrorLink>
+          </p>
+        </template>
+        <template v-else-if="error.type === 'unknown-relation'">
+          <h5>Unknown relation</h5>
+          <p>
+            The relation
+
+            <template v-if="error.relation.label">
+              <code >{{ error.relation.label }}</code>
+              <template v-if="error.relation.id">
+                (<code>{{error.relation.id}}</code>)
+              </template>
+            </template>
+            <template v-else-if="error.relation.id">
+              <code>{{error.relation.id}}</code>
+            </template>
+
+            is not known.<br>
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
                        :term="error.relation"></ErrorLink>
           </p>

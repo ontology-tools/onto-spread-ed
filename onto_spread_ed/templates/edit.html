@@ -125,8 +125,8 @@
 <div class="row">
     <div class="col-md-12">
         <div id="saveAlert" class="alert alert-success collapse" role="alert">
-            <button id="closeSaveMsgBtn" type="button" class="close" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
+            <button id="closeSaveMsgBtn" type="button" class="btn close" aria-label="Close">
+                <i class="fa fa-close"></i>
             </button>
             <div id="saveMessage"> </div>
         </div>
@@ -230,6 +230,15 @@
 
     //Fuzzy Set
     var fuzzy_Set = "Fuzzy set"; //column name
+
+    // Relationship type
+    const RELATIONSHIP_TYPE = "Relationship type"
+    const RELATIONSHIP_TYPE_VALUES = [
+        "ObjectProperty",
+        "AnnotationProperty",
+        "DataProperty",
+        "Internal"
+    ]
 
     //E-Cig0
 
@@ -1679,7 +1688,7 @@
                                 }
                             }
                         }
-                    };
+                    }
                     getOtherErrors(messageJSON);
                     // console.log(validateErrorMessages);
                     //check if we are dealing with validation errors:
@@ -1894,6 +1903,10 @@
                         rowObj[headers[j]] = AOsub_ontologyNames[a];
                     }
                 }
+            }
+
+            if (headers[j] == RELATIONSHIP_TYPE) {
+                rowObj[headers[j]] = "ObjectProperty"
             }
         }
         clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
@@ -2381,7 +2394,7 @@
             } else {
 
             }
-        };
+        }
 
     });
 
@@ -2779,7 +2792,7 @@
                     }
                 }
             });
-        };
+        }
 
     }
 
