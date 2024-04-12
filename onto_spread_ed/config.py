@@ -3,7 +3,7 @@ import os
 
 APP_TITLE = "Ontology Spreadsheet Editor"
 ENVIRONMENT = os.environ.get("FLASK_ENV")
-URL_PREFIX = '/onto-ed'
+URL_PREFIX = ''
 
 ENVIRONMENT = os.environ.get("FLASK_ENV")
 
@@ -92,17 +92,13 @@ if os.environ.get("FLASK_ENV") == 'development':
     REPOSITORIES = {
         "BCIO": "b-gehrke/ontologies",
         "AddictO": "b-gehrke/addiction-ontology",
-        "GMHO": "b-gehrke/mental-health-ontology",
-        "BCIO": "zaidishz/ontologies",
-        "BCIO": "nitinbharadwajnataraj/ontologies"
+        "GMHO": "b-gehrke/mental-health-ontology"
     }
 else:
     REPOSITORIES = {
         "AddictO": "addicto-org/addiction-ontology",
         "BCIO": "HumanBehaviourChangeProject/ontologies",
-        "GMHO": "galenos-project/mental-health-ontology",
-        "BCIO": "zaidishz/ontologies",
-        "BCIO": "nitinbharadwajnataraj/ontologies"
+        "GMHO": "galenos-project/mental-health-ontology"
     }
 
 DEFAULT_BRANCH = {

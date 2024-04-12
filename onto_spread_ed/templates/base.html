@@ -24,12 +24,14 @@
               integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
               crossorigin="anonymous">
         <!-- Bootstrap filter table CSS -->
-        <link rel="stylesheet" href="{{ config['URL_PREFIX'] }}/static/excel-bootstrap-table-filter-style.css">
+        <link rel="stylesheet" href="{{url_for('static', filename='excel-bootstrap-table-filter-style.css')}}">
+        
 
         <!-- //fontawesome: -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous">
 
-        <link rel="stylesheet" href="{{ config['URL_PREFIX'] }}/static/main.css">
+        <link rel="stylesheet" href="{{url_for('static', filename='main.css')}}">
+
 
         <link rel="shortcut icon" href="#"/>
 
@@ -53,9 +55,9 @@
         </a>
     <div class="collapse navbar-collapse">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{url_for('main.home')}}">Home</a></li>
                     {% if login is defined and config["USERS_METADATA"][login]["admin"] %}
-                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/admin">Admin</a></li>
+                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="{{url_for('admin.dashboard')}}">Admin</a></li>
                     {% endif %}
         </ul>
     </div>
