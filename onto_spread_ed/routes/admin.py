@@ -1,7 +1,7 @@
 import base64
 import dataclasses
 import tempfile
-from typing import Optional, List, Tuple, Self, Set
+from typing import Optional, List, Tuple, Set
 
 import openpyxl
 import pyhornedowl
@@ -9,6 +9,7 @@ from flask import Blueprint, render_template, g, request, jsonify, current_app, 
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from openpyxl.worksheet.worksheet import Worksheet
+from typing_extensions import Self
 from werkzeug.exceptions import NotFound
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
@@ -143,7 +144,12 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], str]]) -> List[Node]:
 @bp.route("/hierarchical-overview")
 def hierarchical_overview(gh: GitHub):
     repo = request.args.get("repo")
-    hierarchies, ontology = build_hierarchy(gh, repo)
+
+    ontology = None
+    hierarchies = []
+
+    if repo is not None:
+        hierarchies, ontology = build_hierarchy(gh, repo)
 
     return render_template("hierarchical_overview.html",
                            breadcrumb=[
