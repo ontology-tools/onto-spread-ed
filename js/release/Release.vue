@@ -1,5 +1,6 @@
 <script setup lang="ts">
 declare var SERVER_DATA: { [key: string]: any }
+declare var URL_PREFIX: { [key: string]: any }
 
 import {computed, onMounted, ref, watch} from "vue";
 import {Diagnostic, Release, ReleaseScript} from "./model.ts";
@@ -14,14 +15,13 @@ import GithubPublish from "./steps/GithubPublish.vue";
 import BCIOSearch from "./steps/BCIOSearch.vue";
 
 const repo = SERVER_DATA.repo
-
+const prefix_url = URL_PREFIX.prefix
 const release = ref<Release | null>(null);
 
 const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
 
 const selected_step = ref<number | null>(null)
-var URL_PREFIX = '{{config["URL_PREFIX"]}}';
 const _steps: { [k: string]: any } = {
   "PREPARATION": Preparation,
   "VALIDATION": Validation,
@@ -65,7 +65,7 @@ async function poll(withLoading: boolean = false) {
   const id = release.value?.id ?? `${repo}/running`
   loading.value = withLoading;
   try {
-    let response = await fetch(`/api/release/${id}`);
+    let response = await fetch(`${prefix_url}/api/release/${id}`);
     if (response.ok) {
       release.value = await response.json()
     } else {
@@ -82,7 +82,7 @@ onMounted(async () => {
   const releaseId = parseInt(lastPathSegment)
 
   if (!isNaN(releaseId)) {
-    release.value = await _request<Release>(() => fetch(`/api/release/${releaseId}`)) ?? null
+    release.value = await _request<Release>(() => fetch(`${prefix_url}/api/release/${releaseId}`)) ?? null
   } else {
     await poll(true)
   }
@@ -165,12 +165,12 @@ async function startRelease(releaseScript: ReleaseScript) {
 
   if (r) {
     release.value = r
-    window.location.pathname = `/admin/release/${r.id}`
+    window.location.pathname = `${prefix_url}/admin/release/${r.id}`
   }
 }
 
 async function cancelRelease() {
-  release.value = await _request<Release>(() => fetch(`/api/release/${repo}/cancel`, {
+  release.value = await _request<Release>(() => fetch(`${prefix_url}/api/release/${repo}/cancel`, {
     method: "post"
   })) ?? null
 }
@@ -220,7 +220,7 @@ function stepIconClasses(step: number): string[] {
 async function doReleaseControl(type: string) {
   switch (type) {
     case "continue":
-      await fetch(`/api/release/${repo}/continue`)
+      await fetch(`${prefix_url}/api/release/${repo}/continue`)
       startPolling()
       break;
     default:

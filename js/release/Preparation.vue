@@ -1,5 +1,4 @@
 <script setup lang="ts">
-var URL_PREFIX = '{{config["URL_PREFIX"]}}';
 import {onMounted, Ref, ref} from "vue";
 import {ReleaseScript} from "./model.ts"
 import RepositorySelector from "./RepositorySelector.vue";
@@ -8,6 +7,8 @@ import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
 const repos: Ref<{ short: string, full: string }[]> = ref([]);
 const releaseScript: Ref<ReleaseScript | null> = ref(null);
 const repo: Ref<string | null> = ref(null);
+declare var URL_PREFIX: { [key: string]: any }
+const prefix_url = URL_PREFIX.prefix
 
 async function fetchData() {
   repos.value = await (await fetch(URL_PREFIX + "/api/repo")).json()
@@ -22,7 +23,7 @@ defineEmits<{
 }>()
 
 async function setRepo(repoKey: string) {
-  releaseScript.value = await (await fetch(`/api/release/${repoKey}/release_script`)).json()
+  releaseScript.value = await (await fetch(`${prefix_url}/api/release/${repoKey}/release_script`)).json()
 }
 </script>
 
