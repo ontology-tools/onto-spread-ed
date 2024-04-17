@@ -1,11 +1,10 @@
-import base64
 import dataclasses
 import tempfile
-from typing import Optional, List, Tuple, Set
+from typing import Optional, List, Tuple
 
 import openpyxl
 import pyhornedowl
-from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for, Response, send_file
+from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for, send_file
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from openpyxl.worksheet.worksheet import Worksheet
@@ -170,10 +169,13 @@ def hierarchical_overview_download(gh: GitHub, repo: str):
 
     height = max(h.height() for h in hierarchies)
 
-    sheet.append(["ID", "Label"] + [""]*(height-1) + ["Definition"])
+    sheet.append(["ID", "Label"] + [""] * (height - 1) + ["Definition"])
 
     def write_line(n: Node, depth: int) -> None:
-        sheet.append([ontology.get_id_for_iri(n.item)] + [""]*depth + [n.label] + [""]*(height - depth - 1) + [n.definition])
+        sheet.append([ontology.get_id_for_iri(n.item)] +
+                     [""] * depth +
+                     [n.label] + [""] * (height - depth - 1) +
+                     [n.definition])
 
         for child in n.children:
             write_line(child, depth + 1)
