@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block content %}
+
+    <h1>Hierarchical overview generation</h1>
+    <p>Generate an Excel sheet for an ontology with definitions and indented children</p>
+    <div class="alert alert-warning">
+        <b>Only direct parents are used</b><br>
+        <p>In the current stage we can only show the hierarchy as it is asserted in the ontology. No automatic inference
+            is done!</p>
+    </div>
+
+    <ul>
+        {% for repo, repo_detail in config['REPOSITORIES'].items() %}
+            <li>
+                Download <a class="" href="{{ url_for('admin.hierarchical_overview_download', repo=repo) }}">{{ repo }}-hierarchical.xlsx</a>
+            </li>
+        {% endfor %}
+
+    </ul>
+
+
+    <script>
+        const toggler = document.getElementsByClassName("caret");
+        for (let i = 0; i < toggler.length; i++) {
+            toggler[i].addEventListener("click", function () {
+                this.parentElement.querySelector(".nested").classList.toggle("active");
+                this.classList.toggle("caret-down");
+            });
+        }
+
+        const inputs = document.querySelectorAll("input[type='checkbox']")
+        for (const input of inputs) {
+            input.addEventListener("change", event => {
+                if (input.checked) {
+                    let p = input;
+                    while (p) {
+                        p.checked = true
+
+                        p = p.parentElement?.parentElement?.parentElement?.querySelector(":scope > input[type='checkbox']")
+                    }
+                } else {
+                    const children = input.parentElement.querySelectorAll("input[type='checkbox']")
+                    for (const child of children) {
+                        child.checked = false
+                    }
+                }
+                console.log({value: input.checked})
+            })
+        }
+    </script>
+
+
+{% endblock %}
