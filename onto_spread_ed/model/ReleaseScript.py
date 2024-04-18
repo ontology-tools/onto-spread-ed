@@ -1,7 +1,7 @@
 import os.path
 from dataclasses import dataclass, field
 from typing_extensions import Self
-from typing import List, Dict, Literal, Any
+from typing import List, Dict, Literal, Any, Optional
 
 
 @dataclass
@@ -28,6 +28,8 @@ class ReleaseScriptFile:
     sources: List[ReleaseScriptSource]
     target: ReleaseScriptTarget
     needs: List[str] = field(default_factory=list)
+    renameTermFile: Optional[str] = None
+    addParentsFile: Optional[str] = None
 
     @classmethod
     def from_json(cls, data: Dict, prefix: str) -> Self:
@@ -35,6 +37,8 @@ class ReleaseScriptFile:
             "sources": data.get("sources"),
             "target": data.get("target"),
             "needs": data.get("needs", []),
+            "renameTermFile": data.get("renameTermFile", None),
+            "addParentsFile": data.get("addParentsFile", None),
         }
 
         for i, f in enumerate(fields["sources"]):
@@ -71,7 +75,7 @@ class ReleaseScript:
             "external": data.get("external"),
             "files": data.get("files"),
             "prefixes": data.get("prefixes", dict()),
-            "steps": data.get("steps")
+            "steps": data.get("steps"),
         }
 
         fields["external"] = ReleaseScriptFile.from_json(fields["external"], fields["iri_prefix"])

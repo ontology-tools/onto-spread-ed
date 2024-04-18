@@ -1,0 +1,84 @@
+{
+  "$schema": "./schema/release_script.json",
+  "iri_prefix": "http://addictovocab.org/ADDICTO_",
+  "short_repository_name": "AddictO",
+  "full_repository_name": "b-gehrke/addiction-ontology",
+  "external": {
+    "sources": [
+      {
+        "file": "imports/External_Imports.xlsx",
+        "type": "classes"
+      }
+    ],
+    "target": {
+      "file": "addicto_external.owl",
+      "iri": "http://addictovocab.org/addicto_external.owl",
+      "ontology_annotations": {}
+    },
+    "needs": [],
+    "renameTermFile": "imports/External_Imports_New_Labels.csv",
+    "addParentsFile": "imports/External_Imports_New_Parents.csv"
+  },
+  "files": {
+    "addicto": {
+      "sources": [],
+      "target": {
+        "file": "addicto_with_imports.owl",
+        "iri": "http://addictovocab.org/addicto_with_imports.owl",
+        "ontology_annotations": {}
+      },
+      "needs": []
+    },
+    "addicto_final": {
+      "sources": [
+        {
+          "file": "addicto_with_imports.owl",
+          "type": "owl"
+        }
+      ],
+      "target": {
+        "file": "addicto.owl",
+        "iri": "http://addictovocab.org/addicto.owl",
+        "ontology_annotations": {
+          "rdfs:comment": "The Addiction Ontology (AddictO) is an ontology being developed all aspects of addiction research."
+        }
+      },
+      "needs": []
+    }
+  },
+  "steps": [
+    {
+      "name": "PREPARATION",
+      "args": {}
+    },
+    {
+      "name": "VALIDATION",
+      "args": {}
+    },
+    {
+      "name": "IMPORT_EXTERNAL",
+      "args": {}
+    },
+    {
+      "name": "BUILD",
+      "args": {}
+    },
+    {
+      "name": "MERGE",
+      "args": {}
+    },
+    {
+      "name": "HUMAN_VERIFICATION",
+      "args": {}
+    },
+    {
+      "name": "GITHUB_PUBLISH",
+      "args": {}
+    }
+  ],
+  "prefixes": {
+    "ADDICTO": "http://addictovocab.org/ADDICTO_",
+    "BCIO": "http://humanbehaviourchange.org/ontology/BCIO_",
+    "EFO": "http://www.ebi.ac.uk/efo/EFO_"
+  }
+}

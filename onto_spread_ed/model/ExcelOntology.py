@@ -1,3 +1,4 @@
+import csv
 import dataclasses
 import logging
 import os.path
@@ -72,6 +73,9 @@ class ExcelOntology:
 
     def term_by_id(self, id: str) -> Optional[Union[Term]]:
         return next(iter(t for t in (self.terms()) if t.id == id), None)
+
+    def _term_by_id(self, id: str) -> Optional[Union[Term]]:
+        return next(iter(t for t in self._terms if t.id == id), None)
 
     def _raw_term_by_id(self,
                         id: str,
@@ -327,6 +331,34 @@ class ExcelOntology:
                 self._relations.append(relation)
 
         return result.merge(Result(()))
+
+    def apply_renamings(self, file: str, scope: Literal['self', 'import', 'all'] = 'all') -> None:
+        with open(file, "r") as f:
+            rows = csv.reader(f)
+            next(rows)
+
+            for row in rows:
+                # Skip potential ROBOT header
+                if row[0] == "ID" or len(row) < 2:
+                    continue
+
+                id = row[0]
+                label = row[1]
+
+                if scope == 'self' or scope == 'all':
+                    term = self._term_by_id(id)
+
+                    if term is not None:
+                        term.label = label
+
+                if scope == 'import' or scope == 'all':
+                    term = next((t for i in self._imports for t in i.imported_terms if t.id == id), None)
+
+                    if term is not None:
+                        term.label = label
+
+
+        pass
 
     def _open_excel(self, origin: str, file: Union[bytes, str, BytesIO], schema: Optional[Schema] = None) -> \
             Result[Tuple[Iterator[Iterator[Optional[str]]], List[ColumnMapping]]]:
