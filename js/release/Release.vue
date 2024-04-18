@@ -155,7 +155,7 @@ async function _request<T = any, S = T>(request: () => Promise<Response>, post: 
 
 async function startRelease(releaseScript: ReleaseScript) {
   const r = await _request<Release>(() =>
-      fetch(URL_PREFIX + "/api/release/start", {
+      fetch(prefix_url + "/api/release/start", {
         method: "post",
         body: JSON.stringify(releaseScript),
         headers: {

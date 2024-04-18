@@ -11,7 +11,7 @@ declare var URL_PREFIX: { [key: string]: any }
 const prefix_url = URL_PREFIX.prefix
 
 async function fetchData() {
-  repos.value = await (await fetch(URL_PREFIX + "/api/repo")).json()
+  repos.value = await (await fetch(prefix_url + "/api/repo")).json()
 }
 
 onMounted(async () => {
