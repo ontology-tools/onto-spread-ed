@@ -2,6 +2,8 @@ import logging
 import os
 
 APP_TITLE = "Ontology Spreadsheet Editor"
+ENVIRONMENT = os.environ.get("FLASK_ENV")
+URL_PREFIX = ''
 
 ENVIRONMENT = os.environ.get("FLASK_ENV")
 
@@ -160,7 +162,11 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "emilyjhayes": {"initials": "EJH", "repositories": ["BCIO"]},
                   "paulinaschenk": {"initials": "PS", "repositories": ["BCIO", "GMHO"], "admin": True},
                   "lzhang01": {"initials": "LZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
-                  "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True}}
+                  "b-gehrke": {"initials": "BG", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
+                  "zaidishz": {"initials": "HZ", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
+                  "nitinbharadwajnataraj": {"initials": "NB", "repositories": ["AddictO", "BCIO", "GMHO"],
+                                            "admin": True}
+                  }
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"

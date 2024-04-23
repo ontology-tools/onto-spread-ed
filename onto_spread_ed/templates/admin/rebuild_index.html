@@ -46,6 +46,7 @@
 
 
     <script type="application/javascript">
+        var URL_PREFIX = '{{config["URL_PREFIX"]}}';
         const btn_rebuild = $("#btn-rebuild-index")
         btn_rebuild.on("click", async (event) => {
             let dialog = bootbox.dialog({
@@ -58,7 +59,7 @@
             });
 
             try {
-                const result = await fetch("/admin/rebuild-index", {
+                const result = await fetch(URL_PREFIX + "/admin/rebuild-index", {
                     method: "POST"
                 })
 

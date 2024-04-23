@@ -24,7 +24,7 @@ bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templ
 def dashboard():
     return render_template("dashboard.html",
                            login=g.user.github_login,
-                           breadcrumb=[{"name": "Admin", "path": "admin/dashboard"}])
+                           breadcrumb=[{"name": "Admin", "path": "/admin/dashboard"}])
 
 
 # Pages for the app
