@@ -179,11 +179,11 @@
 <link href="https://unpkg.com/tabulator-tables@4.9.3//dist/css/tabulator_simple.min.css" rel="stylesheet">
 <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.3//dist/js/tabulator.min.js"></script>
 
-
 <!-- bootstrap 4 theme -->
 <link href="https://unpkg.com/tabulator-tables@4.9.3//dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">
 
 <script type="text/javascript">
+    var URL_PREFIX = "{{config['URL_PREFIX']}}";
     var filter = [""]; //for multi-filter
 
     var reloadTable = false; //test if table needs to be reloaded
@@ -2251,7 +2251,7 @@
 
                 var form = document.createElement("form");
                 form.setAttribute("method", "post");
-                form.setAttribute("action", "/openVisualise");
+                form.setAttribute("action", URL_PREFIX + "/openVisualise");
                 form.setAttribute("target", 'VisualisationWindow');
                 var input = document.createElement('input');
                 input.type = 'hidden';
@@ -2277,7 +2277,7 @@
                 input6.type = 'hidden';
                 input6.name = "filter";
                 //test:
-                // var filter = ["External", "Proposed"];
+                //var filter = ["External", "Proposed"];
                 // var filter = ""; //ok we can set this here!
                 input6.value = JSON.stringify(filter);
                 form.appendChild(input6);
@@ -2526,7 +2526,7 @@
             }
         }
         // Post the request to the server.    
-        request.open('POST', '/download_spreadsheet', true);
+        request.open('POST', URL_PREFIX + '/download_spreadsheet', true);
         request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
         request.send('repo_key=' + repo_key +
             '&folder=' + folder +
@@ -2771,7 +2771,7 @@
                                 initialData = initialData.replaceAll('&', 'and');
                                 // console.log("rowData: " + rowData);
                                 // console.log("initialData: " + initialData);
-                                request.open('POST', '/save', true);
+                                request.open('POST', URL_PREFIX + '/save', true);
                                 request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                                 request.send('repo_key=' + repo_key +
                                     '&folder=' + folder +
@@ -2919,7 +2919,7 @@
 
         //todo: handle errors!
         return $.ajax({
-            url: '/validate',
+            url: URL_PREFIX + '/validate',
             dataType: 'text',
             type: 'POST',
             data: { cell: JSON.stringify(cell.getValue()), column: JSON.stringify(column), rowData: JSON.stringify(rowData), headers: JSON.stringify(headers), table: JSON.stringify(table.getData()) },
@@ -2936,7 +2936,7 @@
     function generate(rowsToGenerate) {
         //todo: handle errors!
         return $.ajax({
-            url: '/generate',
+            url: URL_PREFIX + '/generate',
             dataType: 'json',
             type: 'POST',
             data: { rowData: JSON.stringify(rowsToGenerate), repo_key: '{{repo_name}}' },
@@ -2989,7 +2989,7 @@
         // console.log(repo_key + " " + folder + " " + spreadsheet_name + " " + file_sha);
 
         jQuery.ajax({
-            url: '/checkForUpdates',
+            url: URL_PREFIX + '/checkForUpdates',
             contentType: "application/x-www-form-urlencoded",
             dataType: "json",
             type: 'POST',

@@ -247,3 +247,6 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         result.value = stdout.decode()
         return result
+
+    def collapse_imports(self, file: str) -> Result[Any]:
+        return self._execute_command(f'robot merge --input "{file}" --output "{file}" -c true')

@@ -13,7 +13,7 @@ class OntologyBuildService(ABC):
                       iri: str,
                       main_ontology_name: str,
                       tmp_dir: str) -> Result[Any]:
-        pass
+        ...
 
     @abstractmethod
     def build_ontology(self,
@@ -22,7 +22,7 @@ class OntologyBuildService(ABC):
                        prefixes: Optional[Dict[str, str]],
                        dependency_iris: Optional[List[str]],
                        tmp_dir: str) -> Result[Any]:
-        pass
+        ...
 
     @abstractmethod
     def merge_ontologies(self,
@@ -31,4 +31,8 @@ class OntologyBuildService(ABC):
                          iri: str,
                          version_iri: str,
                          annotations: Dict[str, str]) -> Result[Any]:
-        pass
+        ...
+
+    @abstractmethod
+    def collapse_imports(self, file: str) -> Result[Any]:
+        ...
