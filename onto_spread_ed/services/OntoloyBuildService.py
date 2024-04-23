@@ -36,3 +36,4 @@ class OntologyBuildService(ABC):
     @abstractmethod
     def collapse_imports(self, file: str) -> Result[Any]:
         ...
+        

@@ -163,7 +163,7 @@ def hierarchical_overview():
 
 @bp.route("/hierarchical-overview/download/<repo>", defaults={"sub_ontology": None})
 @bp.route("/hierarchical-overview/download/<repo>/<sub_ontology>")
-def hierarchical_overview_download(gh: GitHub, ontology_builder: OntologyBuildService, 
+def hierarchical_overview_download(gh: GitHub, ontology_builder: OntologyBuildService,
                                    repo: str, sub_ontology: Optional[str] = None):
     hierarchies, ontology = build_hierarchy(gh, ontology_builder, repo, sub_ontology)
 
@@ -195,7 +195,7 @@ def hierarchical_overview_download(gh: GitHub, ontology_builder: OntologyBuildSe
         return send_file(f.name, download_name=download_name)
 
 
-def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: str, 
+def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: str,
                     sub_ontology: Optional[str] = None) -> Tuple[List[Node], pyhornedowl.PyIndexedOntology]:
     # Excel files to extract annotations
     excel_files: List[str]
