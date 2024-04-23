@@ -310,6 +310,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             400,
         )
 
+
 # todo: use this function to compare initial spreadsheet to server version - check for updates?
 @bp.route("/checkForUpdates", methods=["POST"])
 def checkForUpdates(github: GitHub):
