@@ -10,9 +10,44 @@ ENVIRONMENT = os.environ.get("FLASK_ENV")
 DATABASE_URI = os.environ.get("DATABASE_URI", 'sqlite:////tmp/github-flask-ontospreaded.db')
 SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
-RELEASE_FILES = {"AddictO": "addicto.owl",
-                 "BCIO": "Upper%20Level%20BCIO/bcio.owl",
-                 "GMHO": "gmho.owl"}
+RELEASE_FILES = {
+    "AddictO": "addicto.owl",
+    "BCIO": "Upper%20Level%20BCIO/bcio.owl",
+    "GMHO": "gmho.owl",
+}
+
+SUB_ONTOLOGIES = {
+    "BCIO": {
+        "setting": {
+            "release_file": "Setting/bcio_setting.owl",
+            "excel_file": "Setting/bcio_setting.xlsx"
+        },
+        "mode_of_delivery": {
+            "release_file": "ModeOfDelivery/bcio_mode_of_delivery.owl",
+            "excel_file": "ModeOfDelivery/bcio_mode_of_delivery.xlsx"
+        },
+        "source": {
+            "release_file": "Source/bcio_source.owl",
+            "excel_file": "Source/bcio_source.xlsx"
+        },
+        "moa": {
+            "release_file": "MechanismOfAction/bcio_moa.owl",
+            "excel_file": "MechanismOfAction/bcio_moa.xlsx"
+        },
+        "behaviour": {
+            "release_file": "Behaviour/bcio_behaviour.owl",
+            "excel_file": "Behaviour/bcio_behaviour.xlsx"
+        },
+        "bcto": {
+            "release_file": "BehaviourChangeTechniques/bcto.owl",
+            "excel_file": "BehaviourChangeTechniques/bcto.xlsx"
+        },
+        "style": {
+            "release_file": "StyleOfDelivery/bcio_style.owl",
+            "excel_file": "StyleOfDelivery/bcio_style.xlsx"
+        },
+    }
+}
 
 PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["BFO", "http://purl.obolibrary.org/obo/BFO_"],
@@ -21,7 +56,7 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["UBERON", "http://purl.obolibrary.org/obo/UBERON_"],
             ["PATO", "http://purl.obolibrary.org/obo/PATO_"],
             ["BCIO", "http://humanbehaviourchange.org/ontology/BCIO_"],
-            ["GMHO", "https://galenos.org.uk/ontology/GMHO_"],
+            ["GMHO", "https://galenos.org.uk/ontologies/GMHO_"],
             ["SEPIO", "http://purl.obolibrary.org/obo/SEPIO_"],
             ["OMRSE", "http://purl.obolibrary.org/obo/OMRSE_"],
             ["OBCS", "http://purl.obolibrary.org/obo/OBCS_"],
