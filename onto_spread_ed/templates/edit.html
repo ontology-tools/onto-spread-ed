@@ -3010,27 +3010,6 @@
         });
     }
 
-
-    setInterval(function () {
-        $.ajax({
-            type: "POST",
-            url: URL_PREFIX + "/keepalive",
-            data: '{ sendData: "ok" }',
-            contentType: "application/json; charset=utf-8",
-            dataType: "json",
-            success: function (result) {
-                var d = new Date();
-                var n = d.toLocaleTimeString();
-                $("#keepAlive").text(n + " | server alive");
-            },
-            error: function (request, status, error) {
-                var d = new Date();
-                var n = d.toLocaleTimeString();
-                $("#keepAlive").text(n + " | server not alive " + status);
-            }
-        });
-    }, 1000 * 60 * 5);
-
     if (navigateToRow !== null) {
         table.scrollToRow(navigateToRow, "middle")
     }
