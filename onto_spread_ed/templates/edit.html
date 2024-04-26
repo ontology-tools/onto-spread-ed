@@ -1316,6 +1316,7 @@
 
 
         cellEdited: function (cell) {
+            console.debug("TEST")
             suggestValuesArray = labelSuggestions.slice(); //restore original suggestions array
             cell.getElement().style.color = "#003399"; //change text colour on edited
             var row = cell.getRow();
@@ -1393,7 +1394,7 @@
                         if (data["ID"].includes(repo_name.toUpperCase())) {
                             //not external
                         } else {
-                            data[headers[j]] = "External";
+                            data[curation_status] = "External";
                         }
                     }
                 }
