@@ -1,5 +1,4 @@
 import dataclasses
-import os
 import tempfile
 from typing import Optional, List, Tuple, Any, Callable, Dict
 
@@ -222,16 +221,7 @@ def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: st
     response = gh.get(f"repos/{full_repo}/contents/{release_file}",
                       headers={"Accept": "application/vnd.github.raw+json"})
 
-    temp_file = tempfile.NamedTemporaryFile("r+b", suffix=".owl", delete=False)
-    temp_file.write(response.content)
-    temp_file.close()
-
-    ontology_builder.collapse_imports(temp_file.name)
-
-    with open(temp_file.name, "rb") as fr:
-        ontology = pyhornedowl.open_ontology(fr.read().decode('utf-8'))
-
-    os.unlink(temp_file.name)
+    ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
 
     # ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
     for p, d in current_app.config["PREFIXES"]:
@@ -248,6 +238,10 @@ def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: st
 
     # child_parent = [(c, p) for c in classes for p in ontology.get_superclasses(c[0])]
     hierarchies = form_tree(child_parent)
+
+    # If we do not collapse (or do not import) imported ontologies a root will always contain no label
+    # We remove these roots as they only indicate where the subontology should be mounted in the overall ontology
+    hierarchies = [c for h in hierarchies for c in h.children]
 
     for excel_file in excel_files:
         _, rows, header = get_spreadsheet(gh, full_repo, "", excel_file)
