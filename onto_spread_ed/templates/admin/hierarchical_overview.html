@@ -5,8 +5,9 @@
 {% endblock %}
 {% block content %}
 
-    <h1>Hierarchical overview generation</h1>
-    <p>Generate an Excel sheet for an ontology with definitions and indented children</p>
+    <h1>Hierarchical spreadsheet</h1>
+    <p>Generate an Excel sheet for an ontology or an subontology with all terms indented to reflect their position in
+        the hierarchy.</p>
     <div class="alert alert-warning">
         <b>Only direct parents are used</b><br>
         <p>In the current stage we can only show the hierarchy as it is asserted in the ontology. No automatic inference
@@ -15,8 +16,21 @@
 
     <ul>
         {% for repo, repo_detail in config['REPOSITORIES'].items() %}
-            <li>
-                Download <a class="" href="{{ url_for('admin.hierarchical_overview_download', repo=repo) }}">{{ repo }}-hierarchical.xlsx</a>
+            <li><b>{{ repo }}: </b>
+                <ul>
+                    <li>
+                        <a class="" href="{{ url_for('admin.hierarchical_overview_download', repo=repo) }}">
+                            {{ repo }}-hierarchical.xlsx
+                        </a>
+                    </li>
+                    {% for sub, data in config["SUB_ONTOLOGIES"].get(repo, {}).items() %}
+                        <li>
+                            <a href="{{ url_for('admin.hierarchical_overview_download', repo=repo, sub_ontology=sub) }}">
+                                {{ repo }}-{{ sub }}-hierarchical.xlsx
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
             </li>
         {% endfor %}
 

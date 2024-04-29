@@ -107,6 +107,7 @@
 
 <script type="text/javascript">
     console.log("start");
+    var URL_PREFIX = "{{config['URL_PREFIX']}}";
     var table; //main table
     var editOntologyTable; //for new ontology
 
@@ -361,7 +362,7 @@
                         }
                     }
                 }
-                request.open('POST', '/save_new_ontology', true);
+                request.open('POST', URL_PREFIX + '/save_new_ontology', true);
                 request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                 request.send('new_ontology=' + jsonData);
             }
@@ -425,7 +426,7 @@
                     }
                 }
             }
-            request.open('POST', '/update_ids', true);
+            request.open('POST', URL_PREFIX + '/update_ids', true);
             request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
             request.send('current_ontology=' + currentOntology + '&new_IDs=' + jsonData);
 

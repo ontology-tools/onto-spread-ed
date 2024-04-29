@@ -8,6 +8,8 @@ from injector import Module, provider
 from . import database, gh
 from .OntologyDataStore import OntologyDataStore
 from .SpreadsheetSearcher import SpreadsheetSearcher
+from .services.OntoloyBuildService import OntologyBuildService
+from .services.RobotOntologyBuildService import RobotOntologyBuildService
 
 
 class AppModule(Module):
@@ -43,3 +45,8 @@ class AppModule(Module):
     @request
     def executor(self, app: Flask) -> Executor:
         return Executor(app)
+
+    @provider
+    @request
+    def ontology_builder(self) -> OntologyBuildService:
+        return RobotOntologyBuildService()

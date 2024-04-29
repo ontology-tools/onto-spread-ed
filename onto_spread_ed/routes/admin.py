@@ -1,6 +1,6 @@
 import dataclasses
 import tempfile
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any, Callable, Dict
 
 import openpyxl
 import pyhornedowl
@@ -14,6 +14,8 @@ from werkzeug.exceptions import NotFound
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
 from ..guards.admin import verify_admin
+from ..services.OntoloyBuildService import OntologyBuildService
+from ..utils import get_spreadsheets, get_spreadsheet, letters
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
 
@@ -24,7 +26,7 @@ bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templ
 def dashboard():
     return render_template("dashboard.html",
                            login=g.user.github_login,
-                           breadcrumb=[{"name": "Admin", "path": "admin/dashboard"}])
+                           breadcrumb=[{"name": "Admin", "path": "/admin/dashboard"}])
 
 
 # Pages for the app
@@ -111,6 +113,7 @@ class Node:
     definition: str
     children: List[Self] = dataclasses.field(default_factory=list)
     parent: Optional[Self] = None
+    annotations: Dict[str, str] = dataclasses.field(default_factory=dict)
 
     def to_plain(self):
         plain_children = []
@@ -122,12 +125,20 @@ class Node:
     def height(self) -> int:
         return max((c.height() for c in self.children), default=0) + 1
 
+    def recurse(self, fn: Callable[[Self], Any]):
+        fn(self)
+        for c in self.children:
+            c.recurse(fn)
 
-def form_tree(edges: List[Tuple[Tuple[str, str, str], str]]) -> List[Node]:
+
+def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[Node]:
     all_nodes = set(n for n, _ in edges)
-    item_to_node = dict((c, Node(item=c, label=l, definition=d)) for (c, l, d) in all_nodes)
+    item_to_node = dict((c, Node(item=c, label=l if l is not None else c, definition=d)) for (c, l, d) in all_nodes)
 
     for (child, _, _), parent in edges:
+        if parent is None:
+            continue
+
         if child == parent:
             continue
 
@@ -141,41 +152,34 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], str]]) -> List[Node]:
 
 
 @bp.route("/hierarchical-overview")
-def hierarchical_overview(gh: GitHub):
-    repo = request.args.get("repo")
-
-    ontology = None
-    hierarchies = []
-
-    if repo is not None:
-        hierarchies, ontology = build_hierarchy(gh, repo)
-
+def hierarchical_overview():
     return render_template("hierarchical_overview.html",
                            breadcrumb=[
                                dict(name="Admin", path="admin/dashboard"),
                                dict(name="Hierarchical overviews", path="admin/hierarchical-overview")
-                           ],
-                           ontology=ontology,
-                           repo=repo,
-                           hierarchies=[h.to_plain() for h in hierarchies])
+                           ])
 
 
-@bp.route("/hierarchical-overview/download/<repo>")
-def hierarchical_overview_download(gh: GitHub, repo: str):
-    hierarchies, ontology = build_hierarchy(gh, repo)
+@bp.route("/hierarchical-overview/download/<repo>", defaults={"sub_ontology": None})
+@bp.route("/hierarchical-overview/download/<repo>/<sub_ontology>")
+def hierarchical_overview_download(gh: GitHub, ontology_builder: OntologyBuildService,
+                                   repo: str, sub_ontology: Optional[str] = None):
+    hierarchies, ontology = build_hierarchy(gh, ontology_builder, repo, sub_ontology)
 
     wb = openpyxl.Workbook()
     sheet: Worksheet = wb.active
 
     height = max(h.height() for h in hierarchies)
+    annotations = list({k for h in hierarchies for k in h.annotations.keys()})
 
-    sheet.append(["ID", "Label"] + [""] * (height - 1) + ["Definition"])
+    sheet.append(["ID", "Label"] + [""] * (height - 1) + ["Definition"] + annotations)
 
     def write_line(n: Node, depth: int) -> None:
         sheet.append([ontology.get_id_for_iri(n.item)] +
                      [""] * depth +
                      [n.label] + [""] * (height - depth - 1) +
-                     [n.definition])
+                     [n.definition] +
+                     [n.annotations.get(a, None) for a in annotations])
 
         for child in n.children:
             write_line(child, depth + 1)
@@ -186,20 +190,80 @@ def hierarchical_overview_download(gh: GitHub, repo: str):
     with tempfile.NamedTemporaryFile("w") as f:
         wb.save(f.name)
 
-        return send_file(f.name, download_name=f"{repo}-hierarchy.xlsx")
+        download_name = f"{repo}-hierarchy.xlsx" if sub_ontology is None else f"{repo}-{sub_ontology}-hierarchy.xlsx"
+        return send_file(f.name, download_name=download_name)
 
 
-def build_hierarchy(gh: GitHub, repo: str) -> Tuple[List[Node], pyhornedowl.PyIndexedOntology]:
-    release_file = current_app.config["RELEASE_FILES"][repo]
+def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: str,
+                    sub_ontology: Optional[str] = None) -> Tuple[List[Node], pyhornedowl.PyIndexedOntology]:
+    # Excel files to extract annotations
+    excel_files: List[str]
+    release_file: str
     full_repo = current_app.config["REPOSITORIES"][repo]
+
+    if sub_ontology is not None:
+        sub = current_app.config["SUB_ONTOLOGIES"].get(repo, dict()).get(sub_ontology, None)
+
+        if sub is None:
+            raise NotFound(f"No such sub-ontology '{sub_ontology}'")
+
+        excel_files = [sub["excel_file"]]
+        release_file = sub["release_file"]
+    else:
+        release_file = current_app.config["RELEASE_FILES"][repo]
+
+        branch = current_app.config["DEFAULT_BRANCH"][repo]
+        active_sheets = current_app.config["ACTIVE_SPREADSHEETS"][repo]
+        regex = "|".join(f"({r})" for r in active_sheets)
+
+        excel_files = get_spreadsheets(gh, full_repo, branch, include_pattern=regex)
+
     response = gh.get(f"repos/{full_repo}/contents/{release_file}",
                       headers={"Accept": "application/vnd.github.raw+json"})
+
     ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
+
+    # ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
     for p, d in current_app.config["PREFIXES"]:
         ontology.add_prefix_mapping(p, d)
     classes = [(c, ontology.get_annotation(c, "http://www.w3.org/2000/01/rdf-schema#label"),
                 ontology.get_annotation(c, "http://purl.obolibrary.org/obo/IAO_0000115")) for c in
                ontology.get_classes()]
-    child_parent = [(c, p) for c in classes for p in ontology.get_superclasses(c[0])]
+    child_parent: List[Tuple[Tuple[str, Optional[str], Optional[str]], Optional[str]]] = []
+    for c in classes:
+        for p in ontology.get_superclasses(c[0]):
+            child_parent.append((c, p))
+        else:
+            child_parent.append((c, None))
+
+    # child_parent = [(c, p) for c in classes for p in ontology.get_superclasses(c[0])]
     hierarchies = form_tree(child_parent)
+
+    # If we do not collapse (or do not import) imported ontologies a root will always contain no label
+    # We remove these roots as they only indicate where the subontology should be mounted in the overall ontology
+    hierarchies = [c for h in hierarchies for c in h.children]
+
+    for excel_file in excel_files:
+        _, rows, header = get_spreadsheet(gh, full_repo, "", excel_file)
+        data = dict((r["ID"], r) for r in rows if "ID" in r)
+
+        def annotate(n: Node):
+            id = ontology.get_id_for_iri(n.item)
+            fields = {
+                "comment": "Comment",
+                "subontology": "Sub-ontology",
+                "examples": "Examples",
+                "synonyms": "Synonyms",
+                "crossreference": "Cross reference",
+                "informaldefinition": "Informal definition",
+            }
+            for field_key, field in fields.items():
+                node_data = data.get(id, dict())
+                key = next((k for k in node_data.keys() if letters(k) == field_key), None)
+                if n.annotations.get(field, None) is None:
+                    n.annotations[field] = node_data.get(key, None)
+
+        for h in hierarchies:
+            h.recurse(annotate)
+
     return hierarchies, ontology

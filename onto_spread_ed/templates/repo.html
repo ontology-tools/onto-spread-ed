@@ -52,9 +52,9 @@
         <ul>
             {% for dir in directories if not dir.startswith('.') and dir != 'scripts' %}
                 {% if folder_path|length %}
-                    <li class="twoSlash"><a href="/repo/{{ repo_name }}/{{ folder_path }}/{{ dir }}">{{ dir }}</a></li>
+                    <li class="twoSlash"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">{{ dir }}</a></li>
                 {% else %}
-                    <li class="oneSlash"><a href="/repo/{{ repo_name }}/{{ folder_path }}{{ dir }}">{{ dir }}</a></li>
+                    <li class="oneSlash"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">{{ dir }}</a></li>
                 {% endif %}
             {% endfor %}
         </ul>
@@ -82,7 +82,7 @@
     </form>
 
     <script type="text/javascript">
-
+        var URL_PREFIX = '{{config["URL_PREFIX"]}}';
         var initials = '{{user_initials}}';
 
         //get all rows with "Show all assigned to me"
@@ -95,7 +95,7 @@
             FD.append('initials', '{{user_initials}}');
             FD.append('repoName', '{{repo_name}}');
 
-            const response = await (await fetch("/searchAssignedToMe", {
+            const response = await (await fetch(URL_PREFIX + "/searchAssignedToMe", {
                 body: FD,
                 method: "POST"
             })).json()
@@ -114,7 +114,7 @@
             const FD = new FormData(form);
             FD.append('repoName', '{{repo_name}}');
 
-            const response = await (await fetch('/search', {
+            const response = await (await fetch(URL_PREFIX + '/search', {
                 body: FD,
                 method: "POST"
             })).json()
@@ -173,7 +173,7 @@
                 var data = FD2; //todo: build data from here
                 console.log("submitted " + FD2);
                 form2.setAttribute("method", "post");
-                form2.setAttribute("action", "/openVisualiseAcrossSheets");
+                form2.setAttribute("action", URL_PREFIX + "/openVisualiseAcrossSheets");
                 form2.setAttribute("target", 'VisualisationWindow');
                 var input = document.createElement('input');
                 input.type = 'hidden';
@@ -266,7 +266,7 @@
             console.log(sheet + " " + sheet + " " + go_to_row + " " + type);
 
             jQuery.ajax({
-                url: '/direct',
+                url: URL_PREFIX + '/direct',
                 dataType: 'text',
                 type: 'POST',
                 async: 'false',
@@ -277,7 +277,7 @@
                     sheet: JSON.stringify({sheet})
                 },
                 success: function (data) {
-                    window.location.href = '/edit/' + repo + '/' + sheet;
+                    window.location.href = URL_PREFIX + '/edit/' + repo + '/' + sheet;
                 }
             });
         }
