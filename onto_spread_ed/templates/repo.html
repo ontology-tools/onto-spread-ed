@@ -50,7 +50,7 @@
     {% if directories|length > 0 %}
         <b>Folders: </b><br/>
         <ul>
-            {% for dir in directories %}
+            {% for dir in directories if not dir.startswith('.') and dir != 'scripts' %}
                 {% if folder_path|length %}
                     <li class="twoSlash"><a href="/repo/{{ repo_name }}/{{ folder_path }}/{{ dir }}">{{ dir }}</a></li>
                 {% else %}
@@ -63,7 +63,7 @@
     {% if spreadsheets|length > 0 %}
         <H5>Spreadsheets available for editing: </H5>
         <ul>
-            {% for spr in spreadsheets %}
+            {% for spr in spreadsheets if not spr.startswith('.') %}
                 <li><a href="/edit/{{ repo_name }}/{{ folder_path }}/{{ spr }}">{{ spr }}</a></li>
 
                 </p>
