@@ -18,9 +18,10 @@ def create_app(config_filename=None):
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
     app.config['CORS_HEADERS'] = 'Content-Type'
+    app.config['URL_PREFIX'] = config.URL_PREFIX
     CORS(app, resources={
-        r"/api/*": {
-            "origins": "*"
+        rf'{app.config["URL_PREFIX"]}/api/*': {
+            'origins': '*'
         }
     })
 

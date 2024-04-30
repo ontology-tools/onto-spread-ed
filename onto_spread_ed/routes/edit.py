@@ -311,13 +311,6 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
         )
 
 
-@bp.route('/keepalive', methods=['POST'])
-@verify_logged_in
-def keep_alive():
-    # print("Keep alive requested from edit screen")
-    return (json.dumps({"message": "Success"}), 200)
-
-
 # todo: use this function to compare initial spreadsheet to server version - check for updates?
 @bp.route("/checkForUpdates", methods=["POST"])
 def checkForUpdates(github: GitHub):
