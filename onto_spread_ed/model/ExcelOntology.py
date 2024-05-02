@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import os.path
 from dataclasses import dataclass, field
@@ -8,8 +9,9 @@ import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 from typing_extensions import Self
 
-from .ColumnMapping import Schema, ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
-    ParentMapping, DEFAULT_IMPORT_SCHEMA, TermMapping, PrefixColumnMapping, DEFAULT_SCHEMA
+from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
+    ParentMapping, TermMapping, PrefixColumnMapping
+from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
 from .Relation import Relation, UnresolvedRelation, OWLPropertyType
 from .Result import Result
 from .Term import Term, UnresolvedTerm
@@ -207,6 +209,9 @@ class ExcelOntology:
 
         r.value = relation
         return r
+
+    def add_term(self, term: Term):
+        self._terms.append(UnresolvedTerm(**dataclasses.asdict(term)))
 
     def add_imported_terms(self, name: str, file: Union[bytes, str, BytesIO],
                            schema: Optional[Schema] = None) -> Result[tuple]:
@@ -609,3 +614,6 @@ class ExcelOntology:
 
     def iri(self) -> str:
         return self._iri
+
+    def add_relation(self, relation: Relation):
+        self._relations.append(UnresolvedRelation(**dataclasses.asdict(relation)))
