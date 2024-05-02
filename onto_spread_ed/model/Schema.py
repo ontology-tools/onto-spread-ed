@@ -64,7 +64,6 @@ DEFAULT_MAPPINGS = [
     internal(["Why fuzzy"], "fuzzyExplanation"),
     internal(["Cross reference", "Cross-reference"], "crossReference"),
     internal(["Ontology section"], "ontologySection")
-
 ]
 DEFAULT_IGNORED_FIELDS = ["Curator", "To be reviewed by", "Reviewer query", "BFO entity", "Structure"]
 DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS, DEFAULT_IGNORED_FIELDS)
