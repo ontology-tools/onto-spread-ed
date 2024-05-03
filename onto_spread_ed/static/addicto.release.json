@@ -1,5 +1,4 @@
 {
-  "$schema": "./schema/release_script.json",
   "iri_prefix": "http://addictovocab.org/ADDICTO_",
   "short_repository_name": "AddictO",
   "full_repository_name": "b-gehrke/addiction-ontology",
@@ -21,13 +20,52 @@
   },
   "files": {
     "addicto": {
-      "sources": [],
+      "sources": [
+        {
+          "file": "inputs/AddictO_Human_behaviour_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Research_activity_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Product_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Upper level.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Human_population_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Human-being_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Organisation_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Environmental_system_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "inputs/AddictO_Intervention_Defs.xlsx",
+          "type": "classes"
+        }
+      ],
       "target": {
         "file": "addicto_with_imports.owl",
         "iri": "http://addictovocab.org/addicto_with_imports.owl",
         "ontology_annotations": {}
       },
-      "needs": []
+      "needs": [],
+      "renameTermFile": null,
+      "addParentsFile": null
     },
     "addicto_final": {
       "sources": [
@@ -43,7 +81,9 @@
           "rdfs:comment": "The Addiction Ontology (AddictO) is an ontology being developed all aspects of addiction research."
         }
       },
-      "needs": []
+      "needs": [],
+      "renameTermFile": null,
+      "addParentsFile": null
     }
   },
   "steps": [

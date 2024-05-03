@@ -38,6 +38,12 @@ class BuildReleaseStep(ReleaseStep):
                 elif s.type == "relations":
                     result += ontology.add_relations_from_excel(s.file, self._local_name(s.file))
 
+            if file.renameTermFile is not None:
+                ontology.apply_renamings(self._local_name(file.renameTermFile))
+
+            if file.addParentsFile is not None:
+                ontology.apply_new_parents(self._local_name(file.addParentsFile))
+
             result += ontology.resolve()
             self._raise_if_canceled()
 

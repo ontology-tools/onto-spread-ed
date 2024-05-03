@@ -334,6 +334,24 @@ class ExcelOntology:
 
         return result.merge(Result(()))
 
+    def apply_new_parents(self, file: str) -> None:
+        with open(file, "r") as f:
+            rows = csv.reader(f)
+            next(rows)
+
+            for row in rows:
+                # Skip potential ROBOT header
+                if row[0] == "ID" or len(row) < 3:
+                    continue
+
+                id = row[0]
+                new_parent = row[1]
+
+                term = self._term_by_id(id)
+
+                if term is not None:
+                    term.sub_class_of.append(TermIdentifier(new_parent))
+
     def apply_renamings(self, file: str, scope: Literal['self', 'import', 'all'] = 'all') -> None:
         with open(file, "r") as f:
             rows = csv.reader(f)
@@ -358,9 +376,6 @@ class ExcelOntology:
 
                     if term is not None:
                         term.label = label
-
-
-        pass
 
     def _open_excel(self, origin: str, file: Union[bytes, str, BytesIO], schema: Optional[Schema] = None) -> \
             Result[Tuple[Iterator[Iterator[Optional[str]]], List[ColumnMapping]]]:

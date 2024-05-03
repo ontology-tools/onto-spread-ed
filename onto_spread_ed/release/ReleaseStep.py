@@ -9,6 +9,7 @@ from .common import ReleaseCanceledException, local_name, set_release_info, upda
     set_release_result
 from ..database.Release import Release
 from ..model.ReleaseScript import ReleaseScript
+from ..utils import download_file
 
 
 class ReleaseStep(abc.ABC):
@@ -83,3 +84,9 @@ class ReleaseStep(abc.ABC):
 
     def _set_release_result(self, result):
         set_release_result(self._q, self._release_id, result)
+
+    def _download(self, file: str, local_name: Optional[str] = None):
+        if local_name is None:
+            local_name = self._local_name(file)
+
+        return download_file(self._gh, self._release_script.full_repository_name, file, local_name)

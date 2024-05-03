@@ -98,14 +98,28 @@
           }
         },
         "renameTermFile": {
-          "type": "string",
-          "description": "Path to a csv file containing at least two columns ID and NEW LABEL",
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Path to a csv file containing at least two columns ID and NEW LABEL",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "addParentsFile": {
-          "type": "string",
-          "description": "Path to a csv file containing at least two columns ID and NEW PARENT ID",
-          "minLength": 1
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Path to a csv file containing at least two columns ID and NEW PARENT ID",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
