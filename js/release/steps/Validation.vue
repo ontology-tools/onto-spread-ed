@@ -69,7 +69,7 @@ async function autofix(error: Diagnostic) {
   <h3>Validation</h3>
 
   <template v-if="!data || Object.keys(data).length === 1 && '__progress' in data">
-    <ProgressIndicator :release="release" :details="data">
+    <ProgressIndicator :release="release" :details="data || {}">
       All excel files are now being validated. The results will be presented here soon.
     </ProgressIndicator>
   </template>
@@ -80,16 +80,18 @@ async function autofix(error: Diagnostic) {
     </div>
     <p v-else>
       <span class="text-danger bg-danger-subtle rounded ps-1 pe-1">{{ errors?.length ?? 0 }} {{ $filters.pluralise("error", errors)}}</span> and
-      <span class="text-warning bg-warning-subtle rounded ps-1 pe-1">{{ warnings?.length ?? 0 }} {{ $filters.pluralise("warning", warnings) }}</span> were found during the validation. Please
-      fix the
-      errors and save the spreadsheets. When you fixed all errors, restart the release. If you just want to rerun the
+      <span class="text-warning bg-warning-subtle rounded ps-1 pe-1">{{ warnings?.length ?? 0 }} {{ $filters.pluralise("warning", warnings) }}</span>
+      were found during the validation. Please fix the errors and save the spreadsheets. Errors are problems which prevent
+      the release from continuing. Warnings hint at possible problems, but the release might continue without solving them.
+      When you fixed all errors, restart the release. If you just want to rerun the
       validation, restart the release as well.
     </p>
 
 
     <template v-for="source in data ? Object.keys(data) : []">
       <div v-for="error in data?.[source].errors"
-           class="alert alert-danger val val-error val-error-type-{{ error.type }} val-error-source-{{ source }}"
+           class="alert alert-danger val val-error"
+           :class="[`val-error-type-${error.type}`, `val-error-source-${source}`]"
            role="alert">
 
         <template v-if="error.type === 'invalid-value'">
@@ -104,13 +106,6 @@ async function autofix(error: Diagnostic) {
           <p>
             The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
             (<code>{{ error.term.id || 'no id' }}</code>) is not known.
-            <template v-if="!!error.term.id && !error.term.id.startsWith(shortRepoName)">
-              The term appears external. If you redefine an external entity ensure to import its
-              parent and all of its related terms as well.
-            </template>
-            <template v-else>
-              If it is an external term, ensure that it is imported correctly.
-            </template>
             <br>
 
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
@@ -137,15 +132,8 @@ async function autofix(error: Diagnostic) {
               error.term.id || ("no id")
             }}
           </code>) is neither defined in the Excel files or imported.
-            <template v-if="!!error.term.id && !error.term.id.startsWith(shortRepoName)">
-              The term appears external. If you redefine an external entity ensure to import its
-              parent and all of its related terms as well. <br>
-              If it is an external term, is missing import the entry with
-              <code>{{ error.parent.label }} [{{ error.parent.id }}]</code>.
-            </template>
-            <template v-else>
-              If it is an external term, ensure that it is imported correctly.
-            </template>
+            If it is an external term, add the missing import the entry with
+            <code>{{ error.parent.label }} [{{ error.parent.id }}]</code>.
             <br>
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
                        :term="error.term"></ErrorLink>
