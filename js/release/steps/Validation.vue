@@ -102,9 +102,9 @@ async function autofix(error: Diagnostic) {
         <template v-else-if="error.type === 'unknown-parent'">
           <h5>Unknown parent</h5>
           <p>
-            The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
-            (<code>{{ error.term.id || 'no id' }}</code>) is not known.
-            <template v-if="!!error.term.id && !error.term.id.startsWith(shortRepoName)">
+            The parent <code>{{ error.parent.label }}</code> of <code>{{ (error.term ?? error.relation).label }}</code>
+            (<code>{{ (error.term ?? error.relation).id || 'no id' }}</code>) is not known.
+            <template v-if="!!(error.term ?? error.relation).id && !(error.term ?? error.relation).id.startsWith(shortRepoName)">
               The term appears external. If you redefine an external entity ensure to import its
               parent and all of its related terms as well.
             </template>
@@ -114,7 +114,7 @@ async function autofix(error: Diagnostic) {
             <br>
 
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
-                       :term="error.term"></ErrorLink>
+                       :term="error.term ?? error.relation"></ErrorLink>
           </p>
 
           <button class="btn btn-primary"

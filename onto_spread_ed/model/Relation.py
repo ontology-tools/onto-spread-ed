@@ -51,7 +51,10 @@ class UnresolvedRelation:
     origin: Optional[Tuple[str, int]] = None
 
     def is_unresolved(self) -> bool:
-        return any(v is None for v in [self.id, self.label, self.owl_property_type, self.origin])
+        relation_values = [x for r, x in self.relations if isinstance(x, TermIdentifier)]
+        return any(v is None for v in [self.id, self.label, self.owl_property_type, self.origin]) or \
+            len(self.sub_property_of) + len(relation_values) > 0 and \
+            any(t.is_unresolved() for t in [*self.sub_property_of, *relation_values])
 
     def to_resolved(self) -> Optional[Relation]:
         if self.is_unresolved():

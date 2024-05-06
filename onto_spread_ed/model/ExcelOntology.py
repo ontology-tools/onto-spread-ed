@@ -566,18 +566,38 @@ class ExcelOntology:
                 for p in relation.sub_property_of:
                     if p.is_unresolved():
                         result.error(type="unknown-parent",
-                                     relation=relation.__dict__,
+                                     term=relation.__dict__,
                                      parent=p.__dict__)
                     else:
                         t = self._raw_term_by_id(p.id)
                         if t is None:
                             result.error(type="missing-parent",
-                                         relation=relation.__dict__,
+                                         term=relation.__dict__,
                                          parent=p.__dict__)
                         elif lower(t.curation_status()) == "obsolete":
                             result.error(type="obsolete-parent",
-                                         relation=relation.__dict__,
+                                         term=relation.__dict__,
                                          parent=p.__dict__)
+
+                for r, value in relation.relations:
+                    if isinstance(value, TermIdentifier):
+                        if value.is_unresolved():
+                            result.error(type="unknown-relation-value",
+                                         relation=r,
+                                         value=value,
+                                         term=relation.__dict__)
+                        else:
+                            t = self._raw_term_by_id(value.id)
+                            if t is None:
+                                result.error(type="missing-relation-value",
+                                             term=relation.__dict__,
+                                             relation=r,
+                                             value=value)
+                            elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) == "obsolete":
+                                result.error(type="obsolete-relation-value",
+                                             term=relation.__dict__,
+                                             relation=r,
+                                             value=value)
 
         for relation in self._used_relations:
             if relation.owl_property_type == OWLPropertyType.Internal:

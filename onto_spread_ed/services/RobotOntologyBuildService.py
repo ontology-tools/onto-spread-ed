@@ -131,7 +131,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     "type": "class",
                     "id": term.id,
                     "label": term.label,
-                    "parent class": ";".join(t.label for t in term.sub_class_of),
+                    "parent class": ";".join(t.id for t in term.sub_class_of),
                     "logical definition": ";".join(t for t in term.equivalent_to)
                 }
 
@@ -139,7 +139,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     if relation.id in internal_relations:
                         continue
 
-                    row[f"REL '{relation.label}'"] = value.label if isinstance(value, TermIdentifier) else value
+                    row[f"REL '{relation.label}'"] = value.id if isinstance(value, TermIdentifier) else value
 
                 writer.writerow(row)
 
@@ -156,7 +156,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     "type": typ,
                     "id": relation.id,
                     "label": relation.label,
-                    "parent relation": ";".join(r.label for r in relation.sub_property_of),
+                    "parent relation": ";".join(r.id for r in relation.sub_property_of),
                 }
 
                 for r, value in relation.relations:
@@ -201,12 +201,12 @@ class RobotOntologyBuildService(OntologyBuildService):
 
                 with open(catalog_file_name, "w") as f:
                     base_iri = ontology.iri()[:ontology.iri().rindex("/")]
-                    entries = "\n".join(
-                        [f'<uri id="external" name="{base_iri}/{d}" uri="{d}" />' for d in dependency_file_names])
                     f.write(f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<catalog prefer="public" xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
-    <group id="Folder Repository, directory=, recursive=true, Auto-Update=true, version=2" prefer="public" xml:base="">
-{entries}
+<catalog xmlns:xsd="https://xmlcatalogs.org/schema/1.1/catalog.xsd" prefer="public"
+    xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+    <group prefer="public" xml:base="">
+        <rewriteURI uriStartString="{base_iri}"
+            rewritePrefix="file://{tmp_dir}" />
     </group>
 </catalog>
 """)
