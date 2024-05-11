@@ -64,7 +64,7 @@
         <H5>Spreadsheets available for editing: </H5>
         <ul>
             {% for spr in spreadsheets if not spr.startswith('.') %}
-                <li><a href="/edit/{{ repo_name }}/{{ folder_path }}/{{ spr }}">{{ spr }}</a></li>
+            <li><a href="{{url_for('edit.edit', repo_key=repo_name, folder=folder_path, spreadsheet=spr)}}">{{ spr }}</a></li>
 
                 </p>
 
