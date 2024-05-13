@@ -11,9 +11,9 @@ from typing_extensions import Self
 
 from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
     ParentMapping, TermMapping, PrefixColumnMapping
-from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
 from .Relation import Relation, UnresolvedRelation, OWLPropertyType
 from .Result import Result
+from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
 from .Term import Term, UnresolvedTerm
 from .TermIdentifier import TermIdentifier
 from ..utils import str_empty, lower
@@ -469,8 +469,8 @@ class ExcelOntology:
             for relation, _ in term.relations:
                 if relation.is_unresolved():
                     used_relations = [r for r in self._used_relations if
-                                         (r.label is None or relation.label is None or relation.label == r.label) and
-                                         (r.id is None or relation.label is None or relation.label == r.label)]
+                                      (r.label is None or relation.label is None or relation.label == r.label) and
+                                      (r.id is None or relation.label is None or relation.label == r.label)]
                     for r in used_relations:
                         relation.complement(r.identifier())
 
