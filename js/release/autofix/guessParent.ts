@@ -158,11 +158,11 @@ async function multipleExternalGuesses(guesses: ParentGuess[], error: Diagnostic
 
 async function multipleInternalGuesses(guesses: ParentGuess[], error: Diagnostic, repo: string): Promise<AutoFixState> {
     const index = await promptDialog({
-        title: "Found possible parent",
+        title: `Found possible parent in ${repo}`,
         message:
-            `Found ${guesses.length} possible terms for <code>${error.parent.label}</code>. ` +
+            `Found ${guesses.length} possible terms for <code>${error.parent.label}</code> in ${repo}. ` +
             `Select the correct parent term of <code>${error.term.label}</code> (<code>${error.term.id}</code>) ` +
-            `if it is in the list.`,
+            `if it is in the list or search for external terms.`,
         inputType: "select",
         inputOptions: guesses.map((g, i) => ({value: i.toString(), text: `${g.term.label} (${g.term.id})`})),
         buttons: {

@@ -1,126 +1,235 @@
 {
-  "$schema": "schema/release_script.json",
   "iri_prefix": "http://humanbehaviourchange.org/ontology/",
-  "full_repository_name": "HumanBehaviourChangeProject/ontologies",
   "short_repository_name": "BCIO",
-  "prefixes": {
-    "BCIOR": "http://humanbehaviourchange.org/ontology/BCIOR_",
-    "BCIO": "http://humanbehaviourchange.org/ontology/BCIO_",
-    "ADDICTO": "http://addictovocab.org/ADDICTO_"
-  },
+  "full_repository_name": "b-gehrke/ontologies",
   "external": {
+    "sources": [
+      {
+        "file": "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx",
+        "type": "classes"
+      }
+    ],
     "target": {
       "file": "Upper Level BCIO/bcio_external.owl",
-      "iri": "http://humanbehaviourchange.org/ontology/bcio_external.owl"
+      "iri": "http://humanbehaviourchange.org/ontology/bcio_external.owl",
+      "ontology_annotations": {}
     },
-    "sources": [
-      "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx"
-    ]
+    "needs": []
   },
   "files": {
-    "upper": {
-      "target": {
-        "file": "Upper Level BCIO/bcio_upper_level.owl",
-        "iri": "http://humanbehaviourchange.org/ontology/bcio_upper.owl"
-      },
+    "bcio": {
       "sources": [
-        "Upper Level BCIO/inputs/BCIO_Upper_Defs.xlsx",
         {
-          "type": "relations",
-          "file": "Upper Level BCIO/inputs/BCIO_Upper_Rels.xlsx"
+          "file": "Setting/bcio_setting.owl",
+          "type": "owl"
+        },
+        {
+          "file": "ModeOfDelivery/bcio_mode_of_delivery.owl",
+          "type": "owl"
+        },
+        {
+          "file": "Source/bcio_source.owl",
+          "type": "owl"
+        },
+        {
+          "file": "MechanismOfAction/bcio_moa.owl",
+          "type": "owl"
+        },
+        {
+          "file": "Behaviour/bcio_behaviour.owl",
+          "type": "owl"
+        },
+        {
+          "file": "BehaviourChangeTechniques/bcto.owl",
+          "type": "owl"
+        },
+        {
+          "file": "StyleOfDelivery/bcio_style.owl",
+          "type": "owl"
         }
-      ]
-    },
-    "bcio_setting": {
-      "sources": [
-        "Setting/bcio_setting.xlsx"
       ],
-      "target": "Setting/bcio_setting.owl",
-      "needs": [
-        "upper"
-      ]
+      "target": {
+        "file": "Upper Level BCIO/bcio.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio.owl",
+        "ontology_annotations": {
+          "dc:title": "Behaviour Change Intervention Ontology",
+          "rdfs:comment": "The Behaviour Change Intervention Ontology (BCIO) is an ontology for all aspects of human behaviour change interventions and their evaluation. It is being developed as a part of the Human Behaviour Change Project (http://www.humanbehaviourchange.org). The BCIO is developed across several modules. This ontology file contains the merged version of the BCIO, encompassing the upper level and the modules for Setting, Mode of Delivery, Style of Delivery, Source, Mechanisms of Action, Behaviour and Behaviour Change Techniques. Additional modules will be added soon."
+        }
+      },
+      "needs": []
     },
-    "bcio_mode_of_delivery": {
+    "bcio_behaviour": {
       "sources": [
-        "ModeOfDelivery/bcio_mode_of_delivery.xlsx"
+        {
+          "file": "Behaviour/bcio_behaviour.xlsx",
+          "type": "classes"
+        }
       ],
-      "target": "ModeOfDelivery/bcio_mode_of_delivery.owl",
-      "needs": [
-        "upper"
-      ]
-    },
-    "bcio_source": {
-      "sources": [
-        "Source/bcio_source.xlsx"
-      ],
-      "target": "Source/bcio_source.owl",
+      "target": {
+        "file": "Behaviour/bcio_behaviour.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_behaviour.owl",
+        "ontology_annotations": {}
+      },
       "needs": [
         "upper"
       ]
     },
     "bcio_moa": {
       "sources": [
-        "MechanismOfAction/bcio_moa.xlsx"
+        {
+          "file": "MechanismOfAction/bcio_moa.xlsx",
+          "type": "classes"
+        }
       ],
-      "target": "MechanismOfAction/bcio_moa.owl",
+      "target": {
+        "file": "MechanismOfAction/bcio_moa.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_moa.owl",
+        "ontology_annotations": {}
+      },
       "needs": [
         "upper"
       ]
     },
-    "bcio_behaviour": {
+    "bcio_mode_of_delivery": {
       "sources": [
-        "Behaviour/bcio_behaviour.xlsx"
+        {
+          "file": "ModeOfDelivery/bcio_mode_of_delivery.xlsx",
+          "type": "classes"
+        }
       ],
-      "target": "Behaviour/bcio_behaviour.owl",
+      "target": {
+        "file": "ModeOfDelivery/bcio_mode_of_delivery.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_mode_of_delivery.owl",
+        "ontology_annotations": {}
+      },
       "needs": [
         "upper"
       ]
     },
-    "bcto": {
+    "bcio_population": {
       "sources": [
-        "BehaviourChangeTechniques/bcto.xlsx"
+        {
+          "file": "Population/BCIO_Population_Expanded.xlsx",
+          "type": "classes"
+        }
       ],
-      "target": "BehaviourChangeTechniques/bcto.owl",
+      "target": {
+        "file": "Population/bcio_population.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_population.owl",
+        "ontology_annotations": {}
+      },
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio_setting": {
+      "sources": [
+        {
+          "file": "Setting/bcio_setting.xlsx",
+          "type": "classes"
+        }
+      ],
+      "target": {
+        "file": "Setting/bcio_setting.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_setting.owl",
+        "ontology_annotations": {}
+      },
+      "needs": [
+        "upper"
+      ]
+    },
+    "bcio_source": {
+      "sources": [
+        {
+          "file": "Source/bcio_source.xlsx",
+          "type": "classes"
+        }
+      ],
+      "target": {
+        "file": "Source/bcio_source.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_source.owl",
+        "ontology_annotations": {}
+      },
       "needs": [
         "upper"
       ]
     },
     "bcio_style": {
       "sources": [
-        "StyleOfDelivery/bcio_style.xlsx"
+        {
+          "file": "StyleOfDelivery/bcio_style.xlsx",
+          "type": "classes"
+        }
       ],
-      "target": "StyleOfDelivery/bcio_style.owl",
+      "target": {
+        "file": "StyleOfDelivery/bcio_style.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_style.owl",
+        "ontology_annotations": {}
+      },
       "needs": [
         "upper"
       ]
     },
-    "bcio": {
+    "bcto": {
       "sources": [
-        "Setting/bcio_setting.owl",
-        "ModeOfDelivery/bcio_mode_of_delivery.owl",
-        "Source/bcio_source.owl",
-        "MechanismOfAction/bcio_moa.owl",
-        "Behaviour/bcio_behaviour.owl",
-        "BehaviourChangeTechniques/bcto.owl",
-        "StyleOfDelivery/bcio_style.owl"
+        {
+          "file": "BehaviourChangeTechniques/bcto.xlsx",
+          "type": "classes"
+        }
       ],
       "target": {
-        "file": "Upper Level BCIO/bcio.owl",
-        "iri": "http://humanbehaviourchange.org/ontology/bcio.owl",
-        "ontology_annotations": {
-          "rdfs:comment": "The Behaviour Change Intervention Ontology (BCIO) is an ontology for all aspects of human behaviour change interventions and their evaluation. It is being developed as a part of the Human Behaviour Change Project (http://www.humanbehaviourchange.org). The BCIO is developed across several modules. This ontology file contains the merged version of the BCIO, encompassing the upper level and the modules for Setting, Mode of Delivery, Style of Delivery, Source, Mechanisms of Action, Behaviour and Behaviour Change Techniques. Additional modules will be added soon.",
-          "dc:title": "Behaviour Change Intervention Ontology"
+        "file": "BehaviourChangeTechniques/bcto.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcto.owl",
+        "ontology_annotations": {}
+      },
+      "needs": [
+        "upper"
+      ]
+    },
+    "upper": {
+      "sources": [
+        {
+          "file": "Upper Level BCIO/inputs/BCIO_Upper_Defs.xlsx",
+          "type": "classes"
+        },
+        {
+          "file": "Upper Level BCIO/inputs/BCIO_Upper_Rels.xlsx",
+          "type": "relations"
         }
-      }
+      ],
+      "target": {
+        "file": "Upper Level BCIO/bcio_upper_level.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_upper.owl",
+        "ontology_annotations": {}
+      },
+      "needs": []
     }
   },
   "steps": [
-    "PREPARATION",
-    "VALIDATION",
-    "IMPORT_EXTERNAL",
-    "BUILD",
-    "MERGE",
-    "HUMAN_VERIFICATION",
+    {
+      "name": "PREPARATION",
+      "args": {}
+    },
+    {
+      "name": "IMPORT_EXTERNAL",
+      "args": {}
+    },
+    {
+      "name": "VALIDATION",
+      "args": {}
+    },
+    {
+      "name": "BUILD",
+      "args": {}
+    },
+    {
+      "name": "MERGE",
+      "args": {}
+    },
+    {
+      "name": "HUMAN_VERIFICATION",
+      "args": {}
+    },
     {
       "name": "BCIO_SEARCH",
       "args": {
@@ -136,6 +245,14 @@
         ]
       }
     },
-    "GITHUB_PUBLISH"
-  ]
+    {
+      "name": "GITHUB_PUBLISH",
+      "args": {}
+    }
+  ],
+  "prefixes": {
+    "ADDICTO": "http://addictovocab.org/ADDICTO_",
+    "BCIO": "http://humanbehaviourchange.org/ontology/BCIO_",
+    "BCIOR": "http://humanbehaviourchange.org/ontology/BCIOR_"
+  }
 }
