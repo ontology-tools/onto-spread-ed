@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import os.path
 from dataclasses import dataclass, field
@@ -8,10 +9,11 @@ import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
 from typing_extensions import Self
 
-from .ColumnMapping import Schema, ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
-    ParentMapping, DEFAULT_IMPORT_SCHEMA, TermMapping, PrefixColumnMapping, DEFAULT_SCHEMA
+from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
+    ParentMapping, TermMapping, PrefixColumnMapping
 from .Relation import Relation, UnresolvedRelation, OWLPropertyType
 from .Result import Result
+from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
 from .Term import Term, UnresolvedTerm
 from .TermIdentifier import TermIdentifier
 from ..utils import str_empty, lower
@@ -96,7 +98,9 @@ class ExcelOntology:
                 continue
 
             kind = col.get_kind()
-            if kind == ColumnMappingKind.ID:
+            if kind == ColumnMappingKind.IGNORE:
+                pass
+            elif kind == ColumnMappingKind.ID:
                 term.id = col.get_value(val)
             elif kind == ColumnMappingKind.DISJOINT_WITH:
                 term.disjoint_with += col.get_value(val)
@@ -109,7 +113,6 @@ class ExcelOntology:
             # TODO: SYNONYMS field
             elif isinstance(col, ParentMapping):
                 term.sub_class_of.append(col.get_value(val))
-
             elif col not in unprocessable_columns:
                 r.warning(column=col.get_name(),
                           type="unprocessable-column",
@@ -187,7 +190,7 @@ class ExcelOntology:
             elif isinstance(col, LabelMapping):
                 relation.label = col.get_value(val)
             elif kind == ColumnMappingKind.EQUIVALENT_TO:
-                relation.synonyms.append(col.get_value(val))
+                relation.equivalent_relations += col.get_value(val)
             elif isinstance(col, ParentMapping):
                 relation.sub_property_of.append(col.get_value(val))
             elif kind == ColumnMappingKind.DOMAIN:
@@ -207,6 +210,9 @@ class ExcelOntology:
 
         r.value = relation
         return r
+
+    def add_term(self, term: Term):
+        self._terms.append(UnresolvedTerm(**dataclasses.asdict(term)))
 
     def add_imported_terms(self, name: str, file: Union[bytes, str, BytesIO],
                            schema: Optional[Schema] = None) -> Result[tuple]:
@@ -427,6 +433,18 @@ class ExcelOntology:
 
                     sub.complement(m)
 
+            for er in relation.equivalent_relations:
+                matching_terms = [t for t in (self._terms + imported) if
+                                  (er.label is not None and er.label == t.label or
+                                   er.id is not None and er.id == t.id)]
+
+                for m in matching_terms:
+                    if self._obsolete_handling != "ignore" and isinstance(m, UnresolvedTerm) and lower(
+                            m.curation_status()) == "obsolete":
+                        continue
+
+                    er.complement(m)
+
         replacements: List[Tuple[UnresolvedRelation, UnresolvedRelation]] = []
         for relation in self._used_relations:
             if relation.is_unresolved():
@@ -446,6 +464,15 @@ class ExcelOntology:
         for old, new in replacements:
             self._used_relations.remove(old)
             self._used_relations.add(new)
+
+        for term in self._terms:
+            for relation, _ in term.relations:
+                if relation.is_unresolved():
+                    used_relations = [r for r in self._used_relations if
+                                      (r.label is None or relation.label is None or relation.label == r.label) and
+                                      (r.id is None or relation.label is None or relation.label == r.label)]
+                    for r in used_relations:
+                        relation.complement(r.identifier())
 
         return result
 
@@ -543,7 +570,7 @@ class ExcelOntology:
                             result.error(type="missing-domain",
                                          relation=relation.__dict__,
                                          domain=relation.domain.__dict__)
-                        elif lower(t.curation_status()) == "obsolete":
+                        elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) == "obsolete":
                             result.error(type="obsolete-domain",
                                          relation=relation.__dict__,
                                          domain=relation.domain.__dict__)
@@ -553,12 +580,12 @@ class ExcelOntology:
                         result.error(type="unknown-range",
                                      relation=relation.__dict__)
                     else:
-                        t = self._raw_term_by_id(relation.domain.id)
+                        t = self._raw_term_by_id(relation.range.id)
                         if t is None:
                             result.error(type="missing-range",
                                          relation=relation.__dict__,
                                          range=relation.range.__dict__)
-                        elif lower(t.curation_status()) == "obsolete":
+                        elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) == "obsolete":
                             result.error(type="obsolete-domain",
                                          relation=relation.__dict__,
                                          range=relation.range.__dict__)
@@ -574,7 +601,7 @@ class ExcelOntology:
                             result.error(type="missing-parent",
                                          term=relation.__dict__,
                                          parent=p.__dict__)
-                        elif lower(t.curation_status()) == "obsolete":
+                        elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) == "obsolete":
                             result.error(type="obsolete-parent",
                                          term=relation.__dict__,
                                          parent=p.__dict__)
@@ -629,3 +656,6 @@ class ExcelOntology:
 
     def iri(self) -> str:
         return self._iri
+
+    def add_relation(self, relation: Relation):
+        self._relations.append(UnresolvedRelation(**dataclasses.asdict(relation)))

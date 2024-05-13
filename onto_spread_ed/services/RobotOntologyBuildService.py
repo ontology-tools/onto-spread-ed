@@ -109,7 +109,10 @@ class RobotOntologyBuildService(OntologyBuildService):
                 ("label", "LABEL"),
                 ("parent class", "SC % SPLIT=;"),
                 ("parent relation", "SP % SPLIT=;"),
-                ("logical definition", "EC %")
+                ("logical definition", "EC %"),
+                ("domain", "DOMAIN"),
+                ("range", "RANGE"),
+                ("equivalent relationship", "EP % SPLIT=;")
             ]
 
             for relation in ontology.used_relations():
@@ -157,6 +160,9 @@ class RobotOntologyBuildService(OntologyBuildService):
                     "id": relation.id,
                     "label": relation.label,
                     "parent relation": ";".join(r.id for r in relation.sub_property_of),
+                    "domain":  relation.domain.id if relation.domain is not None else None,
+                    "range":  relation.range.id if relation.range is not None else None,
+                    "equivalent relationship": ";".join(p.id for p in relation.equivalent_relations)
                 }
 
                 for r, value in relation.relations:

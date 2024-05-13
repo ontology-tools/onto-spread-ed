@@ -73,7 +73,13 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["PDRO", "http://purl.obolibrary.org/obo/PDRO_"],
             ["GAZ", "http://purl.obolibrary.org/obo/GAZ_"],
             ["GSSO", "http://purl.obolibrary.org/obo/GSSO_"],
-            ["GO", "http://purl.obolibrary.org/obo/GO_"]
+            ["GO", "http://purl.obolibrary.org/obo/GO_"],
+            ["EFO", "http://www.ebi.ac.uk/efo/EFO_"],
+            ["PR", "http://purl.obolibrary.org/obo/PR_"],
+            ["STATO", "http://purl.obolibrary.org/obo/STATO_"],
+            ["OMIABIS", "http://purl.obolibrary.org/obo/OMIABIS_"],
+            ["OPMI", "http://purl.obolibrary.org/obo/OPMI_"],
+            ["CMO", "http://purl.obolibrary.org/obo/CMO_"]
             ]
 # Spreadsheets that should be included in the index and by default selected to be included in the release
 ACTIVE_SPREADSHEETS = {

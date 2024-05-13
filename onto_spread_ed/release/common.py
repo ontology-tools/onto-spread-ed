@@ -49,6 +49,12 @@ def order_sources(files: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, Releas
     queue: List[Tuple[str, ReleaseScriptFile]] = []
     files: List[Tuple[str, ReleaseScriptFile]] = list(files.items())
     seen: Set[int] = set()
+
+    for k, file in files:
+        unknown_dependencies = [n for n in file.needs if n not in (x for x, _ in files)]
+        if any(unknown_dependencies):
+            raise ValueError(f"Unknown dependencies '{', '.join(unknown_dependencies)}' for '{k}'")
+
     while len(files) > 0:
         (k, file) = files.pop(0)
         if all(s.type == "owl" for s in file.sources):
