@@ -21,7 +21,7 @@ class OWLPropertyType(enum.Enum):
 class Relation:
     id: str
     label: str
-    synonyms: List[str]
+    equivalent_relations: List[TermIdentifier]
     relations: List[Tuple[TermIdentifier, Any]]
     owl_property_type: OWLPropertyType
     sub_property_of: List[TermIdentifier]
@@ -40,7 +40,7 @@ class Relation:
 class UnresolvedRelation:
     id: Optional[str] = None
     label: Optional[str] = None
-    synonyms: List[str] = field(default_factory=list)
+    equivalent_relations: List[TermIdentifier] = field(default_factory=list)
     relations: List[Tuple[TermIdentifier, Any]] = field(default_factory=list)
 
     sub_property_of: List[TermIdentifier] = field(default_factory=list)
@@ -53,8 +53,10 @@ class UnresolvedRelation:
     def is_unresolved(self) -> bool:
         relation_values = [x for r, x in self.relations if isinstance(x, TermIdentifier)]
         return any(v is None for v in [self.id, self.label, self.owl_property_type, self.origin]) or \
-            len(self.sub_property_of) + len(relation_values) > 0 and \
-            any(t.is_unresolved() for t in [*self.sub_property_of, *relation_values])
+            self.domain is not None and self.domain.is_unresolved() or \
+            self.range is not None and self.range.is_unresolved() or \
+            len(self.sub_property_of) + len(relation_values) + len(self.equivalent_relations) > 0 and \
+            any(t.is_unresolved() for t in [*self.sub_property_of, *relation_values, *self.equivalent_relations])
 
     def to_resolved(self) -> Optional[Relation]:
         if self.is_unresolved():
@@ -75,7 +77,7 @@ class UnresolvedRelation:
         fields = [
             self.id,
             self.label,
-            sum(map(hash, self.synonyms)),
+            sum(map(hash, self.equivalent_relations)),
             sum(map(hash, self.relations)),
             sum(map(hash, self.sub_property_of)),
             self.owl_property_type,
