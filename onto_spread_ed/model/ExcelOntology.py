@@ -98,7 +98,9 @@ class ExcelOntology:
                 continue
 
             kind = col.get_kind()
-            if kind == ColumnMappingKind.ID:
+            if kind == ColumnMappingKind.IGNORE:
+                pass
+            elif kind == ColumnMappingKind.ID:
                 term.id = col.get_value(val)
             elif kind == ColumnMappingKind.DISJOINT_WITH:
                 term.disjoint_with += col.get_value(val)
@@ -111,7 +113,6 @@ class ExcelOntology:
             # TODO: SYNONYMS field
             elif isinstance(col, ParentMapping):
                 term.sub_class_of.append(col.get_value(val))
-
             elif col not in unprocessable_columns:
                 r.warning(column=col.get_name(),
                           type="unprocessable-column",

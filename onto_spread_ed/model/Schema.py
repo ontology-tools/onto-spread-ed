@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from .ColumnMapping import ColumnMappingFactory, ColumnMapping, simple, \
     ColumnMappingKind, singleton, LabelMapping, ParentMapping, ManchesterSyntaxMapping, TermMapping, \
-    ChoiceColumnMapping, relation, relation_pattern, internal, PrefixColumnMapping
+    ChoiceColumnMapping, relation, relation_pattern, internal, PrefixColumnMapping, ignore
 from .Relation import OWLPropertyType
 from .TermIdentifier import TermIdentifier
 
@@ -30,6 +30,8 @@ class Schema:
 
 
 DEFAULT_MAPPINGS = [
+    ignore("REL 'aggregate of'"),
+    ignore("Aggregate"),
     simple(["ID", "BCIO_ID"], ColumnMappingKind.ID),
     simple(["Domain"], ColumnMappingKind.DOMAIN),
     simple(["Range"], ColumnMappingKind.RANGE),
@@ -62,6 +64,7 @@ DEFAULT_MAPPINGS = [
     internal(["Why fuzzy"], "fuzzyExplanation"),
     internal(["Cross reference", "Cross-reference"], "crossReference"),
     internal(["Ontology section"], "ontologySection")
+
 ]
 DEFAULT_IGNORED_FIELDS = ["Curator", "To be reviewed by", "Reviewer query", "BFO entity", "Structure"]
 DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS, DEFAULT_IGNORED_FIELDS)

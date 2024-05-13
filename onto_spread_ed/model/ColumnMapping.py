@@ -9,6 +9,7 @@ from .TermIdentifier import TermIdentifier
 
 
 class ColumnMappingKind(enum.Enum):
+    IGNORE = 16
     RELATION_TYPE = 15
     PREFIX = 14
     PLAIN = 13
@@ -257,6 +258,12 @@ def relation(excel_name: List[str], relation: TermIdentifier, name: Optional[str
 
 def internal(excel_names: List[str], name: str, split: Optional[str] = None) -> ColumnMappingFactory:
     return relation(excel_names, TermIdentifier(id=None, label=name), name, split, OWLPropertyType.Internal)
+
+
+def ignore(excel_name: str) -> ColumnMappingFactory:
+    def _ignore(*args, **kwargs):
+        return SimpleColumnMapping(ColumnMappingKind.IGNORE, excel_name)
+    return singleton([excel_name], _ignore)
 
 
 def relation_pattern(pattern: Union[str, re.Pattern],
