@@ -106,6 +106,22 @@
         "upper"
       ]
     },
+    "bcio_population": {
+      "sources": [
+        {
+          "file": "Population/BCIO_Population_Expanded.xlsx",
+          "type": "classes"
+        }
+      ],
+      "target": {
+        "file": "Population/bcio_population.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_population.owl",
+        "ontology_annotations": {}
+      },
+      "needs": [
+        "upper"
+      ]
+    },
     "bcio_setting": {
       "sources": [
         {
