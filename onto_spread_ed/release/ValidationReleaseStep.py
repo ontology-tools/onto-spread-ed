@@ -62,7 +62,7 @@ class ValidationReleaseStep(ReleaseStep):
                         id=id,
                         label=label,
                         origin=("<external>", -1),
-                        synonyms=[],
+                        equivalent_relations=[],
                         relations=[],
                         owl_property_type=OWLPropertyType.ObjectProperty,
                         sub_property_of=[],

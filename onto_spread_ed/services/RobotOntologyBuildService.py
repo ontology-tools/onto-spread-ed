@@ -161,7 +161,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     "label": relation.label,
                     "parent relation": ";".join(r.id for r in relation.sub_property_of),
                     "domain":  relation.domain.id if relation.domain is not None else None,
-                    "range":  relation.range.id if relation.domain is not None else None,
+                    "range":  relation.range.id if relation.range is not None else None,
                     "equivalent relationship": ";".join(p.id for p in relation.equivalent_relations)
                 }
 

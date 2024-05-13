@@ -579,7 +579,7 @@ class ExcelOntology:
                         result.error(type="unknown-range",
                                      relation=relation.__dict__)
                     else:
-                        t = self._raw_term_by_id(relation.domain.id)
+                        t = self._raw_term_by_id(relation.range.id)
                         if t is None:
                             result.error(type="missing-range",
                                          relation=relation.__dict__,

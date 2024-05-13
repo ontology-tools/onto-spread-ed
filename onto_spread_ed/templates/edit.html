@@ -1074,7 +1074,7 @@
         } else if (headers[i] == "Parent") {
             //  columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocomplete", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
-        } else if (headers[i].includes("REL")) {
+        } else if (headers[i].includes("REL")  || headers[i] === "Domain" || headers[i] === "Range") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "autocompleteREL", editorParams: { values: suggestValuesArray, freetext: true, allowEmpty: true, elementAttributes: { formatter: "textarea" }, }, editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else {
             columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "textarea", editable: true, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
@@ -1294,7 +1294,8 @@
                         }
                     }
                 }
-                if (column.getDefinition().title.toLowerCase().replace(/\s+/g, '').includes("rel")) {
+                const columnTitle = column.getDefinition().title.toLowerCase().replace(/\s+/g, '');
+                if (columnTitle.includes("rel") || columnTitle === "domain" || columnTitle === "range") {
                     //console.log("REL column");
 
                     for (v in suggestValuesArray) {
@@ -1733,15 +1734,7 @@
                     $('#visualise-sheet-multiselect').show();
                 }
             }
-
-            //update highlighting
-            if (data[curation_status] === undefined) { //for tables without curation_status
-
-            } else {
-                if (data[curation_status] !== null) {
-                    rowColours(row, data);
-                }
-            }
+            rowColours(row, data);
 
 
 
@@ -1834,39 +1827,40 @@
     });
 
     function rowColours(row, data) {
-        if (!row.isSelected()) {
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
-                row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+        if(data[curation_status] !== undefined && data[curation_status] !== null) {
+            if (!row.isSelected()) {
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(discussed.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'moccasin'; //apply css change to row element
+                }
+                // change all "Ready" to "Published":
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
+                    data[curation_status] = "Published";
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
+                }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
+                }
+            } else {
+                row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
             }
-            // change all "Ready" to "Published":
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(ready.toLowerCase()) !== -1) {
-                data[curation_status] = "Published";
-            }
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
-                row.getElement().style.backgroundColor = 'white'; //apply css change to row element
-            }
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
-                row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
-            }
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
-                row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
-            }
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
-                row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
-            }
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
-                row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
-            }
-            if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
-                row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
-            }
-        } else {
-            row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
         }
 
         if(navigateToRow === row.getIndex()) {
             row.getElement().style.boxShadow = "inset 0 0 10px 5px #ffcb00"
-            console.log("styled", row)
         }
     }
     //below recommended for Firefox in particular by Tabulator issue responseText
