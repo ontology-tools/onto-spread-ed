@@ -50,7 +50,7 @@
     {% if directories|length > 0 %}
         <b>Folders: </b><br/>
         <ul>
-            {% for dir in directories %}
+            {% for dir in directories if not dir.startswith('.') and dir != 'scripts' %}
                 {% if folder_path|length %}
                     <li class="twoSlash"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">{{ dir }}</a></li>
                 {% else %}
@@ -63,8 +63,8 @@
     {% if spreadsheets|length > 0 %}
         <H5>Spreadsheets available for editing: </H5>
         <ul>
-            {% for spr in spreadsheets %}
-                <li><a href="{{url_for('edit.edit', repo_key=repo_name, folder=folder_path, spreadsheet=spr)}}">{{ spr }}</a></li>
+            {% for spr in spreadsheets if not spr.startswith('.') %}
+            <li><a href="{{url_for('edit.edit', repo_key=repo_name, folder=folder_path, spreadsheet=spr)}}">{{ spr }}</a></li>
 
                 </p>
 
