@@ -2,8 +2,9 @@ import csv
 import logging
 import os
 import subprocess
+from functools import reduce
 from multiprocessing import Pool
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, Union, Tuple
 
 from .OntoloyBuildService import OntologyBuildService
 from ..model.ExcelOntology import ExcelOntology, OntologyImport
@@ -25,19 +26,33 @@ class RobotOntologyBuildService(OntologyBuildService):
         download_path = os.path.join("/", "tmp", "onto-ed-release", "robot-download-cache")
         # download_path = os.path.join(tmp_dir, "robot-download-cache")
         os.makedirs(download_path, exist_ok=True)
+        result = Result()
         with Pool(4) as p:
-            p.starmap(self._download_ontology, [(x, download_path) for x in imports])
-            p.starmap(self._extract_slim_ontology, [(x, download_path) for x in imports])
+            results = p.starmap(self._download_ontology, [(x, download_path) for x in imports])
+            result = reduce(lambda a, b: a + b, results, result)
 
-        return self._merge_imported_ontologies(iri, outfile, main_ontology_name, download_path, imports)
+            if result.has_errors():
+                return result
 
-    def _download_ontology(self, imp: OntologyImport, download_path: str) -> None:
+            results = p.starmap(self._extract_slim_ontology, [(x, download_path) for x in imports])
+            result = reduce(lambda a, b: a + b, results, result)
+
+            if result.has_errors():
+                return result
+
+        result += self._merge_imported_ontologies(iri, outfile, main_ontology_name, download_path, imports)
+
+        return result
+
+    def _download_ontology(self, imp: OntologyImport, download_path: str) -> Result[Union[str, Tuple]]:
         out = os.path.join(download_path, imp.id + ".owl")
         if not os.path.exists(out):
             get_ontology_cmd = f'curl -L "{imp.purl}" > {out}'
-            self._execute_command(get_ontology_cmd, shell_flag=True)
+            return self._execute_command(get_ontology_cmd, shell_flag=True)
 
-    def _extract_slim_ontology(self, imp: OntologyImport, download_path: str) -> None:
+        return Result(())
+
+    def _extract_slim_ontology(self, imp: OntologyImport, download_path: str) -> Result[Union[str, Tuple]]:
         filename = os.path.join(download_path, imp.id + ".slim.owl")
         slim_cmd = ['robot', 'merge',
                     '--input', f'"{os.path.join(download_path, imp.id + ".owl")}"',
@@ -62,11 +77,13 @@ class RobotOntologyBuildService(OntologyBuildService):
                 if c is not None and len(c) >= 1:
                     cache = c[0]
                     if cache.strip() == slim_cmd.strip():
-                        return
+                        return Result(())
 
-        self._execute_command(slim_cmd, shell_flag=True)
-        with open(filename + ".cache", "w") as f:
-            f.writelines([slim_cmd])
+        result = self._execute_command(slim_cmd, shell_flag=True)
+        if result.ok():
+            with open(filename + ".cache", "w") as f:
+                f.writelines([slim_cmd])
+        return result
 
     def _merge_imported_ontologies(self, merged_iri: str, merged_file: str, main_ontology_name: str, download_path: str,
                                    imports: List[OntologyImport]) -> Result[str]:
@@ -160,8 +177,8 @@ class RobotOntologyBuildService(OntologyBuildService):
                     "id": relation.id,
                     "label": relation.label,
                     "parent relation": ";".join(r.id for r in relation.sub_property_of),
-                    "domain":  relation.domain.id if relation.domain is not None else None,
-                    "range":  relation.range.id if relation.range is not None else None,
+                    "domain": relation.domain.id if relation.domain is not None else None,
+                    "range": relation.range.id if relation.range is not None else None,
                     "equivalent relationship": ";".join(p.id for p in relation.equivalent_relations)
                 }
 
@@ -181,15 +198,14 @@ class RobotOntologyBuildService(OntologyBuildService):
             # A bit of hacking to deal appropriately with external dependency files:
             if dependency_files is not None:
                 dependency_file_name = os.path.join(tmp_dir, "imports.owl")
-                catalog_file_name = os.path.join(tmp_dir, "catalog-v001.xml")
                 # with NamedTemporaryFile("w", suffix="import.owl") as dependency_f:
                 with open(dependency_file_name, "w") as dependency_f:
 
                     # Allow multiple dependencies. These will become OWL imports.
                     dependency_file_names = dependency_files
-                    dependency_f.write("""<?xml version=\"1.0\"?>
+                    dependency_f.write(f"""<?xml version="1.0"?>
         <rdf:RDF xmlns="http://www.semanticweb.org/ontologies/temporary#"
-            xml:base="http://www.semanticweb.org/ontologies/temporary"
+            xml:base="{tmp_dir}/"
             xmlns:dc="http://purl.org/dc/elements/1.1/"
             xmlns:obo="http://purl.obolibrary.org/obo/"
             xmlns:owl="http://www.w3.org/2002/07/owl#"
@@ -198,26 +214,14 @@ class RobotOntologyBuildService(OntologyBuildService):
             xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
             xmlns:foaf="http://xmlns.com/foaf/0.1/"
             xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
-            <owl:Ontology rdf:about=\"""" + ontology.iri() + "\">\n")
+            <owl:Ontology rdf:about="http://www.semanticweb.org/ontologies/temporary/{ontology.iri().split('/')[-1]}">\n""")
 
                     for d in dependency_file_names:
                         dependency_f.write(
-                            f"<owl:imports rdf:resource=\"{ontology.iri()[:ontology.iri().rindex('/')]}/{d}\"/> \n")
+                            f"<owl:imports rdf:resource=\"./{d}\"/> \n")
                     dependency_f.write(" </owl:Ontology> \n</rdf:RDF> ")
 
-                with open(catalog_file_name, "w") as f:
-                    base_iri = ontology.iri()[:ontology.iri().rindex("/")]
-                    f.write(f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<catalog xmlns:xsd="https://xmlcatalogs.org/schema/1.1/catalog.xsd" prefer="public"
-    xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
-    <group prefer="public" xml:base="">
-        <rewriteURI uriStartString="{base_iri}"
-            rewritePrefix="file://{tmp_dir}" />
-    </group>
-</catalog>
-""")
-                template_command.extend(['--catalog', catalog_file_name,
-                                         '--input', dependency_f.name,
+                template_command.extend(['--input', dependency_f.name,
                                          "--merge-before",
                                          "--collapse-import-closure", "false"])
 
