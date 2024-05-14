@@ -7,6 +7,8 @@ export interface ParentGuess {
     kind: "internal" | "external"
 }
 
+declare var URL_PREFIX: { [key: string]: any }
+const prefix_url = URL_PREFIX.prefix
 
 async function guessInternal(_: Term, repo: string, defined_parent?: TermIdentifier): Promise<ParentGuess[] | null> {
     if (!defined_parent || !defined_parent.label) {
@@ -14,7 +16,7 @@ async function guessInternal(_: Term, repo: string, defined_parent?: TermIdentif
     }
 
     try {
-        const response = await fetch(`/api/search/${repo}?` + new URLSearchParams({
+        const response = await fetch(`${prefix_url}/api/search/${repo}?` + new URLSearchParams({
             label: defined_parent.label
         }))
 
@@ -34,7 +36,7 @@ async function guessInternal(_: Term, repo: string, defined_parent?: TermIdentif
 
 async function guessExternal(term: Term, _: string, defined_parent?: TermIdentifier): Promise<ParentGuess[] | null> {
     try {
-        const response = await fetch(`/api/external/guess-parent`, {
+        const response = await fetch(`${prefix_url}/api/external/guess-parent`, {
             method: "post",
             body: JSON.stringify({
                 term: {
@@ -83,7 +85,7 @@ async function singleExternalGuess(error: Diagnostic, repo: string, guess: Paren
 
     if (result) {
         try {
-            const response = await fetch(`/api/external/${repo}/import`, {
+            const response = await fetch(`${prefix_url}/api/external/${repo}/import`, {
                 method: "post",
                 body: JSON.stringify({
                     terms: [{id: parent.id, label: parent.label}],
@@ -128,7 +130,7 @@ async function multipleExternalGuesses(guesses: ParentGuess[], error: Diagnostic
         const guess = guesses[+index]
         const parent = guess.term;
         try {
-            const response = await fetch(`/api/external/${repo}/import`, {
+            const response = await fetch(`${prefix_url}/api/external/${repo}/import`, {
                 method: "post",
                 body: JSON.stringify({
                     terms: [{
@@ -179,7 +181,7 @@ async function multipleInternalGuesses(guesses: ParentGuess[], error: Diagnostic
         const guess = guesses[+index]
         const parent = guess.term;
         try {
-            const response = await fetch(`/api/edit/${repo}/${error.term.origin[0]}`, {
+            const response = await fetch(`${prefix_url}/api/edit/${repo}/${error.term.origin[0]}`, {
                 method: "PATCH",
                 body: JSON.stringify({
                     term: {

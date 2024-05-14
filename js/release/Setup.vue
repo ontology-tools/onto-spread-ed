@@ -5,6 +5,8 @@ import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
 
 const showAdvanced = ref<boolean>()
 const releaseScript: Ref<ReleaseScript | null> = ref(null);
+declare var URL_PREFIX: { [key: string]: any }
+const prefix_url = URL_PREFIX.prefix
 
 const saving = ref<"idle" | "saving" | "error" | "success">("idle")
 
@@ -25,9 +27,9 @@ watch(props, (value, oldValue) => value.repo !== oldValue.repo && update())
 async function update() {
   if (props.repo) {
     releaseScript.value = null
-    releaseScript.value = await (await fetch(`/api/release/${props.repo}/release_script`)).json()
+    releaseScript.value = await (await fetch(`${prefix_url}/api/release/${props.repo}/release_script`)).json()
 
-    const releases: Release[] = await (await fetch(`/api/release/${props.repo}`)).json()
+    const releases: Release[] = await (await fetch(`${prefix_url}/api/release/${props.repo}`)).json()
     releases.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
     lastReleases.value = releases
   }
@@ -45,7 +47,7 @@ async function saveFile($event: MouseEvent) {
   saving.value = "saving"
 
   try {
-    const response = await fetch(`/api/release/${props.repo}/release_script`, {
+    const response = await fetch(`${prefix_url}/api/release/${props.repo}/release_script`, {
       method: "PUT",
       headers: {
         'Content-Type': "application/json"

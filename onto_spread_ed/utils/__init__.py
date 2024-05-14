@@ -9,3 +9,7 @@ def str_empty(value: typing.Optional[str]) -> bool:
 
 def lower(string: typing.Optional[str]) -> typing.Optional[str]:
     return string.lower() if string is not None else None
+
+
+def letters(string: typing.Optional[str]) -> typing.Optional[str]:
+    return string.strip().replace(" ", "").replace("-", "").lower() if string is not None else None
