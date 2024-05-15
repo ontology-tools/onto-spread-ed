@@ -75,7 +75,7 @@ class ReleaseScript:
             "external": data.get("external"),
             "files": data.get("files"),
             "prefixes": data.get("prefixes", dict()),
-            "steps": data.get("steps"),
+            "steps": data.get("steps")
         }
 
         fields["external"] = ReleaseScriptFile.from_json(fields["external"], fields["iri_prefix"])

@@ -1,4 +1,3 @@
-import csv
 import dataclasses
 import csv
 import dataclasses
@@ -14,7 +13,6 @@ from typing_extensions import Self
 
 from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
     ParentMapping, TermMapping, PrefixColumnMapping
-from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
 from .Relation import Relation, UnresolvedRelation, OWLPropertyType
 from .Result import Result
 from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
