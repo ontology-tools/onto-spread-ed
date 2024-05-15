@@ -12,6 +12,8 @@ from ..model.Relation import OWLPropertyType
 from ..model.Result import Result
 from ..model.TermIdentifier import TermIdentifier
 
+ROBOT = os.environ.get("ROBOT", "robot")
+
 
 class RobotOntologyBuildService(OntologyBuildService):
     _logger = logging.getLogger(__name__)
@@ -54,7 +56,7 @@ class RobotOntologyBuildService(OntologyBuildService):
 
     def _extract_slim_ontology(self, imp: OntologyImport, download_path: str) -> Result[Union[str, Tuple]]:
         filename = os.path.join(download_path, imp.id + ".slim.owl")
-        slim_cmd = ['robot', 'merge',
+        slim_cmd = [ROBOT, 'merge',
                     '--input', f'"{os.path.join(download_path, imp.id + ".owl")}"',
                     'extract', '--method', 'MIREOT',
                     '--annotate-with-source', 'true',
@@ -97,7 +99,7 @@ class RobotOntologyBuildService(OntologyBuildService):
         :return:
         """
         # Now merge all the imports into a single file
-        merge_cmd = ['robot', 'merge']
+        merge_cmd = [ROBOT, 'merge']
 
         for imp in imports:
             merge_cmd.append('--input')
@@ -187,7 +189,7 @@ class RobotOntologyBuildService(OntologyBuildService):
 
                 writer.writerow(row)
 
-            template_command: List[str] = ["robot", 'template', '--template', csv_file.name]
+            template_command: List[str] = [ROBOT, 'template', '--template', csv_file.name]
             for prefix, definition in prefixes.items():
                 template_command.append('--prefix')
                 template_command.append(f'"{prefix}: {definition}"')
@@ -229,7 +231,7 @@ class RobotOntologyBuildService(OntologyBuildService):
 
     def merge_ontologies(self, ontologies: List[str], outfile: str, iri: str, version_iri: str,
                          annotations: Dict[str, str]) -> Result[Any]:
-        command = ["robot", "merge"]
+        command = [ROBOT, "merge"]
         command += [f'"{s}"' for o in ontologies for s in ["--input", o]]
         command += ["annotate"]
         command += [f'"{s}"' for k, v in annotations.items() for s in ["--annotation", k, v]]
@@ -259,4 +261,4 @@ class RobotOntologyBuildService(OntologyBuildService):
         return result
 
     def collapse_imports(self, file: str) -> Result[Any]:
-        return self._execute_command(f'robot merge --input "{file}" --output "{file}" -c true')
+        return self._execute_command(f'{ROBOT} merge --input "{file}" --output "{file}" -c true')
