@@ -44,6 +44,16 @@ def download_file(github: GitHub, repository_name: str, spreadsheet: str, outpat
         f.write(decoded_data)
 
 
+def get_file(github: GitHub, repository_name: str, spreadsheet: str) -> bytes:
+    response = github.get(
+        f'repos/{repository_name}/contents/{spreadsheet}',
+        headers={
+            "Accept": "application/vnd.github.raw+json"
+        }
+    )
+    return response.content
+
+
 def get_spreadsheet(github: GitHub,
                     repository_name: str,
                     folder: str,

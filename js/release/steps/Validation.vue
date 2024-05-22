@@ -5,6 +5,9 @@ import ErrorLink from "../ErrorLink.vue";
 import {guessParent} from "../autofix/guessParent.ts"
 import ProgressIndicator from "../ProgressIndicator.vue";
 
+declare var URLS: { [key: string]: any }
+const prefix_url = URLS.prefix
+
 const props = defineProps<{
   data: {
     [K: string]: {
@@ -51,9 +54,28 @@ async function autofix(error: Diagnostic) {
     return
   }
 
+  const repo = props.release.release_script.short_repository_name;
   autoFixStates.value[id] = "loading"
   if (error.type === "unknown-parent") {
-    autoFixStates.value[id] = await guessParent(error, props.release.release_script.short_repository_name)
+    autoFixStates.value[id] = await guessParent(error, repo)
+  } else if (error.type === "missing-import") {
+    try {
+      const response = await fetch(`${prefix_url}/api/external/${repo}/import`, {
+        method: "post",
+        body: JSON.stringify({
+          terms: [{id: error.term.id, label: error.term.label}],
+          ontologyId: error.term.id.split(":")[0]
+        }),
+        headers: {"Content-Type": "application/json"}
+      })
+
+      if (response.ok) {
+        autoFixStates.value[id] = "fixed"
+      }
+    } catch (e) {
+      autoFixStates.value[id] = "impossible"
+      console.error(e)
+    }
   } else {
     autoFixStates.value[id] = "impossible"
   }
@@ -79,10 +101,16 @@ async function autofix(error: Diagnostic) {
       Good work! All files are valid. The release process will continue.
     </div>
     <p v-else>
-      <span class="text-danger bg-danger-subtle rounded ps-1 pe-1">{{ errors?.length ?? 0 }} {{ $filters.pluralise("error", errors)}}</span> and
-      <span class="text-warning bg-warning-subtle rounded ps-1 pe-1">{{ warnings?.length ?? 0 }} {{ $filters.pluralise("warning", warnings) }}</span>
-      were found during the validation. Please fix the errors and save the spreadsheets. Errors are problems which prevent
-      the release from continuing. Warnings hint at possible problems, but the release might continue without solving them.
+      <span class="text-danger bg-danger-subtle rounded ps-1 pe-1">{{
+          errors?.length ?? 0
+        }} {{ $filters.pluralise("error", errors) }}</span> and
+      <span class="text-warning bg-warning-subtle rounded ps-1 pe-1">{{
+          warnings?.length ?? 0
+        }} {{ $filters.pluralise("warning", warnings) }}</span>
+      were found during the validation. Please fix the errors and save the spreadsheets. Errors are problems which
+      prevent
+      the release from continuing. Warnings hint at possible problems, but the release might continue without solving
+      them.
       When you fixed all errors, restart the release. If you just want to rerun the
       validation, restart the release as well.
     </p>
@@ -113,6 +141,7 @@ async function autofix(error: Diagnostic) {
           </p>
 
           <button class="btn btn-primary"
+                  v-if="release.release_script.short_repository_name.toLowerCase() !== 'addicto'"
                   :class="{'btn-success': autoFixState(error) === 'fixed', 'btn-danger': autoFixState(error) === 'impossible'}"
                   @click="autofix(error)">
             <i class="fa fa-spin fa-spinner" v-if="autoFixState(error) === 'loading'"></i>
@@ -139,11 +168,11 @@ async function autofix(error: Diagnostic) {
                        :term="error.term"></ErrorLink>
           </p>
         </template>
-        <template v-else-if="error.type === 'obsolete-parent'">
-          <h5>Obsolete parent</h5>
+        <template v-else-if="error.type === 'ignored-parent'">
+          <h5>{{ error.status }} parent</h5>
           <p>
             The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
-            (<code>{{ error.term.id ?? 'no id' }}</code>) is obsolete.<br>
+            (<code>{{ error.term.id ?? 'no id' }}</code>) is {{ error.status.toLowerCase() }}.<br>
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
                        :term="error.term"></ErrorLink>
           </p>
@@ -156,11 +185,10 @@ async function autofix(error: Diagnostic) {
                        :term="error.term"></ErrorLink>
           </p>
         </template>
-        <template v-else-if="error.type === 'unknown-label'">
-          <h5>Unknown label</h5>
+        <template v-else-if="error.type === 'missing-id'">
+          <h5>Term has no ID</h5>
           <p>
-            The term <code>{{ error.term.label }}</code> could not be resolved. Ensure it has an ID and
-            if it is external ensure it is imported properly. <br>
+            The term <code>{{ error.term.label }}</code> has no ID but is also not obsolete or pre-proposed. <br>
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
                        :term="error.term"></ErrorLink>
           </p>
@@ -198,6 +226,16 @@ async function autofix(error: Diagnostic) {
                        :term="error.term"></ErrorLink>
           </p>
         </template>
+        <template v-else-if="error.type === 'ignored-relation-value'">
+
+          <h5>{{ error.status }} value for relation <code>{{ error.relation.label }}</code></h5>
+          <p>
+            Related term <code>{{ error.value.label }}</code> of <code>{{ error.term.label }}</code>
+            (<code>{{ error.term.id ?? 'no id' }}</code>) is {{ error.status.toLowerCase() }}.<br>
+            <ErrorLink :short_repository_name="shortRepoName" :error="error"
+                       :term="error.term"></ErrorLink>
+          </p>
+        </template>
         <template v-else-if="error.type === 'unknown-range'">
           <h5>Unknown range</h5>
           <p>
@@ -227,19 +265,50 @@ async function autofix(error: Diagnostic) {
             The relation
 
             <template v-if="error.relation.label">
-              <code >{{ error.relation.label }}</code>
+              <code>{{ error.relation.label }}</code>
               <template v-if="error.relation.id">
-                (<code>{{error.relation.id}}</code>)
+                (<code>{{ error.relation.id }}</code>)
               </template>
             </template>
             <template v-else-if="error.relation.id">
-              <code>{{error.relation.id}}</code>
+              <code>{{ error.relation.id }}</code>
             </template>
 
             is not known.<br>
             <ErrorLink :short_repository_name="shortRepoName" :error="error"
                        :term="error.relation"></ErrorLink>
           </p>
+        </template>
+        <template v-else-if="error.type === 'duplicate'">
+          <h5>Conflicting entries (duplicates)</h5>
+          <p>
+            There are multiple terms for the {{ error.duplicate_field }} <code>{{ error.duplicate_value }}</code>:
+          </p>
+          <ul>
+            <li v-for="mismatch in error.mismatches">
+              <p>
+                <span style="text-transform: capitalize">{{ mismatch.field }}</span> is
+                <code v-if="['definition', 'curation status'].indexOf(mismatch.field) >= 0">
+                  {{
+                    mismatch.a.relations.find(x => x[0]?.label?.endsWith(mismatch.field))?.[1]
+                  }}
+                </code>
+                <code v-else>{{ mismatch.a[mismatch.field] }}</code>
+                <br>
+                <ErrorLink :short_repository_name="shortRepoName" :term="mismatch.a"></ErrorLink>
+                <br>
+                and
+                <code v-if="['definition', 'curation status'].indexOf(mismatch.field) >= 0">
+                  {{
+                    mismatch.b.relations.find(x => x[0]?.label?.endsWith(mismatch.field))?.[1]
+                  }}
+                </code>
+                <code v-else>{{ mismatch.b[mismatch.field] }}</code>
+                <br>
+                <ErrorLink :short_repository_name="shortRepoName" :term="mismatch.b"></ErrorLink>
+              </p>
+            </li>
+          </ul>
         </template>
         <template v-else>
           <h5>{{ error.type.replace("-", " ") }}</h5>
@@ -266,27 +335,30 @@ async function autofix(error: Diagnostic) {
             <ErrorLink :short_repository_name="shortRepoName" :error="warning"></ErrorLink>
           </p>
         </template>
-        <template v-else-if="warning.type === 'duplicate-term'">
-          <h5>Duplicate terms</h5>
-          <p>
-            The term <code>{{ warning.duplicates[0].label }}</code>
-            (<code>{{ warning.duplicates[0].id }}</code>) is defined in multiple places:<br>
-          </p>
-          <ul>
-            <li v-for="d in warning.duplicates">
-              <ErrorLink :short_repository_name="release.release_script.short_repository_name"
-                         :term="d">
-                <code>{{ d.origin[0] }}</code>
-              </ErrorLink>
-            </li>
-          </ul>
-        </template>
         <template v-else-if="warning.type === 'unknown-column'">
           <h5>Unmapped column</h5>
           <p>
             The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped
             to any OWL property or internal field.
           </p>
+        </template>
+        <template v-else-if="warning.type === 'missing-import'">
+          <h5>Missing import</h5>
+          <p>
+            The term <code>{{ warning.term.label }}</code> (<code>{{ warning.term.id }}</code>) has the curation status
+            "External" but is not included in the externally imported terms.<br>
+
+            <ErrorLink :short_repository_name="shortRepoName" :error="warning" :term="warning.term"></ErrorLink>
+          </p>
+
+          <button class="btn btn-primary"
+                  :class="{'btn-success': autoFixState(warning) === 'fixed', 'btn-danger': autoFixState(warning) === 'impossible'}"
+                  @click="autofix(warning)">
+            <i class="fa fa-spin fa-spinner" v-if="autoFixState(warning) === 'loading'"></i>
+            <i class="fa fa-check" v-if="autoFixState(warning) === 'fixed'"></i>
+            <i class="fa fa-close" v-if="autoFixState(warning) === 'impossible'"></i>
+            Import
+          </button>
         </template>
         <template v-else>
           <h5>{{ warning.type.replace("-", " ") }}</h5>
@@ -295,6 +367,7 @@ async function autofix(error: Diagnostic) {
 
             <ErrorLink :short_repository_name="shortRepoName" :error="warning"></ErrorLink>
           </p>
+          <pre>{{ JSON.stringify(warning, undefined, 2) }}</pre>
         </template>
       </div>
     </template>

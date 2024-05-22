@@ -94,7 +94,7 @@ ACTIVE_SPREADSHEETS = {
         r"Upper Level BCIO/inputs/.*\.xlsx"
     ],
     "AddictO": [
-        r".*\.xlsx"
+        r"inputs/.*\.xlsx"
     ],
     "GMHO": [
         "Non-GMHO entities mapped to LSRs/Non-GMHO entities mapped to LSRs.xlsx",
@@ -194,7 +194,7 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "ksoar": {"initials": "KS", "repositories": ["AddictO"]},
                   "CaitlinNotley702": {"initials": "CN", "repositories": ["AddictO"]},
                   "CaitlinNotley": {"initials": "CN", "repositories": ["AddictO"]},
-                  "alisonjwright": {"initials": "AW", "repositories": ["BCIO", "AddictO"]},
+                  "alisonjwright": {"initials": "AW", "repositories": ["BCIO", "AddictO"], "admin": True},
                   "zcbtelh": {"initials": "EH", "repositories": ["BCIO"]},
                   "candicemooreucl": {"initials": "CM", "repositories": ["BCIO"]},
                   "oscarcastroserrano": {"initials": "OC", "repositories": ["BCIO"]},
@@ -209,3 +209,19 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"
+
+SCRIPTS={
+    "set-pre-proposed-curation-status": {
+        "title": "Set 'Pre-proposed' state",
+        "module": "scripts.set-pre-proposed-curation-status",
+        "function": "main",
+        "arguments": [
+            {
+                "name": "repo",
+                "description": "Which repository should the script be executed?",
+                "type": "string",
+                "default": "AddictO"
+            }
+        ]
+    }
+}

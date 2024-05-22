@@ -8,6 +8,7 @@ from ..model.ExcelOntology import ExcelOntology
 from ..model.Relation import Relation, OWLPropertyType
 from ..model.Result import Result
 from ..model.Term import Term
+from ..utils import lower
 
 
 class ValidationReleaseStep(ReleaseStep):

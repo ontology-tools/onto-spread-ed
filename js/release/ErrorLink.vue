@@ -4,13 +4,17 @@ import {Diagnostic, Term} from "./model.ts";
 import {computed} from "vue";
 
 const props = defineProps<{
+  short_repository_name: string,
   error?: Diagnostic,
-  term?: Term,
-  short_repository_name: string
+  term: Term
+} | {
+  short_repository_name: string,
+  error: Diagnostic,
+  term?: Term
 }>()
-declare var URL_PREFIX: { [key: string]: any }
-const item = computed(() => !!props.term ? props.term : props.error)
-const prefix_url = URL_PREFIX.prefix
+declare var URLS: { [key: string]: any }
+const item = computed(() => (!!props.term ? props.term : props.error)!)
+const prefix_url = URLS.prefix
 </script>
 
 <template>
@@ -20,8 +24,9 @@ const prefix_url = URL_PREFIX.prefix
       <slot>
         <i>
           at <b>{{ item.origin[0] }}</b>
-          <template v-if="'row' in error"> row <b>{{ error['row'] }}</b></template>
-          <template v-if="'column' in error"> column <b>{{ error.column }}</b></template>
+          <template v-if="error && 'row' in error"> row <b>{{ error['row'] }}</b></template>
+          <template v-if="error && 'column' in error"> column <b>{{ error.column }}</b></template>
+          <template v-if="!error && item.origin[1] >= 0"> row <b>{{ item.origin[1] }}</b></template>
         </i>
       </slot>
     </a>

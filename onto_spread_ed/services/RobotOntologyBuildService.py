@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import logging
 import os
 import subprocess
@@ -13,6 +14,12 @@ from ..model.Result import Result
 from ..model.TermIdentifier import TermIdentifier
 
 ROBOT = os.environ.get("ROBOT", "robot")
+
+
+def _import_id(imp: OntologyImport):
+    h = hashlib.sha256()
+    h.update(imp.purl.encode())
+    return h.hexdigest()
 
 
 class RobotOntologyBuildService(OntologyBuildService):
@@ -30,11 +37,19 @@ class RobotOntologyBuildService(OntologyBuildService):
         os.makedirs(download_path, exist_ok=True)
         result = Result()
         with Pool(4) as p:
-            results = p.starmap(self._download_ontology, [(x, download_path) for x in imports])
+            results = p.starmap(self._download_ontology, {(x.purl, _import_id(x), download_path) for x in imports})
             result = reduce(lambda a, b: a + b, results, result)
 
             if result.has_errors():
                 return result
+
+            for imp in imports:
+                src = os.path.join(download_path, _import_id(imp) + ".owl")
+                dst = os.path.join(download_path, imp.id + ".owl")
+                if os.path.exists(dst):
+                    os.unlink(dst)
+
+                os.link(src, dst)
 
             results = p.starmap(self._extract_slim_ontology, [(x, download_path) for x in imports])
             result = reduce(lambda a, b: a + b, results, result)
@@ -46,10 +61,10 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return result
 
-    def _download_ontology(self, imp: OntologyImport, download_path: str) -> Result[Union[str, Tuple]]:
-        out = os.path.join(download_path, imp.id + ".owl")
+    def _download_ontology(self, purl: str, name: str, download_path: str) -> Result[Union[str, Tuple]]:
+        out = os.path.join(download_path, name + ".owl")
         if not os.path.exists(out):
-            get_ontology_cmd = f'curl -L "{imp.purl}" > {out}'
+            get_ontology_cmd = f'curl -L "{purl}" > {out}'
             return self._execute_command(get_ontology_cmd, shell_flag=True)
 
         return Result(())

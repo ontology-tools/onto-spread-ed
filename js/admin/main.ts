@@ -1,11 +1,10 @@
 import {createApp} from "vue";
-import Release from "./Release.vue";
+import Dashboard from "./Dashboard.vue";
 import {$filters} from "../common/filter";
 
 
-const app = createApp(Release)
-
+const app = createApp(Dashboard)
 
 app.config.globalProperties.$filters = $filters
 
-app.mount("#vue-app-release")
+app.mount("#vue-app-dashboard")

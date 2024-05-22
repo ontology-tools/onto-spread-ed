@@ -7,8 +7,8 @@ export interface ParentGuess {
     kind: "internal" | "external"
 }
 
-declare var URL_PREFIX: { [key: string]: any }
-const prefix_url = URL_PREFIX.prefix
+declare var URLS: { [key: string]: any }
+const prefix_url = URLS.prefix
 
 async function guessInternal(_: Term, repo: string, defined_parent?: TermIdentifier): Promise<ParentGuess[] | null> {
     if (!defined_parent || !defined_parent.label) {
@@ -34,7 +34,7 @@ async function guessInternal(_: Term, repo: string, defined_parent?: TermIdentif
     return null
 }
 
-async function guessExternal(term: Term, _: string, defined_parent?: TermIdentifier): Promise<ParentGuess[] | null> {
+export async function guessExternal(term: Term, _: string, defined_parent?: TermIdentifier): Promise<ParentGuess[] | null> {
     try {
         const response = await fetch(`${prefix_url}/api/external/guess-parent`, {
             method: "post",

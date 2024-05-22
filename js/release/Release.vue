@@ -1,6 +1,6 @@
 <script setup lang="ts">
 declare var SERVER_DATA: { [key: string]: any }
-declare var URL_PREFIX: { [key: string]: any }
+declare var URLS: { [key: string]: any }
 
 import {computed, onMounted, ref, watch} from "vue";
 import {Diagnostic, Release, ReleaseScript} from "./model.ts";
@@ -15,7 +15,7 @@ import GithubPublish from "./steps/GithubPublish.vue";
 import BCIOSearch from "./steps/BCIOSearch.vue";
 
 const repo = SERVER_DATA.repo
-const prefix_url = URL_PREFIX.prefix
+const prefix_url = URLS.prefix
 const release = ref<Release | null>(null);
 
 const loading = ref<boolean>(false)

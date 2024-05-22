@@ -5,8 +5,8 @@ import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
 
 const showAdvanced = ref<boolean>()
 const releaseScript: Ref<ReleaseScript | null> = ref(null);
-declare var URL_PREFIX: { [key: string]: any }
-const prefix_url = URL_PREFIX.prefix
+declare var URLS: { [key: string]: any }
+const prefix_url = URLS.prefix
 
 const saving = ref<"idle" | "saving" | "error" | "success">("idle")
 

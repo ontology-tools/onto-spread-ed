@@ -32,6 +32,7 @@ class Schema:
 DEFAULT_MAPPINGS = [
     ignore("REL 'aggregate of'"),
     ignore("Aggregate"),
+    ignore("Type"),
     simple(["ID", "BCIO_ID"], ColumnMappingKind.ID),
     simple(["Domain"], ColumnMappingKind.DOMAIN),
     simple(["Range"], ColumnMappingKind.RANGE),
@@ -63,7 +64,9 @@ DEFAULT_MAPPINGS = [
     internal(["Fuzzy set"], "fuzzySet"),
     internal(["Why fuzzy"], "fuzzyExplanation"),
     internal(["Cross reference", "Cross-reference"], "crossReference"),
-    internal(["Ontology section"], "ontologySection")
+    internal(["Ontology section"], "ontologySection"),
+    internal(["E-CigO"], "eCigO"),
+    internal(["AO sub-ontology"], "addictoSubOntology")
 ]
 DEFAULT_IGNORED_FIELDS = ["Curator", "To be reviewed by", "Reviewer query", "BFO entity", "Structure"]
 DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS, DEFAULT_IGNORED_FIELDS)

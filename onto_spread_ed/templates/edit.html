@@ -223,6 +223,7 @@
     var published = "Published";
     var obsolete = "Obsolete";
     var external = "External";
+    const preproposed = "Pre-proposed"
 
     //whyFuzzy
     var why_Fuzzy = "Why fuzzy";//column name
@@ -1063,7 +1064,7 @@
     for (var i = 0; i < headerLength; i++) {
         //Dropdown list for "Curation status":
         if (headers[i] == "Curation status") {
-            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
+            columnData.push({ title: headers[i], field: headers[i], sorter: "string", editor: "select", editable: true, editorParams: { values: ["Pre-proposed", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"] }, headerFilter: "input", width: "200", formatter: "textarea", headerMenu: headerMenu });
         } else if (headers[i] == "E-CigO") {
             columnData.push({ title: headers[i], field: headers[i], sorter: "boolean", hozAlign: "center", editor: true, formatter: "tickCross", headerFilter: true, width: "140", headerMenu: headerMenu });
         } else if (headers[i] == "Fuzzy set") {
@@ -1837,23 +1838,27 @@
                     data[curation_status] = "Published";
                 }
                 if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(proposed.toLowerCase()) !== -1) {
-                    row.getElement().style.backgroundColor = 'white'; //apply css change to row element
+                    row.getElement().style.backgroundColor = '#FFFFFF'; //apply css change to row element
                 }
                 if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(toBeDiscussed.toLowerCase()) !== -1) {
-                    row.getElement().style.backgroundColor = 'palegoldenrod'; //apply css change to row element
+                    row.getElement().style.backgroundColor = '#eee8aa'; //apply css change to row element
                 }
                 if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(inDiscussion.toLowerCase()) !== -1) {
-                    row.getElement().style.backgroundColor = 'lemonchiffon'; //apply css change to row element
+                    row.getElement().style.backgroundColor = '#fffacd'; //apply css change to row element
                 }
                 if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(published.toLowerCase()) !== -1) {
-                    row.getElement().style.backgroundColor = 'aquamarine'; //apply css change to row element
+                    row.getElement().style.backgroundColor = '#7fffd4'; //apply css change to row element
                 }
                 if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(obsolete.toLowerCase()) !== -1) {
-                    row.getElement().style.backgroundColor = 'darkslategrey'; //apply css change to row element
+                    row.getElement().style.backgroundColor = '#2f4f4f'; //apply css change to row element
                 }
                 if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(external.toLowerCase()) !== -1) {
-                    row.getElement().style.backgroundColor = 'lightgrey'; //apply css change to row element
+                    row.getElement().style.backgroundColor = '#D3D3D3'; //apply css change to row element
                 }
+                if (data[curation_status].toLowerCase().replace(/\s+/g, '').indexOf(preproposed.toLowerCase()) !== -1) {
+                    row.getElement().style.backgroundColor = '#ebfad0'; //apply css change to row element
+                }
+
             } else {
                 row.getElement().style.backgroundColor = 'grey'; //replaced select highlighting here!
             }
