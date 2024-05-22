@@ -47,7 +47,7 @@ jobs:
           npm run build
       - name: Build deploy package
         run: >
-          tar -czf onto-ed.tar.gz app.py requirements.txt migrations onto_spread_ed
+          tar -czf onto-ed.tar.gz app.py requirements.txt migrations onto_spread_ed scripts
       - uses: actions/upload-artifact@v3
         with:
           name: app
