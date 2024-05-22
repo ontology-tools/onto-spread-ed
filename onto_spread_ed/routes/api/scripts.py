@@ -3,7 +3,7 @@ import sys
 import traceback
 
 from flask import Blueprint, current_app, jsonify, request
-from injector import Injector
+from injector import Injector, inject
 
 from onto_spread_ed.guards.admin import verify_admin
 
@@ -45,7 +45,7 @@ def run_script(injector: Injector, name: str):
 
             kwargs = dict((s['name'], a) for s, a in zip(script['arguments'], args))
 
-            result = injector.call_with_injection(callable=fn, kwargs=kwargs)
+            result = injector.call_with_injection(callable=inject(fn), kwargs=kwargs)
 
             return jsonify({
                 "success": True,
