@@ -9,6 +9,9 @@ export interface ReleaseScriptFile {
         iri: string;
         ontology_annotations: { [K: string]: string };
     };
+    addParentsFile: string | null;
+    renameTermFile: string | null;
+
 }
 
 export interface ReleaseScript {

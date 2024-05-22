@@ -18,7 +18,7 @@
       "type": "object",
       "properties": {
         "sources": {
-          "anyOf": [
+          "oneOf": [
             {
               "type": "string",
               "minLength": 1
@@ -26,7 +26,7 @@
             {
               "type": "array",
               "items": {
-                "anyOf": [
+                "oneOf": [
                   {
                     "type": "string",
                     "minLength": 1
@@ -96,6 +96,30 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "renameTermFile": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Path to a csv file containing at least two columns ID and NEW LABEL",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "addParentsFile": {
+          "anyOf": [
+            {
+              "type": "string",
+              "description": "Path to a csv file containing at least two columns ID and NEW PARENT ID",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -107,6 +131,9 @@
   "description": "Release script schema",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string"
+    },
     "external": {
       "$ref": "#/definitions/file"
     },

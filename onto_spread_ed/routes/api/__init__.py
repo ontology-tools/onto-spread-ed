@@ -4,6 +4,7 @@ from .repos import bp as repos
 from .external import bp as external
 from .search import bp as search
 from .edit import bp as edit
+from .scripts import bp as scripts
 
 blueprints = [
     release,
@@ -11,5 +12,6 @@ blueprints = [
     repos,
     external,
     search,
-    edit
+    edit,
+    scripts
 ]

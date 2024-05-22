@@ -153,6 +153,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="98fb98", fill_type="solid")
                     elif row[header.index("Curation status")] == "Proposed":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="ffffff", fill_type="solid")
+                    elif row[header.index("Curation status")] == "Pre-proposed":
+                        sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="ebfad0", fill_type="solid")
                     elif row[header.index("Curation status")] == "To Be Discussed":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="eee8aa", fill_type="solid")
                     elif row[header.index("Curation status")] == "In Discussion":

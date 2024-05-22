@@ -20,6 +20,14 @@ class _TermBase(abc.ABC):
         """
         return next((v.strip() for r, v in self.relations if r.id == "IAO:0000114"), None)
 
+    def definition(self) -> typing.Optional[str]:
+        """
+        Convenience function to retrieve the value of the annotation property 'has curation status' (IAO:0000114)
+
+        :return: The curation status if defined.
+        """
+        return next((v.strip() for r, v in self.relations if r.id == "IAO:0000115"), None)
+
     def synonyms(self) -> List[str]:
         """
         Convenience function to retrieve the values of the annotation property 'alternative label' (IAO:0000118)
@@ -60,10 +68,10 @@ class _TermBase(abc.ABC):
             self.id,
             self.label,
             self.origin,
-            sorted(self.sub_class_of),
-            sorted(self.equivalent_to),
-            sorted(self.disjoint_with),
-            sorted(self.relations)
+            sum(hash(y) for y in self.sub_class_of),
+            sum(hash(y) for y in self.equivalent_to),
+            sum(hash(y) for y in self.disjoint_with),
+            sum(hash(y) for y in self.relations)
         ])
 
 
@@ -118,3 +126,6 @@ class UnresolvedTerm(_TermBase):
                 self.__dict__[k] = other.__dict__[k]
             elif other.__dict__[k] is not None and isinstance(other.__dict__[k], list):
                 self.__dict__[k] += other.__dict__[k]
+
+    def __hash__(self):
+        return super().__hash__()

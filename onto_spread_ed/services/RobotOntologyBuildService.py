@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import logging
 import os
 import subprocess
@@ -13,6 +14,12 @@ from ..model.Result import Result
 from ..model.TermIdentifier import TermIdentifier
 
 ROBOT = os.environ.get("ROBOT", "robot")
+
+
+def _import_id(imp: OntologyImport):
+    h = hashlib.sha256()
+    h.update(imp.purl.encode())
+    return h.hexdigest()
 
 
 class RobotOntologyBuildService(OntologyBuildService):
@@ -30,11 +37,19 @@ class RobotOntologyBuildService(OntologyBuildService):
         os.makedirs(download_path, exist_ok=True)
         result = Result()
         with Pool(4) as p:
-            results = p.starmap(self._download_ontology, [(x, download_path) for x in imports])
+            results = p.starmap(self._download_ontology, {(x.purl, _import_id(x), download_path) for x in imports})
             result = reduce(lambda a, b: a + b, results, result)
 
             if result.has_errors():
                 return result
+
+            for imp in imports:
+                src = os.path.join(download_path, _import_id(imp) + ".owl")
+                dst = os.path.join(download_path, imp.id + ".owl")
+                if os.path.exists(dst):
+                    os.unlink(dst)
+
+                os.link(src, dst)
 
             results = p.starmap(self._extract_slim_ontology, [(x, download_path) for x in imports])
             result = reduce(lambda a, b: a + b, results, result)
@@ -46,10 +61,10 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return result
 
-    def _download_ontology(self, imp: OntologyImport, download_path: str) -> Result[Union[str, Tuple]]:
-        out = os.path.join(download_path, imp.id + ".owl")
+    def _download_ontology(self, purl: str, name: str, download_path: str) -> Result[Union[str, Tuple]]:
+        out = os.path.join(download_path, name + ".owl")
         if not os.path.exists(out):
-            get_ontology_cmd = f'curl -L "{imp.purl}" > {out}'
+            get_ontology_cmd = f'curl -L "{purl}" > {out}'
             return self._execute_command(get_ontology_cmd, shell_flag=True)
 
         return Result(())
@@ -206,17 +221,17 @@ class RobotOntologyBuildService(OntologyBuildService):
                     # Allow multiple dependencies. These will become OWL imports.
                     dependency_file_names = dependency_files
                     dependency_f.write(f"""<?xml version="1.0"?>
-        <rdf:RDF xmlns="http://www.semanticweb.org/ontologies/temporary#"
-            xml:base="{tmp_dir}/"
-            xmlns:dc="http://purl.org/dc/elements/1.1/"
-            xmlns:obo="http://purl.obolibrary.org/obo/"
-            xmlns:owl="http://www.w3.org/2002/07/owl#"
-            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-            xmlns:xml="http://www.w3.org/XML/1998/namespace"
-            xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
-            xmlns:foaf="http://xmlns.com/foaf/0.1/"
-            xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
-            <owl:Ontology rdf:about="http://www.semanticweb.org/ontologies/temporary/{ontology.iri().split('/')[-1]}">\n""")
+<rdf:RDF xmlns="http://www.semanticweb.org/ontologies/temporary#"
+    xml:base="{tmp_dir}/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:obo="http://purl.obolibrary.org/obo/"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:foaf="http://xmlns.com/foaf/0.1/"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/ontologies/temporary/{ontology.iri().split('/')[-1]}">\n""")
 
                     for d in dependency_file_names:
                         dependency_f.write(

@@ -99,7 +99,7 @@ def import_term(repo: str, gh: GitHub):
     repository = current_app.config['REPOSITORIES'][repo]
 
     import_ontology_id = data.get("ontologyId", None)
-    import_purl = data.get("purl", None)
+    import_purl = data.get("purl", f"http://purl.obolibrary.org/obo/{import_ontology_id.lower()}.owl")
     import_root_id = data.get("rootId", "entity [BFO:0000001]")
     import_intermediates = data.get("intermediates", "all")
     import_prefix = data.get("prefix", None)
@@ -110,6 +110,8 @@ def import_term(repo: str, gh: GitHub):
         external_file = "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx"
     elif repo == "GMHO":
         external_file = "UpperLevel/GMHO_External_Imports.xlsx"
+    elif repo == "AddictO":
+        external_file = "imports/External_Imports.xlsx"
 
     if external_file is not None:
         spreadsheet_file = gh.get(f'repos/{repository}/contents/{external_file}')

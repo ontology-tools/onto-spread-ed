@@ -116,6 +116,12 @@ class ValidationReleaseStep(ReleaseStep):
 
                 self._raise_if_canceled()
 
+            if file.renameTermFile is not None:
+                ontology.apply_renamings(self._local_name(file.renameTermFile))
+
+            if file.addParentsFile is not None:
+                ontology.apply_new_parents(self._local_name(file.addParentsFile))
+
             result += ontology.resolve()
             self._raise_if_canceled()
 

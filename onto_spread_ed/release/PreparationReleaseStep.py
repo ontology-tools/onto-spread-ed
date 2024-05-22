@@ -1,5 +1,4 @@
 from .ReleaseStep import ReleaseStep
-from ..utils import download_file
 
 
 class PreparationReleaseStep(ReleaseStep):
@@ -9,8 +8,17 @@ class PreparationReleaseStep(ReleaseStep):
 
     def run(self):
         for source in self._release_script.external.sources:
-            external_xlsx = self._local_name(source.file)
-            download_file(self._gh, self._release_script.full_repository_name, source.file, external_xlsx)
+            self._download(source.file)
+
+        self._raise_if_canceled()
+
+        if self._release_script.external.addParentsFile is not None:
+            self._download(self._release_script.external.addParentsFile)
+
+        self._raise_if_canceled()
+
+        if self._release_script.external.renameTermFile is not None:
+            self._download(self._release_script.external.renameTermFile)
 
         self._raise_if_canceled()
 
@@ -19,8 +27,17 @@ class PreparationReleaseStep(ReleaseStep):
                 if source.type == "owl":
                     continue
 
-                xlsx = self._local_name(source.file)
-                download_file(self._gh, self._release_script.full_repository_name, source.file, xlsx)
+                self._download(source.file)
+
+                self._raise_if_canceled()
+
+            if file.addParentsFile is not None:
+                self._download(file.addParentsFile)
+
+            self._raise_if_canceled()
+
+            if file.renameTermFile is not None:
+                self._download(file.renameTermFile)
 
             self._raise_if_canceled()
 

@@ -4,56 +4,16 @@
     {{ super() }}
 {% endblock %}
 {% block content %}
-
-    <div class="row align-stretch">
-        <div class="col-sm-6 col-md-4 col-lg-3 m-2">
-            <a class="card bg-light" href="{{url_for('admin.release')}}"
-               style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
-                <div class="section p-5 text-center fs-2 bg-light">
-                    <i class="fas fa-upload"></i>
-                </div>
-
-                <div class="card-body">
-                    <h4>Release</h4>
-                    <p>
-                        Start the release process and release a new version of ontologies
-                    </p>
-                </div>
-            </a>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-3 m-2">
-
-            <a class="card bg-light" href="{{url_for('admin.rebuild_index')}}"
-               style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
-                <div class="section p-5 text-center fs-2 bg-light">
-                    <i class="fas fa-folder-open"></i>
-                </div>
-
-                <div class="card-body">
-                    <h4>Rebuild index</h4>
-                    <p>
-                        Force a complete rebuild of the index to ensure the search finds all entries.
-                    </p>
-                </div>
-            </a>
-        </div>
-        <div class="col-sm-6 col-md-4 col-lg-3 m-2">
-
-            <a class="card bg-light" href="/admin/hierarchical-overview"
-               style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
-                <div class="section p-5 text-center fs-2 bg-light">
-                    <i class="fa-solid fa-chart-gantt"></i>
-                </div>
-
-                <div class="card-body">
-                    <h4>Hierarchical overview</h4>
-                    <p>
-                        Generate an Excel sheet for an ontology
-                    </p>
-                </div>
-            </a>
-        </div>
+    <div id="vue-app-dashboard">
     </div>
+    <script>
+        var URLS = {
+            prefix: '{{config["URL_PREFIX"]}}',
+            release: '{{ url_for('admin.release') }}',
+            rebuildIndex: '{{ url_for('admin.rebuild_index') }}',
+            hierarchicalOverview: '{{ url_for('admin.hierarchical_overview') }}'
 
-
+        }
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/admin.js') }}"></script>
 {% endblock %}
