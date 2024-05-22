@@ -221,17 +221,17 @@ class RobotOntologyBuildService(OntologyBuildService):
                     # Allow multiple dependencies. These will become OWL imports.
                     dependency_file_names = dependency_files
                     dependency_f.write(f"""<?xml version="1.0"?>
-        <rdf:RDF xmlns="http://www.semanticweb.org/ontologies/temporary#"
-            xml:base="{tmp_dir}/"
-            xmlns:dc="http://purl.org/dc/elements/1.1/"
-            xmlns:obo="http://purl.obolibrary.org/obo/"
-            xmlns:owl="http://www.w3.org/2002/07/owl#"
-            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-            xmlns:xml="http://www.w3.org/XML/1998/namespace"
-            xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
-            xmlns:foaf="http://xmlns.com/foaf/0.1/"
-            xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
-            <owl:Ontology rdf:about="http://www.semanticweb.org/ontologies/temporary/{ontology.iri().split('/')[-1]}">\n""")
+<rdf:RDF xmlns="http://www.semanticweb.org/ontologies/temporary#"
+    xml:base="{tmp_dir}/"
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:obo="http://purl.obolibrary.org/obo/"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:xml="http://www.w3.org/XML/1998/namespace"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:foaf="http://xmlns.com/foaf/0.1/"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <owl:Ontology rdf:about="http://www.semanticweb.org/ontologies/temporary/{ontology.iri().split('/')[-1]}">\n""")
 
                     for d in dependency_file_names:
                         dependency_f.write(
