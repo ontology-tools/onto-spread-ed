@@ -1,5 +1,4 @@
 from .ReleaseStep import ReleaseStep
-from ..utils import download_file
 
 
 class PreparationReleaseStep(ReleaseStep):

@@ -1,4 +1,3 @@
-import os
 from io import BytesIO
 from typing import Union
 
@@ -8,10 +7,10 @@ from flask_github import GitHub
 from openpyxl.styles import PatternFill
 from pyhornedowl import pyhornedowl
 
+import onto_spread_ed.utils.github as github
 from onto_spread_ed.model.ExcelOntology import ExcelOntology
 from onto_spread_ed.model.Term import UnresolvedTerm, Term
 from onto_spread_ed.utils import get_spreadsheets, str_empty
-import onto_spread_ed.utils.github as github
 
 
 def is_incomplete(term: Union[UnresolvedTerm, Term]):
@@ -79,7 +78,11 @@ def main(gh: GitHub, repo: str):
 
             if term is not None and (str_empty(term.id) or term.id.startswith(repo.upper())):
                 incomplete = is_incomplete(term)
-                incomplete = incomplete or all(p.is_unresolved() or o._term_by_id(p.id) is not None and o._term_by_id(p.id).curation_status() == 'Pre-proposed' for p in term.sub_class_of)
+                incomplete = incomplete or all(
+                    p.is_unresolved() or
+                    o._term_by_id(p.id) is not None and o._term_by_id(p.id).curation_status() == 'Pre-proposed'
+                    for p in term.sub_class_of
+                )
                 if incomplete and row[c_curation_status].value != "Pre-proposed":
                     row[c_curation_status].value = "Pre-proposed"
                     for c in row:

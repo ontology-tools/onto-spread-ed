@@ -3,7 +3,7 @@ import sys
 import traceback
 
 from flask import Blueprint, current_app, jsonify, request
-from injector import inject, Injector
+from injector import Injector
 
 from onto_spread_ed.guards.admin import verify_admin
 
@@ -35,15 +35,13 @@ def run_script(injector: Injector, name: str):
 
     args = request.json.get("args", [])
     if len(script['arguments']) != len(args):
-        return jsonify({"success": False, "error": f"Wrong number of arguments"}), 400
+        return jsonify({"success": False, "error": "Wrong number of arguments"}), 400
 
     try:
         module = importlib.import_module(script["module"])
 
         if hasattr(module, script["function"]):
             fn = getattr(module, script["function"])
-
-            inject_fn = inject(fn)
 
             kwargs = dict((s['name'], a) for s, a in zip(script['arguments'], args))
 
@@ -58,7 +56,7 @@ def run_script(injector: Injector, name: str):
                 "success": False,
                 "error": f"No such function '{script['function']}' in '{script['module']}'"
             }), 400
-    except Exception as e:
+    except Exception:
         error = traceback.format_exc()
         current_app.logger.error(error)
         return jsonify({"success": False, "error": error})
