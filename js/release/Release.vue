@@ -22,6 +22,7 @@ const loading = ref<boolean>(false)
 const error = ref<string | null>(null)
 
 const selected_step = ref<number | null>(null)
+const selected_sub_step = ref<string | null>(null)
 const _steps: { [k: string]: any } = {
   "PREPARATION": Preparation,
   "VALIDATION": Validation,
@@ -271,7 +272,7 @@ async function doReleaseControl(type: string) {
             <li class="mb-1" v-for="(step, i) in release.release_script.steps">
               <div class="d-flex align-items-center">
                 <i :class="stepIconClasses(i)"></i>
-                <a class="btn border-0" href="#" @click="selected_step = i">
+                <a class="btn border-0" @click="selected_step = i; selected_sub_step = null">
                   <strong v-if="selected_step !== null ? selected_step == i : release.step == i">
                     {{ $filters.formatText(step.name) }}
                   </strong>
@@ -283,7 +284,11 @@ async function doReleaseControl(type: string) {
                   <i v-if="(val.errors?.length ?? 0) > 0" class="fa fa-circle-exclamation text-danger"></i>
                   <i v-else-if="(val.warnings?.length ?? 0) > 0" class="fa fa-triangle-exclamation text-warning"></i>
                   <i v-else class="fa fa-check-circle text-success"></i>
-                  <a class="btn border-0 text-truncate">{{ key }}</a>
+                  <a class="btn border-0 text-truncate"
+                     @click="selected_sub_step = selected_sub_step === key ? null : key">
+                    <strong v-if="selected_sub_step === key">{{ key }}</strong>
+                    <template v-else>{{ key }}</template>
+                  </a>
                 </li>
               </ul>
             </li>
@@ -300,7 +305,7 @@ async function doReleaseControl(type: string) {
             <pre>{{ details.error.long }}</pre>
           </div>
 
-          <component :is="stepComponent" :data="details" :release="release"
+          <component :is="stepComponent" :data="details" :release="release" :selectedSubStep="selected_sub_step"
                      @release-control="doReleaseControl"></component>
         </div>
       </div>
