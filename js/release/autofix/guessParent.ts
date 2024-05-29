@@ -184,6 +184,7 @@ async function multipleInternalGuesses(guesses: ParentGuess[], error: Diagnostic
             const response = await fetch(`${prefix_url}/api/edit/${repo}/${error.term.origin[0]}`, {
                 method: "PATCH",
                 body: JSON.stringify({
+                    id: error.term.id,
                     term: {
                         id: error.term.id,
                         parent: parent.label

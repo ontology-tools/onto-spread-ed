@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import os
+from typing import Optional, List
 from urllib import parse
 
 import jsonschema
@@ -12,6 +13,7 @@ from flask_github import GitHub
 from openpyxl.worksheet.worksheet import Worksheet
 
 from onto_spread_ed.guards.admin import verify_admin
+from onto_spread_ed.model.ExcelOntology import OntologyImport
 from onto_spread_ed.model.TermIdentifier import TermIdentifier
 from onto_spread_ed.utils import github
 
@@ -98,13 +100,29 @@ def import_term(repo: str, gh: GitHub):
 
     repository = current_app.config['REPOSITORIES'][repo]
 
-    import_ontology_id = data.get("ontologyId", None)
+    import_ontology_id = data.get("ontologyId")
     import_purl = data.get("purl", f"http://purl.obolibrary.org/obo/{import_ontology_id.lower()}.owl")
     import_root_id = data.get("rootId", "entity [BFO:0000001]")
     import_intermediates = data.get("intermediates", "all")
     import_prefix = data.get("prefix", None)
-    import_terms = data.get("terms", None)
+    import_terms = data.get("terms", [])
 
+    ontology_import = OntologyImport(
+        id=import_ontology_id,
+        purl=import_purl,
+        root_id=import_root_id,
+        imported_terms=[TermIdentifier(**t) for t in import_terms],
+        intermediates=import_intermediates,
+        prefixes=[tuple(x.split(":")) for x in import_prefix] if import_prefix is not None else []
+    )
+
+    if update_imports(repo, repository, gh, [ontology_import]):
+        return Response(status=201)
+    else:
+        return Response(status=200)
+
+
+def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyImport], branch: Optional[str] = None):
     external_file = None
     if repo == "BCIO":
         external_file = "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx"
@@ -122,9 +140,12 @@ def import_term(repo: str, gh: GitHub):
 
         data = sheet.rows
         next(data)
-        found = False
+        by_id = dict((i.id.lower(), i) for i in imps)
+        found = []
         for row in data:
-            if row[0].value.lower() == import_ontology_id.lower():
+            imp = by_id.get(row[0].value.lower(), None)
+            if imp is not None:
+                found.append(imp.id.lower())
                 current = row[3].value
                 if current is None:
                     ids = set()
@@ -132,29 +153,30 @@ def import_term(repo: str, gh: GitHub):
                     ids = {i.strip() for i in current.split(";")}
 
                 old_ids = ids
-                ids = set().union(ids, {f"{i['label']} [{i['id']}]" for i in import_terms})
+                ids = set().union(ids, {f"{i.label} [{i.id}]" for i in imp.imported_terms})
 
                 if old_ids == ids:
-                    return Response(status=200)
+                    continue
 
                 row[3].value = "; ".join(ids)
 
-                found = True
+        for id, imp in by_id.items():
+            if id not in found:
+                ids_str = '; '.join([f"{i.label} [{i.id}]" for i in imp.imported_terms])
+                sheet.append([imp.id,
+                              imp.purl,
+                              imp.root_id if isinstance(imp.root_id,
+                                                        str) else f"{imp.root_id.label} [{imp.root_id.id}]",
+                              ids_str,
+                              imp.intermediates,
+                              ";".join(f"{p}: {i}" for p, i in imp.prefixes)])
 
-        ids_str = '; '.join([f"{i['label']} [{i['id']}]" for i in import_terms])
-        if not found:
-            sheet.append([import_ontology_id,
-                          import_purl,
-                          import_root_id,
-                          ids_str,
-                          import_intermediates,
-                          import_prefix])
-
-        branch = current_app.config["DEFAULT_BRANCH"][repo]
+        if branch is None:
+            branch = current_app.config["DEFAULT_BRANCH"][repo]
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
         github.save_file(gh, repository, external_file, spreadsheet_stream.getvalue(),
-                         f"Imported {ids_str}", branch)
+                         f"Imported IDs", branch)
 
-        return Response(status=201)
+        return True

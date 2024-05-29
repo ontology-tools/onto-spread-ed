@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import {AutoFixState, Diagnostic, Release} from "../model.ts";
+import {AutoFixState, Diagnostic, Release, Term} from "../model.ts";
 import ErrorLink from "../ErrorLink.vue";
 import {guessParent} from "../autofix/guessParent.ts"
 import ProgressIndicator from "../ProgressIndicator.vue";
@@ -48,6 +48,41 @@ const warnings = computed<any[] | null>(() => {
 
 const shortRepoName = computed(() => props.release.release_script.short_repository_name)
 
+async function updateTerm(path: string, id: Term, term: Term): Promise<AutoFixState> {
+  const repo = props.release.release_script.short_repository_name
+
+  try {
+    const response = await fetch(`${prefix_url}/api/edit/${repo}/${path}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        id: id,
+        term: {
+          id: term.id,
+          parent: term.sub_class_of[0]?.label,
+          label: term.label
+        }
+      }),
+      headers: {"Content-Type": "application/json"}
+    })
+
+    if (response.ok) {
+      return "fixed"
+    } else {
+      return "impossible"
+    }
+  } catch {
+    return "impossible"
+  }
+}
+
+async function autofixUpdateTerm(error: Diagnostic, id: string, term: Term, path?: string) {
+  const wid = JSON.stringify(error)
+  if (wid in autoFixStates.value && autoFixStates.value[wid] !== "loaded") {
+    return
+  }
+
+  autoFixStates.value[wid] = await updateTerm(path ?? error?.term?.origin?.[0] ?? term?.origin?.[0], id, term)
+}
 
 async function autofix(error: Diagnostic) {
   let id = JSON.stringify(error)
@@ -350,7 +385,8 @@ async function autofix(error: Diagnostic) {
             <p>
               The term <code>{{ warning.term.label }}</code> (<code>{{ warning.term.id }}</code>) has the curation
               status
-              "External" but is not included in the externally imported terms.<br>
+              "External" but is not included in the externally imported terms. Does the term still exist in
+              {{ warning.term.id.split(":")[0] }}? <br>
 
               <ErrorLink :error="warning" :short_repository_name="shortRepoName" :term="warning.term"></ErrorLink>
             </p>
@@ -363,6 +399,40 @@ async function autofix(error: Diagnostic) {
               <i v-if="autoFixState(warning) === 'fixed'" class="fa fa-check"></i>
               <i v-if="autoFixState(warning) === 'impossible'" class="fa fa-close"></i>
               Import
+            </button>
+          </template>
+          <template v-else-if="warning.type === 'inconsistent-import'">
+            <h5>Inconsistent import</h5>
+            <p>
+              The term <code>{{ warning.term.label }}</code> (<code>{{ warning.term.id }}</code>) has the curation
+              status
+              "External" but its
+              <template v-if="warning.term.id !== warning.imported_term.id">
+                ID (<code>{{ warning.imported_term.id }}</code>)
+              </template>
+              <template v-else>label (<code>{{ warning.imported_term.label }}</code>)</template>
+              differs.<br>
+
+              <ErrorLink :error="warning" :short_repository_name="shortRepoName" :term="warning.term"></ErrorLink>
+            </p>
+
+            <button
+                :class="{'btn-success': autoFixState(warning) === 'fixed', 'btn-danger': autoFixState(warning) === 'impossible'}"
+                class="btn btn-primary"
+                @click="autofixUpdateTerm(warning, warning.term.id, {
+                  ...warning.term.id,
+                  label: warning.term.label,
+                  id: warning.term.id
+                })">
+              <i v-if="autoFixState(warning) === 'loading'" class="fa fa-spin fa-spinner"></i>
+              <i v-if="autoFixState(warning) === 'fixed'" class="fa fa-check"></i>
+              <i v-if="autoFixState(warning) === 'impossible'" class="fa fa-close"></i>
+              Change
+              <template v-if="warning.term.id !== warning.imported_term.id">
+                ID to
+                <code>{{ warning.imported_term.id }}</code>
+              </template>
+              <template v-else>label to <code>{{ warning.imported_term.label }}</code></template>
             </button>
           </template>
           <template v-else>

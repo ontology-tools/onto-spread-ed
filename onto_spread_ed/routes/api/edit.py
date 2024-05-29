@@ -35,7 +35,8 @@ def edit(repo: str, path: str, gh: GitHub):
 
     repository = current_app.config['REPOSITORIES'][repo]
 
-    term_id = data["term"]["id"]
+    id = data["id"]
+    term_id = data["term"].get("id", None)
     term_label = data["term"].get("label", None)
     term_parent = data["term"].get("parent", None)
 
@@ -60,8 +61,12 @@ def edit(repo: str, path: str, gh: GitHub):
     found = False
     changed = []
     for row in data:
-        if row[0].value.lower() == term_id.lower():
+        if row[0].value.lower() == id.lower():
             found = True
+            if term_id is not None:
+                row[0].value = term_id
+                changed += [("id", term_id)]
+
             if term_parent is not None:
                 row[parent_col].value = term_parent
                 changed += [("parent", term_parent)]
@@ -71,14 +76,14 @@ def edit(repo: str, path: str, gh: GitHub):
                 changed = [("label", term_label)]
 
     if not found:
-        return jsonify({"msg": f"No such term with id '{term_id}'"}), 404
+        return jsonify({"msg": f"No such term with id '{id}'"}), 404
 
     if len(changed) > 0:
         branch = current_app.config["DEFAULT_BRANCH"][repo]
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
-        msg = f"Updating {path.split('/')[-1]}\n\n" + "\n".join([f"Set {f} to '{v}' for {term_id}" for f, v in changed])
+        msg = f"Updating {path.split('/')[-1]}\n\n" + "\n".join([f"Set {f} to '{v}' for {id}" for f, v in changed])
         github.save_file(gh, repository, path, spreadsheet_stream.getvalue(), msg, branch)
 
         return Response(status=200)

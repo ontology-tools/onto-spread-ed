@@ -79,7 +79,13 @@ PREFIXES = [["ADDICTO", "http://addictovocab.org/ADDICTO_"],
             ["STATO", "http://purl.obolibrary.org/obo/STATO_"],
             ["OMIABIS", "http://purl.obolibrary.org/obo/OMIABIS_"],
             ["OPMI", "http://purl.obolibrary.org/obo/OPMI_"],
-            ["CMO", "http://purl.obolibrary.org/obo/CMO_"]
+            ["CMO", "http://purl.obolibrary.org/obo/CMO_"],
+            ["OBCS", "http://purl.obolibrary.org/obo/OBCS_"],
+            ["OAE", "http://purl.obolibrary.org/obo/OAE_"],
+            ["NCIT", "http://purl.obolibrary.org/obo/NCIT_"],
+            ["HP", "http://purl.obolibrary.org/obo/HP_"],
+            ["SDGIO", "http://purl.unep.org/sdg/SDGIO_"],
+            ["SIO", "http://semanticscience.org/resource/SIO_"]
             ]
 # Spreadsheets that should be included in the index and by default selected to be included in the release
 ACTIVE_SPREADSHEETS = {
@@ -221,6 +227,18 @@ SCRIPTS = {
                 "description": "Which repository should the script be executed?",
                 "type": "string",
                 "default": "AddictO"
+            }
+        ]
+    },
+    "import-missing-externals": {
+        "title": "Import missing 'External' terms",
+        "module": "scripts.import-missing-externals",
+        "function": "main",
+        "arguments": [
+            {
+                "name": "repo",
+                "description": "Which repository should the script be executed?",
+                "type": "string"
             }
         ]
     }

@@ -56,7 +56,7 @@ def run_script(injector: Injector, name: str):
                 "success": False,
                 "error": f"No such function '{script['function']}' in '{script['module']}'"
             }), 400
-    except Exception:
+    except Exception as e:
         error = traceback.format_exc()
         current_app.logger.error(error)
         return jsonify({"success": False, "error": error})

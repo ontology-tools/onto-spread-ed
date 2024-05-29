@@ -580,8 +580,14 @@ class ExcelOntology:
             by_label.setdefault(term.label, []).append(term)
 
             if lower(term.curation_status()) == 'external' and term.identifier() not in imported_terms:
-                result.warning(type="missing-import",
-                               term=term.__dict__)
+                imported_term = next((t for t in imported_terms if t.id == term.id or t.label == term.label), None)
+                if imported_term is not None:
+                    result.warning(type="inconsistent-import",
+                                   imported_term=imported_term,
+                                   term=term.__dict__)
+                else:
+                    result.warning(type="missing-import",
+                                   term=term.__dict__)
 
             for p in term.sub_class_of:
                 if p.is_unresolved():
