@@ -373,9 +373,11 @@ class ExcelOntology:
                                                 relation_values)
             unresolved = [i for i in unresolved if i.is_unresolved()]
             for unresolved_term in unresolved:
-                matching_terms = [t for t in (self._terms + imported) if t != unresolved_term and
-                                  (unresolved_term.label is not None and unresolved_term.label == t.label or
-                                   unresolved_term.id is not None and unresolved_term.id == t.id)]
+                matching_terms = [t for t in (self._terms + imported) 
+                      if t != unresolved_term and 
+                      ((unresolved_term.label is not None and unresolved_term.label == t.label) or 
+                       (unresolved_term.id is not None and unresolved_term.id == t.id) or
+                       (unresolved_term.label is not None and isinstance(t, UnresolvedTerm) and unresolved_term.label in t.synonyms()))]
 
                 matching_terms.sort(key=lambda t: 1 if isinstance(t, UnresolvedTerm) and (
                         lower(t.curation_status()) == "obsolete") else 0)
@@ -398,9 +400,10 @@ class ExcelOntology:
                     relation.label = matching_import.label
 
             if relation.range and relation.range.is_unresolved():
-                matching_terms = [t for t in (self._terms + imported) if
-                                  (relation.range.label is not None and relation.range.label == t.label or
-                                   relation.range.id is not None and relation.range.id == t.id)]
+                matching_terms = [t for t in (self._terms + imported) if 
+                      ((relation.range.label is not None and relation.range.label == t.label) or 
+                       (relation.range.id is not None and relation.range.id == t.id) or
+                       (relation.range.label is not None and isinstance(t, UnresolvedTerm) and relation.range.label in t.synonyms()))]
 
                 for m in matching_terms:
                     if self._obsolete_handling != "ignore" and isinstance(m, UnresolvedTerm) and lower(
@@ -410,9 +413,10 @@ class ExcelOntology:
                     relation.range.complement(m)
 
             if relation.domain and relation.domain.is_unresolved():
-                matching_terms = [t for t in (self._terms + imported) if
-                                  (relation.domain.label is not None and relation.domain.label == t.label or
-                                   relation.domain.id is not None and relation.domain.id == t.id)]
+                matching_terms = [t for t in (self._terms + imported) if 
+                      ((relation.domain.label is not None and relation.domain.label == t.label) or 
+                       (relation.domain.id is not None and relation.domain.id == t.id) or
+                       (relation.domain.label is not None and isinstance(t, UnresolvedTerm) and relation.domain.label in t.synonyms()))]
 
                 for m in matching_terms:
                     if self._obsolete_handling != "ignore" and isinstance(m, UnresolvedTerm) and lower(
@@ -422,9 +426,10 @@ class ExcelOntology:
                     relation.domain.complement(m)
 
             for sub in relation.sub_property_of:
-                matching_terms = [t for t in (self._terms + imported) if
-                                  (sub.label is not None and sub.label == t.label or
-                                   sub.id is not None and sub.id == t.id)]
+                matching_terms = [t for t in (self._terms + imported) if 
+                      ((sub.label is not None and sub.label == t.label) or 
+                       (sub.id is not None and sub.id == t.id) or
+                       (sub.label is not None and isinstance(t, UnresolvedTerm) and sub.label in t.synonyms()))]
 
                 for m in matching_terms:
                     if self._obsolete_handling != "ignore" and isinstance(m, UnresolvedTerm) and lower(
@@ -434,9 +439,10 @@ class ExcelOntology:
                     sub.complement(m)
 
             for er in relation.equivalent_relations:
-                matching_terms = [t for t in (self._terms + imported) if
-                                  (er.label is not None and er.label == t.label or
-                                   er.id is not None and er.id == t.id)]
+                matching_terms = [t for t in (self._terms + imported) if 
+                      ((er.label is not None and er.label == t.label) or 
+                       (er.id is not None and er.id == t.id) or
+                       (er.label is not None and isinstance(t, UnresolvedTerm) and er.label in t.synonyms()))]
 
                 for m in matching_terms:
                     if self._obsolete_handling != "ignore" and isinstance(m, UnresolvedTerm) and lower(
