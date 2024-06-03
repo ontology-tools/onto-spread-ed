@@ -93,6 +93,10 @@ class ValidationReleaseStep(ReleaseStep):
         external = external_ontology_result.value
         validation_result += external_ontology_result
 
+        # To catch overarching errors
+        overall_ontology = ExcelOntology("<final>")
+        overall_ontology.import_other_excel_ontology(external)
+
         loaded = dict()
         for k, file in queue:
             self._next_item(item=k)
@@ -136,7 +140,15 @@ class ValidationReleaseStep(ReleaseStep):
 
             validation_result += result
 
+            overall_ontology.merge(ontology)
             loaded[k] = ontology
+
+        result = overall_ontology.validate(only=["duplicate"])
+        validation_info["global"] = dict(
+            valid=result.ok(),
+            warnings=result.warnings,
+            errors=result.errors
+        )
 
         self._set_release_info(validation_info)
         if not validation_result.has_errors() and validation_result.ok():

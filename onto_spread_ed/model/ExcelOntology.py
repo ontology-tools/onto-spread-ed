@@ -309,7 +309,7 @@ class ExcelOntology:
 
     def merge(self, other: Self) -> None:
         self._terms += other._terms
-        self._used_relations += other._used_relations
+        self._used_relations = set.union(self._used_relations, other._used_relations)
         self._imports += other._imports
         self._relations += other._relations
 
@@ -553,8 +553,11 @@ class ExcelOntology:
 
         return result
 
-    def validate(self) -> Result[tuple]:
+    def validate(self, only: Optional[List[str]] = None) -> Result[tuple]:
         result = Result()
+
+        def c(*args: str) -> bool:
+            return only is None or any(a in only for a in args)
 
         imported_terms = set(t for i in self._imports for t in i.imported_terms)
 
@@ -568,56 +571,59 @@ class ExcelOntology:
                 self._logger.debug(f"Not validating obsolete term {term.label} ({term.id})")
                 continue
 
-            if term.label is None:
+            if c("missing-label") and term.label is None:
                 result.error(type="missing-label",
                              term=term.__dict__)
 
-            if term.id is None:
+            if c("missing-id") and term.id is None:
                 result.error(type="missing-id",
                              term=term.__dict__)
 
             by_id.setdefault(term.id, []).append(term)
             by_label.setdefault(term.label, []).append(term)
 
-            if lower(term.curation_status()) == 'external' and term.identifier() not in imported_terms:
+            if (c("inconsistent-import", "missing-import") and
+                    lower(term.curation_status()) == 'external' and term.identifier() not in imported_terms):
                 imported_term = next((t for t in imported_terms if t.id == term.id or t.label == term.label), None)
-                if imported_term is not None:
+                if c("inconsistent-import") and imported_term is not None:
                     result.warning(type="inconsistent-import",
                                    imported_term=imported_term,
                                    term=term.__dict__)
-                else:
+                elif c("missing-import"):
                     result.warning(type="missing-import",
                                    term=term.__dict__)
 
             for p in term.sub_class_of:
-                if p.is_unresolved():
+                if c("unknown-parent") and p.is_unresolved():
                     result.error(type="unknown-parent",
                                  term=term.__dict__,
                                  parent=p.__dict__)
-                else:
+                elif c("missing-parent", "ignored-parent"):
                     t = self._raw_term_by_id(p.id)
-                    if t is None:
+                    if c("missing-parent") and t is None:
                         result.error(type="missing-parent",
                                      term=term.__dict__,
                                      parent=p.__dict__)
-                    elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) in self._ignore_status:
+                    elif c("ignored-parent") and isinstance(t, UnresolvedTerm) and lower(
+                            t.curation_status()) in self._ignore_status:
                         result.error(type="ignored-parent",
                                      status=t.curation_status(),
                                      term=term.__dict__,
                                      parent=p.__dict__)
 
             for p in term.disjoint_with:
-                if p.is_unresolved():
+                if c("unknown-disjoint") and p.is_unresolved():
                     result.error(type="unknown-disjoint",
                                  term=term.__dict__,
                                  disjoint_class=p.__dict__)
-                else:
+                elif c("missing-disjoint", "ignored-disjoint"):
                     t = self._raw_term_by_id(p.id)
-                    if t is None:
+                    if c("missing-disjoint") and t is None:
                         result.error(type="missing-disjoint",
                                      term=term.__dict__,
                                      disjoint_class=p.__dict__)
-                    elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) in self._ignore_status:
+                    elif c("ignored-disjoint") and isinstance(t, UnresolvedTerm) and lower(
+                            t.curation_status()) in self._ignore_status:
                         result.error(type="ignored-disjoint",
                                      status=t.curation_status(),
                                      term=term.__dict__,
@@ -625,19 +631,20 @@ class ExcelOntology:
 
             for relation, value in term.relations:
                 if isinstance(value, TermIdentifier):
-                    if value.is_unresolved():
+                    if c("unknown-relation-value") and value.is_unresolved():
                         result.error(type="unknown-relation-value",
                                      relation=relation,
                                      value=value,
                                      term=term.__dict__)
                     else:
                         t = self._raw_term_by_id(value.id)
-                        if t is None:
+                        if c("missing-relation-value") and t is None:
                             result.error(type="missing-relation-value",
                                          term=term.__dict__,
                                          relation=relation,
                                          value=value)
-                        elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) in self._ignore_status:
+                        elif c("ignored-relation-value") and isinstance(t, UnresolvedTerm) and lower(
+                                t.curation_status()) in self._ignore_status:
                             result.error(type="ignored-relation-value",
                                          status=t.curation_status(),
                                          term=term.__dict__,
@@ -646,11 +653,11 @@ class ExcelOntology:
 
         for relation in self._relations:
             result.template = {"row": relation.origin[1]} if relation.origin is not None else {}
-            if relation.label is None:
+            if c("missing-label") and relation.label is None:
                 result.error(type="missing-label",
                              relation=relation.__dict__)
 
-            if relation.id is None:
+            if c("missing-id") and relation.id is None:
                 result.error(type="missing-id",
                              relation=relation.__dict__)
 
@@ -658,49 +665,52 @@ class ExcelOntology:
             by_label.setdefault(relation.label, []).append(relation)
 
             if relation.domain:
-                if relation.domain.is_unresolved():
+                if c("unknown-domain") and relation.domain.is_unresolved():
                     result.error(type="unknown-domain",
                                  relation=relation.__dict__)
                 else:
                     t = self._raw_term_by_id(relation.domain.id)
-                    if t is None:
+                    if c("missing-domain") and t is None:
                         result.error(type="missing-domain",
                                      relation=relation.__dict__,
                                      domain=relation.domain.__dict__)
-                    elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) in self._ignore_status:
+                    elif c("ignored-domain") and isinstance(t, UnresolvedTerm) and lower(
+                            t.curation_status()) in self._ignore_status:
                         result.error(type="ignored-domain",
                                      status=t.curation_status(),
                                      relation=relation.__dict__,
                                      domain=relation.domain.__dict__)
 
             if relation.range:
-                if relation.range.is_unresolved():
+                if c("unknown-range") and relation.range.is_unresolved():
                     result.error(type="unknown-range",
                                  relation=relation.__dict__)
                 else:
                     t = self._raw_term_by_id(relation.range.id)
-                    if t is None:
+                    if c("missing-range") and t is None:
                         result.error(type="missing-range",
                                      relation=relation.__dict__,
                                      range=relation.range.__dict__)
-                    elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) in self._ignore_status:
+                    elif c("ignored-domain") and isinstance(t, UnresolvedTerm) and lower(
+                            t.curation_status()) in self._ignore_status:
                         result.error(type="ignored-domain",
                                      status=t.curation_status(),
                                      relation=relation.__dict__,
                                      range=relation.range.__dict__)
 
             for p in relation.sub_property_of:
-                if p.is_unresolved():
+                if c("unknown-parent") and p.is_unresolved():
                     result.error(type="unknown-parent",
                                  term=relation.__dict__,
                                  parent=p.__dict__)
                 else:
                     t = self._raw_term_by_id(p.id)
-                    if t is None:
+                    if c("missing-parent") and t is None:
                         result.error(type="missing-parent",
                                      term=relation.__dict__,
                                      parent=p.__dict__)
-                    elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) in self._ignore_status:
+                    elif c("ignored-parent") and isinstance(t, UnresolvedTerm) and lower(
+                            t.curation_status()) in self._ignore_status:
                         result.error(type="ignored-parent",
                                      status=t.curation_status(),
                                      term=relation.__dict__,
@@ -708,19 +718,20 @@ class ExcelOntology:
 
             for r, value in relation.relations:
                 if isinstance(value, TermIdentifier):
-                    if value.is_unresolved():
+                    if c("unknown-relation-value") and value.is_unresolved():
                         result.error(type="unknown-relation-value",
                                      relation=r,
                                      value=value,
                                      term=relation.__dict__)
                     else:
                         t = self._raw_term_by_id(value.id)
-                        if t is None:
+                        if c("missing-relation-value") and t is None:
                             result.error(type="missing-relation-value",
                                          term=relation.__dict__,
                                          relation=r,
                                          value=value)
-                        elif isinstance(t, UnresolvedTerm) and lower(t.curation_status()) in self._ignore_status:
+                        elif c("ignored-relation-value") and isinstance(t, UnresolvedTerm) and lower(
+                                t.curation_status()) in self._ignore_status:
                             result.error(type="ignored-relation-value",
                                          status=t.curation_status(),
                                          term=relation.__dict__,
@@ -738,31 +749,32 @@ class ExcelOntology:
                              relation=relation.__dict__)
 
         # Check for duplicates
-        for k, items in itertools.chain(by_id.items(), by_label.items()):
-            duplicates = [d for d in items
-                          if not isinstance(d, UnresolvedTerm) or d.curation_status() not in self._ignore_status]
-            if len(duplicates) > 1:
-                mismatches = []
-                for a, b in itertools.combinations(duplicates, 2):
-                    if a.label != b.label:
-                        mismatches.append(("label", a, b))
-                    if a.id != b.id:
-                        mismatches.append(("id", a, b))
-                    if isinstance(a, UnresolvedTerm) and isinstance(b, UnresolvedTerm):
-                        if not str_space_eq(a.definition(), b.definition()):
-                            mismatches.append(("definition", a, b))
-                        if not str_space_eq(a.curation_status(), b.curation_status()):
-                            mismatches.append(("curation status", a, b))
-                    elif isinstance(a, UnresolvedRelation) and isinstance(b, UnresolvedRelation):
-                        pass
-                    else:
-                        mismatches.append(("type", a, b))
-                if len(mismatches) > 0:
-                    result.error(type="duplicate",
-                                 duplicate_field="id" if k in by_id else "label",
-                                 duplicate_value=k,
-                                 duplicates=list(set(x for _, a, b in mismatches for x in [a, b])),
-                                 mismatches=[dict(field=f, a=a, b=b) for f, a, b in mismatches])
+        if c("duplicate"):
+            for k, items in itertools.chain(by_id.items(), by_label.items()):
+                duplicates = [d for d in items
+                              if not isinstance(d, UnresolvedTerm) or d.curation_status() not in self._ignore_status]
+                if len(duplicates) > 1:
+                    mismatches = []
+                    for a, b in itertools.combinations(duplicates, 2):
+                        if a.label != b.label:
+                            mismatches.append(("label", a, b))
+                        if a.id != b.id:
+                            mismatches.append(("id", a, b))
+                        if isinstance(a, UnresolvedTerm) and isinstance(b, UnresolvedTerm):
+                            if not str_space_eq(a.definition(), b.definition()):
+                                mismatches.append(("definition", a, b))
+                            if not str_space_eq(a.curation_status(), b.curation_status()):
+                                mismatches.append(("curation status", a, b))
+                        elif isinstance(a, UnresolvedRelation) and isinstance(b, UnresolvedRelation):
+                            pass
+                        else:
+                            mismatches.append(("type", a, b))
+                    if len(mismatches) > 0:
+                        result.error(type="duplicate",
+                                     duplicate_field="id" if k in by_id else "label",
+                                     duplicate_value=k,
+                                     duplicates=list(set(x for _, a, b in mismatches for x in [a, b])),
+                                     mismatches=[dict(field=f, a=a, b=b) for f, a, b in mismatches])
 
         if not any(result.errors):
             result.value = ()
