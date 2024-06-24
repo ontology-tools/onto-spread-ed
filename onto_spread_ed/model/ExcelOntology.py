@@ -553,11 +553,12 @@ class ExcelOntology:
 
         return result
 
-    def validate(self, only: Optional[List[str]] = None) -> Result[tuple]:
+    def validate(self, only: Optional[List[str]] = None, exclude: Optional[List[str]] = None) -> Result[tuple]:
         result = Result()
 
         def c(*args: str) -> bool:
-            return only is None or any(a in only for a in args)
+            return (only is None or any(a in only for a in args)) and \
+                (exclude is None or not all(a in exclude for a in args))
 
         imported_terms = set(t for i in self._imports for t in i.imported_terms)
 
@@ -585,10 +586,11 @@ class ExcelOntology:
             if (c("inconsistent-import", "missing-import") and
                     lower(term.curation_status()) == 'external' and term.identifier() not in imported_terms):
                 imported_term = next((t for t in imported_terms if t.id == term.id or t.label == term.label), None)
-                if c("inconsistent-import") and imported_term is not None:
-                    result.warning(type="inconsistent-import",
-                                   imported_term=imported_term,
-                                   term=term.__dict__)
+                if imported_term is not None:
+                    if c("inconsistent-import"):
+                        result.warning(type="inconsistent-import",
+                                       imported_term=imported_term,
+                                       term=term.__dict__)
                 elif c("missing-import"):
                     result.warning(type="missing-import",
                                    term=term.__dict__)
@@ -761,7 +763,13 @@ class ExcelOntology:
                         if a.id != b.id:
                             mismatches.append(("id", a, b))
                         if isinstance(a, UnresolvedTerm) and isinstance(b, UnresolvedTerm):
-                            if not str_space_eq(a.definition(), b.definition()):
+                            definition_a = (a.definition()
+                                            .replace("<", "")
+                                            .replace(">", "")) if a.definition() is not None else ""
+                            definition_b = (b.definition()
+                                            .replace("<", "")
+                                            .replace(">", "")) if b.definition() is not None else ""
+                            if not str_space_eq(definition_a, definition_b):
                                 mismatches.append(("definition", a, b))
                             if not str_space_eq(a.curation_status(), b.curation_status()):
                                 mismatches.append(("curation status", a, b))
