@@ -177,6 +177,6 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
         github.save_file(gh, repository, external_file, spreadsheet_stream.getvalue(),
-                         f"Imported IDs", branch)
+                         "Imported IDs", branch)
 
         return True
