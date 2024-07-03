@@ -276,6 +276,7 @@
   "prefixes": {
     "ADDICTO": "http://addictovocab.org/ADDICTO_",
     "BCIO": "http://humanbehaviourchange.org/ontology/BCIO_",
-    "BCIOR": "http://humanbehaviourchange.org/ontology/BCIOR_"
+    "BCIOR": "http://humanbehaviourchange.org/ontology/BCIOR_",
+    "SDGIO": "http://purl.unep.org/sdg/SDGIO_"
   }
 }
