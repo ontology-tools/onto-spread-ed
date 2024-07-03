@@ -228,9 +228,9 @@ class ExcelOntology:
             elif isinstance(col, ParentMapping):
                 relation.sub_property_of.append(col.get_value(val))
             elif kind == ColumnMappingKind.DOMAIN:
-                relation.domain = TermIdentifier(label=col.get_value(val))
+                relation.domain = next(iter(col.get_value(val)), None)
             elif kind == ColumnMappingKind.RANGE:
-                relation.range = TermIdentifier(label=col.get_value(val))
+                relation.range = next(iter(col.get_value(val)), None)
             elif isinstance(col, RelationColumnMapping):
                 relation.relations += col.get_value(val)
             elif kind == ColumnMappingKind.RELATION_TYPE:
