@@ -16,7 +16,7 @@
     },
     "needs": [],
     "renameTermFile": null,
-    "addParentsFile": null
+    "addParentsFile": "Upper Level BCIO/inputs/BCIO_External_Imports_New_Parents.csv"
   },
   "files": {
     "bcio": {

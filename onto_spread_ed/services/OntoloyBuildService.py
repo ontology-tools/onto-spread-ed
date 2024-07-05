@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, Tuple
 
 from ..model.ExcelOntology import OntologyImport, ExcelOntology
 from ..model.Result import Result
@@ -12,7 +12,10 @@ class OntologyBuildService(ABC):
                       outfile: str,
                       iri: str,
                       main_ontology_name: str,
-                      tmp_dir: str) -> Result[Any]:
+                      tmp_dir: str,
+                      renamings: List[Tuple[str, str]],
+                      new_parents: List[Tuple[str, str]]
+                      ) -> Result[Any]:
         ...
 
     @abstractmethod

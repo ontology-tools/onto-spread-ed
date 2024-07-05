@@ -30,7 +30,9 @@ class RobotOntologyBuildService(OntologyBuildService):
                       outfile: str,
                       iri: str,
                       main_ontology_name: str,
-                      tmp_dir: str) -> Result[str]:
+                      tmp_dir: str,
+                      renamings: List[Tuple[str, str]],
+                      new_parents: List[Tuple[str, str]]) -> Result[str]:
 
         download_path = os.path.join("/", "tmp", "onto-ed-release", "robot-download-cache")
         # download_path = os.path.join(tmp_dir, "robot-download-cache")
@@ -57,7 +59,8 @@ class RobotOntologyBuildService(OntologyBuildService):
             if result.has_errors():
                 return result
 
-        result += self._merge_imported_ontologies(iri, outfile, main_ontology_name, download_path, imports)
+        result += self._merge_imported_ontologies(iri, outfile, main_ontology_name, download_path, imports, renamings,
+                                                  new_parents)
 
         return result
 
@@ -103,7 +106,9 @@ class RobotOntologyBuildService(OntologyBuildService):
         return result
 
     def _merge_imported_ontologies(self, merged_iri: str, merged_file: str, main_ontology_name: str, download_path: str,
-                                   imports: List[OntologyImport]) -> Result[str]:
+                                   imports: List[OntologyImport],
+                                   renamings: List[Tuple[str, str]],
+                                   new_parents: List[Tuple[str, str]]) -> Result[str]:
         """
         Merges previously added, downloaded, and extracted ontology terms into one merged ontology
 
@@ -114,21 +119,44 @@ class RobotOntologyBuildService(OntologyBuildService):
         :return:
         """
         # Now merge all the imports into a single file
-        merge_cmd = [ROBOT, 'merge']
+        cmd = [ROBOT]
+
+        if len(renamings) + len(new_parents) > 0:
+            modifications_file = os.path.join(download_path, "external_modifications.csv")
+            with open(modifications_file, "w") as f:
+                csv_writer = csv.DictWriter(f, ["ID", "Parent", "Label"])
+                csv_writer.writeheader()
+                csv_writer.writerow({"ID": "ID", "Parent": "SC %", "Label": "LABEL"})
+
+                for (id, label) in renamings:
+                    csv_writer.writerow({"ID": id, "Label": label})
+
+                for (id, parent) in new_parents:
+                    csv_writer.writerow({"ID": id, "Parent": parent})
+
+            cmd += ["template", "--template", modifications_file]
+            for imp in imports:
+                cmd += [
+                    *[x for (prefix, definition)
+                      in imp.prefixes for x
+                      in ["--prefix", f'"{prefix}: {definition}"']],
+                ]
+
+        cmd += ["merge"]
 
         for imp in imports:
-            merge_cmd.append('--input')
-            merge_cmd.append(os.path.join(download_path, imp.id + ".slim.owl"))
+            cmd.append('--input')
+            cmd.append(os.path.join(download_path, imp.id + ".slim.owl"))
 
-        merge_cmd.extend(
+        cmd.extend(
             ['annotate', '--ontology-iri', merged_iri, '--version-iri', merged_iri, '--annotation rdfs:comment ',
              '"This file contains externally imported content for the ' + main_ontology_name +
              '. It was prepared using ROBOT and a custom script from a spreadsheet of imported terms."',
              '--output', merged_file])
 
-        merge_cmd = " ".join(merge_cmd)
+        cmd = " ".join(cmd)
 
-        return self._execute_command(merge_cmd, shell_flag=True)
+        return self._execute_command(cmd, shell_flag=True)
 
     def build_ontology(self, ontology: ExcelOntology, outfile: str, prefixes: Optional[Dict[str, str]],
                        dependency_files: Optional[List[str]], tmp_dir: str):
