@@ -25,6 +25,18 @@ def _import_id(imp: OntologyImport):
 class RobotOntologyBuildService(OntologyBuildService):
     _logger = logging.getLogger(__name__)
 
+    def _create_catalog_file(self, tmp_dir, files: List[str]):
+        uris = "\n".join([f'<uri name="{f}" uri="file:{tmp_dir}/{f.split("/")[-1]}"/>' for f in files])
+        content = f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<catalog prefer="public" xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+    <group id="Folder Repository, directory=, recursive=true, Auto-Update=true, version=2" prefer="public" xml:base="">
+{uris}
+    </group>
+</catalog>
+"""
+        with open(os.path.join(tmp_dir, "catalog-v001.xml"), "w") as f:
+            f.write(content)
+
     def merge_imports(self,
                       imports: List[OntologyImport],
                       outfile: str,
@@ -159,8 +171,11 @@ class RobotOntologyBuildService(OntologyBuildService):
         return self._execute_command(cmd, shell_flag=True)
 
     def build_ontology(self, ontology: ExcelOntology, outfile: str, prefixes: Optional[Dict[str, str]],
-                       dependency_files: Optional[List[str]], tmp_dir: str):
-        # with NamedTemporaryFile("w",) as f:
+                       dependency_iris: Optional[List[str]], tmp_dir: str, iri_prefix: str):
+        # Remove trailing slashes
+        while iri_prefix.endswith("/"):
+            iri_prefix = iri_prefix[:-1]
+
         with open(os.path.join(tmp_dir, os.path.basename(outfile)) + ".csv", "w") as csv_file:
             internal_relations = [r.id for r in ontology.used_relations() if
                                   r.owl_property_type == OWLPropertyType.Internal]
@@ -232,25 +247,18 @@ class RobotOntologyBuildService(OntologyBuildService):
 
                 writer.writerow(row)
 
-            template_command: List[str] = [ROBOT, 'template', '--template', csv_file.name]
-            for prefix, definition in prefixes.items():
-                template_command.append('--prefix')
-                template_command.append(f'"{prefix}: {definition}"')
-            template_command.extend(['--ontology-iri', f'"{ontology.iri()}"',
-                                     '--output', f'"{outfile}"'
-                                     ])
-
             # A bit of hacking to deal appropriately with external dependency files:
-            if dependency_files is not None:
+            command: List[str] = [ROBOT]
+            if dependency_iris is not None and len(dependency_iris) > 0:
                 dependency_file_name = os.path.join(tmp_dir, "imports.owl")
                 # with NamedTemporaryFile("w", suffix="import.owl") as dependency_f:
                 with open(dependency_file_name, "w") as dependency_f:
 
                     # Allow multiple dependencies. These will become OWL imports.
-                    dependency_file_names = dependency_files
+                    dependency_file_names = [i.split("/")[-1] for i in dependency_iris]
                     dependency_f.write(f"""<?xml version="1.0"?>
-<rdf:RDF xmlns="http://www.semanticweb.org/ontologies/temporary#"
-    xml:base="{tmp_dir}/"
+<rdf:RDF xmlns="{iri_prefix}/imports.owl"
+    xml:base="{iri_prefix}/imports.owl"
     xmlns:dc="http://purl.org/dc/elements/1.1/"
     xmlns:obo="http://purl.obolibrary.org/obo/"
     xmlns:owl="http://www.w3.org/2002/07/owl#"
@@ -259,18 +267,54 @@ class RobotOntologyBuildService(OntologyBuildService):
     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
     xmlns:foaf="http://xmlns.com/foaf/0.1/"
     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
-    <owl:Ontology rdf:about="http://www.semanticweb.org/ontologies/temporary/{ontology.iri().split('/')[-1]}">\n""")
+    <owl:Ontology rdf:about="{iri_prefix}/imports.owl">\n""")
 
-                    for d in dependency_file_names:
+                    for d in dependency_iris:
                         dependency_f.write(
-                            f"<owl:imports rdf:resource=\"./{d}\"/> \n")
+                            f"<owl:imports rdf:resource=\"{d}\"/> \n")
                     dependency_f.write(" </owl:Ontology> \n</rdf:RDF> ")
 
-                template_command.extend(['--input', dependency_f.name,
-                                         "--merge-before",
-                                         "--collapse-import-closure", "false"])
+                    self._create_catalog_file(tmp_dir, dependency_iris)
 
-        return self._execute_command(" ".join(template_command), cwd=tmp_dir)
+                    command.extend([
+                        "merge",
+                        *[x for d in dependency_file_names for x in ["--input", f'"{d}"']]
+                    ])
+
+        command.extend(['template', '--template', csv_file.name,
+                        "--collapse-import-closure", "false"])
+
+        for prefix, definition in prefixes.items():
+            command.append('--prefix')
+            command.append(f'"{prefix}: {definition}"')
+
+        command.extend([
+            'annotate',
+            '--ontology-iri', f'"{ontology.iri()}"',
+            '--output', f'"{outfile}"'
+        ])
+
+        result = self._execute_command(" ".join(command), cwd=tmp_dir)
+
+        # Merge the import file to readd the OWL imports
+        if result.ok() and dependency_iris is not None and len(dependency_iris) > 0:
+            command = [
+                ROBOT, "merge",
+                "--input", dependency_f.name,
+                "--input", f'"{outfile}"',
+                "--collapse-import-closure", "false",
+                '--output', f'"{outfile}"'
+            ]
+
+            command.extend([
+                'annotate',
+                '--ontology-iri', f'"{ontology.iri()}"',
+                '--output', f'"{outfile}"'
+            ])
+
+            result += self._execute_command(" ".join(command), cwd=tmp_dir)
+
+        return result
 
     def merge_ontologies(self, ontologies: List[str], outfile: str, iri: str, version_iri: str,
                          annotations: Dict[str, str]) -> Result[Any]:
@@ -282,7 +326,16 @@ class RobotOntologyBuildService(OntologyBuildService):
         command += ["--version-iri", f'"{version_iri}"']
         command += ["--output", f'"{outfile}"']
 
-        return self._execute_command(" ".join(command))
+        result = self._execute_command(" ".join(command))
+
+        return result
+
+    # def fix_iri(self, file: str, temp_dir: str, iri_prefix: str):
+    #     with fileinput.FileInput(file, inplace=True, backup='.bak') as file:
+    #         for line in file:
+    #             print(line
+    #                   .replace(temp_dir, iri_prefix)
+    #                   .replace("http://www.semanticweb.org/ontologies/temporary", iri_prefix), end='')
 
     def _execute_command(self, command_str: str, shell_flag=True, cwd=None) -> Result[str]:
         result = Result()

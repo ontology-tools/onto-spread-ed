@@ -51,7 +51,7 @@
         }
       ],
       "target": {
-        "file": "Upper Level BCIO/bcio.owl",
+        "file": "bcio.owl",
         "iri": "http://humanbehaviourchange.org/ontology/bcio.owl",
         "ontology_annotations": {
           "dc:title": "Behaviour Change Intervention Ontology",
@@ -89,7 +89,7 @@
       ],
       "target": {
         "file": "MechanismOfAction/bcio_moa.owl",
-        "iri": "http://humanbehaviourchange.org/ontology/bcio_moa.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/MechanismOfAction/bcio_moa.owl",
         "ontology_annotations": {}
       },
       "needs": [
@@ -125,7 +125,7 @@
       ],
       "target": {
         "file": "Population/bcio_population.owl",
-        "iri": "http://humanbehaviourchange.org/ontology/bcio_population.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/Population/bcio_population.owl",
         "ontology_annotations": {}
       },
       "needs": [
@@ -220,7 +220,7 @@
       ],
       "target": {
         "file": "Upper Level BCIO/bcio_upper_level.owl",
-        "iri": "http://humanbehaviourchange.org/ontology/bcio_upper.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/bcio_upper_level.owl",
         "ontology_annotations": {}
       },
       "needs": [],

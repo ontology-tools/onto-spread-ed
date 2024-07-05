@@ -24,7 +24,8 @@ class OntologyBuildService(ABC):
                        outfile: str,
                        prefixes: Optional[Dict[str, str]],
                        dependency_iris: Optional[List[str]],
-                       tmp_dir: str) -> Result[Any]:
+                       tmp_dir: str,
+                       iri_prefix: str) -> Result[Any]:
         ...
 
     @abstractmethod

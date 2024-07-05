@@ -1,5 +1,3 @@
-import os.path
-
 from .ReleaseStep import ReleaseStep
 from .common import order_sources
 from ..model.ExcelOntology import ExcelOntology
@@ -47,12 +45,13 @@ class BuildReleaseStep(ReleaseStep):
             result += ontology.resolve()
             self._raise_if_canceled()
 
-            dependencies = [os.path.basename(f) for f in (
-                    [self._release_script.files[n].target.file for n in file.needs] +
-                    [self._release_script.external.target.file])]
+            dependencies = [f for f in (
+                    [self._release_script.files[n].target.iri for n in file.needs] +
+                    [self._release_script.external.target.iri])]
 
             result += builder.build_ontology(ontology, self._local_name(file.target.file),
-                                             self._release_script.prefixes, dependencies, self._working_dir)
+                                             self._release_script.prefixes, dependencies, self._working_dir,
+                                             self._release_script.iri_prefix)
             self._raise_if_canceled()
 
             loaded[k] = ontology
