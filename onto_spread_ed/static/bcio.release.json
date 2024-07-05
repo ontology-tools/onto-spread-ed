@@ -226,6 +226,24 @@
       "needs": [],
       "renameTermFile": null,
       "addParentsFile": null
+    },
+    "bcio_schedule": {
+      "sources": [
+        {
+          "file": "Schedule/BCIO_Schedule.xlsx",
+          "type": "classes"
+        }
+      ],
+      "target": {
+        "file": "Schedule/bcio_schedule.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/Schedule/bcio_schedule.owl",
+        "ontology_annotations": {}
+      },
+      "needs": [
+        "upper"
+      ],
+      "renameTermFile": null,
+      "addParentsFile": null
     }
   },
   "steps": [
