@@ -21,7 +21,7 @@ class ValidationReleaseStep(ReleaseStep):
         excel_ontology = ExcelOntology(self._release_script.external.target.iri)
         externals_owl = self._local_name(self._release_script.external.target.file)
         if os.path.exists(externals_owl):
-            ontology = pyhornedowl.open_ontology(externals_owl)
+            ontology = pyhornedowl.open_ontology(externals_owl, "rdf")
             for [p, d] in self._config["PREFIXES"]:
                 ontology.add_prefix_mapping(p, d)
 

@@ -27,7 +27,7 @@ def main(gh: GitHub, repo: str):
     externals_content = github.get_file(gh, full_repo, externals_owl).decode()
 
     external_ontology = ExcelOntology(externals_owl)
-    ontology = pyhornedowl.open_ontology(externals_content)
+    ontology = pyhornedowl.open_ontology(externals_content, "rdf")
     for [p, d] in current_app.config["PREFIXES"]:
         ontology.add_prefix_mapping(p, d)
 

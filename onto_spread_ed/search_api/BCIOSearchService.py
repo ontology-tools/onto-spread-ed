@@ -42,7 +42,7 @@ class BCIOSearchService(APIService):
 
         external_ontologies_loaded = []
         for external in external_ontologies:
-            ext_ontology = pyhornedowl.open_ontology(external)
+            ext_ontology = pyhornedowl.open_ontology(external, "rdf")
 
             for [prefix, iri] in self._config["PREFIXES"]:
                 ext_ontology.add_prefix_mapping(prefix, iri)

@@ -221,7 +221,7 @@ def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: st
     response = gh.get(f"repos/{full_repo}/contents/{release_file}",
                       headers={"Accept": "application/vnd.github.raw+json"})
 
-    ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
+    ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'), "rdf")
 
     # ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
     for p, d in current_app.config["PREFIXES"]:
