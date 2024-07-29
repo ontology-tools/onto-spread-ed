@@ -55,19 +55,22 @@ def order_sources(files: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, Releas
         if any(unknown_dependencies):
             raise ValueError(f"Unknown dependencies '{', '.join(unknown_dependencies)}' for '{k}'")
 
+    no_change_since = 0
     while len(files) > 0:
         (k, file) = files.pop(0)
         if all(s.type == "owl" for s in file.sources):
+            no_change_since = 0
             continue
 
         if all(n in (x for x, _ in queue) for n in file.needs):
             queue.append((k, file))
+            no_change_since = 0
         else:
             files.append((k, file))
 
-            if id(file) in seen:
+            if len(files) < no_change_since:
                 raise ValueError("Circular dependency in release files!")
 
-            seen.add(id(file))
+            no_change_since += 1
 
     return queue

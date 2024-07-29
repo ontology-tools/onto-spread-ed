@@ -75,6 +75,7 @@
         "ontology_annotations": {}
       },
       "needs": [
+        "bcio_population",
         "upper"
       ],
       "renameTermFile": null,
@@ -93,6 +94,8 @@
         "ontology_annotations": {}
       },
       "needs": [
+        "bcio_behaviour",
+        "bcio_population",
         "upper"
       ],
       "renameTermFile": null,
@@ -129,8 +132,25 @@
         "ontology_annotations": {}
       },
       "needs": [
-        "upper",
-        "bcio_moa"
+        "upper"
+      ],
+      "renameTermFile": null,
+      "addParentsFile": null
+    },
+    "bcio_schedule": {
+      "sources": [
+        {
+          "file": "Schedule/BCIO_Schedule.xlsx",
+          "type": "classes"
+        }
+      ],
+      "target": {
+        "file": "Schedule/bcio_schedule.owl",
+        "iri": "http://humanbehaviourchange.org/ontology/Schedule/bcio_schedule.owl",
+        "ontology_annotations": {}
+      },
+      "needs": [
+        "upper"
       ],
       "renameTermFile": null,
       "addParentsFile": null
@@ -224,24 +244,6 @@
         "ontology_annotations": {}
       },
       "needs": [],
-      "renameTermFile": null,
-      "addParentsFile": null
-    },
-    "bcio_schedule": {
-      "sources": [
-        {
-          "file": "Schedule/BCIO_Schedule.xlsx",
-          "type": "classes"
-        }
-      ],
-      "target": {
-        "file": "Schedule/bcio_schedule.owl",
-        "iri": "http://humanbehaviourchange.org/ontology/Schedule/bcio_schedule.owl",
-        "ontology_annotations": {}
-      },
-      "needs": [
-        "upper"
-      ],
       "renameTermFile": null,
       "addParentsFile": null
     }
