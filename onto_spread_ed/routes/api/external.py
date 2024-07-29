@@ -15,7 +15,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from onto_spread_ed.guards.admin import verify_admin
 from onto_spread_ed.model.ExcelOntology import OntologyImport
 from onto_spread_ed.model.TermIdentifier import TermIdentifier
-from onto_spread_ed.utils import github
+from onto_spread_ed.utils import github, str_empty
 
 bp = Blueprint("api_external", __name__, url_prefix="/api/external")
 
@@ -53,6 +53,8 @@ def guess_parent():
             guesses = [dict(ontology_id=e.get("definedBy", e["curie"].split(":"))[0],
                             purl=e.get("ontologyIri", None),
                             term=TermIdentifier(id=e["curie"], label=e["label"])) for e in response.json()["elements"]]
+            guesses = [g for g in guesses if
+                       not str_empty(g['ontology_id']) and g['ontology_id'].lower() != prefix.lower()]
 
             return jsonify(guesses)
 
@@ -71,11 +73,15 @@ def guess_parent():
         ols_term = response.json()
         parent_iri = ols_term["directParent"]
         parent_ols = ols_term["linkedEntities"][parent_iri]
-        return jsonify([dict(
+        guesses = [dict(
             term=TermIdentifier(id=parent_ols["curie"], label=parent_ols["label"]),
             purl=parent_ols.get("ontologyIri", None),
             ontology_id=parent_ols["curie"].split(":")[0],
-        )])
+        )]
+
+        guesses = [g for g in guesses if not str_empty(g['ontology_id']) and g['ontology_id'].lower() != prefix.lower()]
+
+        return jsonify(guesses)
     except Exception:
         return jsonify(None)
 
