@@ -44,6 +44,10 @@ SUB_ONTOLOGIES = {
             "release_file": "StyleOfDelivery/bcio_style.owl",
             "excel_file": "StyleOfDelivery/bcio_style.xlsx"
         },
+        "population": {
+            "release_file": "Population/bcio_population.owl",
+            "excel_file": "Population/BCIO_Population_Expanded.xlsx"
+        }
     }
 }
 
