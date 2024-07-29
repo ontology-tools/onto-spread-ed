@@ -8,6 +8,8 @@ from injector import Module, provider
 from . import database, gh
 from .OntologyDataStore import OntologyDataStore
 from .SpreadsheetSearcher import SpreadsheetSearcher
+from .services.ConfigurationService import ConfigurationService
+from .services.LocalConfigurationService import LocalConfigurationService
 from .services.OntoloyBuildService import OntologyBuildService
 from .services.RobotOntologyBuildService import RobotOntologyBuildService
 
@@ -33,13 +35,18 @@ class AppModule(Module):
 
     @provider
     @request
-    def ontodb(self, app: Flask) -> OntologyDataStore:
-        return OntologyDataStore(app.config)
+    def ontodb(self, app: Flask, config: ConfigurationService) -> OntologyDataStore:
+        return OntologyDataStore(config)
 
     @provider
     @request
-    def searcher(self, app: Flask, github: GitHub) -> SpreadsheetSearcher:
-        return SpreadsheetSearcher(app.config, github)
+    def searcher(self, app: Flask, github: GitHub, config: ConfigurationService) -> SpreadsheetSearcher:
+        return SpreadsheetSearcher(config, github)
+
+    @provider
+    @request
+    def configuration_service(self, app: Flask) -> ConfigurationService:
+        return LocalConfigurationService(app.config)
 
     @provider
     @request

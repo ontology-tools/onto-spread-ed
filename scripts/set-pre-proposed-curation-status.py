@@ -2,7 +2,6 @@ from io import BytesIO
 from typing import Union
 
 import openpyxl
-from flask import current_app
 from flask_github import GitHub
 from openpyxl.styles import PatternFill
 from pyhornedowl import pyhornedowl
@@ -10,6 +9,7 @@ from pyhornedowl import pyhornedowl
 import onto_spread_ed.utils.github as github
 from onto_spread_ed.model.ExcelOntology import ExcelOntology
 from onto_spread_ed.model.Term import UnresolvedTerm, Term
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
 from onto_spread_ed.utils import get_spreadsheets, str_empty
 
 
@@ -17,10 +17,11 @@ def is_incomplete(term: Union[UnresolvedTerm, Term]):
     return str_empty(term.label) or len(term.sub_class_of) <= 0 or str_empty(term.definition())
 
 
-def main(gh: GitHub, repo: str):
-    full_repo = current_app.config["REPOSITORIES"][repo]
-    branch = current_app.config["DEFAULT_BRANCH"][repo]
-    active_sheets = current_app.config["ACTIVE_SPREADSHEETS"][repo]
+def main(gh: GitHub, config: ConfigurationService, repo: str):
+    repository = config.get(repo)
+    full_repo = repository.full_name
+    branch = repository.main_branch
+    active_sheets = repository.indexed_files
     regex = "|".join(f"({r})" for r in active_sheets)
 
     externals_owl = "addicto_external.owl"
@@ -28,12 +29,12 @@ def main(gh: GitHub, repo: str):
 
     external_ontology = ExcelOntology(externals_owl)
     ontology = pyhornedowl.open_ontology(externals_content, "rdf")
-    for [p, d] in current_app.config["PREFIXES"]:
+    for [p, d] in repository.prefixes:
         ontology.add_prefix_mapping(p, d)
 
     for c in ontology.get_classes():
         id = ontology.get_id_for_iri(c)
-        labels = ontology.get_annotations(c, current_app.config['RDFSLABEL'])
+        labels = ontology.get_annotations(c, config.app_config['RDFSLABEL'])
 
         if id is not None:
             for label in labels:

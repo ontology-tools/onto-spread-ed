@@ -13,6 +13,7 @@ from ..model.ExcelOntology import ExcelOntology
 from ..model.Result import Result
 from ..model.Term import Term
 from ..model.TermIdentifier import TermIdentifier
+from ..services.ConfigurationService import ConfigurationService
 
 PROP_BCIO_SEARCH_API_PATH = "BCIO_SEARCH_API_PATH"
 PROP_BCIO_SEARCH_API_AUTH_TOKEN = "BCIO_SEARCH_API_AUTH_TOKEN"
@@ -22,15 +23,13 @@ class BCIOSearchService(APIService):
     _api_client: BCIOSearchClient
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, config: dict, session: aiohttp.ClientSession):
+    def __init__(self, config: ConfigurationService, session: aiohttp.ClientSession):
         super().__init__(config)
 
-        path = config.get(PROP_BCIO_SEARCH_API_PATH)
+        path = config.app_config[PROP_BCIO_SEARCH_API_PATH]
         authtoken = config.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, os.environ.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, None))
 
-        self._config = config
-
-        self._api_client = BCIOSearchClient(path, session, authtoken, config.get("DEBUG", False))
+        self._api_client = BCIOSearchClient(path, session, authtoken, config.app_config.get("DEBUG", False))
 
     async def update_api(self, ontology: ExcelOntology,
                          external_ontologies: List[str],
@@ -40,11 +39,13 @@ class BCIOSearchService(APIService):
         self._logger.info("Starting update")
         result = Result()
 
+        config = self._config.get("BCIO")
+
         external_ontologies_loaded = []
         for external in external_ontologies:
             ext_ontology = pyhornedowl.open_ontology(external, "rdf")
 
-            for [prefix, iri] in self._config["PREFIXES"]:
+            for (prefix, iri) in config.prefixes.items():
                 ext_ontology.add_prefix_mapping(prefix, iri)
 
             external_ontologies_loaded.append(ext_ontology)

@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional
 
 import pyhornedowl
 from flask_github import GitHub
@@ -15,6 +15,7 @@ from ..model.Relation import Relation, OWLPropertyType
 from ..model.ReleaseScript import ReleaseScript
 from ..model.Result import Result
 from ..model.Term import Term
+from ..services.ConfigurationService import ConfigurationService
 from ..utils import download_file
 
 
@@ -25,7 +26,7 @@ class ReleaseStep(abc.ABC):
     def name(cls) -> str:
         ...
 
-    _config: Dict[str, Any]
+    _config: ConfigurationService
     _working_dir: str
     _release_id: int
     _release_script: ReleaseScript
@@ -37,7 +38,7 @@ class ReleaseStep(abc.ABC):
     _current_item: int = 1
 
     def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
-                 config: Dict[str, Any]) -> None:
+                 config: ConfigurationService) -> None:
         self._config = config
         self._db = db
         self._gh = gh

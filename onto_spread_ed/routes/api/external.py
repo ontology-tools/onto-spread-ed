@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import os
-from typing import Optional, List
+from typing import List
 from urllib import parse
 
 import jsonschema
@@ -15,6 +15,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from onto_spread_ed.guards.admin import verify_admin
 from onto_spread_ed.model.ExcelOntology import OntologyImport
 from onto_spread_ed.model.TermIdentifier import TermIdentifier
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
 from onto_spread_ed.utils import github, str_empty
 
 bp = Blueprint("api_external", __name__, url_prefix="/api/external")
@@ -88,8 +89,8 @@ def guess_parent():
 
 @bp.route("/<repo>/import", methods=["POST"])
 @verify_admin
-def import_term(repo: str, gh: GitHub):
-    user_repos = current_app.config['USERS_METADATA'][g.user.github_login]["repositories"]
+def import_term(repo: str, gh: GitHub, config: ConfigurationService):
+    user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
 
     if repo not in user_repos:
         return jsonify({"msg": f"No such repository '{repo}'"}), 404
@@ -104,7 +105,7 @@ def import_term(repo: str, gh: GitHub):
     except jsonschema.ValidationError as e:
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
-    repository = current_app.config['REPOSITORIES'][repo]
+    repository = config.get(repo)
 
     import_ontology_id = data.get("ontologyId")
     import_purl = data.get("purl", f"http://purl.obolibrary.org/obo/{import_ontology_id.lower()}.owl")
@@ -122,13 +123,13 @@ def import_term(repo: str, gh: GitHub):
         prefixes=[tuple(x.split(":")) for x in import_prefix] if import_prefix is not None else []
     )
 
-    if update_imports(repo, repository, gh, [ontology_import]):
+    if update_imports(repo, repository.full_name, gh, [ontology_import], repository.main_branch):
         return Response(status=201)
     else:
         return Response(status=200)
 
 
-def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyImport], branch: Optional[str] = None):
+def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyImport], branch: str):
     external_file = None
     if repo == "BCIO":
         external_file = "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx"
@@ -176,9 +177,6 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
                               ids_str,
                               imp.intermediates,
                               ";".join(f"{p}: {i}" for p, i in imp.prefixes)])
-
-        if branch is None:
-            branch = current_app.config["DEFAULT_BRANCH"][repo]
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
