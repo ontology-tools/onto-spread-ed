@@ -204,7 +204,9 @@
         "ontology_annotations": {}
       },
       "needs": [
-        "upper"
+        "upper",
+        "bcio_behaviour",
+        "bcio_population"
       ],
       "renameTermFile": null,
       "addParentsFile": null
