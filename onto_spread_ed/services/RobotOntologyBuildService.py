@@ -65,7 +65,7 @@ class RobotOntologyBuildService(OntologyBuildService):
 
                 os.link(src, dst)
 
-            results = p.starmap(self._extract_slim_ontology, [(x, download_path) for x in imports])
+            results = p.starmap(self._extract_slim_ontology, [(main_ontology_name, x, download_path) for x in imports])
             result = reduce(lambda a, b: a + b, results, result)
 
             if result.has_errors():
@@ -84,8 +84,9 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return Result(())
 
-    def _extract_slim_ontology(self, imp: OntologyImport, download_path: str) -> Result[Union[str, Tuple]]:
-        filename = os.path.join(download_path, imp.id + ".slim.owl")
+    def _extract_slim_ontology(self, main_ontology_name: str, imp: OntologyImport, download_path: str) -> Result[
+        Union[str, Tuple]]:
+        filename = os.path.join(download_path, f"{imp.id}.{main_ontology_name}.slim.owl")
         slim_cmd = [ROBOT, 'merge',
                     '--input', f'"{os.path.join(download_path, imp.id + ".owl")}"',
                     'extract', '--method', 'MIREOT',
@@ -158,7 +159,7 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         for imp in imports:
             cmd.append('--input')
-            cmd.append(os.path.join(download_path, imp.id + ".slim.owl"))
+            cmd.append(os.path.join(download_path, f"{imp.id}.{main_ontology_name}.slim.owl"))
 
         cmd.extend(
             ['annotate', '--ontology-iri', merged_iri, '--version-iri', merged_iri, '--annotation rdfs:comment ',
