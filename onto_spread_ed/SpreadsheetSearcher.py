@@ -172,7 +172,7 @@ class SpreadsheetSearcher:
                 if repository_keys is not None and short_repo not in repository_keys:
                     continue
 
-                branch = config.short_name
+                branch = config.main_branch
                 active_sheets = config.indexed_files
                 regex = "|".join(f"({r})" for r in active_sheets)
 

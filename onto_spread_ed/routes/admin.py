@@ -153,8 +153,17 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[N
 
 
 @bp.route("/hierarchical-overview")
-def hierarchical_overview():
+def hierarchical_overview(config: ConfigurationService):
+    repositories = config.loaded_repositories()
+    user_repos = repositories.keys()
+    # Filter just the repositories that the user can see
+    if g.user.github_login in config.app_config['USERS_METADATA']:
+        user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
+
+    repositories = {k: v for k, v in repositories.items() if k in user_repos}
+
     return render_template("hierarchical_overview.html",
+                           repos=repositories,
                            breadcrumb=[
                                dict(name="Admin", path="admin/dashboard"),
                                dict(name="Hierarchical overviews", path="admin/hierarchical-overview")

@@ -11,8 +11,6 @@ SQLALCHEMY_DATABASE_URI = DATABASE_URI
 
 RDFSLABEL = "http://www.w3.org/2000/01/rdf-schema#label"
 
-DIGIT_COUNT = 7
-
 LOG_LEVEL = getattr(logging, os.environ.get("LOG_LEVEL", "WARNING").upper())
 if not isinstance(LOG_LEVEL, int):
     raise ValueError('Invalid log level: %s' % LOG_LEVEL)
@@ -88,6 +86,10 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   "micaelasantilli": {"initials": "MS", "repositories": ["BCIO", "GMHO"], "admin": True},
                   }
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
+
+LOAD_REPOSITORIES = [
+    "b-gehrke/ontologies"
+]
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"
 
