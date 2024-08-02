@@ -149,6 +149,7 @@ class ValidationReleaseStep(ReleaseStep):
             warnings=result.warnings,
             errors=result.errors
         )
+        validation_result += result
 
         self._set_release_info(validation_info)
         if not validation_result.has_errors() and validation_result.ok():
