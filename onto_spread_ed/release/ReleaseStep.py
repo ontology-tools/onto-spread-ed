@@ -100,17 +100,18 @@ class ReleaseStep(abc.ABC):
 
     def load_externals_ontology(self) -> Result[ExcelOntology]:
         result = Result()
+        config = self._config.get(self._release_script.full_repository_name)
 
         excel_ontology = ExcelOntology(self._release_script.external.target.iri)
         externals_owl = self._local_name(self._release_script.external.target.file)
         if os.path.exists(externals_owl):
             ontology = pyhornedowl.open_ontology(externals_owl, "rdf")
-            for [p, d] in self._config["PREFIXES"]:
+            for (p, d) in config.prefixes.items():
                 ontology.add_prefix_mapping(p, d)
 
             for c in ontology.get_classes():
                 id = ontology.get_id_for_iri(c)
-                labels = ontology.get_annotations(c, self._config['RDFSLABEL'])
+                labels = ontology.get_annotations(c, self._config.app_config["RDFSLABEL"])
 
                 if id is None:
                     result.warning(type='unknown-id', msg=f'Unable to determine id of external term "{c}"')
@@ -133,7 +134,7 @@ class ReleaseStep(abc.ABC):
 
             for r in ontology.get_object_properties():
                 id = ontology.get_id_for_iri(r)
-                label = ontology.get_annotation(r, self._config['RDFSLABEL'])
+                label = ontology.get_annotation(r, self._config.app_config["RDFSLABEL"])
 
                 if id is None:
                     result.warning(type='unknown-id', msg=f'Unable to determine id of external relation "{r}"')

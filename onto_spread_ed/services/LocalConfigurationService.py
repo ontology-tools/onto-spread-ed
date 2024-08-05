@@ -136,6 +136,7 @@ REPOS = dict((k,
                   prefixes=dict(PREFIXES),
                   release_file=RELEASE_FILES[k],
                   indexed_files=ACTIVE_SPREADSHEETS[k],
+                  release_script_path=".onto-ed/release_script.json",
                   id_digits=7,
                   subontologies=dict(
                       (k, SubOntologyConfiguration(
@@ -147,6 +148,9 @@ REPOS = dict((k,
 
 
 class LocalConfigurationService(ConfigurationService):
+
+    def __init__(self, app_config):
+        super().__init__(app_config)
 
     def get_by_short_name(self, short_name: str) -> Optional[RepositoryConfiguration]:
         return REPOS.get(short_name, None)
