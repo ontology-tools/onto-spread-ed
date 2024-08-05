@@ -27,6 +27,7 @@ class Relation:
     sub_property_of: List[TermIdentifier]
     domain: Optional[TermIdentifier]
     range: Optional[TermIdentifier]
+    inverse_of: List[TermIdentifier]
     origin: Tuple[str, int]
 
     def identifier(self) -> TermIdentifier:
@@ -42,6 +43,7 @@ class UnresolvedRelation:
     label: Optional[str] = None
     equivalent_relations: List[TermIdentifier] = field(default_factory=list)
     relations: List[Tuple[TermIdentifier, Any]] = field(default_factory=list)
+    inverse_of: List[TermIdentifier] = field(default_factory=list)
 
     sub_property_of: List[TermIdentifier] = field(default_factory=list)
 
@@ -56,7 +58,8 @@ class UnresolvedRelation:
             self.domain is not None and self.domain.is_unresolved() or \
             self.range is not None and self.range.is_unresolved() or \
             len(self.sub_property_of) + len(relation_values) + len(self.equivalent_relations) > 0 and \
-            any(t.is_unresolved() for t in [*self.sub_property_of, *relation_values, *self.equivalent_relations])
+            any(t.is_unresolved() for t in
+                [*self.sub_property_of, *relation_values, *self.equivalent_relations, *self.inverse_of])
 
     def to_resolved(self) -> Optional[Relation]:
         if self.is_unresolved():
@@ -80,6 +83,7 @@ class UnresolvedRelation:
             sum(map(hash, self.equivalent_relations)),
             sum(map(hash, self.relations)),
             sum(map(hash, self.sub_property_of)),
+            sum(map(hash, self.inverse_of)),
             self.owl_property_type,
             self.domain,
             self.range

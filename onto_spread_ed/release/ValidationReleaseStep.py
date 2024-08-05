@@ -63,6 +63,7 @@ class ValidationReleaseStep(ReleaseStep):
                         label=label,
                         origin=("<external>", -1),
                         equivalent_relations=[],
+                        inverse_of=[],
                         relations=[],
                         owl_property_type=OWLPropertyType.ObjectProperty,
                         sub_property_of=[],

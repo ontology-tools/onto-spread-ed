@@ -9,6 +9,7 @@ from .TermIdentifier import TermIdentifier
 
 
 class ColumnMappingKind(enum.Enum):
+    INVERSE_OF = 17
     IGNORE = 16
     RELATION_TYPE = 15
     PREFIX = 14
@@ -252,7 +253,7 @@ def relation(excel_name: List[str], relation: TermIdentifier, name: Optional[str
              separator: Optional[str] = None,
              property_type: OWLPropertyType = OWLPropertyType.AnnotationProperty) -> ColumnMappingFactory:
     return SingletonMappingFactory(excel_name, RelationColumnMapping(
-        Relation(relation.id, relation.label, [], [], property_type, [], None, None, ("<schema>", 0)),
+        Relation(relation.id, relation.label, [], [], property_type, [], None, None, [], ("<schema>", 0)),
         excel_name[0] if name is None else name, separator))
 
 
@@ -274,7 +275,7 @@ def relation_pattern(pattern: Union[str, re.Pattern],
     def f(origin: str, rel_name: str, match: re.Match) -> RelationColumnMapping:
         identifier = factory(rel_name, match)
         return RelationColumnMapping(
-            Relation(identifier.id, identifier.label, [], [], relation_kind, [], None, None, (origin, 0)),
+            Relation(identifier.id, identifier.label, [], [], relation_kind, [], None, None, [], (origin, 0)),
             f"REL {rel_name}",
             separator
         )

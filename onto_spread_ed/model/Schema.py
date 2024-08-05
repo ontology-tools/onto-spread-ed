@@ -42,6 +42,7 @@ DEFAULT_MAPPINGS = [
     singleton(["Logical definition", "Logical Definition"],
               ManchesterSyntaxMapping, kind=ColumnMappingKind.EQUIVALENT_TO),
     singleton(["Equivalent to relationship"], TermMapping, kind=ColumnMappingKind.EQUIVALENT_TO),
+    singleton(["Inverse of"], TermMapping, kind=ColumnMappingKind.INVERSE_OF),
     singleton(["Disjoint classes"], TermMapping, kind=ColumnMappingKind.DISJOINT_WITH, separator=";"),
     singleton(["Relationship type"], ChoiceColumnMapping, kind=ColumnMappingKind.RELATION_TYPE,
               choices=[t.name for t in OWLPropertyType]),

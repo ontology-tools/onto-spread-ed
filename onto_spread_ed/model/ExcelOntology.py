@@ -225,6 +225,8 @@ class ExcelOntology:
                 relation.label = col.get_value(val)
             elif kind == ColumnMappingKind.EQUIVALENT_TO:
                 relation.equivalent_relations += col.get_value(val)
+            elif kind == ColumnMappingKind.INVERSE_OF:
+                relation.inverse_of += col.get_value(val)
             elif isinstance(col, ParentMapping):
                 relation.sub_property_of.append(col.get_value(val))
             elif kind == ColumnMappingKind.DOMAIN:
@@ -693,9 +695,9 @@ class ExcelOntology:
                         result.error(type="missing-range",
                                      relation=relation.__dict__,
                                      range=relation.range.__dict__)
-                    elif c("ignored-domain") and isinstance(t, UnresolvedTerm) and lower(
+                    elif c("ignored-range") and isinstance(t, UnresolvedTerm) and lower(
                             t.curation_status()) in self._ignore_status:
-                        result.error(type="ignored-domain",
+                        result.error(type="ignored-range",
                                      status=t.curation_status(),
                                      relation=relation.__dict__,
                                      range=relation.range.__dict__)
