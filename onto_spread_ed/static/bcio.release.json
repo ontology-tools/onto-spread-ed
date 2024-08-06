@@ -286,7 +286,8 @@
           "bcio_moa",
           "bcio_behaviour",
           "bcto",
-          "bcio_style"
+          "bcio_style",
+          "bcio_population"
         ]
       }
     },
