@@ -199,7 +199,7 @@ elif DEPLOYMENT_MODE == "LOCAL":
 
 USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "BCIO"]},
                   "jannahastings": {"initials": "JH", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
-                  "robertjwest": {"initials": "RW", "repositories": ["AddictO", "BCIO", "GMHO"]},
+                  "robertjwest": {"initials": "RW", "repositories": ["AddictO", "BCIO", "GMHO"], "admin": True},
                   "sharoncox": {"initials": "SC", "repositories": ["AddictO"]},
                   "ksoar": {"initials": "KS", "repositories": ["AddictO"]},
                   "CaitlinNotley702": {"initials": "CN", "repositories": ["AddictO"]},
