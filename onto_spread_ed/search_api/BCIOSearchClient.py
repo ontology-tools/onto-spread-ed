@@ -24,7 +24,7 @@ class BCIOSearchClient:
         "synonyms": (TermIdentifier(id="IAO:0000118", label="alternative label"), "multiple"),
         "definition": (TermIdentifier(id="IAO:0000115", label="definition"), "single"),
         "informalDefinition": (TermIdentifier(label="informalDefinition"), "single"),
-        "lowerLevelOntology": (TermIdentifier(label="lowerLevelOntology"), "single"),
+        "lowerLevelOntology": (TermIdentifier(label="lowerLevelOntology"), "multiple"),
         "curatorNote": (TermIdentifier(id="IAO:0000232", label="curator note"), "single"),
         "curationStatus": (TermIdentifier(id="IAO:0000114", label="has curation status"), "single"),
         "comment": (TermIdentifier(id="rdfs:comment", label="rdfs:comment"), "single"),
@@ -93,11 +93,11 @@ class BCIOSearchClient:
             data['curationStatus'] = 'Proposed'
 
         if "lowerLevelOntology" in data and data["lowerLevelOntology"] is not None:
-            lower_level_ontology = data["lowerLevelOntology"].lower().strip()
-            if lower_level_ontology == "upper level":
-                data["lowerLevelOntology"] = None
-            else:
-                data["lowerLevelOntology"] = lower_level_ontology
+            lower_level_ontologies = [d.lower().strip() for d in data["lowerLevelOntology"]]
+            if "upper level" in lower_level_ontologies:
+                lower_level_ontologies.remove("upper level")
+
+            data["lowerLevelOntology"] = lower_level_ontologies
 
         definition_source = self._merge_definition_source_and_id(term)
         if definition_source:
