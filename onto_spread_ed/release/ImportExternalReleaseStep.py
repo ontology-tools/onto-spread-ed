@@ -36,7 +36,7 @@ class ImportExternalReleaseStep(ReleaseStep):
                     if row[0] == "ID" or len(row) < 2:
                         continue
 
-                new_parents.append((row[0], row[1]))
+                    new_parents.append((row[0], row[1]))
 
         renamings: List[Tuple[str, str]] = []
         if file.renameTermFile is not None:
@@ -49,7 +49,7 @@ class ImportExternalReleaseStep(ReleaseStep):
                     if row[0] == "ID" or len(row) < 2:
                         continue
 
-                renamings.append((row[0], row[1]))
+                    renamings.append((row[0], row[1]))
 
         result += builder.merge_imports(
             ontology.imports(),
