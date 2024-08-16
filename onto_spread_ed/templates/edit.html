@@ -2775,8 +2775,8 @@
                                 request.send('repo_key=' + repo_key +
                                     '&folder=' + folder +
                                     '&spreadsheet=' + spreadsheet +
-                                    '&rowData=' + rowData +
-                                    '&initialData=' + initialData +
+                                    '&rowData=' + encodeURIComponent(rowData) +
+                                    '&initialData=' + encodeURIComponent(initialData) +
                                     '&commit_msg=' + commit_msg +
                                     '&commit_msg_extra=' + msgBody +
                                     '&file_sha= ' + file_sha +
