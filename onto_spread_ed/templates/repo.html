@@ -7,7 +7,8 @@
 
     <label class="font-weight-bold form-label" for="submitText">Search across all spreadsheets:</label>
     <form id="submitText" class="d-flex">
-        <input id="inputText" name="inputText" value="" placeholder='search terms' class="form-control me-2 d-inline-block w-auto"/>
+        <input id="inputText" name="inputText" value="" placeholder='search terms'
+               class="form-control me-2 d-inline-block w-auto"/>
         <button type="submit" id="inputBtn" name="input" value="search" class="btn btn-outline-success me-2"
                 onclick="return submitForm(this)">
             <i class=" fas fa-search"></i> Search
@@ -52,9 +53,13 @@
         <ul>
             {% for dir in directories if not dir.startswith('.') and dir != 'scripts' %}
                 {% if folder_path|length %}
-                    <li class="twoSlash"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">{{ dir }}</a></li>
+                    <li class="twoSlash"><a
+                            href="{{ url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir) }}">{{ dir }}</a>
+                    </li>
                 {% else %}
-                    <li class="oneSlash"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">{{ dir }}</a></li>
+                    <li class="oneSlash"><a
+                            href="{{ url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir) }}">{{ dir }}</a>
+                    </li>
                 {% endif %}
             {% endfor %}
         </ul>
@@ -64,7 +69,9 @@
         <H5>Spreadsheets available for editing: </H5>
         <ul>
             {% for spr in spreadsheets if not spr.startswith('.') %}
-            <li><a href="{{url_for('edit.edit', repo_key=repo_name, folder=folder_path, spreadsheet=spr)}}">{{ spr }}</a></li>
+                <li>
+                    <a href="{{ url_for('edit.edit', repo_key=repo_name, folder=folder_path, spreadsheet=spr) }}">{{ spr }}</a>
+                </li>
 
                 </p>
 
@@ -217,18 +224,18 @@
 
                     // various ways to deal with user opening linked sheets in tabulator: https://github.com/olifolkerd/tabulator/issues/153
 
-                    //todo: different rowClick for "initials" type
-                    rowClick: function (e, row) {
-                        var data = row.getData();
-                        if (data['label'] != null && data['label'] != "") {
-                            openSheet(type, data["repo"], data["spreadsheet"], data['label']);
-                            console.log("label: " + data['label']);
-                        } else {
-                            openSheet(type, data["repo"], data["spreadsheet"], '');
-                            console.log("no label");
-                        }
-                    },
                 });
+
+                table.on("rowClick", function (e, row) {
+                    var data = row.getData();
+                    if (data['label'] != null && data['label'] != "") {
+                        openSheet(type, data["repo"], data["spreadsheet"], data['label']);
+                        console.log("label: " + data['label']);
+                    } else {
+                        openSheet(type, data["repo"], data["spreadsheet"], '');
+                        console.log("no label");
+                    }
+                },)
             } else if (type == "initials") {
                 console.log(type);
                 console.log(responseData);
@@ -252,13 +259,13 @@
                     layout: "fitColumns",
                     pagination: "local",
                     paginationSize: "5",
-
-                    //different rowClick for "initials" type
-                    rowClick: function (e, row) {
-                        var data = row.getData();
-                        openSheet(type, data["repo"], data["spreadsheet"], initials);
-                    },
                 });
+
+                //different rowClick for "initials" type
+                table.on("rowClick", function (e, row) {
+                    var data = row.getData();
+                    openSheet(type, data["repo"], data["spreadsheet"], initials);
+                })
             }
         }
 
