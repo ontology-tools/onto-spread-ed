@@ -385,8 +385,8 @@ async function autofix(error: Diagnostic) {
             <p>
               The term <code>{{ warning.term.label }}</code> (<code>{{ warning.term.id }}</code>) has the curation
               status
-              "External" but is not included in the externally imported terms. Does the term still exist in
-              {{ warning.term.id.split(":")[0] }}? <br>
+              "External" but is not included in the externally imported terms. <template v-if="warning.term.id">Does the term still exist in
+              {{ warning.term.id.split(":")[0] }}?</template> <br>
 
               <ErrorLink :error="warning" :short_repository_name="shortRepoName" :term="warning.term"></ErrorLink>
             </p>
