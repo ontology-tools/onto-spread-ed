@@ -18,11 +18,14 @@ class BuildReleaseStep(ReleaseStep):
             self._next_item()
             ontology = ExcelOntology(file.target.iri)
 
-            for s in self._release_script.external.sources:
-                xlsx = self._local_name(s.file)
-                result += ontology.add_imported_terms(s.file, xlsx)
+            external_ontology_result = self.load_externals_ontology()
 
-                self._raise_if_canceled()
+            self._raise_if_canceled()
+
+            result += external_ontology_result
+            ontology.import_other_excel_ontology(external_ontology_result.value)
+
+            self._raise_if_canceled()
 
             for n in file.needs:
                 other = loaded[n]  # Must exist queue is ordered to first load ontologies others depend on
