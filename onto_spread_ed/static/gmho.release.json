@@ -55,7 +55,8 @@
       "target": {
         "file": "gmho_with_imports.owl",
         "iri": "https://galenos.org.uk/ontologies/gmho_with_imports.owl",
-        "ontology_annotations": {}
+        "ontology_annotations": {},
+        "publish": false
       },
       "needs": [
         "gmho_upper"

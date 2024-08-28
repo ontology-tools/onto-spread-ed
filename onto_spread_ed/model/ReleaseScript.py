@@ -21,6 +21,7 @@ class ReleaseScriptTarget:
     file: str
     iri: str
     ontology_annotations: Dict[str, str] = field(default_factory=dict)
+    publish: bool = True
 
 
 @dataclass

@@ -57,7 +57,8 @@
       "target": {
         "file": "addicto_with_imports.owl",
         "iri": "http://addictovocab.org/addicto_with_imports.owl",
-        "ontology_annotations": {}
+        "ontology_annotations": {},
+        "publish": false
       },
       "needs": [],
       "renameTermFile": null,

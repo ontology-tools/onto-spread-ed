@@ -13,7 +13,7 @@ class HumanVerificationReleaseStep(ReleaseStep):
             "link": url_for(".download_release_file", file=f.target.file,
                             repo=self._release_script.short_repository_name),
             "name": f.target.file
-        } for k, f in self._release_script.files.items()]
+        } for k, f in self._release_script.files.items() if f.target.publish]
 
         self._set_release_info(dict(
             ok=False,
