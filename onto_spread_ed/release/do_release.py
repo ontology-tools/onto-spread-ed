@@ -10,6 +10,7 @@ from flask_github import GitHub, GitHubError
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
 
+from .AddictOVocabReleaseStep import AddictOVocabReleaseStep
 from .BCIOSearchReleaseStep import BCIOSearchReleaseStep
 from .BuildReleaseStep import BuildReleaseStep
 from .GithubPublishReleaseStep import GithubPublishReleaseStep
@@ -32,6 +33,7 @@ ALL_RELEASE_STEPS: List[Type[ReleaseStep]] = [
     MergeReleaseStep,
     HumanVerificationReleaseStep,
     BCIOSearchReleaseStep,
+    AddictOVocabReleaseStep,
     GithubPublishReleaseStep,
 ]
 

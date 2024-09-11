@@ -1,7 +1,5 @@
 <script setup lang="ts">
-declare var SERVER_DATA: { [key: string]: any }
-declare var URLS: { [key: string]: any }
-
+import AddictOVocab from "./steps/AddictOVocab.vue";
 import {computed, onMounted, ref, watch} from "vue";
 import {Diagnostic, Release, ReleaseScript} from "./model.ts";
 import Setup from "./Setup.vue";
@@ -13,6 +11,9 @@ import Merge from "./steps/Merge.vue";
 import HumanVerification from "./steps/HumanVerification.vue";
 import GithubPublish from "./steps/GithubPublish.vue";
 import BCIOSearch from "./steps/BCIOSearch.vue";
+
+declare var SERVER_DATA: { [key: string]: any }
+declare var URLS: { [key: string]: any }
 
 const repo = SERVER_DATA.repo
 const prefix_url = URLS.prefix
@@ -31,7 +32,8 @@ const _steps: { [k: string]: any } = {
   "MERGE": Merge,
   "HUMAN_VERIFICATION": HumanVerification,
   "GITHUB_PUBLISH": GithubPublish,
-  "BCIO_SEARCH": BCIOSearch
+  "BCIO_SEARCH": BCIOSearch,
+  "ADDICTO_VOCAB": AddictOVocab
 }
 
 const stepComponent = computed(() => {
