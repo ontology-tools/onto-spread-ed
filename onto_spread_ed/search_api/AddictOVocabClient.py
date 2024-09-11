@@ -1,9 +1,10 @@
+import asyncio
 import json
 import logging
 import urllib
 import urllib.parse
 from itertools import groupby
-from typing import Optional, Union, Literal, Dict, List, Any, Tuple
+from typing import Optional, Union, Literal, Dict, List, Any, Tuple, Coroutine
 
 import aiohttp
 import async_lru
@@ -25,7 +26,7 @@ class AddictOVocabClient:
         "synonyms": (TermIdentifier(id="IAO:0000118", label="alternative label"), "multiple"),
         "definition": (TermIdentifier(id="IAO:0000115", label="definition"), "single"),
         "informalDefinition": (TermIdentifier(label="informalDefinition"), "single"),
-        "lowerLevelOntology": (TermIdentifier(label="lowerLevelOntology"), "multiple"),
+        "addictoSubOntology": (TermIdentifier(label="addictoSubOntology"), "multiple"),
         "curatorNote": (TermIdentifier(id="IAO:0000232", label="curator note"), "single"),
         "curationStatus": (TermIdentifier(id="IAO:0000114", label="has curation status"), "single"),
         "comment": (TermIdentifier(id="rdfs:comment", label="rdfs:comment"), "single"),
@@ -76,19 +77,9 @@ class AddictOVocabClient:
         if method != "get":
             self._logger.info(f"{method} {json.dumps(data)}")
 
-            class M:
-                def __init__(self, r):
-                    self.r = r
+            from aiohttp.client import _RequestContextManager
 
-                def __aenter__(self):
-                    return self
-
-                def __aexit__(self, exc_type, exc_val, exc_tb):
-                    pass
-
-            response = Response()
-            response.status_code = 200
-            return M(response)
+            return self._session.request("get", "https://example.com/")
         else:
             return self._session.request(method, url, headers=headers, json=data)
 
@@ -106,12 +97,12 @@ class AddictOVocabClient:
         if data['curationStatus'] in ['To Be Discussed', 'In Discussion', None]:
             data['curationStatus'] = 'Proposed'
 
-        if "lowerLevelOntology" in data and data["lowerLevelOntology"] is not None:
-            lower_level_ontologies = [d.lower().strip() for d in data["lowerLevelOntology"]]
+        if "addictoSubOntology" in data and data["addictoSubOntology"] is not None:
+            lower_level_ontologies = [d.lower().strip() for d in data["addictoSubOntology"]]
             if "upper level" in lower_level_ontologies:
                 lower_level_ontologies.remove("upper level")
 
-            data["lowerLevelOntology"] = lower_level_ontologies
+            data["addictoSubOntology"] = lower_level_ontologies
 
         definition_source = self._merge_definition_source_and_id(term)
         if definition_source:
@@ -244,7 +235,7 @@ class AddictOVocabClient:
     def _terms_equal(self, old: Term, new: Term) -> bool:
         ignore_if_not_exists = [
             "informalDefinition",
-            "lowerLevelOntology",
+            "addictoSubOntology",
             "fuzzySet",
             "fuzzyExplanation",
             "crossReference"

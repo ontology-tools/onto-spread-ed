@@ -5,6 +5,7 @@ from typing import List, Callable, Optional, Tuple
 
 import aiohttp
 import pyhornedowl
+from networkx import convert_node_labels_to_integers
 
 from .APIService import APIService
 from .AddictOVocabClient import AddictOVocabClient
@@ -84,6 +85,12 @@ class AddictOVocabService(APIService):
                         result.warning(type='external-no-definition',
                                        msg="No definition was provided for the external " +
                                            f"entity '{ext_label}' ({term_id}). Using default instead.")
+
+                    if ext_label is None:
+                        result.warning(type="external-no-label",
+                                       msg=f"The external term \"{term_id}\" has no label. Skipping it")
+                        return
+
                     ext_parents = o.get_superclasses(term_iri)
                     # If multiple parents check if they are (immediate) subclasses of each other and only take the most
                     # specific parent.
