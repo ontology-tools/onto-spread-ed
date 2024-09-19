@@ -1,5 +1,7 @@
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, List
+
+from flask import current_app
 
 from onto_spread_ed.model.RepositoryConfiguration import RepositoryConfiguration, SubOntologyConfiguration
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
@@ -136,7 +138,7 @@ REPOS = dict((k,
                   prefixes=dict(PREFIXES),
                   release_file=RELEASE_FILES[k],
                   indexed_files=ACTIVE_SPREADSHEETS[k],
-                  release_script_path=".onto-ed/release_script.json",
+                  release_script_path=f"{k.lower()}.release.json",
                   id_digits=7,
                   subontologies=dict(
                       (k, SubOntologyConfiguration(
@@ -163,5 +165,16 @@ class LocalConfigurationService(ConfigurationService):
         short = next((s for s, f in REPOS.items() if url.endswith(f.full_name)), None)
         return self.get_by_short_name(short)
 
-    def loaded_repositories(self) -> Dict[str, RepositoryConfiguration]:
-        return REPOS
+    def loaded_repositories(self) -> List[RepositoryConfiguration]:
+        return list(REPOS.values())
+
+    def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
+        path = os.path.join(current_app.static_folder, path)
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                return f.read()
+
+        return None
+
+
+

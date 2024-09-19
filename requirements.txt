@@ -17,3 +17,5 @@ flask-executor
 aiohttp
 async-lru
 Flask-Migrate
+pyyaml
+dacite

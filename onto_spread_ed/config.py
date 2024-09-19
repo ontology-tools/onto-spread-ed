@@ -87,7 +87,7 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   }
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
 
-LOAD_REPOSITORIES = [
+REPOSITORY_CONFIG_DEFAULT_REPOSITORIES = [
     "b-gehrke/ontologies"
 ]
 

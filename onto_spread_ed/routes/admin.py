@@ -75,14 +75,13 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: Conf
     repositories = None
 
     if id is None and repo is None:
-        repositories = config.loaded_repositories()
-
-        user_repos = repositories.keys()
+        user_repos = []
         # Filter just the repositories that the user can see
         if g.user.github_login in config.app_config['USERS_METADATA']:
             user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
 
-        repositories = {k: v.full_name for k, v in repositories.items() if k in user_repos}
+        repositories = {s: config.get(s) for s in user_repos}
+        repositories = {k: v for k, v in repositories.items() if v is not None}
 
         if len(repositories) == 1:
             return redirect(url_for("admin.release", repo=list(repositories.keys())[0]))
@@ -154,13 +153,13 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[N
 
 @bp.route("/hierarchical-overview")
 def hierarchical_overview(config: ConfigurationService):
-    repositories = config.loaded_repositories()
-    user_repos = repositories.keys()
+    user_repos = []
     # Filter just the repositories that the user can see
     if g.user.github_login in config.app_config['USERS_METADATA']:
         user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
 
-    repositories = {k: v for k, v in repositories.items() if k in user_repos}
+    repositories = {s: config.get(s) for s in user_repos}
+    repositories = {k: v for k, v in repositories.items() if v is not None}
 
     return render_template("hierarchical_overview.html",
                            repos=repositories,
@@ -213,13 +212,13 @@ def build_hierarchy(gh: GitHub, config: ConfigurationService, repo: str,
     full_repo = repository.full_name
 
     if sub_ontology is not None:
-        sub = repository.subontologies.get(repo, dict()).get(sub_ontology, None)
+        sub = repository.subontologies.get(sub_ontology, None)
 
         if sub is None:
             raise NotFound(f"No such sub-ontology '{sub_ontology}'")
 
-        excel_files = [sub["excel_file"]]
-        release_file = sub["release_file"]
+        excel_files = [sub.excel_file]
+        release_file = sub.release_file
     else:
         release_file = repository.release_file
 

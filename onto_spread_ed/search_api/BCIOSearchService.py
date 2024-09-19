@@ -27,7 +27,7 @@ class BCIOSearchService(APIService):
         super().__init__(config)
 
         path = config.app_config[PROP_BCIO_SEARCH_API_PATH]
-        authtoken = config.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, os.environ.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, None))
+        authtoken = config.app_config.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, os.environ.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, None))
 
         self._api_client = BCIOSearchClient(path, session, authtoken, config.app_config.get("DEBUG", False))
 

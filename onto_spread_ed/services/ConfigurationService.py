@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 from onto_spread_ed.model.RepositoryConfiguration import RepositoryConfiguration
 
@@ -11,20 +11,20 @@ class ConfigurationService(abc.ABC):
         self._app_config = app_config
 
     @abc.abstractmethod
-    def loaded_repositories(self) -> Dict[str, RepositoryConfiguration]:
-        pass
+    def loaded_repositories(self) -> List[RepositoryConfiguration]:
+        ...
 
     @abc.abstractmethod
     def get_by_short_name(self, short_name: str) -> Optional[RepositoryConfiguration]:
-        pass
+        ...
 
     @abc.abstractmethod
     def get_by_full_name(self, full_name: str) -> Optional[RepositoryConfiguration]:
-        pass
+        ...
 
     @abc.abstractmethod
     def get_by_url(self, url: str) -> Optional[RepositoryConfiguration]:
-        pass
+        ...
 
     def get(self, name: str) -> Optional[RepositoryConfiguration]:
         parts = name.split("/")
@@ -38,3 +38,7 @@ class ConfigurationService(abc.ABC):
     @property
     def app_config(self) -> Dict[str, Any]:
         return self._app_config
+
+    @abc.abstractmethod
+    def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
+        ...

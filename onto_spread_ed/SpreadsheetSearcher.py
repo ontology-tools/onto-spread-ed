@@ -168,7 +168,8 @@ class SpreadsheetSearcher:
                         yield entry['path']
 
             sheets = []
-            for short_repo, config in repositories.items():
+            for config in repositories:
+                short_repo = config.short_name
                 if repository_keys is not None and short_repo not in repository_keys:
                     continue
 

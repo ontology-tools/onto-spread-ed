@@ -6,6 +6,7 @@ from time import sleep
 from typing import Tuple, Optional
 
 import jsonschema
+import requests
 from flask import jsonify, Blueprint, current_app, request, make_response, Response, g
 from flask_executor import Executor
 from flask_github import GitHub
@@ -56,22 +57,23 @@ def get_current_release(q: Query[Release], repo: str) -> Tuple[Optional[Release]
 @bp.route("/<repo>/release_script", methods=["GET"])
 @verify_admin
 def get_release_script(repo: str, config: ConfigurationService):
-    if repo not in config.loaded_repositories():
+    repo_config = config.get(repo)
+    if repo_config is None:
         raise NotFound(f"No such repository '{repo}'.")
 
-    path = os.path.join(current_app.static_folder, f"{repo.lower()}.release.json")
-    if not os.path.exists(path):
+    # Try get from remote
+    data = config.get_file(repo_config, repo_config.release_script_path)
+    if data is None:
         raise NotFound(f"No release script for '{repo}'.")
 
-    with open(path, "r") as f:
-        data = json.load(f)
+    data = json.loads(data)
 
     release_script = ReleaseScript.from_json(data)
 
     if release_script.short_repository_name.lower() != repo.lower():
         raise BadRequest("Release script repository does not match requested repository")
 
-    release_script.full_repository_name = config.get(repo).full_name
+    release_script.full_repository_name = repo_config.full_name
 
     return jsonify(dataclasses.asdict(release_script))
 
@@ -79,7 +81,8 @@ def get_release_script(repo: str, config: ConfigurationService):
 @bp.route("/<repo>/release_script", methods=["PUT"])
 @verify_admin
 def save_release_script(repo: str, config: ConfigurationService):
-    if repo not in config.loaded_repositories():
+    repo_config = config.get(repo)
+    if repo_config is None:
         raise NotFound(f"No such repository '{repo}'.")
 
     schema: dict
@@ -147,11 +150,12 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor, config: Config
         )), 400
 
     repo = release_script.short_repository_name
-    if repo not in config.loaded_repositories():
+    repo_config = config.get(repo)
+    if repo_config is None:
         return jsonify(dict(
             success=False,
             error="no-such-repository",
-            message=f"No repository '{repo}' found. Possible values are {config.loaded_repositories().keys()}",
+            message=f"No repository '{repo}' found.",
         )), 400
 
     release = Release(state="starting",

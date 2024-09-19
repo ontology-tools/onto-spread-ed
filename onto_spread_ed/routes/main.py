@@ -13,13 +13,16 @@ bp = Blueprint("main", __name__, template_folder="../templates")
 @bp.route('/home')
 @verify_logged_in
 def home(config: ConfigurationService):
-    repositories = config.loaded_repositories()
-    user_repos = repositories.keys()
+    user_repos = []
     # Filter just the repositories that the user can see
     if g.user.github_login in config.app_config['USERS_METADATA']:
         user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
 
-    repositories = {k: v.full_name for k, v in repositories.items() if k in user_repos}
+    repositories = {s: config.get(s) for s in user_repos}
+    repositories = {k: v for k, v in repositories.items() if v is not None}
+
+    if len(repositories) == 1:
+        return redirect(url_for("main.repo", repo_key=list(repositories.keys())[0]))
 
     return render_template('index.html',
                            login=g.user.github_login,

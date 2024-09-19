@@ -8,9 +8,11 @@ from injector import Module, provider
 from . import database, gh
 from .OntologyDataStore import OntologyDataStore
 from .SpreadsheetSearcher import SpreadsheetSearcher
+from .model.RepositoryConfiguration import RepositoryConfiguration
 from .services.ConfigurationService import ConfigurationService
 from .services.LocalConfigurationService import LocalConfigurationService
 from .services.OntoloyBuildService import OntologyBuildService
+from .services.RepositoryConfigurationService import RepositoryConfigurationService
 from .services.RobotOntologyBuildService import RobotOntologyBuildService
 
 
@@ -46,7 +48,14 @@ class AppModule(Module):
     @provider
     @request
     def configuration_service(self, app: Flask) -> ConfigurationService:
-        return LocalConfigurationService(app.config)
+        configuration_service = app.config.get("CONFIGURATION", "local")
+
+        service = {
+            "local": LocalConfigurationService,
+            "repository": RepositoryConfigurationService
+        }.get(configuration_service, LocalConfigurationService)
+
+        return service(app.config)
 
     @provider
     @request
