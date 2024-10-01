@@ -22,6 +22,9 @@ DEFAULT_HEADERS: Dict[str, str] = {
     "Accept": "application/vnd.github.raw+json",
 }
 
+ALLOW_NEW_REPOSITORIES_PROP = "REPOSITORY_CONFIG_ALLOW_NEW_REPOSITORIES"
+ALLOW_NEW_REPOSITORIES = False
+
 
 class RepositoryConfigurationService(ConfigurationService):
     _logger = logging.getLogger(__name__)
@@ -39,6 +42,10 @@ class RepositoryConfigurationService(ConfigurationService):
 
         for repo in default_repos:
             self.get(repo)
+
+    @property
+    def adding_new_allowed(self) -> bool:
+        return self.app_config.get(ALLOW_NEW_REPOSITORIES_PROP)
 
     def loaded_repositories(self) -> List[RepositoryConfiguration]:
         return list(self._loaded_repositories.values())

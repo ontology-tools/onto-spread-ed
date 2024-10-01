@@ -106,6 +106,14 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: Conf
                            )
 
 
+@bp.route("/settings")
+def settings(config):
+
+    return render_template("settings.html",
+                           login=g.user.github_login,
+                           breadcrumb=[{"name": "Admin", "path": "/admin/settings"}])
+
+
 @dataclasses.dataclass
 class Node:
     item: str

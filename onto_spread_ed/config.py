@@ -87,9 +87,11 @@ USERS_METADATA = {"tomjuggler": {"initials": "ZZ", "repositories": ["AddictO", "
                   }
 ALL_USERS_INITIALS = [v["initials"] for v in USERS_METADATA.values()]
 
+CONFIGURATION = "repository"
 REPOSITORY_CONFIG_DEFAULT_REPOSITORIES = [
     "b-gehrke/ontologies"
 ]
+REPOSITORY_CONFIG_ALLOW_NEW_REPOSITORIES = True
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"
 

@@ -10,6 +10,10 @@ class ConfigurationService(abc.ABC):
     def __init__(self, app_config: Dict[str, Any]):
         self._app_config = app_config
 
+    @property
+    def adding_new_allowed(self) -> bool:
+        return False
+
     @abc.abstractmethod
     def loaded_repositories(self) -> List[RepositoryConfiguration]:
         ...
