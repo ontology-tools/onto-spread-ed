@@ -11,6 +11,10 @@ class ConfigurationService(abc.ABC):
         self._app_config = app_config
 
     @property
+    def app_config(self) -> Dict[str, Any]:
+        return self._app_config
+
+    @property
     def adding_new_allowed(self) -> bool:
         return False
 
@@ -30,6 +34,14 @@ class ConfigurationService(abc.ABC):
     def get_by_url(self, url: str) -> Optional[RepositoryConfiguration]:
         ...
 
+    @abc.abstractmethod
+    def unload(self, name: str) -> bool:
+        ...
+
+    @abc.abstractmethod
+    def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
+        ...
+
     def get(self, name: str) -> Optional[RepositoryConfiguration]:
         parts = name.split("/")
         if len(parts) == 1:
@@ -39,10 +51,11 @@ class ConfigurationService(abc.ABC):
         else:
             return self.get_by_url(name)
 
-    @property
-    def app_config(self) -> Dict[str, Any]:
-        return self._app_config
+    def add_startup_repository(self, repo: str) -> bool:
+        return False
 
-    @abc.abstractmethod
-    def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
-        ...
+    def remove_startup_repository(self, repo: str) -> bool:
+        return False
+
+    def startup_repositories(self) -> List[str]:
+        return []

@@ -77,8 +77,8 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: Conf
     if id is None and repo is None:
         user_repos = []
         # Filter just the repositories that the user can see
-        if g.user.github_login in config.app_config['USERS_METADATA']:
-            user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
+        if g.user.github_login in config.app_config['USERS']:
+            user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
 
         repositories = {s: config.get(s) for s in user_repos}
         repositories = {k: v for k, v in repositories.items() if v is not None}
@@ -107,10 +107,13 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: Conf
 
 
 @bp.route("/settings")
-def settings(config):
+@verify_admin
+def settings(config: ConfigurationService):
 
     return render_template("settings.html",
                            login=g.user.github_login,
+                           config=config.app_config,
+                           config_service=config,
                            breadcrumb=[{"name": "Admin", "path": "/admin/settings"}])
 
 
@@ -163,8 +166,8 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[N
 def hierarchical_overview(config: ConfigurationService):
     user_repos = []
     # Filter just the repositories that the user can see
-    if g.user.github_login in config.app_config['USERS_METADATA']:
-        user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
+    if g.user.github_login in config.app_config['USERS']:
+        user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
 
     repositories = {s: config.get(s) for s in user_repos}
     repositories = {k: v for k, v in repositories.items() if v is not None}

@@ -4,7 +4,11 @@
     {{ super() }}
 {% endblock %}
 {% block content %}
-
+    {% if repos | length == 0 %}
+        <h2>No repositories</h2>
+        <p>There are no repositories configured for this instance. Add one in the <a
+                href="{{ url_for('admin.settings') }}">Settings</a> or add it in the configuration.</p>
+    {% else %}
     <h2> Choose a project repository: </h2>
 
     <div class="row align-stretch">
@@ -23,6 +27,7 @@
             </div>
         {% endfor %}
     </div>
+    {% endif %}
 
 
 {% endblock %}

@@ -9,7 +9,7 @@ bp = Blueprint("api_repo", __name__, url_prefix="/api/repo")
 @bp.route("/", methods=["GET"])
 @verify_logged_in
 def get_repos(config: ConfigurationService):
-    user = config.app_config["USERS_METADATA"].get(g.user.github_login, None)
+    user = config.app_config["USERS"].get(g.user.github_login, None)
     if not user:
         return jsonify([])
 

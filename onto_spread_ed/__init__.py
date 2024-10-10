@@ -1,34 +1,78 @@
 # Do the custom json serialization
-from .custom_json import *  # noqa: F403, F401
+import json
+from os import path
 
+import yaml
 from flask import Flask, session, g
 from flask_cors import CORS
 from flask_injector import FlaskInjector
 from flask_sqlalchemy import SQLAlchemy
 
-from . import config
+from . import default_config
+from .custom_json import *  # noqa: F403, F401
 from .database.User import User
 
 
+def load_config(app: Flask, config_filename):
+    # load default
+    app.config.from_object(default_config)
+
+    # load yaml
+    if path.exists(config_filename):
+        file_config = None
+        if path.isfile(config_filename):
+            with open(config_filename, "r") as f:
+                if config_filename.endswith(".yaml") or config_filename.endswith(".yml"):
+                    file_config = yaml.safe_load(f)
+                elif config_filename.endswith(".json"):
+                    file_config = json.load(f)
+                else:
+                    app.logger.error(f"Failed to load configuration from '{config_filename}'. Only yaml and json files are supported.")
+        else:
+            app.logger.error(f"Failed to load configuration from '{config_filename}'. Not a file.")
+
+        if file_config is not None:
+            config_obj = {
+                k.replace("-", "_").upper(): v for k, v in file_config.items()
+            }
+
+            repository_obj = {
+                f"REPOSITORIES_{file_config['repositories']['source'].upper()}_CONFIG_{k.replace('-', '_').upper()}": v
+                for k, v in file_config['repositories']['data'].items()
+            }
+            repository_obj["REPOSITORIES_SOURCE"] = file_config['repositories']['source']
+            del config_obj['REPOSITORIES']
+
+            config_obj = {**config_obj, **repository_obj}
+
+            app.config.from_mapping(config_obj)
+
+    # load from env
+    app.config.from_prefixed_env()
+    app.config.from_prefixed_env("OSE")
+
+    # add aliases
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config.get("DATABASE_URI")
+
+
 def create_app(config_filename=None):
+    if config_filename is None:
+        config_filename ="config.yaml"
+
     # Clear type annotations to get around errors using url_for in jinja template
     # Source: https://github.com/python-injector/flask_injector/issues/78
     Flask.url_for.__annotations__ = {}
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
-    app.config['CORS_HEADERS'] = 'Content-Type'
-    app.config['URL_PREFIX'] = config.URL_PREFIX
+
+    load_config(app, config_filename)
+
     CORS(app, resources={
         rf'{app.config["URL_PREFIX"]}/api/*': {
             'origins': '*'
         }
     })
-
-    app.config.from_object(config)
-
-    if config_filename is not None:
-        app.config.from_pyfile(config_filename)
 
     from . import routes
     routes.init_app(app)

@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from flask import Flask
 from flask_executor import Executor
 from flask_github import GitHub
@@ -18,6 +20,9 @@ from .services.RobotOntologyBuildService import RobotOntologyBuildService
 
 class AppModule(Module):
     """Configure the application."""
+
+    def __init__(self):
+        self._config = None
 
     def init_app(self, app):
         database.init_app(app)
@@ -47,15 +52,19 @@ class AppModule(Module):
 
     @provider
     @request
-    def configuration_service(self, app: Flask) -> ConfigurationService:
-        configuration_service = app.config.get("CONFIGURATION", "local")
+    def configuration_service(self, app: Flask, github: GitHub) -> ConfigurationService:
+        if self._config is None:
+            configuration_service = app.config.get("REPOSITORIES_SOURCE", "local")
 
-        service = {
-            "local": LocalConfigurationService,
-            "repository": RepositoryConfigurationService
-        }.get(configuration_service, LocalConfigurationService)
+            service = {
+                "local": LocalConfigurationService,
+                "repository": RepositoryConfigurationService
+            }.get(configuration_service, LocalConfigurationService)
 
-        return service(app.config)
+            self._config = service(app.config, github)
+
+        return self._config
+
 
     @provider
     @request

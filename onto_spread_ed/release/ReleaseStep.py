@@ -9,6 +9,7 @@ from flask_sqlalchemy.query import Query
 
 from .common import ReleaseCanceledException, local_name, set_release_info, update_release, next_release_step, \
     set_release_result
+from .. import constants
 from ..database.Release import Release
 from ..model.ExcelOntology import ExcelOntology
 from ..model.Relation import Relation, OWLPropertyType
@@ -111,7 +112,7 @@ class ReleaseStep(abc.ABC):
 
             for c in ontology.get_classes():
                 id = ontology.get_id_for_iri(c)
-                labels = ontology.get_annotations(c, self._config.app_config["RDFSLABEL"])
+                labels = ontology.get_annotations(c, constants.RDFS_LABEL)
 
                 if id is None:
                     result.warning(type='unknown-id', msg=f'Unable to determine id of external term "{c}"')
@@ -134,7 +135,7 @@ class ReleaseStep(abc.ABC):
 
             for r in ontology.get_object_properties():
                 id = ontology.get_id_for_iri(r)
-                label = ontology.get_annotation(r, self._config.app_config["RDFSLABEL"])
+                label = ontology.get_annotation(r, constants.RDFS_LABEL)
 
                 if id is None:
                     result.warning(type='unknown-id', msg=f'Unable to determine id of external relation "{r}"')

@@ -36,8 +36,8 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
         session.pop('type', None)
     repository = config.get(repo_key)
     (file_sha, rows, header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
-    if g.user.github_login in config.app_config['USERS_METADATA']:
-        user_initials = config.app_config['USERS_METADATA'][g.user.github_login]["initials"]
+    if g.user.github_login in config.app_config['USERS']:
+        user_initials = config.app_config['USERS'][g.user.github_login]["initials"]
     else:
         current_app.logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -52,7 +52,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     return render_template('edit.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
-                           all_initials=config.app_config['ALL_USERS_INITIALS'],
+                           all_initials=[v["initials"] for v in config.app_config["USERS"].values()],
                            repo_name=repo_key,
                            folder=folder,
                            spreadsheet_name=spreadsheet,

@@ -6,6 +6,7 @@ import networkx
 import pyhornedowl
 from pyhornedowl.model import SubClassOf, ObjectSomeValuesFrom, ObjectProperty, Class
 
+from onto_spread_ed import constants
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
 
 
@@ -51,7 +52,7 @@ class OntologyDataStore:
                     classId = classId.replace(":", "_")
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
-                        label = self.releases[repo].get_annotation(classIri, self.config.app_config["RDFSLABEL"])
+                        label = self.releases[repo].get_annotation(classIri, constants.RDFS_LABEL)
                         if label:
                             self.label_to_id[label.strip()] = classId
                             self.graphs[repo].add_node(classId,
@@ -66,7 +67,7 @@ class OntologyDataStore:
                 if classId:
                     parents = self.releases[repo].get_superclasses(classIri)
                     for p in parents:
-                        plabel = self.releases[repo].get_annotation(p, self.config.app_config["RDFSLABEL"])
+                        plabel = self.releases[repo].get_annotation(p, constants.RDFS_LABEL)
                         if plabel and plabel.strip() in self.label_to_id:
                             self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
                                                        classId.replace(":", "_"), dir="back")
@@ -78,9 +79,8 @@ class OntologyDataStore:
                                 isinstance(a.axiom.sup.bce, Class):
                             relIri = str(a.axiom.sup.ope.first)
                             targetIri = str(a.axiom.sup.bce.first)
-                            rel_name = self.releases[repo].get_annotation(relIri, self.config.app_config["RDFSLABEL"])
-                            targetLabel = self.releases[repo].get_annotation(targetIri,
-                                                                             self.config.app_config["RDFSLABEL"])
+                            rel_name = self.releases[repo].get_annotation(relIri, constants.RDFS_LABEL)
+                            targetLabel = self.releases[repo].get_annotation(targetIri, constants.RDFS_LABEL)
                             if targetLabel and targetLabel.strip() in self.label_to_id:
                                 if rel_name in OntologyDataStore.rel_cols:
                                     rcolour = OntologyDataStore.rel_cols[rel_name]
@@ -94,7 +94,7 @@ class OntologyDataStore:
     def getReleaseLabels(self, repo):
         all_labels = set()
         for classIri in self.releases[repo].get_classes():
-            all_labels.add(self.releases[repo].get_annotation(classIri, self.config.app_config["RDFSLABEL"]))
+            all_labels.add(self.releases[repo].get_annotation(classIri, constants.RDFS_LABEL))
         return (all_labels)
 
     def parseSheetData(self, repo, data):
@@ -431,7 +431,7 @@ class OntologyDataStore:
             for id in allIDS:
                 if id is not None:
                     if classId == id:
-                        label = self.releases[repo].get_annotation(classIri, self.config.app_config["RDFSLABEL"])  # yes
+                        label = self.releases[repo].get_annotation(classIri, constants.RDFS_LABEL)  # yes
                         if self.releases[repo].get_annotation(classIri, DEFN) is not None:
                             definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace(
                                 "'", "").replace("\"", "")

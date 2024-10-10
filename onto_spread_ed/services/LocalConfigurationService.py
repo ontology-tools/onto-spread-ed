@@ -151,7 +151,7 @@ REPOS = dict((k,
 
 class LocalConfigurationService(ConfigurationService):
 
-    def __init__(self, app_config):
+    def __init__(self, app_config, *args, **kwargs):
         super().__init__(app_config)
 
     def get_by_short_name(self, short_name: str) -> Optional[RepositoryConfiguration]:
@@ -175,6 +175,16 @@ class LocalConfigurationService(ConfigurationService):
                 return f.read()
 
         return None
+
+    def unload(self, name: str) -> bool:
+        key = next((k for k,v in REPOS.items() if v.full_name == name or v.short_name == name), None)
+        if key is not None:
+            del REPOS[key]
+            return True
+
+        return False
+
+
 
 
 

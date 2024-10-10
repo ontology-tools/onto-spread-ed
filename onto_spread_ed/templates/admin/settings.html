@@ -10,6 +10,10 @@
         var URLS = {
             prefix: '{{config["URL_PREFIX"]}}'
         }
+        var SETTINGS = {
+            'repositories': {{ config_service.loaded_repositories() | tojson | safe }},
+            'startup_repositories': {{ config_service.startup_repositories() | tojson | safe }}
+        }
     </script>
     <script type="module" src="{{ url_for('static', filename='js/settings.js') }}"></script>
 {% endblock %}

@@ -7,6 +7,7 @@ from openpyxl.styles import PatternFill
 from pyhornedowl import pyhornedowl
 
 import onto_spread_ed.utils.github as github
+from onto_spread_ed import constants
 from onto_spread_ed.model.ExcelOntology import ExcelOntology
 from onto_spread_ed.model.Term import UnresolvedTerm, Term
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
@@ -34,7 +35,7 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
 
     for c in ontology.get_classes():
         id = ontology.get_id_for_iri(c)
-        labels = ontology.get_annotations(c, config.app_config['RDFSLABEL'])
+        labels = ontology.get_annotations(c, constants.RDFS_LABEL)
 
         if id is not None:
             for label in labels:

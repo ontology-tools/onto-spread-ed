@@ -19,7 +19,7 @@ bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 @bp.route("/<repo>/<path:path>", methods=["PATCH"])
 @verify_admin
 def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
-    user_repos = current_app.config['USERS_METADATA'][g.user.github_login]["repositories"]
+    user_repos = current_app.config['USERS'][g.user.github_login]["repositories"]
 
     if repo not in user_repos:
         return jsonify({"msg": f"No such repository '{repo}'"}), 404

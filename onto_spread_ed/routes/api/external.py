@@ -90,7 +90,7 @@ def guess_parent():
 @bp.route("/<repo>/import", methods=["POST"])
 @verify_admin
 def import_term(repo: str, gh: GitHub, config: ConfigurationService):
-    user_repos = config.app_config['USERS_METADATA'][g.user.github_login]["repositories"]
+    user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
 
     if repo not in user_repos:
         return jsonify({"msg": f"No such repository '{repo}'"}), 404
