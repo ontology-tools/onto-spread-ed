@@ -88,7 +88,8 @@ class RepositoryConfigurationService(ConfigurationService):
                 json.dump(startups, f)
             else:
                 self._logger.error(
-                    f"Failed to save default repositories to load from '{file_name}'. Only yaml and json files are supported.")
+                    f"Failed to save default repositories to load from '{file_name}'. "
+                    "Only yaml and json files are supported.")
                 return False
 
         return True
