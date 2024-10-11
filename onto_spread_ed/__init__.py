@@ -38,7 +38,7 @@ def load_config(app: Flask, config_filename):
             }
 
             repository_obj = dict()
-            if "REPOSITORIES" in config_obj:
+            if "repositories" in file_config:
                 repositories = file_config['repositories']
                 repository_obj = {
                     f"REPOSITORIES_{repositories['source'].upper()}_CONFIG_{k.replace('-', '_').upper()}": v
