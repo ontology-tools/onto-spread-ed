@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 from flask import Flask
 from flask_executor import Executor
 from flask_github import GitHub
@@ -10,7 +8,6 @@ from injector import Module, provider
 from . import database, gh
 from .OntologyDataStore import OntologyDataStore
 from .SpreadsheetSearcher import SpreadsheetSearcher
-from .model.RepositoryConfiguration import RepositoryConfiguration
 from .services.ConfigurationService import ConfigurationService
 from .services.LocalConfigurationService import LocalConfigurationService
 from .services.OntoloyBuildService import OntologyBuildService
@@ -37,17 +34,17 @@ class AppModule(Module):
 
     @provider
     @request
-    def github(self, app: Flask) -> GitHub:
+    def github(self) -> GitHub:
         return gh.github
 
     @provider
     @request
-    def ontodb(self, app: Flask, config: ConfigurationService) -> OntologyDataStore:
+    def ontodb(self, config: ConfigurationService) -> OntologyDataStore:
         return OntologyDataStore(config)
 
     @provider
     @request
-    def searcher(self, app: Flask, github: GitHub, config: ConfigurationService) -> SpreadsheetSearcher:
+    def searcher(self, github: GitHub, config: ConfigurationService) -> SpreadsheetSearcher:
         return SpreadsheetSearcher(config, github)
 
     @provider
@@ -64,7 +61,6 @@ class AppModule(Module):
             self._config = service(app.config, github)
 
         return self._config
-
 
     @provider
     @request

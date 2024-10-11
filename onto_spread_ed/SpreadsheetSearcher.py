@@ -116,7 +116,6 @@ class SpreadsheetSearcher:
         return next_id
 
     def stats(self) -> Dict[str, Any]:
-        stats = dict()
 
         self.threadLock.acquire()
         ix = self.storage.open_index()

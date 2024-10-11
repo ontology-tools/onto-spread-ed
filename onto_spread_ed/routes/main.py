@@ -96,6 +96,6 @@ def direct():
     session['url'] = url
 
     if request.method == "POST":
-        return ('success')
+        return 'success'
     else:
         return redirect(url)

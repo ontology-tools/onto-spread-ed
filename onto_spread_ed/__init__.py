@@ -27,7 +27,8 @@ def load_config(app: Flask, config_filename):
                 elif config_filename.endswith(".json"):
                     file_config = json.load(f)
                 else:
-                    app.logger.error(f"Failed to load configuration from '{config_filename}'. Only yaml and json files are supported.")
+                    app.logger.error(f"Failed to load configuration from '{config_filename}'."
+                                     " Only yaml and json files are supported.")
         else:
             app.logger.error(f"Failed to load configuration from '{config_filename}'. Not a file.")
 
@@ -57,7 +58,7 @@ def load_config(app: Flask, config_filename):
 
 def create_app(config_filename=None):
     if config_filename is None:
-        config_filename ="config.yaml"
+        config_filename = "config.yaml"
 
     # Clear type annotations to get around errors using url_for in jinja template
     # Source: https://github.com/python-injector/flask_injector/issues/78
@@ -84,7 +85,6 @@ def create_app(config_filename=None):
     def before_request(db: SQLAlchemy):
         g.user = None
         if 'user_id' in session:
-            # print("user-id in session: ",session['user_id'])
             user = db.session.get(User, session['user_id'])
             g.user = user
             if user is not None:

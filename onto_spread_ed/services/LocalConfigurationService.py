@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Optional, List
+from typing import Optional, List
 
 from flask import current_app
 
@@ -138,7 +138,7 @@ REPOS = dict((k,
                   prefixes=dict(PREFIXES),
                   release_file=RELEASE_FILES[k],
                   indexed_files=ACTIVE_SPREADSHEETS[k],
-              release_script_path=f"{k.lower()}.release.json",  
+                  release_script_path=f"{k.lower()}.release.json",
                   id_digits=7,
                   subontologies=dict(
                       (k, SubOntologyConfiguration(
@@ -151,7 +151,7 @@ REPOS = dict((k,
 
 class LocalConfigurationService(ConfigurationService):
 
-    def __init__(self, app_config, *args, **kwargs):
+    def __init__(self, app_config, *_args, **_kwargs):
         super().__init__(app_config)
 
     def get_by_short_name(self, short_name: str) -> Optional[RepositoryConfiguration]:
@@ -177,14 +177,9 @@ class LocalConfigurationService(ConfigurationService):
         return None
 
     def unload(self, name: str) -> bool:
-        key = next((k for k,v in REPOS.items() if v.full_name == name or v.short_name == name), None)
+        key = next((k for k, v in REPOS.items() if v.full_name == name or v.short_name == name), None)
         if key is not None:
             del REPOS[key]
             return True
 
         return False
-
-
-
-
-

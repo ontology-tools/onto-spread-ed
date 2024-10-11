@@ -6,7 +6,6 @@ from typing import Optional, Dict, Any, List
 import yaml
 from dacite import from_dict
 from flask_github import GitHub, GitHubError
-from sqlalchemy import false
 
 from onto_spread_ed.model.RepositoryConfiguration import RepositoryConfiguration
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
@@ -23,7 +22,7 @@ class RepositoryConfigurationService(ConfigurationService):
     _logger = logging.getLogger(__name__)
     _loaded_repositories: Dict[str, RepositoryConfiguration]
 
-    def __init__(self, app_config: Dict[str, Any], gh: GitHub, *args, **kwargs):
+    def __init__(self, app_config: Dict[str, Any], gh: GitHub, *_args, **_kwargs):
         super().__init__(app_config)
 
         self._gh = gh
@@ -118,7 +117,7 @@ class RepositoryConfigurationService(ConfigurationService):
 
         try:
             response = self._gh.get(url, headers=self._headers)
-        except GitHubError as e:
+        except GitHubError:
             return
 
         if not response.ok:

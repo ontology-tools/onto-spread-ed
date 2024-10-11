@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple, Set, Dict
+from typing import List, Tuple, Dict
 
 from flask_sqlalchemy.query import Query
 
@@ -48,7 +48,6 @@ def set_release_result(q, release_id, result):
 def order_sources(files: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, ReleaseScriptFile]]:
     queue: List[Tuple[str, ReleaseScriptFile]] = []
     files: List[Tuple[str, ReleaseScriptFile]] = list(files.items())
-    seen: Set[int] = set()
 
     for k, file in files:
         unknown_dependencies = [n for n in file.needs if n not in (x for x, _ in files)]

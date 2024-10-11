@@ -1,4 +1,3 @@
-import re
 import typing
 
 from .github import *  # noqa: F403, F401

@@ -182,7 +182,7 @@ def hierarchical_overview(config: ConfigurationService):
 
 @bp.route("/hierarchical-overview/download/<repo>", defaults={"sub_ontology": None})
 @bp.route("/hierarchical-overview/download/<repo>/<sub_ontology>")
-def hierarchical_overview_download(gh: GitHub, ontology_builder: OntologyBuildService, config: ConfigurationService,
+def hierarchical_overview_download(gh: GitHub, config: ConfigurationService,
                                    repo: str, sub_ontology: Optional[str] = None):
     hierarchies, ontology = build_hierarchy(gh, config, repo, sub_ontology)
 

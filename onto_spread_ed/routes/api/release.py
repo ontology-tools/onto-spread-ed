@@ -6,7 +6,6 @@ from time import sleep
 from typing import Tuple, Optional
 
 import jsonschema
-import requests
 from flask import jsonify, Blueprint, current_app, request, make_response, Response, g
 from flask_executor import Executor
 from flask_github import GitHub

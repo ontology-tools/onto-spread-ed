@@ -326,9 +326,9 @@ def checkForUpdates(github: GitHub, config: ConfigurationService):
         )
         file_sha = spreadsheet_file['sha']
         if old_sha == file_sha:
-            return (json.dumps({"message": "Success"}), 200)
+            return json.dumps({"message": "Success"}), 200
         else:
-            return (json.dumps({"message": "Fail"}), 200)
+            return json.dumps({"message": "Fail"}), 200
 
 
 @bp.route("/generate", methods=["POST"])
@@ -350,8 +350,8 @@ def generate(searcher: SpreadsheetSearcher, config: ConfigurationService):
             id = repo_key.upper() + ":" + nextIdStr.zfill(fill_num)
             ids["ID" + str(row['id'])] = str(row['id'])
             values["ID" + str(row['id'])] = id
-        return (json.dumps({"message": "idlist", "IDs": ids, "values": values}))  # need to return an array
-    return ('success')
+        return json.dumps({"message": "idlist", "IDs": ids, "values": values})  # need to return an array
+    return 'success'
 
 
 @bp.route("/validate", methods=["POST"])
@@ -368,8 +368,8 @@ def verify():
     unique = {}
     returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
     if len(returnData) > 0 or len(uniqueData) > 0:
-        return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
-    return ('success')
+        return json.dumps({"message": "fail", "values": returnData, "unique": uniqueData})
+    return 'success'
 
 
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
@@ -398,7 +398,7 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
     # go again:
     current = current + 1
     if current >= len(rowData):
-        return (blank, unique)
+        return blank, unique
     return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
 
 
@@ -440,8 +440,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     for k in row_data_1:
         dictT = {}
         for key, val, item in zip(k, k.values(), k.items()):
-            if (key != "id"):
-                if (val == ""):
+            if key != "id":
+                if val == "":
                     val = None
                 # add to dictionary:
                 dictT[key] = val
@@ -453,8 +453,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     for h in row_data_3:
         dictT3 = {}
         for key, val, item in zip(h, h.values(), h.items()):
-            if (key != "id"):
-                if (val == ""):
+            if key != "id":
+                if val == "":
                     val = None
                 # add to dictionary:
                 dictT3[key] = val
@@ -595,7 +595,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     # print(f'table3:')
     # print(table3.toString())
 
-    return (table_diff_html, dataDict)
+    return table_diff_html, dataDict
 
 
 @bp.route('/edit_external/<repo_key>/<path:folder_path>')

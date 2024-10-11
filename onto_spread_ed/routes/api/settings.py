@@ -45,7 +45,7 @@ def load_repository(config: ConfigurationService):
 
 @bp.route("/repositories/unload", methods=["POST"])
 @verify_admin
-def unload_repository(config: ConfigurationService, gh: GitHub):
+def unload_repository(config: ConfigurationService):
     data = request.json
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
@@ -58,7 +58,7 @@ def unload_repository(config: ConfigurationService, gh: GitHub):
 
 @bp.route("/repositories/add_startup", methods=["POST"])
 @verify_admin
-def add_as_default(config: ConfigurationService, gh: GitHub):
+def add_as_default(config: ConfigurationService):
     data = request.json
 
     if "full_name" not in data or not isinstance(data["full_name"], str):

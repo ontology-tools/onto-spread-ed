@@ -95,7 +95,7 @@ class OntologyDataStore:
         all_labels = set()
         for classIri in self.releases[repo].get_classes():
             all_labels.add(self.releases[repo].get_annotation(classIri, constants.RDFS_LABEL))
-        return (all_labels)
+        return all_labels
 
     def parseSheetData(self, repo, data):
         for entry in data:
@@ -187,7 +187,7 @@ class OntologyDataStore:
                                         if g not in ids:
                                             ids.append(g)
 
-        return (ids)
+        return ids
 
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
@@ -251,7 +251,7 @@ class OntologyDataStore:
                             for g in graph_descs:
                                 if g not in ids:
                                     ids.append(g)
-        return (ids)
+        return ids
 
     def getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -290,7 +290,7 @@ class OntologyDataStore:
                                         for g in graph_descs:
                                             if g not in ids:
                                                 ids.append(g)
-        return (ids)
+        return ids
 
     def getIDsFromSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -354,7 +354,7 @@ class OntologyDataStore:
                                 for g in graph_descs:
                                     if g not in ids:
                                         ids.append(g)
-        return (ids)
+        return ids
 
     def getRelatedIDs(self, repo, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -383,7 +383,7 @@ class OntologyDataStore:
                     for g in graph_descs:
                         if g not in ids:
                             ids.append(g)
-        return (ids)
+        return ids
 
     def getDotForSheetGraph(self, repo, data, filter):
         # Get a list of IDs from the sheet graph
@@ -394,7 +394,7 @@ class OntologyDataStore:
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
+        return P
 
     def getDotForSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -406,7 +406,7 @@ class OntologyDataStore:
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
+        return P
 
     def getDotForIDs(self, repo, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -414,16 +414,13 @@ class OntologyDataStore:
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
+        return P
 
     # to create a dictionary and add all info to it, in the relevant place
     def getMetaData(self, repo, allIDS):
         DEFN = "http://purl.obolibrary.org/obo/IAO_0000115"
         SYN = "http://purl.obolibrary.org/obo/IAO_0000118"
 
-        label = ""
-        definition = ""
-        synonyms = ""
         entries = []
 
         for classIri in self.releases[repo].get_classes():
@@ -451,4 +448,4 @@ class OntologyDataStore:
                             "synonyms": synonyms,
                             "definition": definition,
                         })
-        return (entries)
+        return entries
