@@ -6,14 +6,18 @@ import networkx
 import pyhornedowl
 from pyhornedowl.model import SubClassOf, ObjectSomeValuesFrom, ObjectProperty, Class
 
+from onto_spread_ed import constants
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
+
 
 class OntologyDataStore:
+    config: ConfigurationService
     node_props = {"shape": "box", "style": "rounded", "font": "helvetica"}
     rel_cols = {"has part": "blue", "part of": "blue", "contains": "green",
                 "has role": "darkgreen", "is about": "darkgrey",
                 "has participant": "darkblue"}
 
-    def __init__(self, config):
+    def __init__(self, config: ConfigurationService):
         self.releases = {}
         self.releasedates = {}
         self.label_to_id = {}
@@ -21,17 +25,17 @@ class OntologyDataStore:
         self.config = config
 
     def parseRelease(self, repo):
+        config = self.config.get(repo)
         # Keep track of when you parsed this release
         self.graphs[repo] = networkx.MultiDiGraph()
         self.releasedates[repo] = date.today()
         # print("Release date ",self.releasedates[repo])
 
         # Get the ontology from the repository
-        ontofilename = self.config['RELEASE_FILES'][repo]
-        repositories = self.config['REPOSITORIES']
-        repo_detail = repositories[repo]
-        branch = self.config["DEFAULT_BRANCH"][repo]
-        location = f"https://raw.githubusercontent.com/{repo_detail}/{branch}/{ontofilename}"
+        ontofilename = config.release_file
+        full_repo_name = config.full_name
+        branch = config.main_branch
+        location = f"https://raw.githubusercontent.com/{full_repo_name}/{branch}/{ontofilename}"
         print("Fetching release file from", location)
         data = urlopen(location).read()  # bytes
         ontofile = data.decode('utf-8')
@@ -39,8 +43,8 @@ class OntologyDataStore:
         # Parse it
         if ontofile:
             self.releases[repo] = pyhornedowl.open_ontology(ontofile)
-            prefixes = self.config['PREFIXES']
-            for prefix in prefixes:
+            prefixes = config.prefixes
+            for prefix in prefixes.items():
                 self.releases[repo].add_prefix_mapping(prefix[0], prefix[1])
             for classIri in self.releases[repo].get_classes():
                 classId = self.releases[repo].get_id_for_iri(classIri)
@@ -48,7 +52,7 @@ class OntologyDataStore:
                     classId = classId.replace(":", "_")
                     # is it already in the graph?
                     if classId not in self.graphs[repo].nodes:
-                        label = self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL'])
+                        label = self.releases[repo].get_annotation(classIri, constants.RDFS_LABEL)
                         if label:
                             self.label_to_id[label.strip()] = classId
                             self.graphs[repo].add_node(classId,
@@ -63,7 +67,7 @@ class OntologyDataStore:
                 if classId:
                     parents = self.releases[repo].get_superclasses(classIri)
                     for p in parents:
-                        plabel = self.releases[repo].get_annotation(p, self.config['RDFSLABEL'])
+                        plabel = self.releases[repo].get_annotation(p, constants.RDFS_LABEL)
                         if plabel and plabel.strip() in self.label_to_id:
                             self.graphs[repo].add_edge(self.label_to_id[plabel.strip()],
                                                        classId.replace(":", "_"), dir="back")
@@ -75,8 +79,8 @@ class OntologyDataStore:
                                 isinstance(a.axiom.sup.bce, Class):
                             relIri = str(a.axiom.sup.ope.first)
                             targetIri = str(a.axiom.sup.bce.first)
-                            rel_name = self.releases[repo].get_annotation(relIri, self.config['RDFSLABEL'])
-                            targetLabel = self.releases[repo].get_annotation(targetIri, self.config['RDFSLABEL'])
+                            rel_name = self.releases[repo].get_annotation(relIri, constants.RDFS_LABEL)
+                            targetLabel = self.releases[repo].get_annotation(targetIri, constants.RDFS_LABEL)
                             if targetLabel and targetLabel.strip() in self.label_to_id:
                                 if rel_name in OntologyDataStore.rel_cols:
                                     rcolour = OntologyDataStore.rel_cols[rel_name]
@@ -90,8 +94,8 @@ class OntologyDataStore:
     def getReleaseLabels(self, repo):
         all_labels = set()
         for classIri in self.releases[repo].get_classes():
-            all_labels.add(self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL']))
-        return (all_labels)
+            all_labels.add(self.releases[repo].get_annotation(classIri, constants.RDFS_LABEL))
+        return all_labels
 
     def parseSheetData(self, repo, data):
         for entry in data:
@@ -183,7 +187,7 @@ class OntologyDataStore:
                                         if g not in ids:
                                             ids.append(g)
 
-        return (ids)
+        return ids
 
     def getIDsFromSheet(self, repo, data, filter):
         # list of ids from sheetExternal
@@ -247,7 +251,7 @@ class OntologyDataStore:
                             for g in graph_descs:
                                 if g not in ids:
                                     ids.append(g)
-        return (ids)
+        return ids
 
     def getIDsFromSelectionMultiSelect(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -286,7 +290,7 @@ class OntologyDataStore:
                                         for g in graph_descs:
                                             if g not in ids:
                                                 ids.append(g)
-        return (ids)
+        return ids
 
     def getIDsFromSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -350,7 +354,7 @@ class OntologyDataStore:
                                 for g in graph_descs:
                                     if g not in ids:
                                         ids.append(g)
-        return (ids)
+        return ids
 
     def getRelatedIDs(self, repo, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -379,7 +383,7 @@ class OntologyDataStore:
                     for g in graph_descs:
                         if g not in ids:
                             ids.append(g)
-        return (ids)
+        return ids
 
     def getDotForSheetGraph(self, repo, data, filter):
         # Get a list of IDs from the sheet graph
@@ -390,7 +394,7 @@ class OntologyDataStore:
             ids = OntologyDataStore.getIDsFromSheetMultiSelect(self, repo, data, filter)
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
+        return P
 
     def getDotForSelection(self, repo, data, selectedIds, filter):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -402,7 +406,7 @@ class OntologyDataStore:
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
+        return P
 
     def getDotForIDs(self, repo, selectedIds):
         # Add all descendents of the selected IDs, the IDs and their parents.
@@ -410,16 +414,13 @@ class OntologyDataStore:
         # Then get the subgraph as usual
         subgraph = self.graphs[repo].subgraph(ids)
         P = networkx.nx_pydot.to_pydot(subgraph)
-        return (P)
+        return P
 
     # to create a dictionary and add all info to it, in the relevant place
     def getMetaData(self, repo, allIDS):
         DEFN = "http://purl.obolibrary.org/obo/IAO_0000115"
         SYN = "http://purl.obolibrary.org/obo/IAO_0000118"
 
-        label = ""
-        definition = ""
-        synonyms = ""
         entries = []
 
         for classIri in self.releases[repo].get_classes():
@@ -427,7 +428,7 @@ class OntologyDataStore:
             for id in allIDS:
                 if id is not None:
                     if classId == id:
-                        label = self.releases[repo].get_annotation(classIri, self.config['RDFSLABEL'])  # yes
+                        label = self.releases[repo].get_annotation(classIri, constants.RDFS_LABEL)  # yes
                         if self.releases[repo].get_annotation(classIri, DEFN) is not None:
                             definition = self.releases[repo].get_annotation(classIri, DEFN).replace(",", "").replace(
                                 "'", "").replace("\"", "")
@@ -447,4 +448,4 @@ class OntologyDataStore:
                             "synonyms": synonyms,
                             "definition": definition,
                         })
-        return (entries)
+        return entries

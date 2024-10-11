@@ -10,6 +10,7 @@ from flask_github import GitHub
 from openpyxl.worksheet.worksheet import Worksheet
 
 from onto_spread_ed.guards.admin import verify_admin
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
 from onto_spread_ed.utils import github
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
@@ -17,8 +18,8 @@ bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
 @bp.route("/<repo>/<path:path>", methods=["PATCH"])
 @verify_admin
-def edit(repo: str, path: str, gh: GitHub):
-    user_repos = current_app.config['USERS_METADATA'][g.user.github_login]["repositories"]
+def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
+    user_repos = current_app.config['USERS'][g.user.github_login]["repositories"]
 
     if repo not in user_repos:
         return jsonify({"msg": f"No such repository '{repo}'"}), 404
@@ -33,14 +34,14 @@ def edit(repo: str, path: str, gh: GitHub):
     except jsonschema.ValidationError as e:
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
-    repository = current_app.config['REPOSITORIES'][repo]
+    repository = config.get(repo)
 
     id = data["id"]
     term_id = data["term"].get("id", None)
     term_label = data["term"].get("label", None)
     term_parent = data["term"].get("parent", None)
 
-    spreadsheet_file = gh.get(f'repos/{repository}/contents/{path}')
+    spreadsheet_file = gh.get(f'repos/{repository.full_name}/contents/{path}')
     base64_bytes = spreadsheet_file['content'].encode('utf-8')
     decoded_data = base64.decodebytes(base64_bytes)
     wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
@@ -79,12 +80,12 @@ def edit(repo: str, path: str, gh: GitHub):
         return jsonify({"msg": f"No such term with id '{id}'"}), 404
 
     if len(changed) > 0:
-        branch = current_app.config["DEFAULT_BRANCH"][repo]
+        branch = repository.main_branch
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
         msg = f"Updating {path.split('/')[-1]}\n\n" + "\n".join([f"Set {f} to '{v}' for {id}" for f, v in changed])
-        github.save_file(gh, repository, path, spreadsheet_stream.getvalue(), msg, branch)
+        github.save_file(gh, repository.full_name, path, spreadsheet_stream.getvalue(), msg, branch)
 
         return Response(status=200)
 

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build-js": "node build/release.build.js && node build/admin.build.js",
+    "build-js": "node build/build.js",
     "build-css": "npx sass -s compressed --no-source-map onto_spread_ed/static/main.scss:onto_spread_ed/static/main.css",
     "build": "npm run build-js && npm run build-css"
   },
@@ -19,6 +19,7 @@
   "license": "AGPL",
   "description": "",
   "dependencies": {
-    "vue": "^3.4.19"
+    "vue": "^3.4.19",
+    "bootstrap-vue-next": "^0.24.23"
   }
 }

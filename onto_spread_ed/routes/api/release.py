@@ -18,6 +18,7 @@ from ...guards.admin import verify_admin
 from ...model.ReleaseScript import ReleaseScript
 from ...release import do_release
 from ...release.common import next_release_step, local_name
+from ...services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 
@@ -54,31 +55,33 @@ def get_current_release(q: Query[Release], repo: str) -> Tuple[Optional[Release]
 
 @bp.route("/<repo>/release_script", methods=["GET"])
 @verify_admin
-def get_release_script(repo: str):
-    if repo not in current_app.config["REPOSITORIES"]:
+def get_release_script(repo: str, config: ConfigurationService):
+    repo_config = config.get(repo)
+    if repo_config is None:
         raise NotFound(f"No such repository '{repo}'.")
 
-    path = os.path.join(current_app.static_folder, f"{repo.lower()}.release.json")
-    if not os.path.exists(path):
+    # Try get from remote
+    data = config.get_file(repo_config, repo_config.release_script_path)
+    if data is None:
         raise NotFound(f"No release script for '{repo}'.")
 
-    with open(path, "r") as f:
-        data = json.load(f)
+    data = json.loads(data)
 
     release_script = ReleaseScript.from_json(data)
 
     if release_script.short_repository_name.lower() != repo.lower():
         raise BadRequest("Release script repository does not match requested repository")
 
-    release_script.full_repository_name = current_app.config["REPOSITORIES"][repo]
+    release_script.full_repository_name = repo_config.full_name
 
     return jsonify(dataclasses.asdict(release_script))
 
 
 @bp.route("/<repo>/release_script", methods=["PUT"])
 @verify_admin
-def save_release_script(repo: str):
-    if repo not in current_app.config["REPOSITORIES"]:
+def save_release_script(repo: str, config: ConfigurationService):
+    repo_config = config.get(repo)
+    if repo_config is None:
         raise NotFound(f"No such repository '{repo}'.")
 
     schema: dict
@@ -122,7 +125,7 @@ def release_cancel(repo: str, db: SQLAlchemy):
 
 @bp.route("/start", methods=("POST",))
 @verify_admin
-def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
+def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor, config: ConfigurationService):
     schema: dict
     with open(os.path.join(current_app.static_folder, "schema", "release_script.json"), "r") as f:
         schema = json.load(f)
@@ -146,11 +149,12 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
         )), 400
 
     repo = release_script.short_repository_name
-    if repo not in current_app.config["REPOSITORIES"]:
+    repo_config = config.get(repo)
+    if repo_config is None:
         return jsonify(dict(
             success=False,
             error="no-such-repository",
-            message=f"No repository '{repo}' found. Possible values are {current_app.config['REPOSITORIES'].keys()}",
+            message=f"No repository '{repo}' found.",
         )), 400
 
     release = Release(state="starting",
@@ -164,14 +168,14 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor):
     db.session.add(release)
     db.session.commit()
 
-    executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
+    executor.submit(do_release, db, gh, release_script, release.id, config)
 
     return jsonify(release.as_dict())
 
 
 @bp.route("/<repo>/continue")
 @verify_admin
-def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
+def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor, config: ConfigurationService):
     q: Query[Release] = db.session.query(Release)
     force = request.args.get('force', "false").lower() == "true"
 
@@ -204,7 +208,7 @@ def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
     next_release_step(q, release.id)
 
     if release.worker_id is None:
-        executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
+        executor.submit(do_release, db, gh, release_script, release.id, config)
 
         sleep(1)
 
@@ -213,7 +217,7 @@ def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
 
 @bp.route("/<repo>/rerun-step", methods=("POST", "GET"))
 @verify_admin
-def release_rerun_step(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor):
+def release_rerun_step(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor, config: ConfigurationService):
     q: Query[Release] = db.session.query(Release)
     release, err = get_current_release(q, repo)
     if err is not None:
@@ -229,7 +233,7 @@ def release_rerun_step(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor
     if release.worker_id is None or request.args.get('force', "false").lower() == "true":
         release_script = ReleaseScript.from_json(release.release_script)
 
-        executor.submit(do_release, db, gh, release_script, release.id, current_app.config)
+        executor.submit(do_release, db, gh, release_script, release.id, config)
 
     return jsonify(release.as_dict())
 

@@ -13,7 +13,7 @@ def verify_admin(fn):
         # If the user is not logged in, then redirect him to the "logged out" page:
         if not g.user:
             return redirect(url_for("authentication.login"))
-        if not current_app.config['USERS_METADATA'].get(g.user.github_login, {}).get("admin", False):
+        if not current_app.config['USERS'].get(g.user.github_login, {}).get("admin", False):
             abort(403, "You do not have sufficient permissions!")
         return fn(*args, **kwargs)
 

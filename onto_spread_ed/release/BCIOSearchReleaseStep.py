@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import List
 
 import aiohttp
 from flask_github import GitHub
@@ -12,6 +12,7 @@ from onto_spread_ed.model.Result import Result
 from onto_spread_ed.release.ReleaseStep import ReleaseStep
 from onto_spread_ed.release.common import order_sources
 from onto_spread_ed.search_api.BCIOSearchService import BCIOSearchService
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
 
 
 class BCIOSearchReleaseStep(ReleaseStep):
@@ -22,7 +23,7 @@ class BCIOSearchReleaseStep(ReleaseStep):
         return "BCIO_SEARCH"
 
     def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
-                 config: Dict[str, Any], *, included_files: List[str]):
+                 config: ConfigurationService, *, included_files: List[str]):
         super().__init__(db, gh, release_script, release_id, tmp, config)
 
         self._included_files = included_files

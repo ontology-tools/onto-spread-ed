@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple, Any, Callable, Dict
 
 import openpyxl
 import pyhornedowl
-from flask import Blueprint, render_template, g, request, jsonify, current_app, redirect, url_for, send_file
+from flask import Blueprint, render_template, g, request, jsonify, redirect, url_for, send_file
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from openpyxl.worksheet.worksheet import Worksheet
@@ -14,7 +14,7 @@ from werkzeug.exceptions import NotFound
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
 from ..guards.admin import verify_admin
-from ..services.OntoloyBuildService import OntologyBuildService
+from ..services.ConfigurationService import ConfigurationService
 from ..utils import get_spreadsheets, get_spreadsheet, letters
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
@@ -67,21 +67,20 @@ def release_data(db: SQLAlchemy, id: Optional[int] = None, repo: Optional[str] =
 @bp.route("/release/<string:repo>", methods=("GET",), defaults={"id": None})
 @bp.route("/release/<int:id>", methods=("GET",), defaults={"repo": None})
 @verify_admin
-def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy):
+def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: ConfigurationService):
     data = release_data(db, id, repo)
 
     current_release: Release = data["release"]
     repositories = None
 
     if id is None and repo is None:
-        repositories = current_app.config['REPOSITORIES']
-
-        user_repos = repositories.keys()
+        user_repos = []
         # Filter just the repositories that the user can see
-        if g.user.github_login in current_app.config['USERS_METADATA']:
-            user_repos = current_app.config['USERS_METADATA'][g.user.github_login]["repositories"]
+        if g.user.github_login in config.app_config['USERS']:
+            user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
 
-        repositories = {k: v for k, v in repositories.items() if k in user_repos}
+        repositories = {s: config.get(s) for s in user_repos}
+        repositories = {k: v for k, v in repositories.items() if v is not None}
 
         if len(repositories) == 1:
             return redirect(url_for("admin.release", repo=list(repositories.keys())[0]))
@@ -104,6 +103,16 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy):
                            repos=repositories,
                            **data
                            )
+
+
+@bp.route("/settings")
+@verify_admin
+def settings(config: ConfigurationService):
+    return render_template("settings.html",
+                           login=g.user.github_login,
+                           config=config.app_config,
+                           config_service=config,
+                           breadcrumb=[{"name": "Admin", "path": "/admin/settings"}])
 
 
 @dataclasses.dataclass
@@ -152,8 +161,17 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[N
 
 
 @bp.route("/hierarchical-overview")
-def hierarchical_overview():
+def hierarchical_overview(config: ConfigurationService):
+    user_repos = []
+    # Filter just the repositories that the user can see
+    if g.user.github_login in config.app_config['USERS']:
+        user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
+
+    repositories = {s: config.get(s) for s in user_repos}
+    repositories = {k: v for k, v in repositories.items() if v is not None}
+
     return render_template("hierarchical_overview.html",
+                           repos=repositories,
                            breadcrumb=[
                                dict(name="Admin", path="admin/dashboard"),
                                dict(name="Hierarchical overviews", path="admin/hierarchical-overview")
@@ -162,9 +180,9 @@ def hierarchical_overview():
 
 @bp.route("/hierarchical-overview/download/<repo>", defaults={"sub_ontology": None})
 @bp.route("/hierarchical-overview/download/<repo>/<sub_ontology>")
-def hierarchical_overview_download(gh: GitHub, ontology_builder: OntologyBuildService,
+def hierarchical_overview_download(gh: GitHub, config: ConfigurationService,
                                    repo: str, sub_ontology: Optional[str] = None):
-    hierarchies, ontology = build_hierarchy(gh, ontology_builder, repo, sub_ontology)
+    hierarchies, ontology = build_hierarchy(gh, config, repo, sub_ontology)
 
     wb = openpyxl.Workbook()
     sheet: Worksheet = wb.active
@@ -194,26 +212,27 @@ def hierarchical_overview_download(gh: GitHub, ontology_builder: OntologyBuildSe
         return send_file(f.name, download_name=download_name)
 
 
-def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: str,
+def build_hierarchy(gh: GitHub, config: ConfigurationService, repo: str,
                     sub_ontology: Optional[str] = None) -> Tuple[List[Node], pyhornedowl.PyIndexedOntology]:
     # Excel files to extract annotations
     excel_files: List[str]
     release_file: str
-    full_repo = current_app.config["REPOSITORIES"][repo]
+    repository = config.get(repo)
+    full_repo = repository.full_name
 
     if sub_ontology is not None:
-        sub = current_app.config["SUB_ONTOLOGIES"].get(repo, dict()).get(sub_ontology, None)
+        sub = repository.subontologies.get(sub_ontology, None)
 
         if sub is None:
             raise NotFound(f"No such sub-ontology '{sub_ontology}'")
 
-        excel_files = [sub["excel_file"]]
-        release_file = sub["release_file"]
+        excel_files = [sub.excel_file]
+        release_file = sub.release_file
     else:
-        release_file = current_app.config["RELEASE_FILES"][repo]
+        release_file = repository.release_file
 
-        branch = current_app.config["DEFAULT_BRANCH"][repo]
-        active_sheets = current_app.config["ACTIVE_SPREADSHEETS"][repo]
+        branch = repository.main_branch
+        active_sheets = repository.indexed_files
         regex = "|".join(f"({r})" for r in active_sheets)
 
         excel_files = get_spreadsheets(gh, full_repo, branch, include_pattern=regex)
@@ -224,7 +243,7 @@ def build_hierarchy(gh: GitHub, ontology_builder: OntologyBuildService, repo: st
     ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'), "rdf")
 
     # ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
-    for p, d in current_app.config["PREFIXES"]:
+    for p, d in repository.prefixes.items():
         ontology.add_prefix_mapping(p, d)
     classes = [(c, ontology.get_annotation(c, "http://www.w3.org/2000/01/rdf-schema#label"),
                 ontology.get_annotation(c, "http://purl.obolibrary.org/obo/IAO_0000115")) for c in

@@ -15,7 +15,7 @@
     </div>
 
     <ul>
-        {% for repo, repo_detail in config['REPOSITORIES'].items() %}
+        {% for repo, repo_config in repos.items() %}
             <li><b>{{ repo }}: </b>
                 <ul>
                     <li>
@@ -23,7 +23,7 @@
                             {{ repo }}-hierarchical.xlsx
                         </a>
                     </li>
-                    {% for sub, data in config["SUB_ONTOLOGIES"].get(repo, {}).items() %}
+                    {% for sub, data in repo_config.subontologies.items() %}
                         <li>
                             <a href="{{ url_for('admin.hierarchical_overview_download', repo=repo, sub_ontology=sub) }}">
                                 {{ repo }}-{{ sub }}-hierarchical.xlsx

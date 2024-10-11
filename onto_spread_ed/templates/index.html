@@ -4,11 +4,15 @@
     {{ super() }}
 {% endblock %}
 {% block content %}
-
+    {% if repos | length == 0 %}
+        <h2>No repositories</h2>
+        <p>There are no repositories configured for this instance. Add one in the <a
+                href="{{ url_for('admin.settings') }}">Settings</a> or add it in the configuration.</p>
+    {% else %}
     <h2> Choose a project repository: </h2>
 
     <div class="row align-stretch">
-        {% for repo, repo_detail in repos.items() %}
+        {% for repo, repo_config in repos.items() %}
             <div class="col-sm-6 col-md-4 col-lg-3 m-2">
 
                 <a class="card bg-light" href="{{url_for('main.repo', repo_key=repo)}}"
@@ -17,12 +21,13 @@
                         {{ repo }}
                     </div>
                     <div class="card-body text-center">
-                        {{ repo_detail }}
+                        {{ repo_config.full_name }}
                     </div>
                 </a>
             </div>
         {% endfor %}
     </div>
+    {% endif %}
 
 
 {% endblock %}

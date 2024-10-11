@@ -14,6 +14,7 @@ from openpyxl.styles import Font, PatternFill
 from ..OntologyDataStore import OntologyDataStore
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..guards.verify_login import verify_logged_in
+from ..services.ConfigurationService import ConfigurationService
 from ..utils.github import get_spreadsheet, get_csv, create_branch
 
 bp = Blueprint("edit", __name__, template_folder="../templates")
@@ -21,7 +22,7 @@ bp = Blueprint("edit", __name__, template_folder="../templates")
 
 @bp.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
 @verify_logged_in
-def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStore):
+def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStore, config: ConfigurationService):
     if session.get('label') is None:
         go_to_row = ""
     else:
@@ -33,11 +34,10 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     else:
         type = session.get('type')
         session.pop('type', None)
-    repositories = current_app.config['REPOSITORIES']
-    repo_detail = repositories[repo_key]
-    (file_sha, rows, header) = get_spreadsheet(github, repo_detail, folder, spreadsheet)
-    if g.user.github_login in current_app.config['USERS_METADATA']:
-        user_initials = current_app.config['USERS_METADATA'][g.user.github_login]["initials"]
+    repository = config.get(repo_key)
+    (file_sha, rows, header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
+    if g.user.github_login in config.app_config['USERS']:
+        user_initials = config.app_config['USERS'][g.user.github_login]["initials"]
     else:
         current_app.logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -52,7 +52,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     return render_template('edit.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
-                           all_initials=current_app.config['ALL_USERS_INITIALS'],
+                           all_initials=[v["initials"] for v in config.app_config["USERS"].values()],
                            repo_name=repo_key,
                            folder=folder,
                            spreadsheet_name=spreadsheet,
@@ -70,13 +70,12 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
 
 @bp.route('/download_spreadsheet', methods=['POST'])
 @verify_logged_in
-def download_spreadsheet(github: GitHub):
+def download_spreadsheet(github: GitHub, config: ConfigurationService):
     repo_key = request.form.get("repo_key")
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
-    repositories = current_app.config['REPOSITORIES']
-    repo_detail = repositories[repo_key]
-    url = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+    repository = config.get(repo_key)
+    url = github.get(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
     download_url = url['download_url']
     current_app.logger.debug(f"Downloading spreadsheet from {download_url}")
     return (json.dumps({"message": "Success",
@@ -85,7 +84,7 @@ def download_spreadsheet(github: GitHub):
 
 @bp.route('/save', methods=['POST'])
 @verify_logged_in
-def save(searcher: SpreadsheetSearcher, github: GitHub):
+def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService):
     repo_key = request.form.get("repo_key")
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
@@ -101,9 +100,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
 
     id_suffix = ""
 
-    repositories = current_app.config['REPOSITORIES']
-    repo_detail = repositories[repo_key]
-    default_branch = current_app.config["DEFAULT_BRANCH"][repo_key]
+    repository = config.get(repo_key)
+    default_branch = repository.main_branch
     restart = False  # for refreshing the sheet (new ID's)
     try:
         initial_data_parsed = json.loads(initial_data)
@@ -181,7 +179,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                         # generate ID here:
                         nextIdStr = str(next_id)
                         next_id += 1
-                        fill_num = current_app.config['DIGIT_COUNT']
+                        fill_num = repository.id_digits
                         if repo_key == "BCIO":
                             fill_num = fill_num - 1
                         else:
@@ -204,27 +202,27 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
 
         # Create a new branch to commit the change to (in case of simultaneous updates)
         branch = f"{g.user.github_login}_{datetime.utcnow().strftime('%Y-%m-%d_%H%M%S')}"
-        create_branch(github, repo_detail, branch, default_branch)
+        create_branch(github, repository.full_name, branch, default_branch)
 
         current_app.logger.debug("About to get latest version of the spreadsheet file %s",
-                                 f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+                                 f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
         # Get the sha for the file
-        (new_file_sha, new_rows, new_header) = get_spreadsheet(github, repo_detail, folder, spreadsheet)
+        (new_file_sha, new_rows, new_header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
 
         # Commit changes to branch (replace code with sheet)
         data = {"message": commit_msg, "content": base64_string, "branch": branch, "sha": new_file_sha}
         current_app.logger.debug("About to commit file to branch %s",
-                                 f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
-        response = github.put(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}", data=data)
+                                 f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
+        response = github.put(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}", data=data)
         if not response:
             raise Exception(
-                f"Unable to commit addition of {spreadsheet} to branch {branch} in {repo_detail}"
+                f"Unable to commit addition of {spreadsheet} to branch {branch} in {repository.full_name}"
             )
 
         # Create a PR for the change
         current_app.logger.debug("About to create PR from branch", )
         response = github.post(
-            f"repos/{repo_detail}/pulls",
+            f"repos/{repository.full_name}/pulls",
             data={
                 "title": commit_msg,
                 "head": branch,
@@ -233,7 +231,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             },
         )
         if not response:
-            raise Exception(f"Unable to create PR for branch {branch} in {repo_detail}")
+            raise Exception(f"Unable to create PR for branch {branch} in {repository.full_name}")
         pr_info = response['html_url']
 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
@@ -244,14 +242,14 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             # Get the changes between the new file and this one:
             merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed)
             # update rows for comparison:
-            (file_sha3, rows3, header3) = get_spreadsheet(github, repo_detail, folder, spreadsheet)
+            (file_sha3, rows3, header3) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
             # todo: delete transient branch here? Github delete code is a test for now.
             # Delete the branch again
-            current_app.logger.debug("About to delete branch", f"repos/{repo_detail}/git/refs/heads/{branch}")
+            current_app.logger.debug("About to delete branch", f"repos/{repository.full_name}/git/refs/heads/{branch}")
             response = github.delete(
-                f"repos/{repo_detail}/git/refs/heads/{branch}")
+                f"repos/{repository.full_name}/git/refs/heads/{branch}")
             if not response:
-                raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
+                raise Exception(f"Unable to delete branch {branch} in {repository.full_name}")
             return (
                 json.dumps({
                     'Error': 'Your change was submitted to the repository but could not be automatically merged due '
@@ -265,7 +263,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
             # Merge the created PR
             current_app.logger.debug("About to merge created PR")
             response = github.post(
-                f"repos/{repo_detail}/merges",
+                f"repos/{repository.full_name}/merges",
                 data={
                     "head": branch,
                     "base": default_branch,
@@ -273,14 +271,15 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
                 },
             )
             if not response:
-                raise Exception(f"Unable to merge PR from branch {branch} in {repo_detail}")
+                raise Exception(f"Unable to merge PR from branch {branch} in {repository.full_name}")
 
             # Delete the branch again
-            current_app.logger.debug("About to delete branch %s", f"repos/{repo_detail}/git/refs/heads/{branch}")
+            current_app.logger.debug("About to delete branch %s",
+                                     f"repos/{repository.full_name}/git/refs/heads/{branch}")
             response = github.delete(
-                f"repos/{repo_detail}/git/refs/heads/{branch}")
+                f"repos/{repository.full_name}/git/refs/heads/{branch}")
             if not response:
-                raise Exception(f"Unable to delete branch {branch} in {repo_detail}")
+                raise Exception(f"Unable to delete branch {branch} in {repository.full_name}")
 
         current_app.logger.info("Save succeeded.")
         # Update the search index for this file ASYNCHRONOUSLY (don't wait)
@@ -290,10 +289,10 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
         thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
-        response = github.get(f"repos/{repo_detail}/contents/{folder}/{spreadsheet}")
+        response = github.get(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
         if not response or "sha" not in response:
             raise Exception(
-                f"Unable to get the newly updated SHA value for {spreadsheet} in {repo_detail}/{folder}"
+                f"Unable to get the newly updated SHA value for {spreadsheet} in {repository.full_name}/{folder}"
             )
         new_file_sha = response['sha']
         if restart:  # todo: does this need to be anywhere else also?
@@ -315,35 +314,35 @@ def save(searcher: SpreadsheetSearcher, github: GitHub):
 
 # todo: use this function to compare initial spreadsheet to server version - check for updates?
 @bp.route("/checkForUpdates", methods=["POST"])
-def checkForUpdates(github: GitHub):
+def checkForUpdates(github: GitHub, config: ConfigurationService):
     if request.method == "POST":
         repo_key = request.form.get("repo_key")
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
         old_sha = request.form.get("file_sha")
-        repositories = current_app.config['REPOSITORIES']
-        repo_detail = repositories[repo_key]
+        repository = config.get(repo_key)
         spreadsheet_file = github.get(
-            f'repos/{repo_detail}/contents/{folder}/{spreadsheet}'
+            f'repos/{repository.full_name}/contents/{folder}/{spreadsheet}'
         )
         file_sha = spreadsheet_file['sha']
         if old_sha == file_sha:
-            return (json.dumps({"message": "Success"}), 200)
+            return json.dumps({"message": "Success"}), 200
         else:
-            return (json.dumps({"message": "Fail"}), 200)
+            return json.dumps({"message": "Fail"}), 200
 
 
 @bp.route("/generate", methods=["POST"])
 @verify_logged_in
-def generate(searcher: SpreadsheetSearcher):
+def generate(searcher: SpreadsheetSearcher, config: ConfigurationService):
     if request.method == "POST":
         repo_key = request.form.get("repo_key")
+        repository = config.get(repo_key)
         rowData = json.loads(request.form.get("rowData"))
         values = {}
         ids = {}
         for row in rowData:
             nextIdStr = str(searcher.get_next_id(repo_key))
-            fill_num = current_app.config['DIGIT_COUNT']
+            fill_num = repository.id_digits
             if repo_key == "BCIO":
                 fill_num = fill_num - 1
             else:
@@ -351,8 +350,8 @@ def generate(searcher: SpreadsheetSearcher):
             id = repo_key.upper() + ":" + nextIdStr.zfill(fill_num)
             ids["ID" + str(row['id'])] = str(row['id'])
             values["ID" + str(row['id'])] = id
-        return (json.dumps({"message": "idlist", "IDs": ids, "values": values}))  # need to return an array
-    return ('success')
+        return json.dumps({"message": "idlist", "IDs": ids, "values": values})  # need to return an array
+    return 'success'
 
 
 @bp.route("/validate", methods=["POST"])
@@ -369,8 +368,8 @@ def verify():
     unique = {}
     returnData, uniqueData = checkBlankMulti(1, blank, unique, cell, column, headers, rowData, table)
     if len(returnData) > 0 or len(uniqueData) > 0:
-        return (json.dumps({"message": "fail", "values": returnData, "unique": uniqueData}))
-    return ('success')
+        return json.dumps({"message": "fail", "values": returnData, "unique": uniqueData})
+    return 'success'
 
 
 def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table):
@@ -399,7 +398,7 @@ def checkBlankMulti(current, blank, unique, cell, column, headers, rowData, tabl
     # go again:
     current = current + 1
     if current >= len(rowData):
-        return (blank, unique)
+        return blank, unique
     return checkBlankMulti(current, blank, unique, cell, column, headers, rowData, table)
 
 
@@ -441,8 +440,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     for k in row_data_1:
         dictT = {}
         for key, val, item in zip(k, k.values(), k.items()):
-            if (key != "id"):
-                if (val == ""):
+            if key != "id":
+                if val == "":
                     val = None
                 # add to dictionary:
                 dictT[key] = val
@@ -454,8 +453,8 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     for h in row_data_3:
         dictT3 = {}
         for key, val, item in zip(h, h.values(), h.items()):
-            if (key != "id"):
-                if (val == ""):
+            if key != "id":
+                if val == "":
                     val = None
                 # add to dictionary:
                 dictT3[key] = val
@@ -596,19 +595,18 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
     # print(f'table3:')
     # print(table3.toString())
 
-    return (table_diff_html, dataDict)
+    return table_diff_html, dataDict
 
 
 @bp.route('/edit_external/<repo_key>/<path:folder_path>')
 @verify_logged_in
-def edit_external(repo_key, folder_path, github: GitHub):
+def edit_external(repo_key, folder_path, github: GitHub, config: ConfigurationService):
     # print("edit_external reached")
-    repositories = current_app.config['REPOSITORIES']
-    repo_detail = repositories[repo_key]
+    repository = config.get(repo_key)
     folder = folder_path
     spreadsheets = []
     directories = github.get(
-        f'repos/{repo_detail}/contents/{folder_path}'
+        f'repos/{repository.full_name}/contents/{folder_path}'
     )
     for directory in directories:
         spreadsheets.append(directory['name'])
@@ -617,10 +615,10 @@ def edit_external(repo_key, folder_path, github: GitHub):
     #     print("spreadsheet: ", spreadsheet)
 
     sheet1, sheet2, sheet3 = spreadsheets
-    (file_sha1, rows1, header1) = get_spreadsheet(github, repo_detail, folder, sheet1)
+    (file_sha1, rows1, header1) = get_spreadsheet(github, repository.full_name, folder, sheet1)
     # not a spreadsheet but a csv file:
-    (file_sha2, rows2, header2) = get_csv(github, repo_detail, folder, sheet2)
-    (file_sha3, rows3, header3) = get_csv(github, repo_detail, folder, sheet3)
+    (file_sha2, rows2, header2) = get_csv(github, repository.full_name, folder, sheet2)
+    (file_sha3, rows3, header3) = get_csv(github, repository.full_name, folder, sheet3)
     return render_template('edit_external.html',
                            login=g.user.github_login,
                            repo_name=repo_key,
