@@ -49,12 +49,13 @@ class RepositoryConfigurationService(ConfigurationService):
                     file_config = json.load(f)
                 else:
                     self._logger.error(
-                        f"Failed to load default repositories to load from '{file_name}'. Only yaml and json files are supported.")
+                        f"Failed to load default repositories to load from '{file_name}'. "
+                        "Only yaml and json files are supported.")
         else:
             self._logger.error(f"Failed to load default repositories to load from '{file_name}'. Not a file.")
 
         if not isinstance(file_config, list) or not all(isinstance(v, str) for v in file_config):
-            self._logger.error(f"Default repositories must be a list of strings.")
+            self._logger.error("Default repositories must be a list of strings.")
             return []
 
         return file_config

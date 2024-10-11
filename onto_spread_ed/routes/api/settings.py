@@ -32,13 +32,14 @@ def load_repository(config: ConfigurationService):
     data = request.json
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
-        return jsonify({"success": False, "error": f"Invalid format"}), 400
+        return jsonify({"success": False, "error": "Invalid format"}), 400
 
     repo = config.get_by_full_name(data["full_name"])
 
     if repo is None:
         return jsonify({"success": False,
-                        "error": f"Repository configuration for '{data['full_name']}' not found. Ensure the repository is accessible for you and it contains the configuration."}), 400
+                        "error": f"Repository configuration for '{data['full_name']}' not found."
+                                 "Ensure the repository is accessible for you and it contains the configuration."}), 400
     else:
         return jsonify({"success": True, "repo": repo})
 
@@ -49,7 +50,7 @@ def unload_repository(config: ConfigurationService):
     data = request.json
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
-        return jsonify({"success": False, "error": f"Invalid format"}), 400
+        return jsonify({"success": False, "error": "Invalid format"}), 400
 
     success = config.unload(data["full_name"])
 
@@ -62,7 +63,7 @@ def add_as_default(config: ConfigurationService):
     data = request.json
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
-        return jsonify({"success": False, "error": f"Invalid format"}), 400
+        return jsonify({"success": False, "error": "Invalid format"}), 400
 
     success = config.add_startup_repository(data["full_name"])
 
@@ -75,7 +76,7 @@ def remove_startup(config: ConfigurationService):
     data = request.json
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
-        return jsonify({"success": False, "error": f"Invalid format"}), 400
+        return jsonify({"success": False, "error": "Invalid format"}), 400
 
     success = config.remove_startup_repository(data["full_name"])
 

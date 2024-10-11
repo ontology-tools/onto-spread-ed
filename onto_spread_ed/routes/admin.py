@@ -15,7 +15,6 @@ from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
 from ..guards.admin import verify_admin
 from ..services.ConfigurationService import ConfigurationService
-from ..services.OntoloyBuildService import OntologyBuildService
 from ..utils import get_spreadsheets, get_spreadsheet, letters
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
@@ -109,7 +108,6 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: Conf
 @bp.route("/settings")
 @verify_admin
 def settings(config: ConfigurationService):
-
     return render_template("settings.html",
                            login=g.user.github_login,
                            config=config.app_config,

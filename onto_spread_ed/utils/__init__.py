@@ -1,6 +1,5 @@
+import re
 import typing
-
-from .github import *  # noqa: F403, F401
 
 
 def str_empty(value: typing.Optional[str]) -> bool:

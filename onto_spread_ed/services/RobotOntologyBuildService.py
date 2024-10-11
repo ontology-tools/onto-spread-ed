@@ -84,8 +84,10 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return Result(())
 
-    def _extract_slim_ontology(self, main_ontology_name: str, imp: OntologyImport, download_path: str) -> Result[
-        Union[str, Tuple]]:
+    def _extract_slim_ontology(self,
+                               main_ontology_name: str,
+                               imp: OntologyImport,
+                               download_path: str) -> Result[Union[str, Tuple]]:
         filename = os.path.join(download_path, f"{imp.id}.{main_ontology_name}.slim.owl")
         slim_cmd = [ROBOT, 'merge',
                     '--input', f'"{os.path.join(download_path, imp.id + ".owl")}"',
