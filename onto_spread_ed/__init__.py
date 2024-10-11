@@ -37,12 +37,15 @@ def load_config(app: Flask, config_filename):
                 k.replace("-", "_").upper(): v for k, v in file_config.items()
             }
 
-            repository_obj = {
-                f"REPOSITORIES_{file_config['repositories']['source'].upper()}_CONFIG_{k.replace('-', '_').upper()}": v
-                for k, v in file_config['repositories']['data'].items()
-            }
-            repository_obj["REPOSITORIES_SOURCE"] = file_config['repositories']['source']
-            del config_obj['REPOSITORIES']
+            repository_obj = dict()
+            if "REPOSITORIES" in config_obj:
+                repositories = file_config['repositories']
+                repository_obj = {
+                    f"REPOSITORIES_{repositories['source'].upper()}_CONFIG_{k.replace('-', '_').upper()}": v
+                    for k, v in repositories.get('data', dict()).items()
+                }
+                repository_obj["REPOSITORIES_SOURCE"] = file_config['repositories']['source']
+                del config_obj['REPOSITORIES']
 
             config_obj = {**config_obj, **repository_obj}
 
