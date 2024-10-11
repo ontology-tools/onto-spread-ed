@@ -45,7 +45,7 @@ class OntologyDataStore:
             self.releases[repo] = pyhornedowl.open_ontology(ontofile)
             prefixes = config.prefixes
             for prefix in prefixes.items():
-                self.releases[repo].add_prefix_mapping(prefix[0], prefix[1])
+                self.releases[repo].prefix_mapping.add_prefix(prefix[0], prefix[1])
             for classIri in self.releases[repo].get_classes():
                 classId = self.releases[repo].get_id_for_iri(classIri)
                 if classId:
@@ -73,12 +73,12 @@ class OntologyDataStore:
                                                        classId.replace(":", "_"), dir="back")
                     axioms = self.releases[repo].get_axioms_for_iri(classIri)  # other relationships
                     for a in axioms:
-                        if isinstance(a.axiom, SubClassOf) and \
-                                isinstance(a.axiom.sup, ObjectSomeValuesFrom) and \
-                                isinstance(a.axiom.sup.ope, ObjectProperty) and \
-                                isinstance(a.axiom.sup.bce, Class):
-                            relIri = str(a.axiom.sup.ope.first)
-                            targetIri = str(a.axiom.sup.bce.first)
+                        if isinstance(a.component, SubClassOf) and \
+                                isinstance(a.component.sup, ObjectSomeValuesFrom) and \
+                                isinstance(a.component.sup.ope, ObjectProperty) and \
+                                isinstance(a.component.sup.bce, Class):
+                            relIri = str(a.component.sup.ope.first)
+                            targetIri = str(a.component.sup.bce.first)
                             rel_name = self.releases[repo].get_annotation(relIri, constants.RDFS_LABEL)
                             targetLabel = self.releases[repo].get_annotation(targetIri, constants.RDFS_LABEL)
                             if targetLabel and targetLabel.strip() in self.label_to_id:

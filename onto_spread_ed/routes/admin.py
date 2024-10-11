@@ -13,7 +13,7 @@ from werkzeug.exceptions import NotFound
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
-from ..guards.admin import verify_admin
+from ..guards.with_permission import requires_permissions
 from ..services.ConfigurationService import ConfigurationService
 from ..utils import get_spreadsheets, get_spreadsheet, letters
 
@@ -22,7 +22,7 @@ bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templ
 
 @bp.route("/")
 @bp.route("/dashboard")
-@verify_admin
+@requires_permissions(any_of=["hierarchical-spreadsheets", "index", "repository-config-view"])
 def dashboard():
     return render_template("dashboard.html",
                            login=g.user.github_login,
@@ -31,7 +31,7 @@ def dashboard():
 
 # Pages for the app
 @bp.route("/rebuild-index", methods=("GET", "POST"))
-@verify_admin
+@requires_permissions("index")
 def rebuild_index(searcher: SpreadsheetSearcher):
     if request.method == "POST":
         sheets = searcher.rebuild_index()
@@ -66,7 +66,7 @@ def release_data(db: SQLAlchemy, id: Optional[int] = None, repo: Optional[str] =
 @bp.route("/release/", methods=("GET",), defaults={"repo": None, "id": None})
 @bp.route("/release/<string:repo>", methods=("GET",), defaults={"id": None})
 @bp.route("/release/<int:id>", methods=("GET",), defaults={"repo": None})
-@verify_admin
+@requires_permissions("release")
 def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: ConfigurationService):
     data = release_data(db, id, repo)
 
@@ -74,10 +74,11 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: Conf
     repositories = None
 
     if id is None and repo is None:
-        user_repos = []
-        # Filter just the repositories that the user can see
-        if g.user.github_login in config.app_config['USERS']:
-            user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
+        # Filter just the repositories that the user can see:
+        user_name = g.user.github_login if g.user else "*"
+        user_repos = (config.app_config['USERS']
+                      .get(user_name, config.app_config['USERS'].get("*", {}))
+                      .get("repositories", []))
 
         repositories = {s: config.get(s) for s in user_repos}
         repositories = {k: v for k, v in repositories.items() if v is not None}
@@ -106,7 +107,7 @@ def release(repo: Optional[str], id: Optional[int], db: SQLAlchemy, config: Conf
 
 
 @bp.route("/settings")
-@verify_admin
+@requires_permissions("repository-config-view")
 def settings(config: ConfigurationService):
     return render_template("settings.html",
                            login=g.user.github_login,
@@ -161,11 +162,11 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[N
 
 
 @bp.route("/hierarchical-overview")
+@requires_permissions("hierarchical-spreadsheets")
 def hierarchical_overview(config: ConfigurationService):
-    user_repos = []
     # Filter just the repositories that the user can see
-    if g.user.github_login in config.app_config['USERS']:
-        user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
+    user_name = g.user.github_login if g.user else "*"
+    user_repos = config.app_config['USERS'].get(user_name, dict()).get("repositories", [])
 
     repositories = {s: config.get(s) for s in user_repos}
     repositories = {k: v for k, v in repositories.items() if v is not None}
@@ -180,6 +181,7 @@ def hierarchical_overview(config: ConfigurationService):
 
 @bp.route("/hierarchical-overview/download/<repo>", defaults={"sub_ontology": None})
 @bp.route("/hierarchical-overview/download/<repo>/<sub_ontology>")
+@requires_permissions("hierarchical-spreadsheets")
 def hierarchical_overview_download(gh: GitHub, config: ConfigurationService,
                                    repo: str, sub_ontology: Optional[str] = None):
     hierarchies, ontology = build_hierarchy(gh, config, repo, sub_ontology)
@@ -244,7 +246,7 @@ def build_hierarchy(gh: GitHub, config: ConfigurationService, repo: str,
 
     # ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
     for p, d in repository.prefixes.items():
-        ontology.add_prefix_mapping(p, d)
+        ontology.prefix_mapping.add_prefix(p, d)
     classes = [(c, ontology.get_annotation(c, "http://www.w3.org/2000/01/rdf-schema#label"),
                 ontology.get_annotation(c, "http://purl.obolibrary.org/obo/IAO_0000115")) for c in
                ontology.get_classes()]

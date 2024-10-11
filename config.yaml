@@ -15,87 +15,61 @@ repositories:
   # Where to look for repository configration. Possible values: 'repository' or 'local'
   source: 'repository'
   data:
+    # Whether the loaded repositories can be changed through the admin interface
     allow-load: no
+    # Whether the repositories loaded on startup can be changed through the admin interface
     allow-save: no
-    startup-repositories-path: 'startup-repositories.yaml'
+    # Path to the file containing a list of full names of repositories which should be loaded when the services starts
+    startup-repositories-file: 'startup-repositories.yaml'
+    # Path to the configuration file in repositories containing the repository configuration
     path: .onto-ed/config.yaml
 
-# GitHub users with access
+# Permission groups assign permissions to a set of users. The following permissions exist:
+#
+# admin                            : Overrules any permission checks
+# view                             : Can explore the repositories and view spreadsheets
+# edit                             : Implies 'view'. Allows to save changes in spreadsheets
+# add-external-ontology            : Implies 'write'. Allows to add a new ontology to import terms from
+# release                          : Implies 'write'. Allows to do releases
+# index                            : Implies 'view'. Allows to manage the index powering search, autocomplete, etc.
+# hierarchical-spreadsheets        : Implies 'view'. Allows to download the hierarchical spreadsheets.
+# repository-config-view           : Implies 'view'. Allows to view the loaded configurations
+# repository-config-manage-loaded  : Implies 'repository-config-view'. Allows to change the loaded configurations.
+# repository-config-manage-startup : Implies 'repository-config-view'. Allows to change the configurations loaded on startup.
+permission-groups:
+  admin:
+    permissions:
+      - admin
+  public:
+    permissions:
+      - view
+  developer:
+    permissions:
+      - view
+      - edit
+  maintainer:
+    permissions:
+      - view
+      - edit
+      - add-external-ontology
+      - release
+      - index
+      - scripts
+
+# GitHub users with access in the format of
+#
+# <github_username>: # The GitHub username of the user. Use '*' as a default for all authenticated GitHub users.
+#   initials: GH # initials are used in the spreadsheets to track assignments and enable searching for assigned terms
+#   repositories: # List of shortnames of (loaded) repositories the user should be able to interact with.
+#     - <repository shortname>
+#     - ...
+#   groups: # List of permission groups of the user
+#     - <permission-group>
+#   permissions: # Additional permissions of the user apart from the group
+#     - <permission>
 users:
-  CaitlinNotley:
-    initials: CN
-    repositories:
-      - AddictO
-  CaitlinNotley702:
-    initials: CN
-    repositories:
-      - AddictO
-  alisonjwright:
-    admin: true
-    initials: AW
-    repositories:
-      - BCIO
-      - AddictO
-  b-gehrke:
-    admin: true
-    initials: BG
-    repositories:
-      - AddictO
-      - BCIO
-      - GMHO
-  candicemooreucl:
-    initials: CM
-    repositories:
-      - BCIO
-  emilyjhayes:
-    initials: EJH
-    repositories:
-      - BCIO
-  jannahastings:
-    admin: true
-    initials: JH
-    repositories:
-      - AddictO
-      - BCIO
-      - GMHO
-  ksoar:
-    initials: KS
-    repositories:
-      - AddictO
-  lzhang01:
-    admin: true
-    initials: LZ
-    repositories:
-      - AddictO
-      - BCIO
-      - GMHO
-  oscarcastroserrano:
-    initials: OC
-    repositories:
-      - BCIO
-  paulinaschenk:
-    admin: true
-    initials: PS
-    repositories:
-      - BCIO
-      - GMHO
-  robertjwest:
-    admin: true
-    initials: RW
-    repositories:
-      - AddictO
-      - BCIO
-      - GMHO
-  sharoncox:
-    initials: SC
-    repositories:
-      - AddictO
-  tomjuggler:
-    initials: ZZ
-    repositories:
-      - AddictO
-      - BCIO
-  zcbtelh:
-    initials: EH
-    repositories:
-      - BCIO
+  '*':
+    repositories: [ ]
+    groups:
+      - public
+

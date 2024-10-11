@@ -63,7 +63,7 @@
                         <i class="fa fa-home"></i> Home
                     </a>
                 </li>
-                {% if login is defined and config["USERS"][login]["admin"] %}
+                {% if has_any_permission("hierarchical-spreadsheets", "index", "repository-config-view") %}
                     <li class="nav-item">
                         <a class="nav-link active" aria-current="page" href="{{ url_for('admin.dashboard') }}">
                             <i class="fa fa-gear"></i> Admin

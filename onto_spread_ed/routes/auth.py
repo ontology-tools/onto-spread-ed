@@ -27,6 +27,13 @@ def loggedout():
     """
     return render_template("loggedout.html")
 
+@bp.route("/forbidden")
+def forbidden():
+    """
+    Displays the page to be shown to logged out users.
+    """
+    return render_template("forbidden.html")
+
 
 @bp.route('/user')
 @verify_logged_in

@@ -4,6 +4,7 @@ from flask import Blueprint, request, current_app, render_template
 
 from ..OntologyDataStore import OntologyDataStore
 from ..guards.verify_login import verify_logged_in
+from ..guards.with_permission import requires_permissions
 
 bp = Blueprint("visualize", __name__, template_folder="../templates")
 
@@ -25,7 +26,7 @@ def apiOpenVisualiseAcrossSheets(ontodb: OntologyDataStore):
 
 
 @bp.route('/openVisualise', methods=['POST'])
-@verify_logged_in
+@requires_permissions("view")
 def openVisualise(ontodb: OntologyDataStore):
     curation_status_filters = ["", "External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published",
                                "Obsolete"]
@@ -95,7 +96,7 @@ def openVisualise(ontodb: OntologyDataStore):
 
 
 @bp.route('/openVisualiseAcrossSheets', methods=['POST'])
-@verify_logged_in
+@requires_permissions("view")
 def openVisualiseAcrossSheets(ontodb: OntologyDataStore):
     # build data we need for dotStr query (new one!)
     idString = request.form.get("idList")

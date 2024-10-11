@@ -12,7 +12,7 @@ from flask import jsonify, Blueprint, request, current_app, g, Response
 from flask_github import GitHub
 from openpyxl.worksheet.worksheet import Worksheet
 
-from onto_spread_ed.guards.admin import verify_admin
+from onto_spread_ed.guards.with_permission import requires_permissions
 from onto_spread_ed.model.ExcelOntology import OntologyImport
 from onto_spread_ed.model.TermIdentifier import TermIdentifier
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
@@ -22,7 +22,7 @@ bp = Blueprint("api_external", __name__, url_prefix="/api/external")
 
 
 @bp.route("/guess-parent", methods=["POST"])
-@verify_admin
+@requires_permissions("view")
 def guess_parent():
     schema: dict
     with open(os.path.join(current_app.static_folder, "schema", "req_body_guess_parent.json"), "r") as f:
@@ -88,9 +88,12 @@ def guess_parent():
 
 
 @bp.route("/<repo>/import", methods=["POST"])
-@verify_admin
+@requires_permissions("edit")
 def import_term(repo: str, gh: GitHub, config: ConfigurationService):
-    user_repos = config.app_config['USERS'][g.user.github_login]["repositories"]
+    user_name = g.user.github_login if g.user else "*"
+    user_repos = (config.app_config['USERS']
+                  .get(user_name, config.app_config['USERS'].get("*", {}))
+                  .get("repositories", []))
 
     if repo not in user_repos:
         return jsonify({"msg": f"No such repository '{repo}'"}), 404

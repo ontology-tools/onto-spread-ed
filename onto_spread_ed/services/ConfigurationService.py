@@ -15,7 +15,11 @@ class ConfigurationService(abc.ABC):
         return self._app_config
 
     @property
-    def adding_new_allowed(self) -> bool:
+    def loading_new_allowed(self) -> bool:
+        return False
+
+    @property
+    def changing_startup_allowed(self) -> bool:
         return False
 
     @abc.abstractmethod

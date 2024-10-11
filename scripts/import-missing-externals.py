@@ -27,7 +27,7 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
     external_ontology = ExcelOntology(externals_owl)
     ontology = pyhornedowl.open_ontology(externals_content, "rdf")
     for (p, d) in repository.prefixes:
-        ontology.add_prefix_mapping(p, d)
+        ontology.prefix_mapping.add_prefix(p, d)
 
     for c in ontology.get_classes():
         id = ontology.get_id_for_iri(c)

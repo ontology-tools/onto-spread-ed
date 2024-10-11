@@ -81,9 +81,6 @@ def create_app(config_filename=None):
     from . import routes
     routes.init_app(app)
 
-    from . import template_filters
-    template_filters.init_app(app)
-
     @app.before_request
     def before_request(db: SQLAlchemy):
         g.user = None
@@ -99,6 +96,9 @@ def create_app(config_filename=None):
     with app.app_context():
         module.init_app(app)
 
-    FlaskInjector(app=app, modules=[module])
+    injector = FlaskInjector(app=app, modules=[module])
+
+    from . import jinja_extensions
+    jinja_extensions.init_app(app, injector.injector)
 
     return app

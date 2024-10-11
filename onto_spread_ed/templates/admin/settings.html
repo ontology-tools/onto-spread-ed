@@ -12,7 +12,9 @@
         }
         var SETTINGS = {
             'repositories': {{ config_service.loaded_repositories() | tojson | safe }},
-            'startup_repositories': {{ config_service.startup_repositories() | tojson | safe }}
+            'startup_repositories': {{ config_service.startup_repositories() | tojson | safe }},
+            'changing_startup_allowed': {{ config_service.changing_startup_allowed | tojson | safe }},
+            'loading_new_allowed': {{ config_service.loading_new_allowed | tojson | safe }}
         }
     </script>
     <script type="module" src="{{ url_for('static', filename='js/settings.js') }}"></script>

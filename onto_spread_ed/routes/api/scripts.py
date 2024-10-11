@@ -5,14 +5,14 @@ import traceback
 from flask import Blueprint, current_app, jsonify, request
 from injector import Injector, inject
 
-from onto_spread_ed.guards.admin import verify_admin
+from onto_spread_ed.guards.with_permission import requires_permissions
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("api_scripts", __name__, url_prefix="/api/scripts")
 
 
 @bp.route("/", methods=["GET"])
-@verify_admin
+@requires_permissions("scripts")
 def get_all_scripts(config: ConfigurationService):
     scripts = config.app_config["SCRIPTS"]
     return jsonify({
@@ -25,7 +25,7 @@ def get_all_scripts(config: ConfigurationService):
 
 
 @bp.route("/<name>/run", methods=["POST"])
-@verify_admin
+@requires_permissions("scripts")
 def run_script(injector: Injector, config: ConfigurationService, name: str):
     scripts = config.app_config["SCRIPTS"]
 

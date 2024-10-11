@@ -14,7 +14,7 @@ from flask_sqlalchemy.query import Query
 from werkzeug.exceptions import NotFound, BadRequest
 
 from ...database.Release import Release
-from ...guards.admin import verify_admin
+from ...guards.with_permission import requires_permissions
 from ...model.ReleaseScript import ReleaseScript
 from ...release import do_release
 from ...release.common import next_release_step, local_name
@@ -54,7 +54,7 @@ def get_current_release(q: Query[Release], repo: str) -> Tuple[Optional[Release]
 
 
 @bp.route("/<repo>/release_script", methods=["GET"])
-@verify_admin
+@requires_permissions("release")
 def get_release_script(repo: str, config: ConfigurationService):
     repo_config = config.get(repo)
     if repo_config is None:
@@ -78,7 +78,7 @@ def get_release_script(repo: str, config: ConfigurationService):
 
 
 @bp.route("/<repo>/release_script", methods=["PUT"])
-@verify_admin
+@requires_permissions("release")
 def save_release_script(repo: str, config: ConfigurationService):
     repo_config = config.get(repo)
     if repo_config is None:
@@ -105,7 +105,7 @@ def save_release_script(repo: str, config: ConfigurationService):
 
 
 @bp.route("/<repo>/cancel", methods=("POST",))
-@verify_admin
+@requires_permissions("release")
 def release_cancel(repo: str, db: SQLAlchemy):
     q = db.session.query(Release)
     release, err = get_current_release(q, repo)
@@ -124,7 +124,7 @@ def release_cancel(repo: str, db: SQLAlchemy):
 
 
 @bp.route("/start", methods=("POST",))
-@verify_admin
+@requires_permissions("release")
 def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor, config: ConfigurationService):
     schema: dict
     with open(os.path.join(current_app.static_folder, "schema", "release_script.json"), "r") as f:
@@ -174,7 +174,7 @@ def release_start(db: SQLAlchemy, gh: GitHub, executor: Executor, config: Config
 
 
 @bp.route("/<repo>/continue")
-@verify_admin
+@requires_permissions("release")
 def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor, config: ConfigurationService):
     q: Query[Release] = db.session.query(Release)
     force = request.args.get('force', "false").lower() == "true"
@@ -216,7 +216,7 @@ def release_continue(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor, 
 
 
 @bp.route("/<repo>/rerun-step", methods=("POST", "GET"))
-@verify_admin
+@requires_permissions("release")
 def release_rerun_step(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor, config: ConfigurationService):
     q: Query[Release] = db.session.query(Release)
     release, err = get_current_release(q, repo)
@@ -239,7 +239,7 @@ def release_rerun_step(repo: str, db: SQLAlchemy, gh: GitHub, executor: Executor
 
 
 @bp.route("/<repo>/download", methods=("GET",))
-@verify_admin
+@requires_permissions("release")
 def download_release_file(repo: str, db: SQLAlchemy):
     q = db.session.query(Release)
 
@@ -278,7 +278,7 @@ def download_release_file(repo: str, db: SQLAlchemy):
 
 
 @bp.route("/<repo>/running", methods=("POST", "GET"))
-@verify_admin
+@requires_permissions("release")
 def get_running_release(repo: str, db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)
     release, _ = get_current_release(q, repo)
@@ -290,7 +290,7 @@ def get_running_release(repo: str, db: SQLAlchemy):
 
 
 @bp.route("/<int:id>", methods=("GET",))
-@verify_admin
+@requires_permissions("release")
 def get_release(id: int, db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)
     release = q.get(id)
@@ -306,7 +306,7 @@ def get_release(id: int, db: SQLAlchemy):
 
 
 @bp.route("/<string:repo>", methods=("GET",))
-@verify_admin
+@requires_permissions("release")
 def get_releases_for_repo(repo: str, db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)
     releases = q.filter_by(repo=repo)
@@ -318,7 +318,7 @@ def get_releases_for_repo(repo: str, db: SQLAlchemy):
 
 
 @bp.route("/", methods=("GET",))
-@verify_admin
+@requires_permissions("release")
 def get_releases(db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)
     releases = q.all()

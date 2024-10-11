@@ -7,6 +7,7 @@ from injector import Module, provider
 
 from . import database, gh
 from .OntologyDataStore import OntologyDataStore
+from .PermissionManager import PermissionManager
 from .SpreadsheetSearcher import SpreadsheetSearcher
 from .services.ConfigurationService import ConfigurationService
 from .services.LocalConfigurationService import LocalConfigurationService
@@ -71,3 +72,8 @@ class AppModule(Module):
     @request
     def ontology_builder(self) -> OntologyBuildService:
         return RobotOntologyBuildService()
+
+    @provider
+    @request
+    def permission_manager(self, app: Flask) -> PermissionManager:
+        return PermissionManager(app.config)

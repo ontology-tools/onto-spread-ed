@@ -13,7 +13,7 @@ from openpyxl.styles import Font, PatternFill
 
 from ..OntologyDataStore import OntologyDataStore
 from ..SpreadsheetSearcher import SpreadsheetSearcher
-from ..guards.verify_login import verify_logged_in
+from ..guards.with_permission import requires_permissions
 from ..services.ConfigurationService import ConfigurationService
 from ..utils.github import get_spreadsheet, get_csv, create_branch
 
@@ -21,7 +21,7 @@ bp = Blueprint("edit", __name__, template_folder="../templates")
 
 
 @bp.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
-@verify_logged_in
+@requires_permissions("view")
 def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStore, config: ConfigurationService):
     if session.get('label') is None:
         go_to_row = ""
@@ -52,7 +52,8 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     return render_template('edit.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
-                           all_initials=[v["initials"] for v in config.app_config["USERS"].values()],
+                           all_initials=[v.get["initials"] for v in config.app_config["USERS"].values()
+                                         if "initials" in v],
                            repo_name=repo_key,
                            folder=folder,
                            spreadsheet_name=spreadsheet,
@@ -69,7 +70,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
 
 
 @bp.route('/download_spreadsheet', methods=['POST'])
-@verify_logged_in
+@requires_permissions("view")
 def download_spreadsheet(github: GitHub, config: ConfigurationService):
     repo_key = request.form.get("repo_key")
     folder = request.form.get("folder")
@@ -83,7 +84,7 @@ def download_spreadsheet(github: GitHub, config: ConfigurationService):
 
 
 @bp.route('/save', methods=['POST'])
-@verify_logged_in
+@requires_permissions("edit")
 def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService):
     repo_key = request.form.get("repo_key")
     folder = request.form.get("folder")
@@ -314,6 +315,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
 
 # todo: use this function to compare initial spreadsheet to server version - check for updates?
 @bp.route("/checkForUpdates", methods=["POST"])
+@requires_permissions("view")
 def checkForUpdates(github: GitHub, config: ConfigurationService):
     if request.method == "POST":
         repo_key = request.form.get("repo_key")
@@ -332,7 +334,7 @@ def checkForUpdates(github: GitHub, config: ConfigurationService):
 
 
 @bp.route("/generate", methods=["POST"])
-@verify_logged_in
+@requires_permissions("edit")
 def generate(searcher: SpreadsheetSearcher, config: ConfigurationService):
     if request.method == "POST":
         repo_key = request.form.get("repo_key")
@@ -355,7 +357,7 @@ def generate(searcher: SpreadsheetSearcher, config: ConfigurationService):
 
 
 @bp.route("/validate", methods=["POST"])
-@verify_logged_in
+@requires_permissions("view")
 def verify():
     if request.method == "POST":
         cell = json.loads(request.form.get("cell"))
@@ -599,7 +601,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
 
 
 @bp.route('/edit_external/<repo_key>/<path:folder_path>')
-@verify_logged_in
+@requires_permissions("edit")
 def edit_external(repo_key, folder_path, github: GitHub, config: ConfigurationService):
     # print("edit_external reached")
     repository = config.get(repo_key)

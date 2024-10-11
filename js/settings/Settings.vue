@@ -23,8 +23,10 @@ interface RepositoryConfig {
 }
 
 declare var SETTINGS: {
-  'repositories': RepositoryConfig[],
-  'startup_repositories': string[]
+  repositories: RepositoryConfig[],
+  startup_repositories: string[],
+  changing_startup_allowed: boolean,
+  loading_new_allowed: boolean
 }
 declare var URLS: { [key: string]: any }
 
@@ -154,7 +156,7 @@ async function loadRepository() {
         {{ repo.short_name }} ({{ repo.full_name }})
       </template>
       <template #buttons>
-        <button class="btn btn-primary btn-sm" @click="toggleStartup(repo)">
+        <button class="btn btn-primary btn-sm" @click="toggleStartup(repo)" :disabled="blocked || !settings.changing_startup_allowed">
           <template v-if="settings.startup_repositories.indexOf(repo.full_name) >= 0">
             <i class="fa fa-square-check"></i> Loaded on startup
           </template>
@@ -164,7 +166,7 @@ async function loadRepository() {
         </button>
 
         <button class="btn btn-danger btn-sm btn-circle" @click="$event.stopPropagation(); unloadRepository(repo)"
-                :disabled="blocked">
+                :disabled="blocked"  v-if="settings.loading_new_allowed">
           <i class="fa" :class="deleting === repo.full_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']"></i>
         </button>
       </template>
@@ -214,7 +216,7 @@ async function loadRepository() {
     </CollapsibleCard>
 
     <div class="d-flex gap-2">
-      <button class="mb-3 btn btn-sm btn-primary add-file" @click="loadRepository" :disabled="blocked">
+      <button class="mb-3 btn btn-sm btn-primary add-file" @click="loadRepository" :disabled="blocked" v-if="settings.loading_new_allowed">
         <i class="fa" :class="loading ? ['fa-spinner', 'fa-spin'] : ['fa-add']"></i>
         Load repository
       </button>

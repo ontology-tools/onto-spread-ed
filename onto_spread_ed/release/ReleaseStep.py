@@ -108,7 +108,7 @@ class ReleaseStep(abc.ABC):
         if os.path.exists(externals_owl):
             ontology = pyhornedowl.open_ontology(externals_owl, "rdf")
             for (p, d) in config.prefixes.items():
-                ontology.add_prefix_mapping(p, d)
+                ontology.prefix_mapping.add_prefix(p, d)
 
             for c in ontology.get_classes():
                 id = ontology.get_id_for_iri(c)

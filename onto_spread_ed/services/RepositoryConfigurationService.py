@@ -11,7 +11,7 @@ from onto_spread_ed.model.RepositoryConfiguration import RepositoryConfiguration
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
 
 REPOSITORY_CONFIG_PATH_PROP = "REPOSITORIES_REPOSITORY_CONFIG_PATH"
-REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PATH"
+REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_STARTUP_REPOSITORIES_FILE"
 BASE_URL_PROP = "REPOSITORIES_REPOSITORY_CONFIG_BASE_URL"
 DEFAULT_HEADERS_PROP = "REPOSITORIES_REPOSITORY_CONFIG_REQUEST_HEADERS"
 ALLOW_LOAD_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_ALLOW_LOAD"
@@ -95,8 +95,12 @@ class RepositoryConfigurationService(ConfigurationService):
         return True
 
     @property
-    def adding_new_allowed(self) -> bool:
+    def loading_new_allowed(self) -> bool:
         return self.app_config.get(ALLOW_LOAD_REPOSITORIES_PROP)
+
+    @property
+    def changing_startup_allowed(self) -> bool:
+        return self.app_config.get(ALLOW_SAVE_REPOSITORIES_PROP)
 
     def loaded_repositories(self) -> List[RepositoryConfiguration]:
         return list(self._loaded_repositories.values())
