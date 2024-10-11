@@ -109,7 +109,9 @@ class RepositoryConfigurationService(ConfigurationService):
     def get_by_full_name(self, full_name: str) -> Optional[RepositoryConfiguration]:
         url = self._base_url.format(full_name=full_name, path=self._config_path)
         config = self.get_by_url(url)
-        config.full_name = full_name
+        if config is not None:
+            config.full_name = full_name
+
         return config
 
     def get_by_url(self, url: str) -> Optional[RepositoryConfiguration]:
