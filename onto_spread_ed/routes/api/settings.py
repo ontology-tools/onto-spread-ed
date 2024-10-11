@@ -1,9 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_github import GitHub
 
-from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
 from onto_spread_ed.guards.admin import verify_admin
-from onto_spread_ed.model.RepositoryConfiguration import RepositoryConfiguration
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
 from onto_spread_ed.services.RepositoryConfigurationService import RepositoryConfigurationService
 
@@ -13,9 +11,13 @@ bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
 @bp.route("/repositories/possibilities", methods=["GET"])
 @verify_admin
 def possible_repositories(config: ConfigurationService, gh: GitHub):
-    response = gh.get("/user/repos", all_pages=True)
+    if not isinstance(config, RepositoryConfigurationService):
+        return jsonify({"success": False, "message": "Not supported!"}), 400
 
-    return jsonify([{"short_name": r["name"], "full_name": r["full_name"]} for r in response])
+    response = gh.get("/user/repos", all_pages=True)
+    repos = [{"short_name": r["name"], "full_name": r["full_name"]} for r in response]
+
+    return jsonify({"success": True, "repositories": repos})
 
 
 @bp.route("/repositories/startup", methods=["GET"])
@@ -35,9 +37,11 @@ def load_repository(config: ConfigurationService):
     repo = config.get_by_full_name(data["full_name"])
 
     if repo is None:
-        return jsonify({"success": False, "error": f"Repository configuration for '{data['full_name']}' not found. Ensure the repository is accessible for you and it contains the configuration."}), 400
+        return jsonify({"success": False,
+                        "error": f"Repository configuration for '{data['full_name']}' not found. Ensure the repository is accessible for you and it contains the configuration."}), 400
     else:
         return jsonify({"success": True, "repo": repo})
+
 
 @bp.route("/repositories/unload", methods=["POST"])
 @verify_admin

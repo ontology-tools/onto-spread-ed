@@ -36,9 +36,6 @@ let deleting = ref<string | null>(null);
 let startupChanging = ref<string | null>(null);
 let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null)
 
-
-let repositorySuggestions = []
-
 async function toggleStartup(repo: RepositoryConfig) {
   startupChanging.value = repo.full_name;
 
@@ -93,48 +90,54 @@ async function unloadRepository(repo: RepositoryConfig) {
 
 async function loadRepository() {
   loading.value = true;
-  repositorySuggestions = await (await fetch(`${prefix_url}/api/settings/repositories/possibilities`)).json()
+  let resp = await (await fetch(`${prefix_url}/api/settings/repositories/possibilities`)).json()
 
-  const index = await promptDialog({
-    title: "Found possible external parents",
-    message:
-        `Chose one of your repositories to load.`,
-    inputType: "select",
-    inputOptions: repositorySuggestions.map(({short_name, full_name}, i) => ({
-      value: i,
-      text: `${short_name} (${full_name})`
-    })),
-    buttons: {
-      confirm: {
-        label: `Load repository`,
-        className: "btn-success",
-      },
-      cancel: {
-        label: "Cancel",
-        className: "btn-warning"
+  if (resp.success) {
+    const suggestions = resp.repositories;
+    const index = await promptDialog({
+      title: "Found possible external parents",
+      message:
+          `Chose one of your repositories to load.`,
+      inputType: "select",
+      inputOptions: suggestions.map(({short_name, full_name}, i) => ({
+        value: i,
+        text: `${short_name} (${full_name})`
+      })),
+      buttons: {
+        confirm: {
+          label: `Load repository`,
+          className: "btn-success",
+        },
+        cancel: {
+          label: "Cancel",
+          className: "btn-warning"
+        }
+      }
+    })
+
+    if (index !== null) {
+      const result = await (await fetch(`${prefix_url}/api/settings/repositories/load`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(suggestions[index])
+      })).json()
+
+      if (result.success) {
+        settings.value.repositories = [...settings.value.repositories, result.repo]
+      } else {
+        await alertDialog({
+          title: "Loading failed",
+          message: result.error
+        })
       }
     }
-  })
-
-  if (index !== null) {
-    const result = await (await fetch(`${prefix_url}/api/settings/repositories/load`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(repositorySuggestions[index])
-    })).json()
-
-    if (result.success) {
-      settings.value.repositories = [...settings.value.repositories, result.repo]
-    } else {
-      await alertDialog({
-        title: "Loading failed",
-        message: result.error
-      })
-    }
-
-    console.log(result)
+  } else {
+    await alertDialog({
+      title: "Unloading failed",
+      message: "The repository was probably already unloaded. Try refreshing the page."
+    })
   }
   loading.value = false;
 }

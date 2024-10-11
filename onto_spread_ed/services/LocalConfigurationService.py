@@ -138,7 +138,7 @@ REPOS = dict((k,
                   prefixes=dict(PREFIXES),
                   release_file=RELEASE_FILES[k],
                   indexed_files=ACTIVE_SPREADSHEETS[k],
-                  release_script_path=f"{k.lower()}.release.json",
+              release_script_path=f"{k.lower()}.release.json",  
                   id_digits=7,
                   subontologies=dict(
                       (k, SubOntologyConfiguration(
