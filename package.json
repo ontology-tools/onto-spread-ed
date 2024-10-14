@@ -2,12 +2,12 @@
   "name": "onto_spread_ed",
   "version": "1.0.0",
   "devDependencies": {
-    "esbuild": "^0.20.1",
-    "esbuild-plugin-vue3": "^0.4.2",
+    "@types/bootbox": "^5.2.8",
+    "esbuild": "0.20.1",
+    "esbuild-plugin-vue3": "0.4.2",
     "sass": "^1.71.1",
-    "typescript": "^5.3.3",
-    "vite": "^5.4.8",
-    "@types/bootbox": "^5.2.8"
+    "typescript": "5.3.3",
+    "vite": "5.4.8"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -19,7 +19,7 @@
   "license": "AGPL",
   "description": "",
   "dependencies": {
-    "vue": "^3.4.19",
-    "bootstrap-vue-next": "^0.24.23"
+    "bootstrap-vue-next": "0.24.23",
+    "vue": "3.4.38"
   }
 }

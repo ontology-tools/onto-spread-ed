@@ -40,7 +40,9 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
                     if request.accept_mimetypes.accept_html:
                         return render_template("forbidden.html"), 403
                     else:
-                        return jsonify({"success": False, "error": "You don't have permission to access this page!"}), 403
+                        return jsonify(
+                            {"success": False, "error": "You don't have permission to access this page!"}
+                        ), 403
 
             return fn(*args, **kwargs)
 
