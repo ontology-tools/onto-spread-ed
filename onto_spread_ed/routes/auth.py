@@ -27,6 +27,7 @@ def loggedout():
     """
     return render_template("loggedout.html")
 
+
 @bp.route("/forbidden")
 def forbidden():
     """

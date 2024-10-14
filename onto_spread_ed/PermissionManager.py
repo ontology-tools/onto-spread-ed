@@ -23,10 +23,12 @@ class PermissionManager:
     _user_repos: Dict[str, Set[str]]
 
     def __init__(self, config):
-        self._group_permissions = {k: self.expand_permissions(set(v["permissions"])) for k, v in config["PERMISSION_GROUPS"].items()}
+        self._group_permissions = {k: self.expand_permissions(set(v["permissions"])) for k, v in
+                                   config["PERMISSION_GROUPS"].items()}
 
         user_permissions = {
-            name: set.union(set(user.get("permissions", [])), *(self._group_permissions[g] for g in user.get("groups", [])))
+            name: set.union(set(user.get("permissions", [])),
+                            *(self._group_permissions[g] for g in user.get("groups", [])))
             for name, user in config["USERS"].items()
         }
         self._user_permissions = {name: self.expand_permissions(p) for name, p in user_permissions.items()}

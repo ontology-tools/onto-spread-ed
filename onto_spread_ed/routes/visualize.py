@@ -3,7 +3,6 @@ import json
 from flask import Blueprint, request, current_app, render_template
 
 from ..OntologyDataStore import OntologyDataStore
-from ..guards.verify_login import verify_logged_in
 from ..guards.with_permission import requires_permissions
 
 bp = Blueprint("visualize", __name__, template_folder="../templates")

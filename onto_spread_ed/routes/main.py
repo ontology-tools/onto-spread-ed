@@ -3,7 +3,6 @@ import json
 from flask import Blueprint, g, render_template, redirect, url_for, request, session, jsonify, current_app
 from flask_github import GitHub
 
-from ..guards.verify_login import verify_logged_in
 from ..guards.with_permission import requires_permissions
 from ..services.ConfigurationService import ConfigurationService
 
