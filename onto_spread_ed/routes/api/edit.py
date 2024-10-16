@@ -2,16 +2,19 @@ import base64
 import io
 import json
 import os
+from datetime import date
 
 import jsonschema
 import openpyxl
 from flask import Blueprint, request, jsonify, current_app, g, Response
-from flask_github import GitHub
+from flask_github import GitHub, GitHubError
 from openpyxl.worksheet.worksheet import Worksheet
 
+from onto_spread_ed.PermissionManager import PermissionManager
+from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
 from onto_spread_ed.guards.with_permission import requires_permissions
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
-from onto_spread_ed.utils import github
+from onto_spread_ed.utils import github, get_spreadsheet
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
@@ -93,3 +96,32 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
         return Response(status=200)
 
     return Response(status=204)
+
+
+@bp.route("/get/<repo>/<path:path>", methods=["GET"])
+@requires_permissions("view")
+def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager, searcher: SpreadsheetSearcher):
+    if not permission_manager.current_user_has_permissions(repository=repo):
+        return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
+
+    [folder, spreadsheet] = path.rsplit('/', 1)
+
+    repository = config.get(repo)
+    try:
+        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_name, folder, spreadsheet)
+
+        suggestions = searcher.search_for(repo)
+
+        data = dict(
+            header=header,
+            rows=rows,
+            file_sha=file_sha,
+            repo_name=repo,
+            folder=path,
+            spreadsheet_name=spreadsheet,
+        )
+
+        return jsonify({"success": True, "spreadsheet": data, "suggestions": suggestions}), 200
+    except GitHubError as e:
+        current_app.logger.error(e)
+        return jsonify({"success": False, "error": f"Failed when communicating with github: {e}"}), 200

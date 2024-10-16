@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "devDependencies": {
     "@types/bootbox": "^5.2.8",
+    "@types/tabulator-tables": "^6.2.3",
     "esbuild": "^0.20.1",
     "esbuild-plugin-vue3": "^0.4.2",
-    "sass": "^1.71.1",
+    "sass": "^1.79.5",
+    "sass-loader": "^16.0.2",
     "typescript": "^5.3.3",
     "vite": "^5.4.8"
   },
@@ -20,6 +22,7 @@
   "description": "",
   "dependencies": {
     "bootstrap-vue-next": "0.24.23",
+    "tabulator-tables": "^6.3.0",
     "vue": "3.5.3"
   }
 }
