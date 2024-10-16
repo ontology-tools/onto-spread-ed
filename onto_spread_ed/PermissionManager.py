@@ -57,7 +57,7 @@ class PermissionManager:
         user_permission = self.user_permission(user_name)
         user_repos = self._user_repos.get(user_name, {})
 
-        if "admin" in user_repos:
+        if "admin" in user_permission:
             return True
 
         return all(p in user_permission for p in permissions) and (repository is None or repository in user_repos)
