@@ -125,8 +125,9 @@ class RepositoryConfigurationService(ConfigurationService):
 
         try:
             response = self._gh.get(url, headers=self._headers)
-        except GitHubError:
-            return
+        except GitHubError as e:
+            self._logger.warning(f"Could not get repository configuration from '{url}': e {e.response}")
+            return None
 
         if not response.ok:
             self._logger.warning(f"Could not get repository configuration from '{url}': {response}")

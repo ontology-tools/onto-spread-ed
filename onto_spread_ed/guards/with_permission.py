@@ -22,7 +22,16 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
         @functools.wraps(fn)
         def wrapped(*args, **kwargs):
             permission_manager = kwargs.pop("__permission_manager")
-            user_name = g.user.github_login if g.user else "*"
+
+            # If the user is not logged in, then redirect him to the "logged out" page:
+            if not g.user:
+                if request.accept_mimetypes.accept_html:
+                    return redirect(url_for("authentication.login"))
+                else:
+                    return jsonify({"success": False, "error": "You are not logged in!"}), 401
+
+            user_name = g.user.github_login
+
             permitted = False
             if any_of is not None:
                 permitted = any(permission_manager.has_permissions(user_name, p) for p in any_of)
@@ -30,19 +39,12 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
                 permitted = permission_manager.has_permissions(user_name, *all_of)
 
             if not permitted:
-                # If the user is not logged in, then redirect him to the "logged out" page:
-                if not g.user:
-                    if request.accept_mimetypes.accept_html:
-                        return redirect(url_for("authentication.login"))
-                    else:
-                        return jsonify({"success": False, "error": "You are not logged in!"}), 401
+                if request.accept_mimetypes.accept_html:
+                    return render_template("forbidden.html"), 403
                 else:
-                    if request.accept_mimetypes.accept_html:
-                        return render_template("forbidden.html"), 403
-                    else:
-                        return jsonify(
-                            {"success": False, "error": "You don't have permission to access this page!"}
-                        ), 403
+                    return jsonify(
+                        {"success": False, "error": "You don't have permission to access this page!"}
+                    ), 403
 
             return fn(*args, **kwargs)
 

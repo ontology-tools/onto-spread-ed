@@ -52,7 +52,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     return render_template('edit.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
-                           all_initials=[v.get["initials"] for v in config.app_config["USERS"].values()
+                           all_initials=[v.get("initials") for v in config.app_config["USERS"].values()
                                          if "initials" in v],
                            repo_name=repo_key,
                            folder=folder,
