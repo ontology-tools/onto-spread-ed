@@ -3,17 +3,16 @@ import asyncio
 import logging
 from typing import List, Callable, Optional, Tuple
 
-from onto_spread_ed.model.ExcelOntology import ExcelOntology
-from onto_spread_ed.model.Result import Result
-from onto_spread_ed.services.ConfigurationService import ConfigurationService
 import pyhornedowl
 
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
 from .APIClient import APIClient
 from .HttpError import HttpError
 from ..model.ExcelOntology import ExcelOntology
 from ..model.Result import Result
 from ..model.Term import Term
 from ..model.TermIdentifier import TermIdentifier
+from ..utils import lower
 
 
 class APIService(abc.ABC):
@@ -25,6 +24,11 @@ class APIService(abc.ABC):
         self._config = config
         self._api_client = api_client
 
+    @property
+    @abc.abstractmethod
+    def repository_name(self) -> str:
+        ...
+
     async def update_api(self, ontology: ExcelOntology,
                          external_ontologies: List[str],
                          revision_message: str,
@@ -32,20 +36,28 @@ class APIService(abc.ABC):
         self._logger.info("Starting update")
         result = Result()
 
+        config = self._config.get(self.repository_name)
+
+        if config is None:
+            self._logger.error(f"No config for repository '{self.repository_name}'!")
+
         external_ontologies_loaded = []
         for external in external_ontologies:
             ext_ontology = pyhornedowl.open_ontology(external, "rdf")
 
-            for [prefix, iri] in self._config["PREFIXES"]:
-                ext_ontology.add_prefix_mapping(prefix, iri)
+            for (prefix, iri) in config.prefixes.items():
+                ext_ontology.prefix_mapping.add_prefix(prefix, iri)
 
             external_ontologies_loaded.append(ext_ontology)
 
         external_classes = [(o, o.get_classes()) for o in external_ontologies_loaded]
-        total = len(external_classes) + len(ontology.terms())
+        total = sum(len(classes) for o, classes in external_classes) + len(ontology.terms())
         step = 0
 
         queue: List[Term] = []
+
+        # edit lock for modifying the queue or counters
+        lock = asyncio.Lock()
 
         # Only allow 5 concurrent calls to the API
         sem = asyncio.Semaphore(1)
@@ -53,9 +65,11 @@ class APIService(abc.ABC):
         async def handle_external(o: pyhornedowl.PyIndexedOntology, term_iri: str):
             nonlocal step, total
             async with sem:
-                step += 1
-                if update_fn:
-                    update_fn(step, total, f"External - {term_iri}")
+                async with lock:
+                    step += 1
+
+                    if update_fn:
+                        update_fn(step, total, f"External - {term_iri}")
 
                 term_id = o.get_id_for_iri(term_iri)
                 if term_id is None:
@@ -91,6 +105,9 @@ class APIService(abc.ABC):
                     if len(ext_parents) == 0:
                         self._logger.warning(f"External term has no parents: {term_id}")
                         return
+                    if len(ext_parents) > 1:
+                        self._logger.warning(f"Multiple parents defined for external term: {term_id}. Using only the lexicographical first entry.")
+                        ext_parents = [sorted(ext_parents)[0]]
 
                     ext_relations = [
                         (TermIdentifier("IAO:0000115", "definition"), ext_definition),
@@ -99,9 +116,16 @@ class APIService(abc.ABC):
                     ext_term = Term(term_id, ext_label, ("<external>", -1), ext_relations, ext_parents, [], [])
 
                     await self._api_client.declare_term(ext_term)
-                    queue.append(ext_term)
 
-                    total += 1
+                    async with lock:
+                        queue.append(ext_term)
+                        total += 1
+                else:
+                    await self._api_client.declare_term(term)
+
+                    async with lock:
+                        queue.append(term)
+                        total += 1
 
         tasks = [handle_external(o, term_iri) for o, classes in external_classes for term_iri in classes]
         await asyncio.gather(*tasks)
@@ -109,17 +133,20 @@ class APIService(abc.ABC):
         async def declare_term(term: Term):
             nonlocal step, total
             async with sem:
-                step += 1
-                if update_fn:
-                    update_fn(step, total, f"Declare '{term.label}' ({term.id})")
+                async with lock:
+                    step += 1
 
-                if term.curation_status() == "Obsolete":
-                    self._logger.info(f"Skipping obsolete term '{term.label}'")
+                    if update_fn:
+                        update_fn(step, total, f"declaring '{term.label}' ({term.id})")
+
+                if lower(term.curation_status()) in ["obsolete", "pre-proposed"]:
+                    self._logger.info(f"Skipping {term.curation_status()} term '{term.label}'")
                 else:
                     await self._api_client.declare_term(term)
 
-                    queue.append(term)
-                    total += 1
+                    async with lock:
+                        queue.append(term)
+                        total += 1
 
         tasks = [declare_term(term) for term in ontology.terms()]
         await asyncio.gather(*tasks)
@@ -127,9 +154,11 @@ class APIService(abc.ABC):
         async def work_queue(term: Term):
             nonlocal step, total
             async with sem:
-                step += 1
-                if update_fn:
-                    update_fn(step, total, f"Create '{term.label}' ({term.id})")
+                async with lock:
+                    step += 1
+
+                    if update_fn:
+                        update_fn(step, total, f"updating '{term.label}' ({term.id})")
 
                 try:
                     await self._api_client.update_term(term, revision_message)

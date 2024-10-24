@@ -31,6 +31,7 @@ REPOSITORIES_REPOSITORY_CONFIG_REQUEST_HEADERS = {
 }
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"
+ADDICTO_VOCAB_API_PATH = "https://api.addictovocab.org/"
 
 SCRIPTS = {
     "set-pre-proposed-curation-status": {

@@ -1,5 +1,6 @@
 # Do the custom json serialization
 import json
+import logging
 from os import path
 
 import yaml
@@ -57,6 +58,13 @@ def load_config(app: Flask, config_filename):
 
     # add aliases
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config.get("DATABASE_URI")
+
+    # set log level
+    log_level = getattr(logging, app.config.get("LOG_LEVEL", "WARNING").upper())
+    if not isinstance(log_level, int):
+        raise ValueError('Invalid log level: %s' % log_level)
+    logging.basicConfig(level=log_level)
+    logging.root.setLevel(log_level)
 
 
 def create_app(config_filename=None):

@@ -441,6 +441,10 @@ class ExcelOntology:
         imported = self.imported_terms()
 
         for term in self._terms:
+            if lower(term.curation_status()) in self._ignore_status + self._discard_status:
+                self._logger.debug(f"Not resolving {term.curation_status()} term {term.label} ({term.id})")
+                continue
+
             if term.id is None or term.label is None:
                 self._logger.error(f"Term without id or label encountered. This should not happen. Term: {term}")
                 continue
@@ -557,9 +561,18 @@ class ExcelOntology:
         return result
 
     def validate(self, only: Optional[List[str]] = None, exclude: Optional[List[str]] = None) -> Result[tuple]:
+        """
+        Validate the loaded ontology. Checks for various errors such as unknown parents, related terms, duplicates, etc.
+
+        :param only: List of errors or warning to report. If ``None``, all errors are reported (if not excluded by `exclude`)
+        :param exclude: List of errors to exclude. If ``None``, no errors are explicitly excluded.
+        """
         result = Result()
 
         def c(*args: str) -> bool:
+            """
+            Helper function to check if specific errors or warnings should be flagged
+            """
             return (only is None or any(a in only for a in args)) and \
                 (exclude is None or not all(a in exclude for a in args))
 
@@ -572,7 +585,7 @@ class ExcelOntology:
         for term in self._terms:
             result.template = {"row": term.origin[1]} if term.origin is not None else {}
             if lower(term.curation_status()) in self._ignore_status + self._discard_status:
-                self._logger.debug(f"Not validating obsolete term {term.label} ({term.id})")
+                self._logger.debug(f"Not validating {term.curation_status()} term {term.label} ({term.id})")
                 continue
 
             if c("missing-label") and term.label is None:
@@ -597,6 +610,10 @@ class ExcelOntology:
                 elif c("missing-import"):
                     result.warning(type="missing-import",
                                    term=term.__dict__)
+
+            if c("no-parent") and len(term.sub_class_of) < 1:
+                result.error(type="no-parent",
+                             term=term.__dict__)
 
             for p in term.sub_class_of:
                 if c("unknown-parent") and p.is_unresolved():

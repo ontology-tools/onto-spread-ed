@@ -61,11 +61,10 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
         if method != "get":
             self._logger.info(f"{method} {json.dumps(data)}")
 
-            return self._session.request("get", "https://example.com/")
-        else:
-            return self._session.request(method, url, headers=headers, json=data)
+            # return self._session.request("get", "https://example.com/")
+        # else:
+        return self._session.request(method, url, headers=headers, json=data)
 
-    @abstractmethod
     def convert_to_api_term(self, term: Term, with_references=True) -> Dict:
         data = {
             "id": term.id.strip(),
@@ -111,7 +110,6 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
 
         return data
 
-    @abstractmethod
     async def convert_from_api_term(self, data: Dict, with_references=True) -> Term:
         rev = data["termRevisions"][0]
 
@@ -142,6 +140,13 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
                       for v in (
                           ((lambda x: x) if multiplicity == "multiple" else str.splitlines)(rev[key])
                           if multiplicity.startswith("multiple") else [rev[key]])
+                      ]
+
+        relations += [(identifier, v)
+                      for key, (identifier, multiplicity) in self._term_link_to_relation_mapping.items() if key in data and key not in rev
+                      for v in (
+                          ((lambda x: x) if multiplicity == "multiple" else str.splitlines)(data[key])
+                          if multiplicity.startswith("multiple") else [data[key]])
                       ]
         definition_source = rev.get("definitionSource", None)
         if definition_source is not None:
@@ -199,7 +204,9 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
 
             if not r.ok:
                 result = Result()
-                result.error(status_code=r.status, body=r.content)
+                error = await r.text()
+                result.error(status_code=r.status, body=error)
+                self._logger.error(f"Failed to declare term '{term.label} ({term.id})': {error}")
                 return result
 
             return Result(True)
@@ -239,17 +246,20 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
                 return True
 
             if isinstance(v1, TermIdentifier) and isinstance(v2, TermIdentifier):
-                return v1.id == v2.id
+                if v1.id is None or v2.id is None:
+                    return v1.label == v2.label
+                else:
+                    return v1.id == v2.id
             if isinstance(v1, list) and isinstance(v2, list):
                 return len(v1) == len(v2) and all(any(value_eq(x1, x2) for x2 in v2) for x1 in v1)
 
             return v1 == v2
 
         result = True
-        relations_old = dict([(k, [e[1] for e in g]) for k, g in groupby(sorted(old.relations), key=lambda x: x[0])])
-        relations_new = dict([(k, [e[1] for e in g]) for k, g in groupby(sorted(new.relations), key=lambda x: x[0])])
+        relations_old = dict([(k, [e[1] for e in g]) for k, g in groupby(sorted(old.relations), key=lambda x: x[0].label)])
+        relations_new = dict([(k, [e[1] for e in g]) for k, g in groupby(sorted(new.relations), key=lambda x: x[0].label)])
         for r, v in relations_old.items():
-            if r.label in ["rdfs:isDefinedBy", "definition source", "example of usage"]:
+            if r in ["rdfs:isDefinedBy", "definition source", "example of usage"]:
                 continue
 
             if r in relations_new:
@@ -257,15 +267,15 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
                     self._logger.debug(f"DIFF <{r}>:\n  {v}\n  {relations_new[r]}")
                     result = False
             else:
-                if r.label not in ignore_if_not_exists:
+                if r not in ignore_if_not_exists:
                     self._logger.debug(f"DELETED <{r}>: {v}")
                     result = False
         for r, v in relations_new.items():
-            if r.label in ["rdfs:isDefinedBy", "definition source"]:
+            if r in ["rdfs:isDefinedBy", "definition source"]:
                 continue
 
             if r not in relations_old:
-                if r.label not in ignore_if_not_exists:
+                if r not in ignore_if_not_exists:
                     self._logger.debug(f"CREATED <{r}>: {v}")
                     result = False
         old_definition_source = self._merge_definition_source_and_id(old)
