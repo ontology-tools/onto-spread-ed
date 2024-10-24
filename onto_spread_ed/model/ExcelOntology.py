@@ -564,7 +564,8 @@ class ExcelOntology:
         """
         Validate the loaded ontology. Checks for various errors such as unknown parents, related terms, duplicates, etc.
 
-        :param only: List of errors or warning to report. If ``None``, all errors are reported (if not excluded by `exclude`)
+        :param only: List of errors or warning to report. If ``None``, all errors are reported
+                     (if not excluded by `exclude`)
         :param exclude: List of errors to exclude. If ``None``, no errors are explicitly excluded.
         """
         result = Result()
