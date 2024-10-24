@@ -21,7 +21,7 @@ class AddictOVocabService(APIService):
     def __init__(self, config: ConfigurationService, session: aiohttp.ClientSession):
         path = config.app_config.get(PROP_ADDICTO_VOCAB_API_PATH, os.environ.get(PROP_ADDICTO_VOCAB_API_PATH))
         auth_token = config.app_config.get(PROP_ADDICTO_VOCAB_API_AUTH_TOKEN,
-                                          os.environ.get(PROP_ADDICTO_VOCAB_API_AUTH_TOKEN, None))
+                                           os.environ.get(PROP_ADDICTO_VOCAB_API_AUTH_TOKEN, None))
 
         api_client = AddictOVocabClient(path, session, auth_token, config.app_config.get("DEBUG", False))
 

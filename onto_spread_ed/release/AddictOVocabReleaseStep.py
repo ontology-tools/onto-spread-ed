@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import List
 
 import aiohttp
 from flask_github import GitHub

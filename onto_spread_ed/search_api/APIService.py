@@ -106,7 +106,8 @@ class APIService(abc.ABC):
                         self._logger.warning(f"External term has no parents: {term_id}")
                         return
                     if len(ext_parents) > 1:
-                        self._logger.warning(f"Multiple parents defined for external term: {term_id}. Using only the lexicographical first entry.")
+                        self._logger.warning(
+                            f"Multiple parents defined for external term: {term_id}. Using only the lexicographical first entry.")
                         ext_parents = [sorted(ext_parents)[0]]
 
                     ext_relations = [

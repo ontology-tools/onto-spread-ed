@@ -42,7 +42,8 @@ class AddictOVocabClient(APIClient):
     async def convert_from_api_term(self, data: Dict, with_references=True) -> Term:
         term = await super().convert_from_api_term(data, with_references)
 
-        term.relations = [(r, bool(int(v))) if r.id is None and r.label in ["eCigO", "fuzzySet"] else (r,v) for r, v in term.relations]
+        term.relations = [(r, bool(int(v))) if r.id is None and r.label in ["eCigO", "fuzzySet"] else (r, v) for r, v in
+                          term.relations]
 
         return term
 

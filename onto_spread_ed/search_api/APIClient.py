@@ -2,7 +2,7 @@ import abc
 import json
 import logging
 import urllib
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 from itertools import groupby
 from typing import Union, List, Literal, Optional, Dict, Tuple, Any
 
@@ -143,7 +143,8 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
                       ]
 
         relations += [(identifier, v)
-                      for key, (identifier, multiplicity) in self._term_link_to_relation_mapping.items() if key in data and key not in rev
+                      for key, (identifier, multiplicity) in self._term_link_to_relation_mapping.items() if
+                      key in data and key not in rev
                       for v in (
                           ((lambda x: x) if multiplicity == "multiple" else str.splitlines)(data[key])
                           if multiplicity.startswith("multiple") else [data[key]])
@@ -256,8 +257,10 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
             return v1 == v2
 
         result = True
-        relations_old = dict([(k, [e[1] for e in g]) for k, g in groupby(sorted(old.relations), key=lambda x: x[0].label)])
-        relations_new = dict([(k, [e[1] for e in g]) for k, g in groupby(sorted(new.relations), key=lambda x: x[0].label)])
+        relations_old = dict(
+            [(k, [e[1] for e in g]) for k, g in groupby(sorted(old.relations), key=lambda x: x[0].label)])
+        relations_new = dict(
+            [(k, [e[1] for e in g]) for k, g in groupby(sorted(new.relations), key=lambda x: x[0].label)])
         for r, v in relations_old.items():
             if r in ["rdfs:isDefinedBy", "definition source", "example of usage"]:
                 continue
