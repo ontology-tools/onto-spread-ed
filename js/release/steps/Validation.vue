@@ -206,6 +206,15 @@ async function autofix(error: Diagnostic) {
                          :term="error.term"></ErrorLink>
             </p>
           </template>
+          <template v-else-if="error.type === 'no-parent'">
+            <h5>Term has no parent</h5>
+            <p>
+              The term <code>{{ error.term.label }}</code> (<code>{{ error.term.id }}</code>) has no parent!
+              <br>
+              <ErrorLink :error="error" :short_repository_name="shortRepoName"
+                         :term="error.term"></ErrorLink>
+            </p>
+          </template>
           <template v-else-if="error.type === 'ignored-parent'">
             <h5>{{ error.status }} parent</h5>
             <p>
