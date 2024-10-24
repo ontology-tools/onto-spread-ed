@@ -1,13 +1,13 @@
 from flask import Blueprint, request, jsonify
 
 from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
-from onto_spread_ed.guards.admin import verify_admin
+from onto_spread_ed.guards.with_permission import requires_permissions
 
 bp = Blueprint("api_search", __name__, url_prefix="/api/search")
 
 
 @bp.route("/<string:repo>", methods=["GET"])
-@verify_admin
+@requires_permissions("view")
 def search(repo: str, searcher: SpreadsheetSearcher):
     label = request.args.get("label", None)
 

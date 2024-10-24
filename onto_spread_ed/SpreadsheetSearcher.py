@@ -10,18 +10,19 @@ from whoosh.qparser import MultifieldParser, QueryParser
 from .index.FileStorage import FileStorage
 from .index.create_index import add_entity_data_to_index, to_entity_data_list, re_write_entity_data_set
 from .index.schema import schema
+from .services.ConfigurationService import ConfigurationService
 from .utils.github import get_spreadsheet, get_spreadsheets
 
 
 class SpreadsheetSearcher:
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, config: Dict, github: GitHub):
+    def __init__(self, config: ConfigurationService, github: GitHub):
         self.config = config
         self.threadLock = threading.Lock()
         self.github = github
 
-        index_dir = config["INDEX_PATH"]
+        index_dir = self.config.app_config["INDEX_PATH"]
         if not os.path.exists(index_dir):
             self._logger.info("Index directory not found. Creating it.")
             os.mkdir(index_dir)
@@ -115,7 +116,6 @@ class SpreadsheetSearcher:
         return next_id
 
     def stats(self) -> Dict[str, Any]:
-        stats = dict()
 
         self.threadLock.acquire()
         ix = self.storage.open_index()
@@ -148,11 +148,11 @@ class SpreadsheetSearcher:
         self.threadLock.acquire()
 
         try:
-            index_dir = self.config["INDEX_PATH"]
+            index_dir = self.config.app_config['INDEX_PATH']
             shutil.rmtree(index_dir)
             os.mkdir(index_dir)
             index = self.storage.create_index(schema)
-            repositories = self.config["REPOSITORIES"]
+            repositories = self.config.loaded_repositories()
 
             def get_excel_files(repo, directory="") -> Generator[str, None, None]:
 
@@ -167,26 +167,27 @@ class SpreadsheetSearcher:
                         yield entry['path']
 
             sheets = []
-            for repository_key, repository in repositories.items():
-                if repository_keys is not None and repository_key not in repository_keys:
+            for config in repositories:
+                short_repo = config.short_name
+                if repository_keys is not None and short_repo not in repository_keys:
                     continue
 
-                branch = self.config["DEFAULT_BRANCH"][repository_key]
-                active_sheets = self.config["ACTIVE_SPREADSHEETS"][repository_key]
+                branch = config.main_branch
+                active_sheets = config.indexed_files
                 regex = "|".join(f"({r})" for r in active_sheets)
 
-                excel_files = get_spreadsheets(self.github, repository, branch, include_pattern=regex)
+                excel_files = get_spreadsheets(self.github, config.full_name, branch, include_pattern=regex)
 
                 for file in excel_files:
-                    _, data, _ = get_spreadsheet(self.github, repository, "", file)
+                    _, data, _ = get_spreadsheet(self.github, config.full_name, "", file)
 
                     entity_data = to_entity_data_list(data)
 
                     spreadsheet = file
-                    self._logger.debug(f"Rewriting entity data for repository '{repository_key} ({repository})' "
+                    self._logger.debug(f"Rewriting entity data for repository '{short_repo} ({config.full_name})' "
                                        f"and file '{spreadsheet}'")
-                    re_write_entity_data_set(repository_key, index, spreadsheet, entity_data)
-                    sheets.append(f"{repository}/{file}")
+                    re_write_entity_data_set(short_repo, index, spreadsheet, entity_data)
+                    sheets.append(f"{config.full_name}/{file}")
 
             self.storage.save()
             index.close()

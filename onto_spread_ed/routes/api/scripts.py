@@ -5,15 +5,16 @@ import traceback
 from flask import Blueprint, current_app, jsonify, request
 from injector import Injector, inject
 
-from onto_spread_ed.guards.admin import verify_admin
+from onto_spread_ed.guards.with_permission import requires_permissions
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("api_scripts", __name__, url_prefix="/api/scripts")
 
 
 @bp.route("/", methods=["GET"])
-@verify_admin
-def get_all_scripts():
-    scripts = current_app.config["SCRIPTS"]
+@requires_permissions("scripts")
+def get_all_scripts(config: ConfigurationService):
+    scripts = config.app_config["SCRIPTS"]
     return jsonify({
         "success": True,
         "result": dict((k, {
@@ -24,9 +25,9 @@ def get_all_scripts():
 
 
 @bp.route("/<name>/run", methods=["POST"])
-@verify_admin
-def run_script(injector: Injector, name: str):
-    scripts = current_app.config["SCRIPTS"]
+@requires_permissions("scripts")
+def run_script(injector: Injector, config: ConfigurationService, name: str):
+    scripts = config.app_config["SCRIPTS"]
 
     if name not in scripts:
         return jsonify({"success": False, "error": f"No such script '{name}'"}), 400

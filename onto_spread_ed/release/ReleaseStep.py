@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional
 
 import pyhornedowl
 from flask_github import GitHub
@@ -9,12 +9,14 @@ from flask_sqlalchemy.query import Query
 
 from .common import ReleaseCanceledException, local_name, set_release_info, update_release, next_release_step, \
     set_release_result
+from .. import constants
 from ..database.Release import Release
 from ..model.ExcelOntology import ExcelOntology
 from ..model.Relation import Relation, OWLPropertyType
 from ..model.ReleaseScript import ReleaseScript
 from ..model.Result import Result
 from ..model.Term import Term
+from ..services.ConfigurationService import ConfigurationService
 from ..utils import download_file
 
 
@@ -25,7 +27,7 @@ class ReleaseStep(abc.ABC):
     def name(cls) -> str:
         ...
 
-    _config: Dict[str, Any]
+    _config: ConfigurationService
     _working_dir: str
     _release_id: int
     _release_script: ReleaseScript
@@ -37,7 +39,7 @@ class ReleaseStep(abc.ABC):
     _current_item: int = 1
 
     def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
-                 config: Dict[str, Any]) -> None:
+                 config: ConfigurationService) -> None:
         self._config = config
         self._db = db
         self._gh = gh
@@ -99,17 +101,18 @@ class ReleaseStep(abc.ABC):
 
     def load_externals_ontology(self) -> Result[ExcelOntology]:
         result = Result()
+        config = self._config.get(self._release_script.full_repository_name)
 
         excel_ontology = ExcelOntology(self._release_script.external.target.iri)
         externals_owl = self._local_name(self._release_script.external.target.file)
         if os.path.exists(externals_owl):
             ontology = pyhornedowl.open_ontology(externals_owl, "rdf")
-            for [p, d] in self._config["PREFIXES"]:
-                ontology.add_prefix_mapping(p, d)
+            for (p, d) in config.prefixes.items():
+                ontology.prefix_mapping.add_prefix(p, d)
 
             for c in ontology.get_classes():
                 id = ontology.get_id_for_iri(c)
-                labels = ontology.get_annotations(c, self._config['RDFSLABEL'])
+                labels = ontology.get_annotations(c, constants.RDFS_LABEL)
 
                 if id is None:
                     result.warning(type='unknown-id', msg=f'Unable to determine id of external term "{c}"')
@@ -132,7 +135,7 @@ class ReleaseStep(abc.ABC):
 
             for r in ontology.get_object_properties():
                 id = ontology.get_id_for_iri(r)
-                label = ontology.get_annotation(r, self._config['RDFSLABEL'])
+                label = ontology.get_annotation(r, constants.RDFS_LABEL)
 
                 if id is None:
                     result.warning(type='unknown-id', msg=f'Unable to determine id of external relation "{r}"')

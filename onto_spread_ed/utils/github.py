@@ -88,7 +88,6 @@ def get_spreadsheet(github: GitHub,
 def get_spreadsheets(github: GitHub,
                      repository_name: str,
                      branch: str,
-                     folder: str = "",
                      exclude_pattern: Optional[Union[re.Pattern, str]] = None,
                      include_pattern: Optional[Union[re.Pattern, str]] = None) -> list[str]:
     tree = github.get(

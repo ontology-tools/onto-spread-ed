@@ -11,7 +11,8 @@
         "MERGE",
         "PREPARATION",
         "VALIDATION",
-        "BCIO_SEARCH"
+        "BCIO_SEARCH",
+        "ADDICTO_VOCAB"
       ]
     },
     "file": {

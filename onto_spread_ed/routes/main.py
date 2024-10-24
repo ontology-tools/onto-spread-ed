@@ -1,24 +1,29 @@
 import json
 
-from flask import Blueprint, current_app, g, render_template, redirect, url_for, request, session, jsonify
+from flask import Blueprint, g, render_template, redirect, url_for, request, session, jsonify, current_app
 from flask_github import GitHub
 
-from ..guards.verify_login import verify_logged_in
+from ..guards.with_permission import requires_permissions
+from ..services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("main", __name__, template_folder="../templates")
 
 
 @bp.route('/')
 @bp.route('/home')
-@verify_logged_in
-def home():
-    repositories = current_app.config['REPOSITORIES']
-    user_repos = repositories.keys()
+@requires_permissions("view")
+def home(config: ConfigurationService):
     # Filter just the repositories that the user can see
-    if g.user.github_login in current_app.config['USERS_METADATA']:
-        user_repos = current_app.config['USERS_METADATA'][g.user.github_login]["repositories"]
+    user_name = g.user.github_login if g.user else "*"
+    user_repos = (config.app_config['USERS']
+                  .get(user_name, config.app_config['USERS'].get("*", {}))
+                  .get("repositories", []))
 
-    repositories = {k: v for k, v in repositories.items() if k in user_repos}
+    repositories = {s: config.get(s) for s in user_repos}
+    repositories = {k: v for k, v in repositories.items() if v is not None}
+
+    if len(repositories) == 1:
+        return redirect(url_for("main.repo", repo_key=list(repositories.keys())[0]))
 
     return render_template('index.html',
                            login=g.user.github_login,
@@ -27,12 +32,11 @@ def home():
 
 @bp.route('/repo/<repo_key>')
 @bp.route('/repo/<repo_key>/<path:folder_path>')
-@verify_logged_in
-def repo(repo_key, github: GitHub, folder_path=""):
-    repositories = current_app.config['REPOSITORIES']
-    repo_detail = repositories[repo_key]
+@requires_permissions("view")
+def repo(repo_key, github: GitHub, config: ConfigurationService, folder_path=""):
+    repository = config.get(repo_key)
     directories = github.get(
-        f'repos/{repo_detail}/contents/{folder_path}'
+        f'repos/{repository.full_name}/contents/{folder_path}'
     )
     dirs = []
     spreadsheets = []
@@ -44,8 +48,8 @@ def repo(repo_key, github: GitHub, folder_path=""):
             dirs.append(directory['name'])
         elif directory['type'] == 'file' and '.xlsx' in directory['name']:
             spreadsheets.append(directory['name'])
-    if g.user.github_login in current_app.config['USERS_METADATA']:
-        user_initials = current_app.config['USERS_METADATA'][g.user.github_login]["initials"]
+    if g.user.github_login in config.app_config['USERS']:
+        user_initials = config.app_config['USERS'][g.user.github_login].get("initials", g.user.github_login[0:2])
     else:
         current_app.logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
@@ -65,7 +69,7 @@ def repo(repo_key, github: GitHub, folder_path=""):
 
 
 @bp.route("/direct", methods=["POST", "GET"])
-@verify_logged_in
+@requires_permissions("view")
 def direct():
     if request.method == "POST":
         typ = json.loads(request.form.get("type"))
@@ -93,6 +97,6 @@ def direct():
     session['url'] = url
 
     if request.method == "POST":
-        return ('success')
+        return 'success'
     else:
         return redirect(url)

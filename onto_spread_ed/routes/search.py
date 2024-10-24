@@ -3,13 +3,13 @@ import json
 from flask import Blueprint, request, current_app
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
-from ..guards.verify_login import verify_logged_in
+from ..guards.with_permission import requires_permissions
 
 bp = Blueprint("search", __name__, template_folder="../templates")
 
 
 @bp.route('/search', methods=['POST'])
-@verify_logged_in
+@requires_permissions("view")
 def search(searcher: SpreadsheetSearcher):
     searchTerm = request.form.get("inputText")
     repoName = request.form.get("repoName")
@@ -20,7 +20,7 @@ def search(searcher: SpreadsheetSearcher):
 
 
 @bp.route('/searchAssignedToMe', methods=['POST'])
-@verify_logged_in
+@requires_permissions("view")
 def searchAssignedToMe(searcher: SpreadsheetSearcher):
     initials = request.form.get("initials")
     current_app.logger.debug("Searching for initials: " + initials)

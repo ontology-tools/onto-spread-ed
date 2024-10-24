@@ -50,7 +50,7 @@ class RobotOntologyBuildService(OntologyBuildService):
         # download_path = os.path.join(tmp_dir, "robot-download-cache")
         os.makedirs(download_path, exist_ok=True)
         result = Result()
-        with Pool(4) as p:
+        with Pool(1) as p:
             results = p.starmap(self._download_ontology, {(x.purl, _import_id(x), download_path) for x in imports})
             result = reduce(lambda a, b: a + b, results, result)
 
@@ -84,8 +84,10 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return Result(())
 
-    def _extract_slim_ontology(self, main_ontology_name: str, imp: OntologyImport, download_path: str) -> Result[
-        Union[str, Tuple]]:
+    def _extract_slim_ontology(self,
+                               main_ontology_name: str,
+                               imp: OntologyImport,
+                               download_path: str) -> Result[Union[str, Tuple]]:
         filename = os.path.join(download_path, f"{imp.id}.{main_ontology_name}.slim.owl")
         slim_cmd = [ROBOT, 'merge',
                     '--input', f'"{os.path.join(download_path, imp.id + ".owl")}"',

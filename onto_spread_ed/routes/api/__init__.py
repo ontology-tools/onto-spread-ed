@@ -5,6 +5,7 @@ from .external import bp as external
 from .search import bp as search
 from .edit import bp as edit
 from .scripts import bp as scripts
+from .settings import bp as settings
 
 blueprints = [
     release,
@@ -13,5 +14,6 @@ blueprints = [
     external,
     search,
     edit,
-    scripts
+    scripts,
+    settings
 ]

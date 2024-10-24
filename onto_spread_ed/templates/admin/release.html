@@ -11,7 +11,7 @@
             <div class="row align-stretch" style="max-width: 1080px; margin: 0 auto">
 
                 <h4>Which repository should be released?</h4>
-                {% for short, long in repos.items() %}
+                {% for short, config in repos.items() %}
                     <div class="col-sm-6 col-md-4 col-lg-3 m-2">
 
                         <a class="card bg-light"
@@ -21,7 +21,7 @@
                                 {{ short }}
                             </div>
                             <div class="card-body text-center">
-                                {{ long }}
+                                {{ config.full_name }}
                             </div>
                         </a>
                     </div>

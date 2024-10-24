@@ -11,6 +11,19 @@ export function promptDialog(options: PromptOptions): Promise<string | null> {
     })
 }
 
+export type AlertOptions = Omit<BootboxAlertOptions, "callback">
+
+export function alertDialog(options: AlertOptions): Promise<string | null> {
+    return new Promise(resolve => {
+        bootbox.alert({
+            ...options,
+            callback(result: string | null) {
+                resolve(result ?? null)
+            }
+        })
+    })
+}
+
 export type ConfirmOptions = Omit<BootboxConfirmOptions, "callback">
 
 export function confirmDialog(options: ConfirmOptions): Promise<boolean> {

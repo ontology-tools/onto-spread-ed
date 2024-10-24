@@ -13,6 +13,8 @@ def verify_logged_in(fn):
         # If the user is not logged in, then redirect him to the "logged out" page:
         if not g.user:
             return redirect(url_for("authentication.login"))
+
+        # If the user is logged in but not allowed
         return fn(*args, **kwargs)
 
     return wrapped

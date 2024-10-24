@@ -1,44 +1,8 @@
-import re
-import typing
+from .github import (get_spreadsheet, get_spreadsheets, get_file, save_file, download_file,
+                     get_csv, merge_pr, create_pr, create_branch)
+from .strings import str_empty, letters, str_space_eq, lower
 
-from .github import *  # noqa: F403, F401
-
-
-def str_empty(value: typing.Optional[str]) -> bool:
-    return value is None or not any(value.strip())
-
-
-def str_space_eq(a: typing.Optional[str], b: typing.Optional[str], none_as_empty=True) -> bool:
-    """
-    Checks if two strings are equivalent ignoring differences in spaces (leading, trailing, and difference in
-    repetitions)
-
-    @param a: First string
-    @param b: Second string
-    @param none_as_empty: Whether `None` should be treated as empty string
-    @return:
-    """
-    if a is None and b is None:
-        return True
-
-    if a is None and none_as_empty:
-        a = ""
-
-    if b is None and none_as_empty:
-        b = ""
-
-    if a is None or b is None:
-        return False
-
-    a = re.sub(r"\s{2,}", " ", a)
-    b = re.sub(r"\s{2,}", " ", b)
-
-    return a.strip() == b.strip()
-
-
-def lower(string: typing.Optional[str]) -> typing.Optional[str]:
-    return string.lower() if string is not None else None
-
-
-def letters(string: typing.Optional[str]) -> typing.Optional[str]:
-    return string.strip().replace(" ", "").replace("-", "").lower() if string is not None else None
+__all__ = [
+    "get_spreadsheet", "get_spreadsheets", "get_file", "save_file", "download_file", "get_csv", "merge_pr", "create_pr",
+    "create_branch", "str_empty", "letters", "str_space_eq", "lower"
+]

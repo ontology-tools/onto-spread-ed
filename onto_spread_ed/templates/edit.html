@@ -2750,13 +2750,21 @@
                                             showSaveMessageMessage = 'Changes were saved successfully to the repository, New ID\'s have been generated';
                                             localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
                                             location.reload(true);
+                                        } else if (request.status === 403) { // No permission to save
+                                            hide_save_indicator();
+                                            bootbox.alert({title: "Permission denied", message: "You don't have permission to edit this file!"});
                                         } else {
                                             saveIndicator.modal('hide'); // hide save indicator if no response
-                                            var response = JSON.parse(request.responseText);
-                                            //console.log(response);
-                                            var errInfo = response['Error'];
+                                            let errInfo;
+                                            try {
+                                                const response = JSON.parse(request.responseText);
+                                                //console.log(response);
+                                                errInfo = response['error'];
+                                            } catch {
+                                                errInfo = "An error occured:\n<br>" +request.responseText
+                                            }
                                             $("#saveAlert").addClass("alert-danger");
-                                            $("#saveMessage").append('It looks as though you might have unsaved changes, although this could also happen if you navigated away from the screen while the save was happening: ' + errInfo);
+                                            $("#saveMessage").append(errInfo);
                                             $("#saveAlert").show();
                                         }
                                     } else {
@@ -2772,6 +2780,7 @@
                                 // console.log("initialData: " + initialData);
                                 request.open('POST', URL_PREFIX + '/save', true);
                                 request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                                request.setRequestHeader('Accept', 'application/json')
                                 request.send('repo_key=' + repo_key +
                                     '&folder=' + folder +
                                     '&spreadsheet=' + spreadsheet +

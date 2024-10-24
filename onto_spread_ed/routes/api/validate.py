@@ -5,7 +5,7 @@ import jsonschema
 from flask import Blueprint, request, jsonify
 
 from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
-from onto_spread_ed.guards.verify_login import verify_logged_in
+from onto_spread_ed.guards.with_permission import requires_permissions
 
 bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
 
@@ -32,7 +32,7 @@ VERIFY_ENTITY_SCHEMA = {
 
 
 @bp.route("/entity", methods=("POST",))
-@verify_logged_in
+@requires_permissions("view")
 def validate_entity(searcher: SpreadsheetSearcher):
     data = json.loads(request.data)
 
@@ -129,6 +129,6 @@ def validate_line(entity: Dict[str, Any],
 
 
 @bp.route("/file", methods=("POST",))
-@verify_logged_in
+@requires_permissions("view")
 def validate_file():
     pass

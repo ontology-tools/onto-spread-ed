@@ -4,12 +4,13 @@ import tempfile
 import threading
 import traceback
 from datetime import datetime
-from typing import List, Dict, Any, Type
+from typing import List, Dict, Type
 
 from flask_github import GitHub, GitHubError
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
 
+from .AddictOVocabReleaseStep import AddictOVocabReleaseStep
 from .BCIOSearchReleaseStep import BCIOSearchReleaseStep
 from .BuildReleaseStep import BuildReleaseStep
 from .GithubPublishReleaseStep import GithubPublishReleaseStep
@@ -22,6 +23,7 @@ from .ValidationReleaseStep import ValidationReleaseStep
 from .common import update_release, ReleaseCanceledException, set_release_info
 from ..database.Release import Release
 from ..model.ReleaseScript import ReleaseScript
+from ..services.ConfigurationService import ConfigurationService
 
 ALL_RELEASE_STEPS: List[Type[ReleaseStep]] = [
     PreparationReleaseStep,
@@ -31,6 +33,7 @@ ALL_RELEASE_STEPS: List[Type[ReleaseStep]] = [
     MergeReleaseStep,
     HumanVerificationReleaseStep,
     BCIOSearchReleaseStep,
+    AddictOVocabReleaseStep,
     GithubPublishReleaseStep,
 ]
 
@@ -40,7 +43,7 @@ ALL_RELEASE_STEPS_DICT: Dict[str, Type[ReleaseStep]] = dict(
 
 
 def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int,
-               config: Dict[str, Any]) -> None:
+               config: ConfigurationService) -> None:
     logger = logging.getLogger(__name__)
 
     try:

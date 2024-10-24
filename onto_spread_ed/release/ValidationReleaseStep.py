@@ -19,6 +19,9 @@ class ValidationReleaseStep(ReleaseStep):
         self._total_items = len(queue)
 
         external_ontology_result = self.load_externals_ontology()
+        if not external_ontology_result.ok():
+            self._set_release_result(external_ontology_result)
+            return False
 
         self._raise_if_canceled()
 

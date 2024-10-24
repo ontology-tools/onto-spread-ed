@@ -262,7 +262,7 @@ def internal(excel_names: List[str], name: str, split: Optional[str] = None) -> 
 
 
 def ignore(excel_name: str) -> ColumnMappingFactory:
-    def _ignore(*args, **kwargs):
+    def _ignore(*_args, **_kwargs):
         return SimpleColumnMapping(ColumnMappingKind.IGNORE, excel_name)
 
     return singleton([excel_name], _ignore)

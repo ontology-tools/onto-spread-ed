@@ -109,6 +109,14 @@
       "args": {}
     },
     {
+      "name": "ADDICTO_VOCAB",
+      "args": {
+        "included_files": [
+          "addicto"
+        ]
+      }
+    },
+    {
       "name": "GITHUB_PUBLISH",
       "args": {}
     }
