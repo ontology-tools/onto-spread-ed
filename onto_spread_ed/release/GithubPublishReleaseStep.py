@@ -18,6 +18,7 @@ class GithubPublishReleaseStep(ReleaseStep):
         self._raise_if_canceled()
 
         files = [f.target.file for f in self._release_script.files.values()]
+        files.append(self._release_script.external.target.file)
         self._total_items = len(files)
         for index, file in enumerate(files):
             self._next_item(item=file)
