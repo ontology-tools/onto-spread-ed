@@ -50,7 +50,7 @@ class RobotOntologyBuildService(OntologyBuildService):
         # download_path = os.path.join(tmp_dir, "robot-download-cache")
         os.makedirs(download_path, exist_ok=True)
         result = Result()
-        with Pool(1) as p:
+        with Pool(5) as p:
             results = p.starmap(self._download_ontology, {(x.purl, _import_id(x), download_path) for x in imports})
             result = reduce(lambda a, b: a + b, results, result)
 

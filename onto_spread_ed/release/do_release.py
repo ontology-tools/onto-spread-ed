@@ -13,6 +13,7 @@ from flask_sqlalchemy.query import Query
 from .AddictOVocabReleaseStep import AddictOVocabReleaseStep
 from .BCIOSearchReleaseStep import BCIOSearchReleaseStep
 from .BuildReleaseStep import BuildReleaseStep
+from .GenerateHierarchicalSpreadsheetReleaseStep import GenerateHierarchicalSpreadsheetReleaseStep
 from .GithubPublishReleaseStep import GithubPublishReleaseStep
 from .HumanVerificationReleaseStep import HumanVerificationReleaseStep
 from .ImportExternalReleaseStep import ImportExternalReleaseStep
@@ -31,6 +32,7 @@ ALL_RELEASE_STEPS: List[Type[ReleaseStep]] = [
     ImportExternalReleaseStep,
     BuildReleaseStep,
     MergeReleaseStep,
+    GenerateHierarchicalSpreadsheetReleaseStep,
     HumanVerificationReleaseStep,
     BCIOSearchReleaseStep,
     AddictOVocabReleaseStep,

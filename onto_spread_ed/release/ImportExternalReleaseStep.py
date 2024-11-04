@@ -60,7 +60,10 @@ class ImportExternalReleaseStep(ReleaseStep):
             renamings,
             new_parents
         )
+
         self._raise_if_canceled()
+
+        self.store_target_artifact(file, downloadable=False)
 
         self._set_release_result(result)
         return result.ok()
