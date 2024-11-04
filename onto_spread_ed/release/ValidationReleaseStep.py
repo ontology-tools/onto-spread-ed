@@ -34,7 +34,7 @@ class ValidationReleaseStep(ReleaseStep):
 
         loaded = dict()
         for k, file in queue:
-            self._next_item(item=k)
+            self._next_item(item=k, message="Validating")
 
             result = Result()
             ontology = ExcelOntology(file.target.iri)

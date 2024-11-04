@@ -1,18 +1,20 @@
 import dataclasses
+import re
 from typing import List, Optional, Dict, Callable, Any, Tuple
 
+import openpyxl
 import pyhornedowl
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
+from openpyxl.worksheet.worksheet import Worksheet
 from typing_extensions import Self
-from werkzeug.exceptions import NotFound
 
 from .ReleaseStep import ReleaseStep
-from ..model.ExcelOntology import ExcelOntology
-from ..model.ReleaseScript import ReleaseScript
+from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
 from ..model.Result import Result
 from ..services.ConfigurationService import ConfigurationService
-from ..utils import get_spreadsheets, get_spreadsheet, letters
+from ..utils import letters
+from ..utils.github import parse_spreadsheet
 
 
 @dataclasses.dataclass
@@ -60,66 +62,55 @@ def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[N
     return [n for n in item_to_node.values() if n.parent is None]
 
 
-class BuildReleaseStep(ReleaseStep):
+class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
 
     def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
-                 config: ConfigurationService, *, files: Dict[str, str]) -> None:
+                 config: ConfigurationService, *, included_files: Dict[str, str]) -> None:
         super().__init__(db, gh, release_script, release_id, tmp, config)
 
-        self._files = files
+        self._included_files = included_files
 
     def run(self) -> bool:
         result = Result(())
 
-        self.build_
+        files = [f for k, f in self._release_script.files.items() if k in self._included_files]
+        self._total_items = len(files)
 
-        self._total_items = len(sources)
+        for file in files:
+            self._next_item(item=file.target.file, message="Generating hierarchical spreadsheet for")
 
-        loaded = dict()
-        for i, (k, file) in enumerate(sources):
-            self._next_item()
-            ontology = ExcelOntology(file.target.iri)
+            hierarchies, ontology = self.build_hierarchy(file)
 
-            external_ontology_result = self.load_externals_ontology()
+            wb = openpyxl.Workbook()
+            sheet: Worksheet = wb.active
 
-            self._raise_if_canceled()
+            height = max(h.height() for h in hierarchies)
+            annotations = list({k for h in hierarchies for k in h.annotations.keys()})
 
-            result += external_ontology_result
-            ontology.import_other_excel_ontology(external_ontology_result.value)
+            sheet.append(["ID", "Label"] + [""] * (height - 1) + ["Definition"] + annotations)
 
-            self._raise_if_canceled()
+            def write_line(n: Node, depth: int) -> None:
+                sheet.append([ontology.get_id_for_iri(n.item)] +
+                             [""] * depth +
+                             [n.label] + [""] * (height - depth - 1) +
+                             [n.definition] +
+                             [n.annotations.get(a, None) for a in annotations])
 
-            for n in file.needs:
-                other = loaded[n]  # Must exist queue is ordered to first load ontologies others depend on
-                result += ontology.import_other_excel_ontology(other)
+                for child in n.children:
+                    write_line(child, depth + 1)
 
-                self._raise_if_canceled()
+            for hierarchy in hierarchies:
+                write_line(hierarchy, 0)
 
-            for s in file.sources:
-                if s.type == "classes":
-                    result += ontology.add_terms_from_excel(s.file, self._local_name(s.file))
-                elif s.type == "relations":
-                    result += ontology.add_relations_from_excel(s.file, self._local_name(s.file))
+            [path, name] = file.target.file.rsplit("/", 1)
+            sub_name = name.rsplit(".", 1)[0]
+            sub_name = re.sub(f"^{self._release_script.short_repository_name}[_]?", "", sub_name, flags=re.IGNORECASE)
 
-            if file.renameTermFile is not None:
-                ontology.apply_renamings(self._local_name(file.renameTermFile))
+            file_name = f"{self._release_script.short_repository_name}-{sub_name}-hierarchy.xlsx"
 
-            if file.addParentsFile is not None:
-                ontology.apply_new_parents(self._local_name(file.addParentsFile))
+            wb.save(self._local_name(file_name))
 
-            result += ontology.resolve()
-            self._raise_if_canceled()
-
-            dependencies = [f for f in (
-                    [self._release_script.files[n].target.iri for n in file.needs] +
-                    [self._release_script.external.target.iri])]
-
-            result += builder.build_ontology(ontology, self._local_name(file.target.file),
-                                             self._release_script.prefixes, dependencies, self._working_dir,
-                                             self._release_script.iri_prefix)
-            self._raise_if_canceled()
-
-            loaded[k] = ontology
+            self.store_artifact(self._local_name(file_name), f"{path}/{file_name}")
 
         result.warnings = []
         self._set_release_result(result)
@@ -127,43 +118,21 @@ class BuildReleaseStep(ReleaseStep):
 
     @classmethod
     def name(cls) -> str:
-        return "BUILD"
+        return "HIERARCHICAL_SPREADSHEETS"
 
-    def build_hierarchy(self, sub_ontology: Optional[str] = None) -> Tuple[
-        List[Node], pyhornedowl.PyIndexedOntology]:
+    def build_hierarchy(self, file: ReleaseScriptFile) -> Tuple[List[Node], pyhornedowl.PyIndexedOntology]:
         # Excel files to extract annotations
         excel_files: List[str]
         release_file: str
-        repository = config.get(repo)
-        full_repo = repository.full_name
 
-        excel_files = [f for f in self._release_script.files]
+        excel_files = [self._local_name(s.file) for s in file.sources]
+        release_file = self._local_name(file.target.file)
 
-        if sub_ontology is not None:
-            sub = repository.subontologies.get(sub_ontology, None)
+        ontology = pyhornedowl.open_ontology_from_file(release_file)
 
-            if sub is None:
-                raise NotFound(f"No such sub-ontology '{sub_ontology}'")
-
-            excel_files = [sub.excel_file]
-            release_file = sub.release_file
-        else:
-            release_file = repository.release_file
-
-            branch = repository.main_branch
-            active_sheets = repository.indexed_files
-            regex = "|".join(f"({r})" for r in active_sheets)
-
-            excel_files = get_spreadsheets(gh, full_repo, branch, include_pattern=regex)
-
-        response = gh.get(f"repos/{full_repo}/contents/{release_file}",
-                          headers={"Accept": "application/vnd.github.raw+json"})
-
-        ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'), "rdf")
-
-        # ontology = pyhornedowl.open_ontology(response.content.decode('utf-8'))
-        for p, d in repository.prefixes.items():
+        for p, d in self._repo_config.prefixes.items():
             ontology.prefix_mapping.add_prefix(p, d)
+
         classes = [(c, ontology.get_annotation(c, "http://www.w3.org/2000/01/rdf-schema#label"),
                     ontology.get_annotation(c, "http://purl.obolibrary.org/obo/IAO_0000115")) for c in
                    ontology.get_classes()]
@@ -182,7 +151,11 @@ class BuildReleaseStep(ReleaseStep):
         hierarchies = [c for h in hierarchies for c in h.children]
 
         for excel_file in excel_files:
-            _, rows, header = get_spreadsheet(gh, full_repo, "", excel_file)
+            with open(excel_file, "rb") as f:
+                file_data = f.read()
+
+            rows, header = parse_spreadsheet(file_data)
+
             data = dict((r["ID"], r) for r in rows if "ID" in r)
 
             def annotate(n: Node):

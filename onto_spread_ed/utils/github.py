@@ -54,6 +54,24 @@ def get_file(github: GitHub, repository_name: str, spreadsheet: str) -> bytes:
     return response.content
 
 
+def parse_spreadsheet(data: bytes) -> Tuple[List[Dict[str, str]], List[str]]:
+    wb = openpyxl.load_workbook(io.BytesIO(data))
+    sheet = wb.active
+
+    header = [cell.value for cell in sheet[1] if cell.value]
+    rows = []
+    row_iterator = sheet.rows
+    next(row_iterator)  # Skip header
+    for row in row_iterator:
+        values = {}
+        for key, cell in zip(header, row):
+            values[key] = cell.value
+        if any(values.values()):
+            rows.append(values)
+
+    return rows, header
+
+
 def get_spreadsheet(github: GitHub,
                     repository_name: str,
                     folder: str,
@@ -64,23 +82,8 @@ def get_spreadsheet(github: GitHub,
     file_sha = spreadsheet_file['sha']
     base64_bytes = spreadsheet_file['content'].encode('utf-8')
     decoded_data = base64.decodebytes(base64_bytes)
-    wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
-    sheet = wb.active
 
-    header = [cell.value for cell in sheet[1] if cell.value]
-    rows = []
-    try:
-        row_iterator = sheet.rows
-        next(row_iterator)  # Skip header
-        for row in row_iterator:
-            values = {}
-            for key, cell in zip(header, row):
-                values[key] = cell.value
-            if any(values.values()):
-                rows.append(values)
-
-    except Exception as e:
-        _logger.error(f"Could not index {spreadsheet}: {e}")
+    rows, header = parse_spreadsheet(decoded_data)
 
     return file_sha, rows, header
 

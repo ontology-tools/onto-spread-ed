@@ -13,12 +13,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
 from werkzeug.exceptions import NotFound, BadRequest
 
-from ...database.Release import Release
+from ...database.Release import Release, ReleaseArtifact
 from ...guards.with_permission import requires_permissions
 from ...model.Diff import diff
 from ...model.ReleaseScript import ReleaseScript
 from ...release import do_release
-from ...release.common import next_release_step, local_name
+from ...release.common import next_release_step
 from ...services.ConfigurationService import ConfigurationService
 from ...utils import save_file, get_file
 
@@ -258,28 +258,24 @@ def download_release_file(repo: str, db: SQLAlchemy):
     if err is not None:
         return err
 
-    release_script = ReleaseScript.from_json(release.release_script)
-    index = str(next((i for i, s in enumerate(release_script.steps) if s.name == "HUMAN_VERIFICATION")))
-
-    if index not in release.details or 'files' not in release.details[index]:
-        return jsonify(dict(success=False,
-                            error="invalid-step",
-                            message="The release does not contain files to download.")), 404
-
-    if "file" not in request.args:
+    if "file" not in request.args or not request.args.get("file").isdigit():
         return jsonify(dict(success=False,
                             error="invalid-query",
                             message="Expected 'file' argument.")), 400
 
     file = request.args.get("file")
-    details = release.details[index]
-    for f in details['files']:
-        if f["name"] == file:
-            name = local_name(release.local_dir, file, ".owl")
-            with open(name, "r") as o:
-                response = make_response(o.read())
+    artifact = db.session.get(ReleaseArtifact, int(file))
+    if artifact is not None and artifact.downloadable:
+        with open(artifact.local_path, "rb") as o:
+            response = make_response(o.read())
+            if artifact.local_path.endswith(".xlsx"):
+                response.headers.set("Content-Type",
+                                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            else:
                 response.headers.set("Content-Type", "text/plain")
-                response.headers.set('Content-Disposition', 'attachment', filename=os.path.basename(name))
+
+            response.headers.set('Content-Disposition', 'attachment',
+                                 filename=os.path.basename(artifact.target_path))
 
             return response
 

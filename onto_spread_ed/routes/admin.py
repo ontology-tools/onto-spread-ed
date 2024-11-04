@@ -1,17 +1,12 @@
-import tempfile
 from typing import Optional
 
-import openpyxl
-from flask import Blueprint, render_template, g, request, jsonify, redirect, url_for, send_file
-from flask_github import GitHub
+from flask import Blueprint, render_template, g, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from openpyxl.worksheet.worksheet import Worksheet
 from werkzeug.exceptions import NotFound
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
 from ..guards.with_permission import requires_permissions
-from ..release.GenerateHierarchicalSpreadsheetReleaseStep import Node, build_hierarchy
 from ..services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
@@ -111,58 +106,5 @@ def settings(config: ConfigurationService):
                            config=config.app_config,
                            config_service=config,
                            breadcrumb=[{"name": "Admin", "path": "/admin/settings"}])
-
-
-@bp.route("/hierarchical-overview")
-@requires_permissions("hierarchical-spreadsheets")
-def hierarchical_overview(config: ConfigurationService):
-    # Filter just the repositories that the user can see
-    user_name = g.user.github_login if g.user else "*"
-    user_repos = config.app_config['USERS'].get(user_name, dict()).get("repositories", [])
-
-    repositories = {s: config.get(s) for s in user_repos}
-    repositories = {k: v for k, v in repositories.items() if v is not None}
-
-    return render_template("hierarchical_overview.html",
-                           repos=repositories,
-                           breadcrumb=[
-                               dict(name="Admin", path="admin/dashboard"),
-                               dict(name="Hierarchical overviews", path="admin/hierarchical-overview")
-                           ])
-
-
-@bp.route("/hierarchical-overview/download/<repo>", defaults={"sub_ontology": None})
-@bp.route("/hierarchical-overview/download/<repo>/<sub_ontology>")
-@requires_permissions("hierarchical-spreadsheets")
-def hierarchical_overview_download(gh: GitHub, config: ConfigurationService,
-                                   repo: str, sub_ontology: Optional[str] = None):
-    hierarchies, ontology = build_hierarchy(gh, config, repo, sub_ontology)
-
-    wb = openpyxl.Workbook()
-    sheet: Worksheet = wb.active
-
-    height = max(h.height() for h in hierarchies)
-    annotations = list({k for h in hierarchies for k in h.annotations.keys()})
-
-    sheet.append(["ID", "Label"] + [""] * (height - 1) + ["Definition"] + annotations)
-
-    def write_line(n: Node, depth: int) -> None:
-        sheet.append([ontology.get_id_for_iri(n.item)] +
-                     [""] * depth +
-                     [n.label] + [""] * (height - depth - 1) +
-                     [n.definition] +
-                     [n.annotations.get(a, None) for a in annotations])
-
-        for child in n.children:
-            write_line(child, depth + 1)
-
-    for hierarchy in hierarchies:
-        write_line(hierarchy, 0)
-
-    with tempfile.NamedTemporaryFile("w") as f:
-        wb.save(f.name)
-
-        download_name = f"{repo}-hierarchy.xlsx" if sub_ontology is None else f"{repo}-{sub_ontology}-hierarchy.xlsx"
-        return send_file(f.name, download_name=download_name)
 
 

@@ -8,7 +8,7 @@ export interface ReleaseScriptFile {
         file: string;
         iri: string;
         ontology_annotations: { [K: string]: string };
-        published: boolean;
+        publish: boolean;
     };
     addParentsFile: string | null;
     renameTermFile: string | null;

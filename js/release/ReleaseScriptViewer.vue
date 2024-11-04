@@ -156,6 +156,10 @@ function deleteFile(event: MouseEvent, name: string) {
           <h6>Target settings</h6>
           <p class="text-body-secondary">Define the location of the target file in the repository and define the IRI of
             the resulting ontology.</p>
+          <div class="form-check form-switch mb-3">
+            <input v-model="file.target.publish" class="form-check-input" type="checkbox" role="switch">
+            <span class="form-check-label">Publish the file to GitHub</span>
+          </div>
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">Path</span>
             <input v-model="file.target.file" type="text" class="form-control">

@@ -9,7 +9,8 @@ const props = defineProps<{
       name: string
     }[]
   },
-  release: Release
+  release: Release,
+  selectedSubStep: any
 }>()
 
 defineEmits<{
@@ -18,10 +19,14 @@ defineEmits<{
 
 const checkHierarchy = ref<boolean>(props.release.state === "completed")
 const checkLabels = ref<boolean>(props.release.state === "completed")
+const checkHierarchicalSpreadsheets = ref<boolean>(props.release.state === "completed")
+
+const hasHierarchicalSpreadsheets = computed(() => !!props.data?.files?.find(x => x.name.endsWith(".xlsx")))
 
 const allChecked = computed(() => [
   checkLabels.value,
-  checkHierarchy.value
+  checkHierarchy.value,
+  !hasHierarchicalSpreadsheets.value || checkHierarchicalSpreadsheets.value
 ].reduce((p, v) => p && v, true))
 
 </script>
@@ -30,7 +35,7 @@ const allChecked = computed(() => [
   <h3>Verify the built ontologies</h3>
 
   <p>
-    Please download the built ontologies and open them in Protégé (download
+    Please download the built files and ontologies and open them in Protégé (download
     <a href="https://protege.stanford.edu/software.php#desktop-protege">here</a> or use
     <a href="https://webprotege.stanford.edu/">Web protege</a>).
   </p>
@@ -61,9 +66,19 @@ const allChecked = computed(() => [
         </label>
       </div>
     </li>
+    <li class="ms-4" v-if="hasHierarchicalSpreadsheets">
+      <div class="form-check">
+        <input v-model="checkHierarchicalSpreadsheets" :disabled="release.state !== 'waiting-for-user'"
+               class="form-check-input checklist" type="checkbox" value="" id="chk-hierarchical-spreadsheets">
+        <label class="form-check-label" for="chk-hierarchical-spreadsheets">
+          Do the hierarchy, labels, and other fields in the hierarchical spreadsheets look alright?
+        </label>
+      </div>
+    </li>
   </ul>
 
-  <button class="btn btn-success w-100" id="btn-publish-release" :disabled="!allChecked || release.state !== 'waiting-for-user'" @click="$emit('release-control', 'continue')">
+  <button class="btn btn-success w-100" id="btn-publish-release"
+          :disabled="!allChecked || release.state !== 'waiting-for-user'" @click="$emit('release-control', 'continue')">
     Everything looks alright. Publish the release!
   </button>
 
