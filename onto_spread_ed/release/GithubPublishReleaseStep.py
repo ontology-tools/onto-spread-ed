@@ -21,7 +21,7 @@ class GithubPublishReleaseStep(ReleaseStep):
 
         files = [a.target_path for a in artifacts]
         self._total_items = len(files)
-        for index, file in enumerate(files):
+        for file in files:
             self._next_item(item=file, message="Uploading")
             with open(self._local_name(file), "rb") as f:
                 content = f.read()

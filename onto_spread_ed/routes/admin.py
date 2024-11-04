@@ -106,5 +106,3 @@ def settings(config: ConfigurationService):
                            config=config.app_config,
                            config_service=config,
                            breadcrumb=[{"name": "Admin", "path": "/admin/settings"}])
-
-

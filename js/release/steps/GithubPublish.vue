@@ -6,7 +6,7 @@ import ProgressIndicator from "../ProgressIndicator.vue";
 defineProps<{
   data: any,
   release: Release,
-  selectedSubStep: any
+  selectedSubStep: string | null
 }>()
 
 defineEmits<{

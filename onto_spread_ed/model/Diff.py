@@ -40,7 +40,7 @@ def diff(a, b, __path="") -> List[Diff]:
             (dataclasses.is_dataclass(b) or isinstance(b, dict)):
         raise ValueError(f"Values must be dataclasses or dictionaries. a: '{type(a)}', b: '{type(b)}'")
 
-    if type(a) != type(b):
+    if type(a) is not type(b):
         raise ValueError(f"Values must be of same type but '{type(a)}' != '{type(b)}'")
 
     results = []

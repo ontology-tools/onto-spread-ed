@@ -10,7 +10,7 @@ const props = defineProps<{
     }[]
   },
   release: Release,
-  selectedSubStep: any
+  selectedSubStep: string | null
 }>()
 
 defineEmits<{

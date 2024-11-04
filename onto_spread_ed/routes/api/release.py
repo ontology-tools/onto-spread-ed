@@ -107,7 +107,7 @@ def save_release_script(repo: str, config: ConfigurationService, gh: GitHub):
     commit_message = ("Update release script. " +
                       ', '.join(f"Set {d.field} to {d.new}" for d in diffs if d.change_type == "update") +
                       ', '.join(f"Added {d.new} to {d.field}" for d in diffs if d.change_type == "add") +
-                      ', '.join(f"Removed {d.old} to {d.field}" for d in diffs if d.change_type == "remove"))
+                      ', '.join(f"Removed {d.old} from {d.field}" for d in diffs if d.change_type == "remove"))
 
     save_file(gh, repo_config.full_name, repo_config.release_script_path, release_script_binary, commit_message,
               repo_config.main_branch)
