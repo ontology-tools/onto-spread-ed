@@ -22,12 +22,11 @@ def upgrade():
                     sa.Column("local_path", sa.String()),
                     sa.Column("target_path", sa.String(), nullable=True),
                     sa.Column("downloadable", sa.Boolean(), default=True),
-                    sa.Column("kind", sa.String())
+                    sa.Column("kind", sa.String()),
                     sa.PrimaryKeyConstraint("id"),
                     sa.ForeignKeyConstraint(["release_id"], ["releases.id"]),
                     sa.CheckConstraint(
                         "kind in ('source', 'intermediate', 'final') and (kind <> 'final' or target_path is not null)"))
-
 
 def downgrade():
     op.drop_table("release_artifacts")

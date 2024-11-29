@@ -34,9 +34,9 @@ class RepositoryConfigurationService(ConfigurationService):
         self._loaded_repositories = {}
 
         self._startup_repos_path = self.app_config.get(REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP)
-        
+
         self._load_startups()
-        
+
     def _load_startups(self):
         for repo in self.startup_repositories():
             if self.get(repo) is None:
