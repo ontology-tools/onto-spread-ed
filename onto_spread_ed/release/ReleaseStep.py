@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Literal, List
 
 import pyhornedowl
 from flask_github import GitHub
@@ -8,12 +8,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
 
 from .common import ReleaseCanceledException, local_name, set_release_info, update_release, next_release_step, \
-    set_release_result
+    set_release_result, add_artifact, get_artifacts
 from .. import constants
-from ..database.Release import Release
+from ..database.Release import Release, ReleaseArtifact
 from ..model.ExcelOntology import ExcelOntology
 from ..model.Relation import Relation, OWLPropertyType
-from ..model.ReleaseScript import ReleaseScript
+from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
+from ..model.RepositoryConfiguration import RepositoryConfiguration
 from ..model.Result import Result
 from ..model.Term import Term
 from ..services.ConfigurationService import ConfigurationService
@@ -46,7 +47,12 @@ class ReleaseStep(abc.ABC):
         self._release_script = release_script
         self._release_id = release_id
         self._q = db.session.query(Release)
+        self._a = db.session.query(ReleaseArtifact)
         self._working_dir = tmp
+
+    @property
+    def _repo_config(self) -> RepositoryConfiguration:
+        return self._config.get(self._release_script.full_repository_name)
 
     def _update_progress(self,
                          *,
@@ -98,6 +104,24 @@ class ReleaseStep(abc.ABC):
             local_name = self._local_name(file)
 
         return download_file(self._gh, self._release_script.full_repository_name, file, local_name)
+
+    def store_artifact(self, local_path: str, target_path: Optional[str] = None,
+                       kind: Optional[Literal["source", "intermediate", "final"]] = None,
+                       downloadable: bool = True) -> None:
+        kind = kind if kind is not None else ("intermediate" if target_path is None else "final")
+
+        artifact = ReleaseArtifact(release_id=self._release_id, local_path=local_path, target_path=target_path,
+                                   kind=kind, downloadable=downloadable)
+
+        add_artifact(self._db, artifact)
+
+    def store_target_artifact(self, file: ReleaseScriptFile,
+                              kind: Literal["source", "intermediate", "final"] = "final",
+                              downloadable: bool = True):
+        return self.store_artifact(self._local_name(file.target.file), file.target.file, kind, downloadable)
+
+    def artifacts(self) -> List[ReleaseArtifact]:
+        return get_artifacts(self._a, self._release_id)
 
     def load_externals_ontology(self) -> Result[ExcelOntology]:
         result = Result()

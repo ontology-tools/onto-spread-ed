@@ -116,18 +116,18 @@ onMounted(async () => {
         </div>
       </a>
     </div>
-    <div class="col-sm-6 col-md-4 col-lg-3 m-2">
+    <div class="col-sm-6 col-md-4 col-lg-3 m-2" v-if="'settings' in urls">
 
-      <a class="card bg-light" :href="urls.hierarchicalOverview"
+      <a class="card bg-light" :href="urls.settings"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
-          <i class="fa-solid fa-chart-gantt"></i>
+          <i class="fa-solid fa-gear"></i>
         </div>
 
         <div class="card-body">
-          <h4>Hierarchical overview</h4>
+          <h4>Repositories</h4>
           <p>
-            Generate an Excel sheet for an ontology
+            Add, remove, or edit repositories available on the editor.
           </p>
         </div>
       </a>

@@ -3,6 +3,7 @@ import logging
 from os import path
 from typing import Optional, Dict, Any, List
 
+import requests
 import yaml
 from dacite import from_dict
 from flask_github import GitHub, GitHubError
@@ -34,6 +35,9 @@ class RepositoryConfigurationService(ConfigurationService):
 
         self._startup_repos_path = self.app_config.get(REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP)
 
+        self._load_startups()
+
+    def _load_startups(self):
         for repo in self.startup_repositories():
             if self.get(repo) is None:
                 self._logger.error(f"Failed to load default repo '{repo}'!")
@@ -123,11 +127,15 @@ class RepositoryConfigurationService(ConfigurationService):
         if loaded is not None:
             return loaded
 
-        try:
-            response = self._gh.get(url, headers=self._headers)
-        except GitHubError as e:
-            self._logger.warning(f"Could not get repository configuration from '{url}': e {e.response}")
-            return None
+        if self._gh.get_access_token() is None:
+            unauthorized_url = "https://api.github.com/" + url
+            response = requests.get(unauthorized_url, headers=self._headers)
+        else:
+            try:
+                response = self._gh.get(url, headers=self._headers)
+            except GitHubError as e:
+                self._logger.warning(f"Could not get repository configuration from '{url}': e {e.response}")
+                return None
 
         if not response.ok:
             self._logger.warning(f"Could not get repository configuration from '{url}': {response}")

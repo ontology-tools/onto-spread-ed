@@ -1,22 +1,23 @@
 import os.path
 from dataclasses import dataclass, field
-from typing_extensions import Self
 from typing import List, Dict, Literal, Any, Optional
 
+from typing_extensions import Self
 
-@dataclass
+
+@dataclass(eq=True, unsafe_hash=True)
 class ReleaseScriptStep:
     name: str
     args: Dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass
+@dataclass(eq=True, unsafe_hash=True)
 class ReleaseScriptSource:
     file: str
     type: Literal["classes", "relations", "individuals", "owl"]
 
 
-@dataclass
+@dataclass(eq=True, unsafe_hash=True)
 class ReleaseScriptTarget:
     file: str
     iri: str
@@ -24,7 +25,7 @@ class ReleaseScriptTarget:
     publish: bool = True
 
 
-@dataclass
+@dataclass(eq=True, unsafe_hash=True)
 class ReleaseScriptFile:
     sources: List[ReleaseScriptSource]
     target: ReleaseScriptTarget
@@ -57,7 +58,7 @@ class ReleaseScriptFile:
         return ReleaseScriptFile(**fields)
 
 
-@dataclass
+@dataclass(eq=True, unsafe_hash=True)
 class ReleaseScript:
     iri_prefix: str
     short_repository_name: str

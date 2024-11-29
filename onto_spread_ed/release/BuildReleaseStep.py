@@ -15,7 +15,7 @@ class BuildReleaseStep(ReleaseStep):
 
         loaded = dict()
         for i, (k, file) in enumerate(sources):
-            self._next_item()
+            self._next_item(item=file.target.file, message="Building")
             ontology = ExcelOntology(file.target.iri)
 
             external_ontology_result = self.load_externals_ontology()
@@ -55,6 +55,9 @@ class BuildReleaseStep(ReleaseStep):
             result += builder.build_ontology(ontology, self._local_name(file.target.file),
                                              self._release_script.prefixes, dependencies, self._working_dir,
                                              self._release_script.iri_prefix)
+
+            self.store_target_artifact(file, kind="intermediate")
+
             self._raise_if_canceled()
 
             loaded[k] = ontology

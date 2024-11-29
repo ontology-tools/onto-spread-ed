@@ -17,10 +17,12 @@ class GithubPublishReleaseStep(ReleaseStep):
                              config.main_branch)
         self._raise_if_canceled()
 
-        files = [f.target.file for f in self._release_script.files.values()]
+        artifacts = self.artifacts()
+
+        files = [a.target_path for a in artifacts]
         self._total_items = len(files)
-        for index, file in enumerate(files):
-            self._next_item(item=file)
+        for file in files:
+            self._next_item(item=file, message="Uploading")
             with open(self._local_name(file), "rb") as f:
                 content = f.read()
                 github.save_file(self._gh, self._release_script.full_repository_name, file, content,
