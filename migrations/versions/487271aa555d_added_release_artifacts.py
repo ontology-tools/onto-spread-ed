@@ -28,5 +28,6 @@ def upgrade():
                     sa.CheckConstraint(
                         "kind in ('source', 'intermediate', 'final') and (kind <> 'final' or target_path is not null)"))
 
+
 def downgrade():
     op.drop_table("release_artifacts")

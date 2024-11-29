@@ -8,7 +8,6 @@ from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..database.Release import Release
 from ..guards.with_permission import requires_permissions
 from ..services.ConfigurationService import ConfigurationService
-from ..utils import get_spreadsheets, get_spreadsheet, letters
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
 
