@@ -3,14 +3,11 @@ import AddictOVocab from "./steps/AddictOVocab.vue";
 import {computed, onMounted, ref, watch} from "vue";
 import {Diagnostic, Release, ReleaseScript} from "./model.ts";
 import Setup from "./Setup.vue";
-import Preparation from "./steps/Preparation.vue";
 import Validation from "./steps/Validation.vue";
-import ImportExternal from "./steps/ImportExternal.vue";
-import Build from "./steps/Build.vue";
-import Merge from "./steps/Merge.vue";
 import HumanVerification from "./steps/HumanVerification.vue";
 import GithubPublish from "./steps/GithubPublish.vue";
 import BCIOSearch from "./steps/BCIOSearch.vue";
+import Generic from "./steps/Generic.vue";
 
 declare var SERVER_DATA: { [key: string]: any }
 declare var URLS: { [key: string]: any }
@@ -25,24 +22,35 @@ const error = ref<string | null>(null)
 const selected_step = ref<number | null>(null)
 const selected_sub_step = ref<string | null>(null)
 const _steps: { [k: string]: any } = {
-  "PREPARATION": Preparation,
   "VALIDATION": Validation,
-  "IMPORT_EXTERNAL": ImportExternal,
-  "BUILD": Build,
-  "MERGE": Merge,
   "HUMAN_VERIFICATION": HumanVerification,
   "GITHUB_PUBLISH": GithubPublish,
   "BCIO_SEARCH": BCIOSearch,
   "ADDICTO_VOCAB": AddictOVocab
 }
 
-const stepComponent = computed(() => {
-  if (release.value) {
-    const step = (selected_step.value ?? release.value.step)
-    const currentStep = release.value?.release_script.steps[step]
-    return _steps[currentStep?.name ?? ""]
+const currentStep = computed<{
+  args: any,
+  name: string
+} | null>(() => release.value?.release_script.steps[selected_step.value ?? release.value.step] ?? null)
+const stepComponent = computed(() => _steps[currentStep.value?.name] ?? Generic)
+
+const stepProps = computed(() => {
+  const possibleProps = {
+    data: details.value,
+    release: release.value,
+    selectedSubStep: selected_sub_step.value,
+    step: currentStep.value
   }
-  return null
+
+  const component = stepComponent.value;
+
+  if (component) {
+    const required = Object.keys(component.props)
+    return Object.fromEntries(Object.entries(possibleProps).filter(([k, _]) => required.indexOf(k) >= 0))
+  }
+
+  return null;
 })
 
 const details = computed(() => release.value?.details[(selected_step.value ?? release.value.step).toString()])
@@ -307,7 +315,7 @@ async function doReleaseControl(type: string) {
             <pre>{{ details.error.long }}</pre>
           </div>
 
-          <component :is="stepComponent" :data="details" :release="release" :selectedSubStep="selected_sub_step"
+          <component :is="stepComponent" v-bind="stepProps"
                      @release-control="doReleaseControl"></component>
         </div>
       </div>
@@ -348,5 +356,9 @@ async function doReleaseControl(type: string) {
       border-width: 10px;
     }
   }
+}
+
+#release-core .sidebar .btn {
+  text-align: start !important;
 }
 </style>

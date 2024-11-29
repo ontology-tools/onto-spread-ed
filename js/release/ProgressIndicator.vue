@@ -27,7 +27,8 @@ const percent = computed(() => Math.round((props.details?.__progress?.progress ?
 
     <template v-if="details && '__progress' in details && details?.__progress">
       <p class="text-secondary mb-3">
-      Working on {{ details.__progress.current_item }} ({{ details.__progress.position[0] }}/{{ details.__progress.position[1] }})
+        {{ details.__progress.message ?? "Working on" }} {{ details.__progress.current_item }}
+        ({{ details.__progress.position[0] }}/{{ details.__progress.position[1] }})
       </p>
       <div class="progress" role="progressbar">
         <div class="progress-bar progress-bar-striped progress-bar-animated"

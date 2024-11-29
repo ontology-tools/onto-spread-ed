@@ -13,12 +13,14 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
 from werkzeug.exceptions import NotFound, BadRequest
 
-from ...database.Release import Release
+from ...database.Release import Release, ReleaseArtifact
 from ...guards.with_permission import requires_permissions
+from ...model.Diff import diff
 from ...model.ReleaseScript import ReleaseScript
 from ...release import do_release
-from ...release.common import next_release_step, local_name
+from ...release.common import next_release_step
 from ...services.ConfigurationService import ConfigurationService
+from ...utils import save_file, get_file
 
 bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 
@@ -79,7 +81,7 @@ def get_release_script(repo: str, config: ConfigurationService):
 
 @bp.route("/<repo>/release_script", methods=["PUT"])
 @requires_permissions("release")
-def save_release_script(repo: str, config: ConfigurationService):
+def save_release_script(repo: str, config: ConfigurationService, gh: GitHub):
     repo_config = config.get(repo)
     if repo_config is None:
         raise NotFound(f"No such repository '{repo}'.")
@@ -95,11 +97,20 @@ def save_release_script(repo: str, config: ConfigurationService):
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
     release_script = ReleaseScript.from_json(data)
+    release_script_binary = json.dumps(dataclasses.asdict(release_script), indent=2).encode()
 
-    path = os.path.join(current_app.static_folder, f"{repo.lower()}.release.json")
+    old_release_script_binary = get_file(gh, repo_config.full_name, repo_config.release_script_path)
+    old_release_script_json = json.loads(old_release_script_binary)
+    old_release_script = ReleaseScript.from_json(old_release_script_json)
 
-    with open(path, "w") as f:
-        json.dump(dataclasses.asdict(release_script), f, indent=2)
+    diffs = diff(old_release_script, release_script)
+    commit_message = ("Update release script. " +
+                      ', '.join(f"Set {d.field} to {d.new}" for d in diffs if d.change_type == "update") +
+                      ', '.join(f"Added {d.new} to {d.field}" for d in diffs if d.change_type == "add") +
+                      ', '.join(f"Removed {d.old} from {d.field}" for d in diffs if d.change_type == "remove"))
+
+    save_file(gh, repo_config.full_name, repo_config.release_script_path, release_script_binary, commit_message,
+              repo_config.main_branch)
 
     return jsonify({"success": True})
 
@@ -247,28 +258,24 @@ def download_release_file(repo: str, db: SQLAlchemy):
     if err is not None:
         return err
 
-    release_script = ReleaseScript.from_json(release.release_script)
-    index = str(next((i for i, s in enumerate(release_script.steps) if s.name == "HUMAN_VERIFICATION")))
-
-    if index not in release.details or 'files' not in release.details[index]:
-        return jsonify(dict(success=False,
-                            error="invalid-step",
-                            message="The release does not contain files to download.")), 404
-
-    if "file" not in request.args:
+    if "file" not in request.args or not request.args.get("file").isdigit():
         return jsonify(dict(success=False,
                             error="invalid-query",
                             message="Expected 'file' argument.")), 400
 
     file = request.args.get("file")
-    details = release.details[index]
-    for f in details['files']:
-        if f["name"] == file:
-            name = local_name(release.local_dir, file, ".owl")
-            with open(name, "r") as o:
-                response = make_response(o.read())
+    artifact = db.session.get(ReleaseArtifact, int(file))
+    if artifact is not None and artifact.downloadable:
+        with open(artifact.local_path, "rb") as o:
+            response = make_response(o.read())
+            if artifact.local_path.endswith(".xlsx"):
+                response.headers.set("Content-Type",
+                                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            else:
                 response.headers.set("Content-Type", "text/plain")
-                response.headers.set('Content-Disposition', 'attachment', filename=os.path.basename(name))
+
+            response.headers.set('Content-Disposition', 'attachment',
+                                 filename=os.path.basename(artifact.target_path))
 
             return response
 

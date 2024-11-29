@@ -11,6 +11,10 @@ function setAnnotations(name: string, annotations: string) {
       Object.fromEntries(annotations.split("\n").map(l => l.split(": ")))
 }
 
+function setArgs(step: number, args: string) {
+  props.releaseScript.steps[step].args = Object.fromEntries(args.split("\n").map(l => l.split(": ")))
+}
+
 function addDependency(name: string) {
   bootbox.prompt({
     title: `Add dependency for ${name}`,
@@ -71,6 +75,38 @@ function renameFile(event: MouseEvent, name: string) {
   })
 }
 
+function addStep(event: MouseEvent, before: number) {
+  event.preventDefault()
+
+  props.releaseScript.steps.splice(before, 0, {args: {}, name: "NEW_STEP"})
+}
+
+function deleteStep(event: MouseEvent, index: number) {
+  event.preventDefault()
+
+  const step = props.releaseScript.steps[index]
+
+  bootbox.confirm({
+    title: `Delete step '${step.name}'`,
+    message: `Do you want to remove the release step '${step.name}'?`,
+    buttons: {
+      confirm: {
+        label: `Delete ${step.name}`,
+        className: "btn-danger",
+      },
+      cancel: {
+        label: "Keep it",
+        className: "btn-success"
+      }
+    },
+    callback(result: boolean) {
+      if (result) {
+        props.releaseScript.steps.splice(index, 1)
+      }
+    }
+  })
+}
+
 function deleteFile(event: MouseEvent, name: string) {
 
   event.preventDefault();
@@ -89,8 +125,8 @@ function deleteFile(event: MouseEvent, name: string) {
     },
     callback(result: boolean) {
       if (result) {
-          delete props.releaseScript.files[name]
-        }
+        delete props.releaseScript.files[name]
+      }
     }
   })
 }
@@ -100,7 +136,7 @@ function deleteFile(event: MouseEvent, name: string) {
 <template>
 
   <div class="files">
-    <h3>Detailed release script</h3>
+    <h3>Files</h3>
     <CollapsibleCard v-for="(file, name) in releaseScript.files">
       <template #title>
         {{ name }} - {{ file.target.file }}
@@ -110,14 +146,20 @@ function deleteFile(event: MouseEvent, name: string) {
           }} dependencies</span>
       </template>
       <template #buttons>
-        <button class="btn btn-primary btn-sm btn-circle" @click="renameFile($event, name)"><i class="fa fa-edit"></i></button>
-        <button class="btn btn-danger btn-sm btn-circle" @click="deleteFile($event, name)"><i class="fa fa-trash"></i></button>
+        <button class="btn btn-primary btn-sm btn-circle" @click="renameFile($event, name)"><i class="fa fa-edit"></i>
+        </button>
+        <button class="btn btn-danger btn-sm btn-circle" @click="deleteFile($event, name)"><i class="fa fa-trash"></i>
+        </button>
       </template>
       <template #body>
         <div class="release-file-settings">
           <h6>Target settings</h6>
           <p class="text-body-secondary">Define the location of the target file in the repository and define the IRI of
             the resulting ontology.</p>
+          <div class="form-check form-switch mb-3">
+            <input v-model="file.target.publish" class="form-check-input" type="checkbox" role="switch">
+            <span class="form-check-label">Publish the file to GitHub</span>
+          </div>
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">Path</span>
             <input v-model="file.target.file" type="text" class="form-control">
@@ -192,12 +234,47 @@ function deleteFile(event: MouseEvent, name: string) {
     </CollapsibleCard>
     <div class="d-flex gap-2">
       <button class="mb-3 btn btn-sm btn-primary add-file" @click="addFile">
-      <i class="fa fa-add"></i>
-      Add file
-    </button>
-      <slot name="buttons"></slot>
+        <i class="fa fa-add"></i>
+        Add file
+      </button>
     </div>
   </div>
+
+
+  <h3>Steps</h3>
+  <button class="btn btn-outline-primary add-step mb-3" @click="addStep($event, 0)">
+    <i class="fa fa-plus-square"></i> Add step here
+  </button>
+  <template v-for="(step, index) in releaseScript.steps">
+    <div class="header">
+      <h6> {{ step.name }}</h6>
+      <span></span>
+      <button class="btn btn-danger btn-sm btn-circle" style="margin-bottom: .5rem" @click="deleteStep($event, index)">
+        <i class="fa fa-trash"></i>
+      </button>
+    </div>
+    <div class="input-group input-group-sm mb-1">
+      <span class="input-group-text">Release step</span>
+      <input v-model="step.name" class="form-control" type="text">
+    </div>
+
+    <div class="input-group input-group-sm mb-3">
+      <span class="input-group-text">Arguments</span>
+      <textarea :value="Object.entries(step.args).map(([k,v]) => `${k}: ${v}`).join('\n')"
+                class="form-control"
+                @change="setArgs(index, $event.target?.value)">
+            </textarea>
+    </div>
+    <button class="btn btn-outline-primary add-step mb-3" @click="addStep($event, index + 1)">
+      <i class="fa fa-plus-square"></i> Add step here
+    </button>
+  </template>
+
+
+  <div class="d-flex gap-2">
+    <slot name="buttons"></slot>
+  </div>
+
 
 </template>
 
@@ -235,6 +312,29 @@ function deleteFile(event: MouseEvent, name: string) {
 
 .btn.add-file {
   width: fit-content;
+}
+
+.header {
+  display: flex;
+  gap: 14px;
+
+  .title {
+    font-size: large;
+  }
+
+  span {
+    flex-grow: 1;
+  }
+
+  i {
+    align-self: center;
+    transition: transform 1s;
+  }
+}
+
+.btn.add-step {
+  width: 100%;
+  border-style: dashed;
 }
 
 </style>

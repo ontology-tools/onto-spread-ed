@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v1
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: run-linters
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -50,7 +50,7 @@ jobs:
       - name: Build deploy package
         run: >
           tar -czf onto-ed.tar.gz app.py requirements.txt migrations onto_spread_ed scripts
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: app
           path: onto-ed.tar.gz
@@ -63,7 +63,7 @@ jobs:
     needs:
       - build
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
         name: app
     - name: Deploy app

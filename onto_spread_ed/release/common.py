@@ -1,9 +1,10 @@
 import os
 from typing import List, Tuple, Dict
 
+from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.query import Query
 
-from onto_spread_ed.database.Release import Release
+from onto_spread_ed.database.Release import Release, ReleaseArtifact
 from onto_spread_ed.model.ReleaseScript import ReleaseScriptFile
 
 
@@ -73,3 +74,14 @@ def order_sources(files: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, Releas
             no_change_since += 1
 
     return queue
+
+
+def add_artifact(db: SQLAlchemy, artifact: ReleaseArtifact) -> int:
+    db.session.add(artifact)
+    db.session.commit()
+
+    return artifact.id
+
+
+def get_artifacts(q: Query[ReleaseArtifact], release_id: int) -> List[ReleaseArtifact]:
+    return q.filter_by(release_id=release_id).all()
