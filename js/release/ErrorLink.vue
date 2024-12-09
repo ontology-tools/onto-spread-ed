@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
-import {Diagnostic, Term} from "./model.ts";
 import {computed} from "vue";
+import {Diagnostic, Term} from "../common/model.ts";
 
 const props = defineProps<{
   short_repository_name: string,

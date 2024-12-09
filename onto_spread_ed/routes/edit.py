@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import pathlib
 import threading
 import traceback
 from datetime import date, datetime
@@ -47,6 +48,10 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     suggestions = ontodb.getReleaseLabels(repo_key)
     suggestions = list(dict.fromkeys(suggestions))
 
+    # Contains actual names of files built and optimized by vite
+    vite_manifest = {}
+    # TODO: if pathlib.Path.exists("template"):
+
     breadcrumb_segments = [repo_key, *folder.split("/"), spreadsheet]
 
     return render_template('edit.html',
@@ -54,7 +59,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
                            user_initials=user_initials,
                            all_initials=[v.get("initials") for v in config.app_config["USERS"].values()
                                          if "initials" in v],
-                           repo_name=repo_key,
+                           repository_config = repository,
                            folder=folder,
                            spreadsheet_name=spreadsheet,
                            breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i + 1])} for i, s in
@@ -65,7 +70,8 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
                            file_sha=file_sha,
                            go_to_row=go_to_row,
                            type=type,
-                           suggestions=json.dumps(suggestions)
+                           suggestions=json.dumps(suggestions),
+                           vite_manifest=vite_manifest
                            )
 
 
@@ -86,16 +92,18 @@ def download_spreadsheet(github: GitHub, config: ConfigurationService):
 @bp.route('/save', methods=['POST'])
 @requires_permissions("edit")
 def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService):
-    repo_key = request.form.get("repo_key")
-    folder = request.form.get("folder")
-    spreadsheet = request.form.get("spreadsheet")
-    row_data = request.form.get("rowData")
-    initial_data = request.form.get("initialData")
-    file_sha = request.form.get("file_sha").strip()
-    commit_msg = request.form.get("commit_msg")
-    commit_msg_extra = request.form.get("commit_msg_extra")
+    saveData = request.json
+    repo_key = saveData.get("repo_key")
+    folder = saveData.get("folder")
+    spreadsheet = saveData.get("spreadsheet")
+    row_data = saveData.get("rowData")
+    initial_data = saveData.get("initialData")
+    file_sha = saveData.get("file_sha").strip()
+    commit_msg = saveData.get("commit_msg")
+    commit_msg_extra = saveData.get("commit_msg_extra")
+    header = saveData.get("header")
     overwrite = False
-    overwriteVal = request.form.get("overwrite")
+    overwriteVal = saveData.get("overwrite")
     if overwriteVal == "true":
         overwrite = True
 
@@ -111,14 +119,11 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
         # What if 'Label' column not present?
         initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k.get('Label', None) or "")
 
-        first_row = row_data_parsed[0]
-        header = [k for k in first_row.keys()]
-        del header[0]
         # Sort based on label
         # What if 'Label' column not present?
-        if 'Label' in first_row:
+        if 'Label' in header:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Label'] if k['Label'] else "")
-        elif 'Relationship' in first_row:
+        elif 'Relationship' in header:
             row_data_parsed = sorted(row_data_parsed, key=lambda k: k['Relationship'] if k['Relationship'] else "")
 
             id_suffix = "R"  # For relations add a 'R' as a suffix
@@ -136,45 +141,44 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
         for c in range(len(header)):
             sheet.cell(row=1, column=c + 1).value = header[c]
             sheet.cell(row=1, column=c + 1).font = Font(size=12, bold=True)
-        for r in range(len(row_data_parsed)):
-            row = [v for v in row_data_parsed[r].values()]
-            del row[0]  # Tabulator-added ID column
-            for c in range(len(header)):
-                sheet.cell(row=r + 2, column=c + 1).value = row[c]
+        for r, row in enumerate(row_data_parsed):
+            del row["id"]  # Tabulator-added ID column
+            for c, field in enumerate(header):
+                sheet.cell(row=r + 2, column=c + 1).value = row[field]
                 # Set row background colours according to 'Curation status'
                 # These should be kept in sync with those used in edit screen
                 # TODO add to config
                 # What if "Curation status" not present?
-                if 'Curation status' in first_row:
-                    if row[header.index("Curation status")] == "Discussed":
+                if 'Curation status' in header:
+                    if row["Curation status"] == "Discussed":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="ffe4b5", fill_type="solid")
-                    elif row[header.index("Curation status")] == "Ready":  # this is depreciated
+                    elif row["Curation status"] == "Ready":  # this is depreciated
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="98fb98", fill_type="solid")
-                    elif row[header.index("Curation status")] == "Proposed":
+                    elif row["Curation status"] == "Proposed":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="ffffff", fill_type="solid")
-                    elif row[header.index("Curation status")] == "Pre-proposed":
+                    elif row["Curation status"] == "Pre-proposed":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="ebfad0", fill_type="solid")
-                    elif row[header.index("Curation status")] == "To Be Discussed":
+                    elif row["Curation status"] == "To Be Discussed":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="eee8aa", fill_type="solid")
-                    elif row[header.index("Curation status")] == "In Discussion":
+                    elif row["Curation status"] == "In Discussion":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="fffacd", fill_type="solid")
-                    elif row[header.index("Curation status")] == "Published":
+                    elif row["Curation status"] == "Published":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="7fffd4", fill_type="solid")
-                    elif row[header.index("Curation status")] == "Obsolete":
+                    elif row["Curation status"] == "Obsolete":
                         sheet.cell(row=r + 2, column=c + 1).fill = PatternFill(fgColor="2f4f4f", fill_type="solid")
 
             # Generate identifiers:
-            if 'ID' in first_row:
-                if not row[header.index("ID")]:  # blank
+            if 'ID' in header:
+                if not row["ID"]:  # blank
                     label, parent, definition = None, None, None
-                    if {'Label', 'Parent', 'Definition'} <= set(first_row):  # make sure we have the right sheet
-                        label = row[header.index("Label")]
-                        parent = row[header.index("Parent")]
-                        definition = row[header.index("Definition")]
-                    elif {'Relationship', 'Parent relationship', 'Definition'} <= set(first_row):
-                        label = row[header.index("Relationship")]
-                        parent = row[header.index("Parent relationship")]
-                        definition = row[header.index("Definition")]
+                    if {'Label', 'Parent', 'Definition'} <= set(header):  # make sure we have the right sheet
+                        label = row["Label"]
+                        parent = row["Parent"]
+                        definition = row["Definition"]
+                    elif {'Relationship', 'Parent relationship', 'Definition'} <= set(header):
+                        label = row["Relationship"]
+                        parent = row["Parent relationship"]
+                        definition = row["Definition"]
 
                     if label and parent and definition:
                         # generate ID here:

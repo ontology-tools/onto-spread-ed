@@ -43,11 +43,38 @@ export interface Release<D = Date> {
     included_files: string[]
 }
 
-export interface Diagnostic {
-  type: string,
+// Same as onto_spread_ed/model/ExcelOntology.py
+export type DiagnosticKind =
+    "unknown-column" |
+    "incomplete-term" |
+    "unknown-relation" |
+    "missing-label" |
+    "missing-id" |
+    "inconsistent-import" |
+    "missing-import" |
+    "no-parent" |
+    "unknown-parent" |
+    "missing-parent" | "ignored-parent" |
+    "unknown-disjoint" |
+    "missing-disjoint" | "ignored-disjoint" |
+    "unknown-relation-value" |
+    "missing-relation-value" |
+    "ignored-relation-value" |
+    "unknown-domain" |
+    "missing-domain" |
+    "ignored-domain" |
+    "unknown-range" |
+    "missing-range" |
+    "ignored-range" |
+    "duplicate"
 
-  [K: string]: any
+export interface Diagnostic {
+    type: DiagnosticKind,
+
+    [K: string]: any
 }
+
+export type Severity = "error" | "warning" | "info";
 
 export interface TermIdentifier {
     id?: string
@@ -66,3 +93,21 @@ export interface Term {
 }
 
 export type AutoFixState = "loading" | "impossible" | "fixed" | "loaded";
+
+export interface RepositoryConfig {
+    short_name: string
+    full_name: string
+
+    id_digits: number
+    indexed_files: string[]
+    main_branch: string
+    prefixes: { [K: string]: string }
+    release_file: string
+    release_script_path: string
+    subontologies: {
+        [K: string]: {
+            release_file: string
+            excel_file: string
+        }
+    }
+}

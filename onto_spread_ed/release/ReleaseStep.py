@@ -130,55 +130,7 @@ class ReleaseStep(abc.ABC):
         excel_ontology = ExcelOntology(self._release_script.external.target.iri)
         externals_owl = self._local_name(self._release_script.external.target.file)
         if os.path.exists(externals_owl):
-            ontology = pyhornedowl.open_ontology(externals_owl, "rdf")
-            for (p, d) in config.prefixes.items():
-                ontology.prefix_mapping.add_prefix(p, d)
-
-            for c in ontology.get_classes():
-                id = ontology.get_id_for_iri(c)
-                labels = ontology.get_annotations(c, constants.RDFS_LABEL)
-
-                if id is None:
-                    result.warning(type='unknown-id', msg=f'Unable to determine id of external term "{c}"')
-                if len(labels) == 0:
-                    result.warning(type='unknown-label', msg=f'Unable to determine label of external term "{c}"')
-
-                if id is not None:
-                    for label in labels:
-                        excel_ontology.add_term(Term(
-                            id=id,
-                            label=label,
-                            origin=("<external>", -1),
-                            relations=[],
-                            sub_class_of=[],
-                            equivalent_to=[],
-                            disjoint_with=[]
-                        ))
-
-            self._raise_if_canceled()
-
-            for r in ontology.get_object_properties():
-                id = ontology.get_id_for_iri(r)
-                label = ontology.get_annotation(r, constants.RDFS_LABEL)
-
-                if id is None:
-                    result.warning(type='unknown-id', msg=f'Unable to determine id of external relation "{r}"')
-                if label is None:
-                    result.warning(type='unknown-label', msg=f'Unable to determine label of external relation "{r}"')
-
-                if id is not None and label is not None:
-                    excel_ontology.add_relation(Relation(
-                        id=id,
-                        label=label,
-                        origin=("<external>", -1),
-                        equivalent_relations=[],
-                        inverse_of=[],
-                        relations=[],
-                        owl_property_type=OWLPropertyType.ObjectProperty,
-                        sub_property_of=[],
-                        domain=None,
-                        range=None
-                    ))
+            excel_ontology = ExcelOntology.from_owl(externals_owl, config.prefixes)
         else:
             result.error(type="external-owl-missing",
                          msg="The external OWL file is missing. Ensure it is build before this step")

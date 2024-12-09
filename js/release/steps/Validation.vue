@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import {AutoFixState, Diagnostic, Release, Term} from "../model.ts";
+import {AutoFixState, Diagnostic as DiagnosticM, Release, Term} from "../../common/model.ts";
 import ErrorLink from "../ErrorLink.vue";
 import {guessParent} from "../autofix/guessParent.ts"
 import ProgressIndicator from "../ProgressIndicator.vue";
@@ -11,9 +11,9 @@ const prefix_url = URLS.prefix
 const props = defineProps<{
   data: {
     [K: string]: {
-      errors: Diagnostic[],
-      warnings: Diagnostic[],
-      info: Diagnostic[]
+      errors: DiagnosticM[],
+      warnings: DiagnosticM[],
+      info: DiagnosticM[]
     }
   } | null,
   release: Release,
@@ -26,12 +26,12 @@ defineEmits<{
 
 const autoFixStates = ref<{ [k: string]: AutoFixState }>({})
 
-function autoFixState(diag: Diagnostic): AutoFixState | null {
+function autoFixState(diag: DiagnosticM): AutoFixState | null {
   const id = JSON.stringify(diag)
   return autoFixStates.value[id] ?? null
 }
 
-const errors = computed<Diagnostic[] | null>(() => {
+const errors = computed<DiagnosticM[] | null>(() => {
   if (!props.data) {
     return null
   }
@@ -75,7 +75,7 @@ async function updateTerm(path: string, id: Term, term: Term): Promise<AutoFixSt
   }
 }
 
-async function autofixUpdateTerm(error: Diagnostic, id: string, term: Term, path?: string) {
+async function autofixUpdateTerm(error: DiagnosticM, id: string, term: Term, path?: string) {
   const wid = JSON.stringify(error)
   if (wid in autoFixStates.value && autoFixStates.value[wid] !== "loaded") {
     return
@@ -84,7 +84,7 @@ async function autofixUpdateTerm(error: Diagnostic, id: string, term: Term, path
   autoFixStates.value[wid] = await updateTerm(path ?? error?.term?.origin?.[0] ?? term?.origin?.[0], id, term)
 }
 
-async function autofix(error: Diagnostic) {
+async function autofix(error: DiagnosticM) {
   let id = JSON.stringify(error)
   if (id in autoFixStates.value && autoFixStates.value[id] !== "loaded") {
     return
@@ -158,25 +158,11 @@ async function autofix(error: Diagnostic) {
              class="alert alert-danger val val-error"
              role="alert">
 
-          <template v-if="error.type === 'invalid-value'">
-            <h5>Invalid value</h5>
-            <p>
-              {{ error.msg }}<br>
-              <ErrorLink :error="error" :short_repository_name="shortRepoName"></ErrorLink>
-            </p>
-          </template>
-          <template v-else-if="error.type === 'unknown-parent'">
-            <h5>Unknown parent</h5>
-            <p>
-              The parent <code>{{ error.parent.label }}</code> of <code>{{
-                (error.term ?? error.relation).label
-              }}</code>
-              (<code>{{ (error.term ?? error.relation).id || 'no id' }}</code>) is not known.
-              <br>
-
+          <template v-if="error.type === 'unknown-parent'">
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
                          :term="error.term ?? error.relation"></ErrorLink>
-            </p>
+            </Diagnostic>
 
             <button v-if="release.release_script.short_repository_name.toLowerCase() !== 'addicto'"
                     :class="{'btn-success': autoFixState(error) === 'fixed', 'btn-danger': autoFixState(error) === 'impossible'}"
@@ -191,140 +177,76 @@ async function autofix(error: Diagnostic) {
 
           </template>
           <template v-else-if="error.type === 'missing-parent'">
-            <h5>Missing parent</h5>
-            <p>
-              The parent <code>{{ error.parent.label }}</code> (<code>{{ error.parent.id }}</code>) of
-              <code>{{ error.term.label }}</code>
-              (<code>{{
-                error.term.id || ("no id")
-              }}
-            </code>) is neither defined in the Excel files or imported.
-              If it is an external term, add the missing import the entry with
-              <code>{{ error.parent.label }} [{{ error.parent.id }}]</code>.
-              <br>
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'no-parent'">
-            <h5>Term has no parent</h5>
-            <p>
-              The term <code>{{ error.term.label }}</code> (<code>{{ error.term.id }}</code>) has no parent!
-              <br>
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'ignored-parent'">
-            <h5>{{ error.status }} parent</h5>
-            <p>
-              The parent <code>{{ error.parent.label }}</code> of <code>{{ error.term.label }}</code>
-              (<code>{{ error.term.id ?? 'no id' }}</code>) is {{ error.status.toLowerCase() }}.<br>
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'missing-label'">
-            <h5>Missing label</h5>
-            <p>
-              The term <code>{{ error.term.id }}</code> has no label. <br>
+
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'missing-id'">
-            <h5>Term has no ID</h5>
-            <p>
-              The term <code>{{ error.term.label }}</code> has no ID but is also not obsolete or pre-proposed. <br>
+
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'unknown-disjoint'">
-            <h5>Unknown disjoint class</h5>
-            <p>
-              The class <code>{{ error.term.label }}</code> (<code>{{ error.term.id }}</code>) is
-              specified to
-              be disjoint with <code>{{ error.disjoint_class.label }}</code> but it is not known.<br>
+
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
-          </template>
-          <template v-else-if="error.type === 'unknown-equivalent'">
-            <h5>Unknown disjoint class</h5>
-            <p>
-              The class <code>{{ error.term.label }}</code> (<code>{{ error.term.id }}</code>) is
-              specified to
-              be logically equivalent to <code>{{ error.equivalent_class.label }}</code> but it is not
-              known.<br>
-              <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'unknown-relation-value'">
-            <h5>Unknown value for relation <code>{{ error.relation.label }}</code></h5>
-            <p>
-              Related term <code>{{ error.value.label }}</code> of <code>{{ error.term.label }}</code>
-              (<code>{{
-                error.term.id || "no id"
-              }}
-            </code>) is not known. <br>
+
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'ignored-relation-value'">
 
-            <h5>{{ error.status }} value for relation <code>{{ error.relation.label }}</code></h5>
-            <p>
-              Related term <code>{{ error.value.label }}</code> of <code>{{ error.term.label }}</code>
-              (<code>{{ error.term.id ?? 'no id' }}</code>) is {{ error.status.toLowerCase() }}.<br>
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
-                         :term="error.term"></ErrorLink>
-            </p>
+                         :term="error.term ?? error.relation"></ErrorLink>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'unknown-range'">
-            <h5>Unknown range</h5>
-            <p>
-              The range <code>{{ error.relation.range.label }}</code> of
-              <code>{{ error.relation.label }}</code>
-              (<code>{{
-                error.relation.id || "no id"
-              }}
-            </code>) is not known. <br>
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
                          :term="error.relation"></ErrorLink>
-            </p>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'unknown-domain'">
-            <h5>Unknown domain</h5>
-            <p>
-              The domain <code>{{ error.relation.domain.label }}</code> of
-              <code>{{ error.relation.label }}</code>
-              (<code>{{ error.relation.id || "no id" }} </code>) is not known. <br>
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
                          :term="error.relation"></ErrorLink>
-            </p>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'unknown-relation'">
-            <h5>Unknown relation</h5>
-            <p>
-              The relation
 
-              <template v-if="error.relation.label">
-                <code>{{ error.relation.label }}</code>
-                <template v-if="error.relation.id">
-                  (<code>{{ error.relation.id }}</code>)
-                </template>
-              </template>
-              <template v-else-if="error.relation.id">
-                <code>{{ error.relation.id }}</code>
-              </template>
-
-              is not known.<br>
+            <Diagnostic :diagnostic="error">
               <ErrorLink :error="error" :short_repository_name="shortRepoName"
                          :term="error.relation"></ErrorLink>
-            </p>
+            </Diagnostic>
           </template>
           <template v-else-if="error.type === 'duplicate'">
             <h5>Conflicting entries (duplicates)</h5>
@@ -373,32 +295,17 @@ async function autofix(error: Diagnostic) {
              class="alert alert-warning val val-warning val-warning-type-{{ warning.type }} val-warning-source-{{ source }}"
              role="alert">
           <template v-if="warning.type == 'incomplete-term'">
-            <h5>Incomplete term</h5>
-            <p>
-              There is an incomplete term with no an ID, a label, or a parent defined. Is there an empty line in the
-              spreadsheet?<br>
-              The line was ignored.<br>
-
+            <Diagnostic :diagnostic="warning">
               <ErrorLink :error="warning" :short_repository_name="shortRepoName"></ErrorLink>
-            </p>
+            </Diagnostic>
           </template>
           <template v-else-if="warning.type === 'unknown-column'">
-            <h5>Unmapped column</h5>
-            <p>
-              The column <code>{{ warning.column }}</code> of <code>{{ warning.sheet }}</code> is not mapped
-              to any OWL property or internal field.
-            </p>
+            <Diagnostic :diagnostic="warning" />
           </template>
           <template v-else-if="warning.type === 'missing-import'">
-            <h5>Missing import</h5>
-            <p>
-              The term <code>{{ warning.term.label }}</code> (<code>{{ warning.term.id }}</code>) has the curation
-              status
-              "External" but is not included in the externally imported terms. <template v-if="warning.term.id">Does the term still exist in
-              {{ warning.term.id.split(":")[0] }}?</template> <br>
-
+            <Diagnostic :diagnostic="warning">
               <ErrorLink :error="warning" :short_repository_name="shortRepoName" :term="warning.term"></ErrorLink>
-            </p>
+            </Diagnostic>
 
             <button
                 :class="{'btn-success': autoFixState(warning) === 'fixed', 'btn-danger': autoFixState(warning) === 'impossible'}"
@@ -411,19 +318,10 @@ async function autofix(error: Diagnostic) {
             </button>
           </template>
           <template v-else-if="warning.type === 'inconsistent-import'">
-            <h5>Inconsistent import</h5>
-            <p>
-              The term <code>{{ warning.term.label }}</code> (<code>{{ warning.term.id }}</code>) has the curation
-              status
-              "External" but its
-              <template v-if="warning.term.id !== warning.imported_term.id">
-                ID (<code>{{ warning.imported_term.id }}</code>)
-              </template>
-              <template v-else>label (<code>{{ warning.imported_term.label }}</code>)</template>
-              differs.<br>
 
+            <Diagnostic :diagnostic="warning">
               <ErrorLink :error="warning" :short_repository_name="shortRepoName" :term="warning.term"></ErrorLink>
-            </p>
+            </Diagnostic>
 
             <button
                 :class="{'btn-success': autoFixState(warning) === 'fixed', 'btn-danger': autoFixState(warning) === 'impossible'}"

@@ -1,11 +1,21 @@
 import json
+import os.path
+from email.policy import default
+from email.quoprimime import header_check
+from io import BytesIO
+from json import JSONEncoder
+from mailbox import ExternalClashError
 from typing import Any, Dict
 
 import jsonschema
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
+from flask_injector import wrap_class_based_view
+from openpyxl.workbook import Workbook
 
 from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
 from onto_spread_ed.guards.with_permission import requires_permissions
+from onto_spread_ed.model.ExcelOntology import ExcelOntology
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
 
@@ -28,6 +38,26 @@ VERIFY_ENTITY_SCHEMA = {
         }
     },
     "title": "schema"
+}
+
+VERIFY_FILE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["repository", "spreadsheet", "rows"],
+    "properties": {
+        "repository": {
+            "type": "string",
+        },
+        "spreadsheet": {
+            "type": "string",
+        },
+        "rows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+            }
+        }
+    }
 }
 
 
@@ -130,5 +160,54 @@ def validate_line(entity: Dict[str, Any],
 
 @bp.route("/file", methods=("POST",))
 @requires_permissions("view")
-def validate_file():
-    pass
+def validate_file(config: ConfigurationService):
+    data = json.loads(request.data)
+
+    try:
+        jsonschema.validate(data, VERIFY_FILE_SCHEMA)
+    except jsonschema.ValidationError as e:
+        return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
+
+    repo, file, rows = data["repository"], data["spreadsheet"], data["rows"]
+    
+    if len(rows) < 1:
+        return jsonify({
+            "success": True,
+            "valid": True,
+            "errors": [],
+            "warnings": [],
+            "infos": []
+        })
+    
+    header = list(rows[0].keys())
+    
+    
+    wb = Workbook()
+    ws = wb.active
+    
+    ws.append(header)
+    for row in rows:
+        ws.append([row[h] for h in header])
+        
+    spreadsheet = BytesIO()
+    wb.save(spreadsheet)
+    
+    repo = config.get(repo)
+
+    external = ExcelOntology.from_owl(os.path.join(current_app.static_folder, "bcio_external.owl"), repo.prefixes)
+    
+    o = ExcelOntology(f"temp://{file}")
+    o.import_other_excel_ontology(external.value)
+    o.add_terms_from_excel(file, spreadsheet)
+    o.resolve()
+    result = o.validate()
+    
+    return jsonify({
+        "success": True,
+        "valid": result.ok() and not result.has_errors(),
+        "errors": result.errors,
+        "warnings": result.warnings,
+        "infos": result.infos,
+    })
+    
+    

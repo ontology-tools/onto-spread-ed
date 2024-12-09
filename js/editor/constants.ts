@@ -11,5 +11,11 @@ export const CURATION_STATUS = {
 }
 
 export const COLUMN_NAMES = {
-    CURATION_STATUS: "Curation status"
+    CURATION_STATUS: "Curation status",
+    TO_BE_REVIEWED_BY: "To be reviewed by",
+    CURATOR: "Curator",
+    ID: "ID",
+    E_CIGO: "E-CigO",
+    FUZZY_SET: "Fuzzy set",
+    RELATIONSHIP_TYPE: "Relationship type"
 }

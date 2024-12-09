@@ -1,11 +1,11 @@
 export type PromptOptions = Omit<BootboxPromptOptions, "callback">
 
-export function promptDialog(options: PromptOptions): Promise<string | null> {
+export function promptDialog<T = string>(options: PromptOptions): Promise<T | null> {
     return new Promise(resolve => {
         bootbox.prompt({
             ...options,
             callback(result: string | null) {
-                resolve(result ?? null)
+                resolve(result as T ?? null)
             }
         })
     })
@@ -13,11 +13,11 @@ export function promptDialog(options: PromptOptions): Promise<string | null> {
 
 export type AlertOptions = Omit<BootboxAlertOptions, "callback">
 
-export function alertDialog(options: AlertOptions): Promise<string | null> {
+export function alertDialog<T = string>(options: AlertOptions): Promise<T | null> {
     return new Promise(resolve => {
         bootbox.alert({
             ...options,
-            callback(result: string | null) {
+            callback(result: T | null) {
                 resolve(result ?? null)
             }
         })
