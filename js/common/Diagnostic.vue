@@ -7,15 +7,16 @@ import {DIAGNOSTIC_DATA} from "./diagnostic-data.ts";
 const props = withDefaults(defineProps<{
   diagnostic: Diagnostic,
   severity?: Severity | null,
-  format: "long" | "inline" | "text"
+  format?: "long" | "inline" | "text"
 }>(), {
-  severity: null
+  severity: null,
+  format: "long"
 });
 
 const badgeClasses = computed(() => ({
-  "text-bg-danger": (props.severity ?? props.diagnostic) === "error",
-  "text-bg-warning": (props.severity ?? props.diagnostic) === "warning",
-  "text-bg-info": (props.severity ?? props.diagnostic) === "info",
+  "text-bg-danger": (props.severity ?? data.value.severity) === "error",
+  "text-bg-warning": (props.severity ?? data.value.severity) === "warning",
+  "text-bg-info": (props.severity ?? data.value.severity) === "info",
 }))
 
 const data = computed(() => ({
@@ -33,14 +34,16 @@ const data = computed(() => ({
     <h5>
       {{ data.title }}
     </h5>
-    <p>
-      {{ data.message}} <br v-if="$slots.default">
+    <p v-html="data.message">
+    </p>
+    <p v-if="$slots.default">
       <slot></slot>
     </p>
   </template>
   <template v-else-if="format === 'inline'">
-    <span class="badge" :class="badgeClasses" style="text-transform: capitalize">{{ severity ?? data.severity }}</span>
-    <template v-html="data.message"></template>
+    <p>
+      <span v-html="data.message"></span>
+    </p>
   </template>
   <template v-else-if="format === 'text'">
     {{ data.message.replace(/(<([^>]+)>)/ig, "")}}

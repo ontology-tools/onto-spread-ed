@@ -862,6 +862,17 @@ class ExcelOntology:
         self._relations.append(UnresolvedRelation(**dataclasses.asdict(relation)))
 
     @classmethod
+    def from_excel(cls, iri: str, files: Tuple[str, Union[bytes, str, BytesIO], Literal["classes", "relations"]]):
+        ontology = ExcelOntology(iri)
+        for name, file, kind in files:
+            if kind == "classes":
+                ontology.add_terms_from_excel(name, file)
+            elif kind == "relations":
+                ontology.add_relations_from_excel(name, file)
+
+        return ontology
+
+    @classmethod
     def from_owl(cls, externals_owl: str, prefixes: Dict[str, str]) -> Result[Self]:
         result = Result()
         ontology = pyhornedowl.open_ontology(externals_owl, "rdf")

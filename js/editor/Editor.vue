@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import {computed, onMounted, onUnmounted, ref, watchEffect} from 'vue';
+import {computed, h, onMounted, onUnmounted, ref, watch, watchEffect} from 'vue';
 import {RowComponent, TabulatorFull as Tabulator} from 'tabulator-tables';
 import {columnDefFor, setRowColor} from "./tabulator-config.ts"
 import {COLUMN_NAMES, CURATION_STATUS} from "./constants.ts";
 import {alertDialog, confirmDialog, promptDialog} from "../common/bootbox"
-import {Diagnostic as DiagnosticM, RepositoryConfig} from "../common/model";
+import {ChangeRecord, Diagnostic as DiagnosticM, RepositoryConfig} from "../common/model";
 import Diagnostic from "../common/Diagnostic.vue"
-import {BModal, BSpinner, BToastOrchestrator, useToastController} from "bootstrap-vue-next"
+import {BModal, BSpinner, BToast, BToastOrchestrator, useToastController} from "bootstrap-vue-next"
 import {DIAGNOSTIC_DATA} from "../common/diagnostic-data.ts";
 import {debounce} from "../common/debounce.ts";
 
@@ -36,15 +36,19 @@ const tableData = computed(() => spreadsheetData.value?.rows?.map((r, i) => ({
   ...r
 })) ?? [])
 const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => columnDefFor(h, () => tabulator.value)))
-const filePath = location.pathname.split('/edit/')[1]
+const path = location.pathname.split('/edit/')[1];
+const repo = path.substring(0, path.indexOf("/"));
+const filePath = path.substring(path.indexOf("/") + 1);
 const fileName = filePath.split('/').at(-1)
-const fileFolder = filePath.substring(filePath.indexOf("/") + 1, filePath.lastIndexOf("/"))
+const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
 const tableBuilt = ref<boolean>(false);
 const selectedRows = ref<RowComponent[]>([]);
 
+const showDiagnosticList = ref<boolean>(false);
+
 const filterToDiagnostics = ref<("error" | "warning" | "info")[]>([]);
 
-const changes = ref<{}[]>([{}])
+const changes = ref<ChangeRecord[]>([])
 const changed = computed(() => changes.value.length > 0)
 
 // Submit fields
@@ -54,7 +58,8 @@ const submitDetailedMessage = ref<string>("");
 // Generic flag to lock the UI
 const lock = ref<boolean>(false);
 const saving = ref<boolean>(false);
-const locked = computed(() => lock.value || !tableBuilt || saving.value)
+const verifying = ref<boolean>(false);
+const locked = computed(() => lock.value || !tableBuilt || saving.value || verifying.value)
 
 const valid = computed(() => errors.value.length <= 0 && warnings.value.length <= 0);
 
@@ -63,11 +68,19 @@ const saveDialogOpen = ref<boolean>(false);
 const diagnostics = ref<{
   [k: number]: { type: "error" | "warning" | "info", diagnostic: DiagnosticM, _id: number }[]
 }>({});
-const allDiagnostics = computed(() => Object.values(diagnostics.value).flatMap(x => x));
+const allDiagnostics = computed(() => Object.values(diagnostics.value).flatMap(x => x).sort((a, b) => a.diagnostic.row - b.diagnostic.row));
 const errors = computed(() => allDiagnostics.value.filter(x => x.type === "error"));
 const warnings = computed(() => allDiagnostics.value.filter(x => x.type === "warning"));
 const infos = computed(() => allDiagnostics.value.filter(x => x.type === "info"));
 
+
+const onWindowSizeChanged = debounce(() => {
+  if (!tableBuilt.value) {
+    return;
+  }
+
+  tabulator.value?.setHeight(document.querySelector(".row.editor-row")?.getBoundingClientRect()?.height ?? 400)
+})
 
 onMounted(() => {
   loadData()
@@ -75,6 +88,10 @@ onMounted(() => {
 })
 onUnmounted(() => {
   window.removeEventListener("resize", onWindowSizeChanged);
+})
+
+watch(showDiagnosticList, () => {
+  onWindowSizeChanged();
 })
 
 watchEffect(() => {
@@ -135,13 +152,32 @@ watchEffect(() => {
           row.getElement().classList.remove("assigned-to-me")
         }
 
+        row.getElement().classList.remove("has-error", "has-warning", "changed")
+        row.getCells().forEach(c => c.getElement().classList.remove("has-error", "has-warning", "changed"))
 
-        row.getElement().classList.remove("has-error", "has-warning")
-        row.getCells().forEach(c => c.getElement().classList.remove("has-error", "has-warning"))
+        for (const change of changes.value) {
+          if (change.row === row.getPosition() as number) {
+            if (change.type === "add") {
+              row.getElement().classList.add("changed")
+            } else if (change.type === "change") {
+              for (const field in change.fields) {
+                row.getCell(field)?.getElement()?.classList?.add("changed")
+              }
+            }
+          }
+        }
+
         const messages = diagnostics.value?.[data?.id] ?? []
         for (const message of messages) {
-          if (message.diagnostic.type === "unknown-parent") {
-            row.getCell("Parent").getElement().classList.add("has-error")
+          const d = message.diagnostic
+          if (d.type.match(/-parent/)) {
+            row.getCell("Parent")?.getElement()?.classList?.add(`has-${message.type}`)
+          } else if (d.type.match(/-label/)) {
+            row.getCell("Label")?.getElement()?.classList?.add(`has-${message.type}`)
+          } else if (d.type.match(/-id/)) {
+            row.getCell("ID")?.getElement()?.classList?.add(`has-${message.type}`)
+          } else if (d.type.match(/-relation-value/)) {
+            row.getCell(`REL '${d.relation?.label}'`)?.getElement()?.classList?.add(`has-${message.type}`)
           } else {
             row.getElement().classList.add(`has-${message.type}`)
           }
@@ -155,44 +191,33 @@ watchEffect(() => {
       validate();
     })
     instance.on("rowSelectionChanged", (_, selected) => selectedRows.value = selected)
-    instance.on("rowMouseEnter", (event, row) => {
-
-    })
     // instance.on("rowSelected", row => {
     //   console.trace("Not implemented")
     // });
     // instance.on("rowDeselected", row => {
     //   console.trace("Not implemented")
     // });
-    instance.on("cellEditing", cell => {
-      console.trace("Not implemented")
-    });
+    // instance.on("cellEditing", cell => {
+    //   console.trace("Not implemented")
+    // });
     instance.on("cellEdited", async cell => {
-      changes.value?.push({type: "change", cell})
+      recordChange(cell.getValue(), cell.getRow().getPosition() as number, cell.getColumn().getField())
     });
-    instance.on("cellEditCancelled", cell => {
-      console.trace("Not implemented")
-    });
+    // instance.on("cellEditCancelled", cell => {
+    //   console.trace("Not implemented")
+    // });
     instance.on("dataChanged", _ => {
-      validate()
+      // validate()
     });
     instance.on("rowAdded", row => {
-      changes.value?.push({type: "add", row})
+      changes.value?.push({type: "add", row: row.getPosition() as number, fields: {}})
     });
     instance.on("rowDeleted", row => {
-      changes.value?.push({type: "delete", row})
+      changes.value?.push({type: "delete", row: row.getPosition() as number, fields: {}})
     });
 
     tabulator.value = instance;
   }
-})
-
-const onWindowSizeChanged = debounce(() => {
-  if (!tableBuilt.value) {
-    return;
-  }
-
-  tabulator.value?.setHeight(document.querySelector(".row.editor-row")?.scrollHeight ?? 400)
 })
 
 watchEffect(() => {
@@ -204,6 +229,18 @@ watchEffect(() => {
 })
 
 async function validateImmediate() {
+  verifying.value = true;
+  const toast = showToast?.({
+    props: {
+      value: true,
+    },
+    component: h(BToast, null, {
+      default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+        h("div", {class: "spinner-border text-primary spinner-border-sm"}),
+        "Validating ..."
+      ])
+    })
+  })!;
   const rows = tabulator?.value?.getData();
 
   if (!rows) {
@@ -216,45 +253,118 @@ async function validateImmediate() {
     rows
   }
 
-  const response = await fetch(`${URL_PREFIX}/api/validate/file`, {
-    method: "POST",
-    headers: {
-      "Content-type": "application/json",
-      "Accept": "application/json"
-    },
-    body: JSON.stringify(data)
-  })
+  try {
 
-  const result = await response.json();
+    const response = await fetch(`${URL_PREFIX}/api/validate/file`, {
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(data)
+    })
 
-  diagnostics.value = {}
-  for (const error of result.errors) {
-    if (!diagnostics.value[error.row - 2]) {
-      diagnostics.value[error.row - 2] = []
+    const result = await response.json();
+
+    diagnostics.value = {}
+    for (const error of result.errors) {
+      if (!diagnostics.value[error.row - 2]) {
+        diagnostics.value[error.row - 2] = []
+      }
+
+      diagnostics.value[error.row - 2].push({type: 'error', diagnostic: error, _id: -1})
     }
 
-    diagnostics.value[error.row - 2].push({type: 'error', diagnostic: error, _id: -1})
-  }
+    for (const warning of result.warnings) {
+      if (!diagnostics.value[warning.row - 2]) {
+        diagnostics.value[warning.row - 2] = []
+      }
 
-  for (const warning of result.warnings) {
-    if (!diagnostics.value[warning.row - 2]) {
-      diagnostics.value[warning.row - 2] = []
+      diagnostics.value[warning.row - 2].push({type: 'warning', diagnostic: warning, _id: -1})
     }
 
-    diagnostics.value[warning.row - 2].push({type: 'warning', diagnostic: warning, _id: -1})
+    allDiagnostics.value.forEach((d, i) => {
+      d["_id"] = i
+    })
+
+    tabulator.value?.getRows()?.forEach(r => r.reformat())
+
+    removeToast?.(toast);
+
+    if (valid.value) {
+      showToast?.({
+        props: {
+          value: 5000,
+          progressProps: {
+            variant: 'success',
+          }
+        },
+        component: h(BToast, {variant: "success"}, {
+          default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+            h("i", {class: "fa fa-check"}),
+            h("span", null, "No errors found!")
+          ])
+        })
+      })
+    } else if (errors.value.length > 0) {
+      showToast?.({
+        props: {
+          value: 5000,
+          progressProps: {
+            variant: 'danger',
+          }
+        },
+        component: h(BToast, {variant: "danger"}, {
+          default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+            h("i", {class: "fa fa-circle-xmark"}),
+            h("span", null, `${errors.value.length} errors and ${warnings.value.length} warnings found`)
+          ])
+        })
+      })
+    } else {
+      showToast?.({
+        props: {
+          value: 5000,
+          progressProps: {
+            variant: 'warning',
+          }
+        },
+        component: h(BToast, {variant: "warning"}, {
+          default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+            h("i", {class: "fa fa-triangle-exclamation"}),
+            h("span", null, `${warnings.value.length} warnings found`)
+          ])
+        })
+      })
+    }
+
+    showDiagnosticList.value = !valid.value;
+  } catch {
+    removeToast?.(toast);
+    showToast?.({
+      props: {
+        value: 5000,
+        progressProps: {
+          variant: 'danger',
+        }
+      },
+      component: h(BToast, {variant: "danger"}, {
+        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+          h("i", {class: "fa fa-triangle-exclamation"}),
+          h("span", null, `Problem communicating with the server`)
+        ])
+      })
+    })
   }
 
-  allDiagnostics.value.forEach((d, i) => {
-    d["_id"] = i
-  })
-
-  tabulator.value?.getRows()?.forEach(r => r.reformat())
+  verifying.value = false;
 }
 
 const validate = debounce(() => validateImmediate());
 
 async function loadData() {
-  const response = await (await fetch(`${URL_PREFIX}/api/edit/get/${filePath}`)).json()
+  console.log({repo, filePath})
+  const response = await (await fetch(`${URL_PREFIX}/api/edit/get/${repo}/${filePath}`)).json()
 
   if (!response.success) {
     await alertDialog({
@@ -267,6 +377,15 @@ async function loadData() {
   }
 }
 
+async function scrollAndHighlightRow(position: number) {
+  const row = tabulator.value?.getRowFromPosition(position);
+  await row?.scrollTo("center", true)
+
+  row?.getElement().classList.add("highlight");
+  await new Promise(r => setTimeout(r, 3000))
+  row?.getElement().classList.remove("highlight");
+}
+
 
 /************* UTILITY FROM OLD ****************/
 
@@ -274,54 +393,33 @@ function saveCurator(row: RowComponent) {
   //if a field in any column except "Curator" edited
   //check "Curator" column for loginInitials and auto fill
   const data = row.getData();
-  if (data[COLUMN_NAMES.CURATOR] === undefined) { //curator column not present in table
 
-  } else {
+  if (data[COLUMN_NAMES.CURATOR] !== undefined) { // if curator column present in table
+    const cellValue: string = data[COLUMN_NAMES.CURATOR];
+    const curators = [...cellValue?.split(";")?.map(x => x.trim()), LOGIN_INITIALS]
+        .filter((x, i, self) => !!x && self.indexOf(x) === i)
+        .join("; ")
+    data[COLUMN_NAMES.CURATOR] = curators;
 
-    if (COLUMN_NAMES.CURATOR !== null && data[COLUMN_NAMES.CURATOR] !== "") {
-      const prevCurator = data[COLUMN_NAMES.CURATOR];
-      if (prevCurator.indexOf(LOGIN_INITIALS) > -1) {
-        //name exists, don't update
-      } else {
-        data[COLUMN_NAMES.CURATOR] = prevCurator + "; " + LOGIN_INITIALS;
-      }
-    } else {
-      data[COLUMN_NAMES.CURATOR] = LOGIN_INITIALS;
-    }
-
-    //save curator column to local storage for backup here
-    //{value, row, columnName}
-    //data[curator], row.getPosition(), "Curator"
-    if (data[COLUMN_NAMES.CURATOR] !== "" && data[COLUMN_NAMES.CURATOR] !== null) {
+    if (curators !== "") {
       const cellValue = data[COLUMN_NAMES.CURATOR];
       const rowValue = row.getPosition();//save absolute row position
       const columnValue = "Curator"; //column name
-      updateChanges(cellValue, rowValue as number, columnValue);
+      recordChange(cellValue, rowValue as number, columnValue);
     }
   }
 }
 
-function updateChanges(cellValue: string, rowValue: number, columnValue: string) {
-  //{value, row, columnName}            
-  // rowValue = row.getPosition();//save absolute row position
-  // columnValue = cell.getField(); //column name
-  let alreadyChanged = false;
-  //check for previously edited cell, and overwrite if already changed before
-  for (let i = 0; i < changes.value.length; i++) {
-    if (rowValue == changes.value[i]) { //matches row number
-      if (columnValue == changes.value[i + 1]) { //matches column name as well
-        // console.log("already edited this field");
-        changes.value.splice(i - 1, 3, cellValue, rowValue, columnValue);
-        alreadyChanged = true;
-      }
+function recordChange(value: string, rowPosition: number, columnName: string) {
+  const changeRecord: ChangeRecord = {
+    type: "change",
+    row: rowPosition,
+    fields: {
+      [columnName]: value
     }
   }
-  if (!alreadyChanged) {
-    changes.value.push(cellValue);
-    changes.value.push(rowValue);
-    changes.value.push(columnValue);
-  }
 
+  changes.value.push(changeRecord)
 }
 
 function backupChanges() {
@@ -334,6 +432,18 @@ function backupChanges() {
     const cellArray = JSON.stringify(changes);
     localStorage.setItem("savedChanges" + fileName, cellArray);
   }
+}
+
+function restoreChanges() {
+  const jsonData = (localStorage.getItem("savedTableData" + fileName) ?? "") as string;
+  const data = JSON.parse(jsonData);
+
+  tabulator.value?.setData(data);
+
+  const jsonChanges = (localStorage.getItem("savedChanges" + fileName) ?? "") as string;
+  changes.value = JSON.parse(jsonChanges);
+
+  tabulator.value?.getRows()?.forEach(r => r.reformat())
 }
 
 function clearFormatting() {
@@ -391,8 +501,8 @@ function saveChanges() {
   if (!valid.value) {
     console.log("validate errors!!!");
 
-    const saveValidationMessage = "<ul style=\"list-style: none\">" + allDiagnostics.value
-            .map(m => `<li><span class="badge text-bg-${m.type === 'error' ? 'danger' : m.type}">${m.type}</span>
+    const saveValidationMessage = "<ul style=\"list-style: none; padding: 0; margin: 0;\">" + allDiagnostics.value
+            .map(m => `<li style="margin: 0; padding: 0; display: block"><span class="badge text-bg-${m.type === 'error' ? 'danger' : m.type}">${m.type}</span>
                             Row ${m.diagnostic.row}: ${DIAGNOSTIC_DATA[m.diagnostic.type].message(m.diagnostic)}</li>`)
             .join("\n")
         + "</ul>"
@@ -629,7 +739,7 @@ const RIBBON = {
       const field = column.getField();
       rowObj[column.getField()] = "";
 
-      switch (field.toLowerCase()) {
+      switch (field?.toLowerCase()) {
         case COLUMN_NAMES.CURATION_STATUS.toLowerCase():
           rowObj[field] = CURATION_STATUS.PROPOSED;
           break;
@@ -671,7 +781,7 @@ const RIBBON = {
           const cellValue = data[COLUMN_NAMES.CURATION_STATUS];
           const rowValue = row.getPosition() as number; //save absolute row position
           const columnValue = COLUMN_NAMES.CURATION_STATUS; //column name
-          updateChanges(cellValue, rowValue, columnValue);
+          recordChange(cellValue, rowValue, columnValue);
 
           await alertDialog({message: "You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead."});
           row.deselect();
@@ -688,7 +798,7 @@ const RIBBON = {
             const cellValue = data[COLUMN_NAMES.CURATOR];
             const rowValue = row.getPosition() as number; //save absolute row position
             const columnValue = "Curator"; //column name
-            updateChanges(cellValue, rowValue, columnValue);
+            recordChange(cellValue, rowValue, columnValue);
           }
         } else {
           // ID is "" or null, we can delete 
@@ -719,7 +829,7 @@ const RIBBON = {
       const cellValueData = data[COLUMN_NAMES.TO_BE_REVIEWED_BY];
       const rowValue = row.getPosition() as number;//save absolute row position
       const columnValue = "To be reviewed by"; //column name
-      updateChanges(cellValueData, rowValue, columnValue);
+      recordChange(cellValueData, rowValue, columnValue);
     }
 
     backupChanges();
@@ -754,7 +864,7 @@ const RIBBON = {
       const cellValueData = reviewers;
       const rowValue = row.getPosition() as number;//save absolute row position
       const columnValue = "To be reviewed by"; //column name
-      updateChanges(cellValueData, rowValue, columnValue);
+      recordChange(cellValueData, rowValue, columnValue);
       backupChanges();
     }
   },
@@ -901,20 +1011,6 @@ function defColumnSize(field: string): number {
 
             <span class="ribbon-title" style="grid-column: span 2">Validation</span>
 
-            <div class="ribbon-small">
-              <button :class="{active: filterToDiagnostics.includes('error')}" :disabled="locked" class="btn-ribbon"
-                      @click="RIBBON.filterToErrors()">
-                <i class="fas fa-circle-xmark" style="color: indianred"></i> Errors ({{ errors.length }})
-              </button>
-              <button :class="{active: filterToDiagnostics.includes('warning')}" :disabled="locked" class="btn-ribbon"
-                      @click="RIBBON.filterToWarnings()">
-                <i class="fas fa-exclamation-triangle" style="color: orange"></i> Warnings ({{ warnings.length }})
-              </button>
-              <button :class="{active: filterToDiagnostics.includes('info')}" :disabled="locked" class="btn-ribbon"
-                      @click="RIBBON.filterToInfos()">
-                <i class="fas fa-info-circle" style="color: dodgerblue"></i> Infos ({{ infos.length }})
-              </button>
-            </div>
             <div class="ribbon-splitter"></div>
 
             <div class="ribbon-filler"></div>
@@ -923,8 +1019,56 @@ function defColumnSize(field: string): number {
       </div>
     </div>
 
-    <div class="row editor-row" style="height: 100%">
-      <div id="contentTable" ref="table" class="table table-bordered table-hover table-sm" style="font-size: 0.8em">
+    <div class="row editor-row" :style="showDiagnosticList ? 'height: calc(100% - 200px)' : 'height: 100%'">
+      <div id="contentTable" ref="table" class="table table-bordered table-hover table-sm"
+           style="font-size: 0.8em; margin-bottom: 0 !important;">
+      </div>
+    </div>
+
+
+    <button class="toggle-diagnostics bg-secondary" @click="showDiagnosticList = !showDiagnosticList"
+            :style="{bottom: showDiagnosticList ? '200px' : '0'} ">
+      <template v-if="showDiagnosticList">
+        <i class="fa fa-chevron-down"></i> Hide validation messages
+      </template>
+      <template v-else>
+        <i class="fa fa-chevron-up"></i> Show validation messages
+      </template>
+    </button>
+    <div class="row border-1 border-danger overflow-scroll bg-secondary-subtle" style="height: 200px; min-height: 200px"
+         v-if="showDiagnosticList">
+      <div class="diagnostics-header bg-secondary">
+        <button :class="{active: filterToDiagnostics.includes('error')}" :disabled="locked"
+                class="btn-diagnostics-filter"
+                @click="RIBBON.filterToErrors()">
+          <i class="fas fa-circle-xmark" style="color: indianred"></i> Errors ({{ errors.length }})
+        </button>
+        <button :class="{active: filterToDiagnostics.includes('warning')}" :disabled="locked"
+                class="btn-diagnostics-filter"
+                @click="RIBBON.filterToWarnings()">
+          <i class="fas fa-exclamation-triangle" style="color: orange"></i> Warnings ({{ warnings.length }})
+        </button>
+        <button :class="{active: filterToDiagnostics.includes('info')}" :disabled="locked"
+                class="btn-diagnostics-filter"
+                @click="RIBBON.filterToInfos()">
+          <i class="fas fa-info-circle" style="color: dodgerblue"></i> Infos ({{ infos.length }})
+        </button>
+      </div>
+      <div class="diagnostics-grid">
+        <template
+            v-for="d of allDiagnostics.filter(x => filterToDiagnostics.length === 0 || filterToDiagnostics.includes(x.type))">
+          <i class="fa dg-type"
+
+             :class="{'fa-circle-xmark': d.type === 'error',
+                    'fa-triangle-exclamation': d.type === 'warning',
+                    'fa-info-circle': d.type ==='info',
+                    [`text-${d.type === 'error' ? 'danger' : d.type}`]: true}"></i>
+
+          <a class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 1)" v-if="d.diagnostic.row > 0">Row
+            {{ d.diagnostic.row - 1 }}</a>
+
+          <Diagnostic :diagnostic="d.diagnostic" format="inline" class="dg-diagnostic"></Diagnostic>
+        </template>
       </div>
     </div>
   </div>
@@ -960,11 +1104,6 @@ function defColumnSize(field: string): number {
 
     <h4 class="text-center">Saving file..</h4>
   </BModal>
-
-  <div style="display: none">
-    <Diagnostic v-for="d of allDiagnostics" :id="'diagnostic-' + d._id" :diagnostic="d.diagnostic"
-                :format="'inline'"></Diagnostic>
-  </div>
 </template>
 
 <style lang="scss">
@@ -1099,6 +1238,66 @@ function defColumnSize(field: string): number {
   //grid-template-rows: auto auto auto 100%;
   //grid-auto-columns: 100%;
 
+  .diagnostics-grid {
+    margin-top: 32px;
+    display: grid;
+    gap: 4px 8px;
+    align-items: center;
+    grid-template-columns: 16px minmax(24px, auto) 1fr;
+    grid-auto-rows: min-content;
+
+    .dg-type {
+      grid-column: 1
+    }
+
+    .dg-row {
+      grid-column: 2;
+      cursor: pointer;
+    }
+
+    .dg-diagnostic {
+      grid-column: 3;
+      margin-bottom: 0;
+    }
+  }
+
+  .toggle-diagnostics {
+    position: absolute;
+    border: none;
+    left: 0;
+    height: 26px;
+    border-radius: 5px 5px 0 0;
+    padding: 0 8px;
+  }
+
+  .diagnostics-header {
+    display: flex;
+    height: 32px;
+    margin-bottom: 4px;
+    position: fixed;
+  }
+
+  .btn-diagnostics-filter {
+    background: none;
+    border: none;
+    padding: 0 8px !important;
+
+
+    &:hover:not([disabled]) {
+      background: #aaaaaa;
+    }
+
+    &.active {
+      background: #c8c8c8;
+    }
+
+    &[disabled], &[disabled]:hover {
+      i {
+        color: #ccc !important;
+      }
+    }
+  }
+
   .ose-curation-status {
     &-discussed {
       background: moccasin !important;
@@ -1145,6 +1344,20 @@ function defColumnSize(field: string): number {
     color: black;
     font-weight: bold;
   }
+
+  .tabulator.table .tabulator-row {
+    box-shadow: inset 0 0 0 0 transparent;
+    transition: box-shadow 500ms;
+
+    &.highlight {
+      box-shadow: inset 0 0 10px 5px #ffcb00;
+    }
+  }
+
+  .changed {
+    color: #003399;
+  }
+
 
   .has-error {
     color: red !important;

@@ -4,6 +4,7 @@ import {AutoFixState, Diagnostic as DiagnosticM, Release, Term} from "../../comm
 import ErrorLink from "../ErrorLink.vue";
 import {guessParent} from "../autofix/guessParent.ts"
 import ProgressIndicator from "../ProgressIndicator.vue";
+import Diagnostic from "../../common/Diagnostic.vue";
 
 declare var URLS: { [key: string]: any }
 const prefix_url = URLS.prefix

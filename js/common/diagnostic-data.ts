@@ -149,7 +149,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     "unknown-relation": {
         severity: "error",
         title: d => `Unknown relation`,
-        message: d => `The relation ${d.relation.label ? ('<code>${d.relation.label}</code>' + (d.relation.id ? '(' + d.relation.id + ')' : '')) : d.relation.id} is not known`,
+        message: d => `The relation ${d.relation.label ? (`<code>${d.relation.label}</code>` + (d.relation.id ? '(' + d.relation.id + ')' : '')) : d.relation.id} is not known`,
     },
     "duplicate": {
         severity: "error",
@@ -173,17 +173,16 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
         title: d => `Missing import`,
         message: d => `The term <code>${ d.term.label }</code> (<code>${ d.term.id }</code>) has the curation
               status
-              "External" but is not included in the externally imported terms.` + (d.term.id ? `Does the term still exist in
+              "External" but is not included in the externally imported terms.` + (d.term.id ? ` Does the term still exist in
                 ${ d.term.id.split(":")[0] }?` : ""),
     },
     "inconsistent-import": {
         severity: "warning",
         title: d => `Inconsistent import`,
         message: d => `The term <code>${ d.term.label }</code> (<code>${ d.term.id }</code>) has the curation
-              status
-              "External" but its` +
-              d.term.id !== d.imported_term.id ? `ID (<code>${d.imported_term.id}</code>)` : `label (<code>${ d.imported_term.label }</code>)` +
-              `differs.`,
+              status "External" but its ` +
+            (d.term.id !== d.imported_term.id ? `ID (<code>${d.imported_term.id}</code>)` : `label (<code>${d.imported_term.label}</code>)`) +
+            ` differs.`,
     },
 
 }

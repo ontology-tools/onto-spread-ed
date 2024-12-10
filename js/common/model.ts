@@ -111,3 +111,9 @@ export interface RepositoryConfig {
         }
     }
 }
+
+export interface ChangeRecord {
+    type: "change" | "add" | "delete",
+    row: number,
+    fields: { [k: string]: string }
+}
