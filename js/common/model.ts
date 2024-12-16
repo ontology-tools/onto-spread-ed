@@ -117,3 +117,11 @@ export interface ChangeRecord {
     row: number,
     fields: { [k: string]: string }
 }
+
+export interface MergeConflict {
+    row: number,
+    col: string,
+    base_value: string,
+    our_value: string,
+    their_value: string,
+}

@@ -4,6 +4,7 @@ import json
 import threading
 import traceback
 from datetime import datetime
+from typing import Any, Dict, List, Tuple
 
 import daff
 import openpyxl
@@ -51,7 +52,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
                            user_initials=user_initials,
                            all_initials=[v.get("initials") for v in config.app_config["USERS"].values()
                                          if "initials" in v],
-                           repository_config = repository,
+                           repository_config=repository,
                            folder=folder,
                            spreadsheet_name=spreadsheet,
                            breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i + 1])} for i, s in
@@ -92,22 +93,39 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
     commit_msg = saveData.get("commit_msg")
     commit_msg_extra = saveData.get("commit_msg_extra")
     header = saveData.get("header")
-    overwrite = False
-    overwriteVal = saveData.get("overwrite")
-    if overwriteVal == "true":
-        overwrite = True
+    merge_strategy = saveData.get("merge_strategy", None)
+
+    initial_data_parsed = json.loads(initial_data) if initial_data else []
+    row_data = json.loads(row_data)
+    # Sort based on label
+    # What if 'Label' column not present?
+    initial_data = sorted(initial_data_parsed, key=lambda k: k.get('Label', None) or "")
+
+    return _save(searcher, github, config, repo_key, folder, spreadsheet, row_data, initial_data, file_sha_original,
+                 commit_msg, commit_msg_extra, header, merge_strategy
+                 )
+
+
+def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService, repo_key: str, folder: str,
+          spreadsheet: str, row_data_parsed, initial_data_parsed, file_sha_original: str, commit_msg: str,
+          commit_msg_extra: str,
+          header, merge_strategy: str):
+    overwrite = merge_strategy is not None
 
     id_suffix = ""
 
     repository = config.get(repo_key)
     default_branch = repository.main_branch
-    restart = False  # for refreshing the sheet (new ID's)
     try:
-        initial_data_parsed = json.loads(initial_data)
-        row_data_parsed = json.loads(row_data)
-        # Sort based on label
-        # What if 'Label' column not present?
-        initial_data_parsed = sorted(initial_data_parsed, key=lambda k: k.get('Label', None) or "")
+        if merge_strategy == "theirs":
+            (sha, rows, header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
+            return jsonify({
+                "success": True,
+                "new_rows": rows,
+                "new_header": header,
+                "new_sha": sha,
+                "merge_strategy": merge_strategy
+            })
 
         # Sort based on label
         # What if 'Label' column not present?
@@ -236,28 +254,36 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
             current_app.logger.info("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff, merged_table = get_diff(initial_data_parsed, row_data_parsed, new_rows, new_header)
-            # update rows for comparison:
-            (file_sha3, rows3, header3) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
-            # todo: delete transient branch here? Github delete code is a test for now.
-            # Delete the branch again
-            current_app.logger.debug("About to delete branch", f"repos/{repository.full_name}/git/refs/heads/{branch}")
-            response = github.delete(
-                f"repos/{repository.full_name}/git/refs/heads/{branch}")
-            if not response:
-                raise Exception(f"Unable to delete branch {branch} in {repository.full_name}")
+            conflicts, merged_data = get_diff(initial_data_parsed, row_data_parsed, new_rows, new_header)
 
-            return jsonify({
-                "success": False,
-                "error": "merge-conflict",
-                "pr": pr_info,
-                "file_sha_1": file_sha_original,
-                "file_sha_2": file_sha_theirs,
-                "merge_diff": merge_diff,
-                "merged_table": json.dumps(merged_table),
-                "their_data": rows3,
-                "their_header": header3,
-            })
+            if len(conflicts) > 0:
+
+                # Delete the branch again
+                current_app.logger.debug("About to delete branch",
+                                         f"repos/{repository.full_name}/git/refs/heads/{branch}")
+                response = github.delete(
+                    f"repos/{repository.full_name}/git/refs/heads/{branch}")
+                if not response:
+                    raise Exception(f"Unable to delete branch {branch} in {repository.full_name}")
+
+                return jsonify({
+                    "success": False,
+                    "error": "merge-conflict",
+                    "pr": pr_info,
+                    "file_sha_1": file_sha_original,
+                    "file_sha_2": file_sha_theirs,
+                    "merge_conflicts": [{
+                        "row": c.row - 1,  # subtract 1 for header row which we excluded
+                        "col": new_header[c.col],
+                        "base_value": c.pvalue,
+                        "our_value": c.lvalue,
+                        "their_value": c.rvalue
+                    } for c in conflicts],
+                    "merged_table": merged_data,
+                })
+            else:
+                return _save(searcher, github, config, repo_key, folder, spreadsheet, merged_data, initial_data_parsed,
+                             file_sha_original, commit_msg, commit_msg_extra, header, "automatic")
 
             # return (
             #     json.dumps({
@@ -293,7 +319,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
         current_app.logger.info("Save succeeded.")
         # Update the search index for this file ASYNCHRONOUSLY (don't wait)
         thread = threading.Thread(target=searcher.update_index,
-                                  args=(repo_key, folder, spreadsheet, header, row_data_parsed))
+                                  args=(repo_key, folder, spreadsheet, row_data_parsed))
         thread.daemon = True  # Daemonize thread
         thread.start()  # Start the execution
 
@@ -304,7 +330,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
             "success": True,
             "new_rows": saved_rows,
             "new_header": new_header,
-            "new_sha": saved_sha
+            "new_sha": saved_sha,
+            "merge_strategy": merge_strategy
         })
 
         # if restart:  # todo: does this need to be anywhere else also?
@@ -442,13 +469,15 @@ def checkNotUnique(cell, column, headers, table):
     return False
 
 
-def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2server, header, 3initial)
-
+def get_diff(data_base: List[Dict[str, Any]],
+             data_ours: List[Dict[str, Any]],
+             data_theirs: List[Dict[str, Any]],
+             row_header: List[str]) -> Tuple[List[daff.ConflictInfo], List[Dict[str, Any]]]:
     # print(f'the type of row_data_3 is: ')
     # print(type(row_data_3))
 
     # sort out row_data_1 format to be the same as row_data_2
-    new_row_data_1 = []
+    new_data_ours = []
     for k in data_ours:
         dictT = {}
         for key, val, item in zip(k, k.values(), k.items()):
@@ -458,11 +487,24 @@ def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2serve
                 # add to dictionary:
                 dictT[key] = val
         # add to list:
-        new_row_data_1.append(dictT)
+        new_data_ours.append(dictT)
 
-        # sort out row_data_3 format to be the same as row_data_2
-    new_row_data_3 = []
-    for h in data_base:
+    # sort out row_data_1 format to be the same as row_data_2
+    new_data_base = []
+    for k in data_base:
+        dictT2 = {}
+        for key, val, item in zip(k, k.values(), k.items()):
+            if key != "id":
+                if val == "":
+                    val = None
+                # add to dictionary:
+                dictT2[key] = val
+        # add to list:
+        new_data_base.append(dictT2)
+
+    # sort out row_data_3 format to be the same as row_data_2
+    new_data_theirs = []
+    for h in data_theirs:
         dictT3 = {}
         for key, val, item in zip(h, h.values(), h.items()):
             if key != "id":
@@ -471,16 +513,13 @@ def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2serve
                 # add to dictionary:
                 dictT3[key] = val
         # add to list:
-        new_row_data_3.append(dictT3)
+        new_data_theirs.append(dictT3)
 
-    row_data_combo_1 = [row_header]
-    row_data_combo_2 = [row_header]
-    row_data_combo_3 = [row_header]
+    row_data_combo_ours = [row_header] + [[r[k] for k in row_header] for r in new_data_ours]
+    row_data_combo_base = [row_header] + [[r[k] for k in row_header] for r in new_data_base]
+    row_data_combo_theirs = [row_header] + [[r[k] for k in row_header] for r in new_data_theirs]
 
-    row_data_combo_1.extend(
-        [list(r.values()) for r in new_row_data_1])  # row_data_1 has extra "id" column for some reason???!!!
-    row_data_combo_2.extend([list(s.values()) for s in data_theirs])
-    row_data_combo_3.extend([list(t.values()) for t in new_row_data_3])
+    daff.Table()
 
     # checking:
     # print(f'row_header: ')
@@ -496,9 +535,16 @@ def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2serve
     # print(f'combined 3: ')
     # print(row_data_combo_3)
 
-    table1 = daff.PythonTableView(row_data_combo_1)  # daff needs a header in order to work correctly!
-    table2 = daff.PythonTableView(row_data_combo_2)
-    table3 = daff.PythonTableView(row_data_combo_3)
+    table_ours = daff.PythonTableView(row_data_combo_ours)  # daff needs a header in order to work correctly!
+    table_base = daff.PythonTableView(row_data_combo_base)
+    table_theirs = daff.PythonTableView(row_data_combo_theirs)
+
+    merger = daff.Merger(table_base, table_ours, table_theirs, daff.CompareFlags())
+    merger.apply()
+
+    merged_data = [{h: row[i] for (i, h) in enumerate(row_header)} for row in table_ours.data[1:]]
+
+    return merger.getConflictInfos(), merged_data
 
     # old version:
     # table1 = daff.PythonTableView([list(r.values()) for r in row_data_1])
@@ -507,32 +553,32 @@ def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2serve
     # alignment = daff.Coopy.compareTables3(table3, table2, table1).align()  # 3 way: initial vs server vs saving
 
     # alignment = daff.Coopy.compareTables(table3,table2).align() #initial vs server
-    alignment2 = daff.Coopy.compareTables(table2, table1).align()  # saving vs server
+    # alignment2 = daff.Coopy.compareTables(table2, table1).align()  # saving vs server
     # alignment2 = daff.Coopy.compareTables(table1, table2).align() #server vs saving
     # alignment = daff.Coopy.compareTables(table3,table1).align() #initial vs saving
 
-    data_diff = []
-    table_diff = daff.PythonTableView(data_diff)
-
-    flags = daff.CompareFlags()
+    # data_diff = []
+    # table_diff = daff.PythonTableView(data_diff)
+    #
+    # flags = daff.CompareFlags()
 
     # flags.allowDelete()
     # flags.allowUpdate()
     # flags.allowInsert()
 
-    highlighter = daff.TableDiff(alignment2, flags)
-
-    highlighter.hilite(table_diff)
-    # hasDifference() should return true - and it does.
-    if highlighter.hasDifference():
-        current_app.logger.debug('HASDIFFERENCE')
-        current_app.logger.debug(highlighter.getSummary().row_deletes)
-    else:
-        current_app.logger.debug('no difference found')
-    diff2html = daff.DiffRender()
-    diff2html.usePrettyArrows(False)
-    diff2html.render(table_diff)
-    table_diff_html = diff2html.html()
+    # highlighter = daff.TableDiff(alignment2, flags)
+    #
+    # highlighter.hilite(table_diff)
+    # # hasDifference() should return true - and it does.
+    # if highlighter.hasDifference():
+    #     current_app.logger.debug('HASDIFFERENCE')
+    #     current_app.logger.debug(highlighter.getSummary().row_deletes)
+    # else:
+    #     current_app.logger.debug('no difference found')
+    # diff2html = daff.DiffRender()
+    # diff2html.usePrettyArrows(False)
+    # diff2html.render(table_diff)
+    # table_diff_html = diff2html.html()
 
     # print(table_diff_html)
     # print(f'table 1 before patch test: ')
@@ -559,36 +605,36 @@ def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2serve
 
     # merger test:
     # print(f'Merger test: ')
-    merger = daff.Merger(table3, table2, table1, flags)  # (3initial, 1saving, 2server, flags)
-    merger.apply()
+    # merger = daff.Merger(table3, table2, table1, flags)  # (3initial, 1saving, 2server, flags)
+    # merger.apply()
     # print(f'table2:')
     # table2String = table2.toString()
     # print(table2String) #after merger
 
-    data = table2.getData()  # merger table in list format
-    # print(f'data: ')
-    # print(json.dumps(data)) #it's a list.
-    # convert to correct format (list of dicts):
-    dataDict = []
-    iter = -1
-    for k in data:
-        # add "id" value:
-        iter = iter + 1
-        dictT = {}
-        if iter == 0:
-            pass
-            # print(f'header row - not using')
-        else:
-            dictT['id'] = iter  # add "id" with iteration
-            for key, val in zip(row_header, k):
-                # deal with conflicting val?
-
-                dictT[key] = val
-        # add to list:
-        if iter > 0:  # not header - now empty dict
-            dataDict.append(dictT)
-            # print(f'update: ')
-        # print(dataDict)
+    # data = table2.getData()  # merger table in list format
+    # # print(f'data: ')
+    # # print(json.dumps(data)) #it's a list.
+    # # convert to correct format (list of dicts):
+    # dataDict = []
+    # iter = -1
+    # for k in data:
+    #     # add "id" value:
+    #     iter = iter + 1
+    #     dictT = {}
+    #     if iter == 0:
+    #         pass
+    #         # print(f'header row - not using')
+    #     else:
+    #         dictT['id'] = iter  # add "id" with iteration
+    #         for key, val in zip(row_header, k):
+    #             # deal with conflicting val?
+    #
+    #             dictT[key] = val
+    #     # add to list:
+    #     if iter > 0:  # not header - now empty dict
+    #         dataDict.append(dictT)
+    #         # print(f'update: ')
+    #     # print(dataDict)
 
     # print(f'dataDict: ')
     # print(json.dumps(dataDict))
@@ -607,7 +653,7 @@ def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2serve
     # print(f'table3:')
     # print(table3.toString())
 
-    return table_diff_html, dataDict
+    # return table_diff_html, dataDict
 
 
 @bp.route('/edit_external/<repo_key>/<path:folder_path>')

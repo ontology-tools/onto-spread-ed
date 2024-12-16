@@ -4,11 +4,12 @@ import {RowComponent, TabulatorFull as Tabulator} from 'tabulator-tables';
 import {columnDefFor, setRowColor} from "./tabulator-config.ts"
 import {COLUMN_NAMES, CURATION_STATUS} from "./constants.ts";
 import {alertDialog, confirmDialog, promptDialog} from "../common/bootbox"
-import {ChangeRecord, Diagnostic as DiagnosticM, RepositoryConfig} from "../common/model";
+import {ChangeRecord, Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig} from "../common/model";
 import Diagnostic from "../common/Diagnostic.vue"
-import {BModal, BSpinner, BToast, BToastOrchestrator, useToastController} from "bootstrap-vue-next"
+import {BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController} from "bootstrap-vue-next"
 import {DIAGNOSTIC_DATA} from "../common/diagnostic-data.ts";
 import {debounce} from "../common/debounce.ts";
+import Merger from "./Merger.vue";
 
 interface SpreadsheetData {
   header: string[],
@@ -55,6 +56,10 @@ const changed = computed(() => changes.value.length > 0)
 // Submit fields
 const submitCommitMessage = ref<string>(`Updating ${fileName}`);
 const submitDetailedMessage = ref<string>("");
+
+const mode = ref<"edit" | "merge">("edit");
+const mergeConflicts = ref<MergeConflict[]>([])
+const mergedData = ref<Record<string, string | number | boolean | null>[] | null>(null);
 
 // Generic flag to lock the UI
 const lock = ref<boolean>(false);
@@ -234,11 +239,11 @@ watchEffect(() => {
 
 async function validateImmediate(progress: "toast" | "popup" = "toast") {
   verifying.value = true;
-  let toast;
+  let toast: ControllerKey | null = null;
   if (progress === "toast") {
     toast = showToast?.({
       props: {
-        value: true,
+        value: true
       },
       component: h(BToast, null, {
         default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
@@ -579,15 +584,32 @@ function resetSaveDialog() {
   saveDialogOpen.value = false;
 }
 
-async function submitChanges(commitMessage: string, details: string) {
+async function submitChanges(commitMessage: string, details: string, merge_strategy?: "manual" | "theirs" | "ours") {
   saveDialogOpen.value = false;
   saving.value = true;
 
   const spreadsheet = spreadsheetData.value!;
-  const rowData = JSON.stringify(tabulator.value?.getData()).replaceAll("&", "and")
   const initialData = JSON.stringify(spreadsheetData.value?.rows).replaceAll("&", "and")
 
   try {
+    const data = {
+      repo_key: spreadsheet.repo_name,
+      file_sha: spreadsheet.file_sha,
+      folder: fileFolder,
+      spreadsheet: fileName,
+      header: tabulator.value?.getColumns()?.map(c => c.getField())?.slice(1),
+      commit_msg: commitMessage,
+      commit_msg_extra: details,
+    }
+
+    if (merge_strategy === undefined) {
+      data["initialData"] = initialData;
+      data["rowData"] = JSON.stringify(tabulator.value?.getData())
+    } else {
+      data["merge_strategy"] = merge_strategy;
+      data["rowData"] = JSON.stringify(mergedData.value!)
+    }
+    data["rowData"] = data["rowData"].replaceAll("&", "and")
 
     const response = await fetch(`${URL_PREFIX}/save`, {
       method: "POST",
@@ -595,18 +617,7 @@ async function submitChanges(commitMessage: string, details: string) {
         "Content-type": "application/json",
         "Accept": "application/json",
       },
-      body: JSON.stringify({
-        repo_key: spreadsheet.repo_name,
-        file_sha: spreadsheet.file_sha,
-        folder: fileFolder,
-        spreadsheet: fileName,
-        rowData,
-        header: tabulator.value?.getColumns()?.map(c => c.getField())?.slice(1),
-        initialData,
-        commit_msg: commitMessage,
-        commit_msg_extra: details,
-        overwrite: "false" // TODO: should not be hardcoded
-      })
+      body: JSON.stringify(data)
     })
 
     saving.value = false;
@@ -618,29 +629,52 @@ async function submitChanges(commitMessage: string, details: string) {
         changes.value = [];
         backupChanges()
 
+        mode.value = "edit";
+
         spreadsheetData.value!.file_sha = result.new_sha
         spreadsheetData.value!.header = result.new_header
         spreadsheetData.value!.rows = result.new_rows
         tabulator.value?.setData(tableData.value)
+        validateImmediate()
 
-        showToast?.({
-          props: {
-            title: 'Saved!',
-            body: "Changes were saved successfully to the repository.",
-            value: true,
-            variant: 'success',
-            pos: 'top-center',
+        if (result.merge_strategy === "automatic") {
+          await alertDialog({
+            title: `Automatic merge successful!`,
+            message: `Somebody else has changed the spreadsheet while you were editing - but the changes could be merged automatically. Your changes are saved to the repository.`,
+            className: "success"
+          })
+        } else {
+          showToast?.({
+            props: {
+              value: 5000,
+              progressProps: {
+                variant: 'success',
+              }
+            },
+            component: h(BToast, {variant: "success"}, {
+              default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+                h("i", {class: "fa fa-save"}),
+                h("span", null, "Changes were saved successfully to the repository.")
+              ])
+            })
+          })
+        }
 
-          }
-        })
+
       } else {
         const error = result.error;
         if (error === "merge-conflict") {
-
-        } else {
-
           await alertDialog({
-            title: `An error occured while saving the file`,
+            title: `Merge conflicts`,
+            message: `Somebody else has changed the spreadsheet while you were editing and your changes conflict with theirs. Please resolve the conflicts, choose to overwrite your changes, or cancel the operation.`
+          }, "hidden")
+
+          mergedData.value = result.merged_table
+          mergeConflicts.value = result.merge_conflicts
+          mode.value = "merge"
+        } else {
+          await alertDialog({
+            title: `An error occurred while saving the file`,
             message: `<p>An error occured while saving the file:</p><p>${error}</p>`,
             className: "danger"
           })
@@ -656,108 +690,6 @@ async function submitChanges(commitMessage: string, details: string) {
         className: "danger"
       })
     }
-
-    //
-    // // console.log("request status is: " + request.status);
-    // if (request.readyState === 4) {
-    //   if (!request.status) {
-    //     //todo: should we re-load spreadsheet like this on every successful save? 
-    //     if (overwrite == 'true') { //true for merge, where there is different data to load in. 
-    //       //re-load here to get updated data - need alert not bootbox (for blocking):
-    //       bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
-    //       tableEdited = false; //stops page from warning about unsaved changes
-    //       //showSaveMessage localStorage for reload: 
-    //       showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
-    //       localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
-    //       location.reload(true); //todo: can tabulator just update without re-loading the page? 
-    //     }
-    //     //for "Discussed" Curation status - need to re-load sheet to avoid new data bug
-    //     if (reloadTable) { //true for "Discussed" Curation status 
-    //       //re-load here to get updated data - need alert not bootbox (for blocking):
-    //       bootbox.alert("Changes were saved successfully to the repository. Re-loading data now");
-    //       tableEdited = false; //stops page from warning about unsaved changes
-    //       //showSaveMessage localStorage for reload: 
-    //       showSaveMessageMessage = 'Changes were saved successfully to the repository. ';
-    //       localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
-    //       location.reload(true); //todo: can tabulator just update without re-loading the page? 
-    //     }
-    //     //todo: handle more error codes here and do merge in correct circumstance
-    //   } else if (request.status === 400) { //repo not found error
-    //     var response = JSON.parse(request.responseText);
-    //     var errInfo = response['Error'];
-    //     $("#saveAlert").addClass("alert-danger");
-    //     $("#saveMessage").text('REPO not found - ' + errInfo);
-    //     $("#saveAlert").show();
-    //   } else if (request.status === 300) { //error code for merge
-    //     var response = JSON.parse(request.responseText);
-    //     var errInfo = response['Error'];
-    //     var mergeInfo = response['merge_diff'];
-    //     mergedTable = response['merged_table']
-    //
-    //     var conflicted = false; // not using this right now..
-    //
-    //     $('#saveAlert').removeClass('alert-success');
-    //     $('#saveAlert').addClass('alert-danger');
-    //     $("#saveMessage").append(errInfo);
-    //     $("#saveMessage").append('<br> SEE THE BUTTONS ABOVE THIS MESSAGE FOR OPTIONS TO DEAL WITH THIS <br>');
-    //     $("#saveMessage").append('Merge info: ' + mergeInfo);
-    //     // $("#saveMessage").append('There was a problem saving changes: ' + errInfo + "--->" + mergeInfo);                                       
-    //     $(".alert").alert() //???
-    //     $("#saveAlert").show();
-    //     $('#save-btn').hide();
-    //     $("#validation-btns").hide(); //I think we don't want these here
-    //     $('#updates').hide();
-    //     $('#conflict-btns').show();
-    //     // $("#saveMessage").text(''); //reset message
-    //     // $("#saveAlert").hide();
-    //     $("tr").each(function () {
-    //       if ($(this).hasClass("remove")) {
-    //         // console.log("REMOVE DETECTED");
-    //       }
-    //       if ($(this).hasClass("add")) {
-    //         // console.log("ADD DETECTED");
-    //       }
-    //     });
-    //     $("td").each(function () {
-    //       if ($(this).hasClass("modify")) {
-    //         // console.log("MODIFY DETECTED");
-    //       }
-    //       if ($(this).hasClass("conflict")) {
-    //         // console.log("CONFLICT DETECTED");
-    //       }
-    //     });
-    //     $("tr.remove").css('background-color', '#DAA520'); //orange
-    //     $("tr.add").css('background-color', '#7CFC00'); //green
-    //     $("td.modify").css('background-color', '#00FF00'); //lighter green
-    //     $("td.conflict").css('background-color', '#FF69B4'); //hot pink //add "CONFLICT!" MESSAGE?
-    //   } else if (request.status === 360) { //same as 200 only with restart to show new ID's
-    //     window.localStorage.removeItem("savedChanges" + thisSheet);  //remove saved changes from localStorage
-    //     bootbox.alert("Save successful - new ID's were generated.<br>The page will now refresh to load new data.");
-    //     tableEdited = false; //stops page from warning about unsaved changes
-    //     showSaveMessageMessage = 'Changes were saved successfully to the repository, New ID\'s have been generated';
-    //     localStorage.setItem("showSaveMessage" + thisSheet, showSaveMessageMessage);
-    //     location.reload(true);
-    //   } else if (request.status === 403) { // No permission to save
-    //     hide_save_indicator();
-    //     bootbox.alert({
-    //       title: "Permission denied",
-    //       message: "You don't have permission to edit this file!"
-    //     });
-    //   } else {
-    //     saveIndicator.modal('hide'); // hide save indicator if no response
-    //     let errInfo;
-    //     try {
-    //       const response = JSON.parse(request.responseText);
-    //       //console.log(response);
-    //       errInfo = response['error'];
-    //     } catch {
-    //       errInfo = "An error occured:\n<br>" + request.responseText
-    //     }
-    //     $("#saveAlert").addClass("alert-danger");
-    //     $("#saveMessage").append(errInfo);
-    //     $("#saveAlert").show();
-    //   }
-    // }
   } catch (e) {
     saving.value = false;
 
@@ -814,7 +746,7 @@ const RIBBON = {
 
     clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
     await tabulator.value!.addRow(rowObj);
-    await tabulator.value?.scrollToRow(idNum, "center", true);
+    await tabulator.value?.scrollToRow(idNum, "top", true);
   },
   async deleteSelectedRows() {
     if (selectedRows.value.length > 1) {
@@ -960,6 +892,13 @@ const RIBBON = {
   }
 }
 
+const MERGE_COMMANDS = {
+  async save(strategy: "manual" | "theirs" | "ours") {
+    await submitChanges("Resolve merge conflicts", "", strategy);
+  }
+}
+
+
 function defColumnSize(field: string): number {
   const defaultColumnSize = 200;
   return {
@@ -974,7 +913,7 @@ function defColumnSize(field: string): number {
 <template>
   <BToastOrchestrator/>
 
-  <div class="editor-container">
+  <div class="editor-container" :class="{'visually-hidden': mode !== 'edit'}">
     <div class="row mb-3">
       <div class="col-md-12">
         <div class="card p-0">
@@ -1134,6 +1073,9 @@ function defColumnSize(field: string): number {
         </template>
       </div>
     </div>
+  </div>
+  <div class="merge-container" v-if="mode === 'merge' && mergedData !== null">
+    <Merger :conflicts="mergeConflicts" v-model="mergedData" @save="MERGE_COMMANDS.save"></Merger>
   </div>
 
   <BModal v-model="saveDialogOpen" title="Submit changes">

@@ -810,6 +810,8 @@ class ExcelOntology:
                 if len(duplicates) > 1:
                     mismatches = []
                     for a, b in itertools.combinations(duplicates, 2):
+                        if a.id is None or b.id is None or a.label is None or b.label is None:
+                            continue
                         if a.label != b.label:
                             mismatches.append(("label", a, b))
                         if a.id != b.id:
