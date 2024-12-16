@@ -8,7 +8,7 @@ from datetime import date, datetime
 
 import daff
 import openpyxl
-from flask import Blueprint, session, current_app, g, render_template, request
+from flask import Blueprint, session, current_app, g, render_template, request, jsonify
 from flask_github import GitHub
 from openpyxl.styles import Font, PatternFill
 
@@ -98,7 +98,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
     spreadsheet = saveData.get("spreadsheet")
     row_data = saveData.get("rowData")
     initial_data = saveData.get("initialData")
-    file_sha = saveData.get("file_sha").strip()
+    file_sha_original = saveData.get("file_sha").strip()
     commit_msg = saveData.get("commit_msg")
     commit_msg_extra = saveData.get("commit_msg_extra")
     header = saveData.get("header")
@@ -131,7 +131,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
             current_app.logger.warning(
                 "While saving: No Label column present, so not sorting this.")  # do we need to sort - yes, for diff!
 
-        current_app.logger.debug(f"Got file_sha: {file_sha}")
+        current_app.logger.debug(f"Got file_sha: {file_sha_original}")
 
         next_id = searcher.get_next_id(repo_key + id_suffix)
 
@@ -212,10 +212,10 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
         current_app.logger.debug("About to get latest version of the spreadsheet file %s",
                                  f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
         # Get the sha for the file
-        (new_file_sha, new_rows, new_header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
+        (file_sha_theirs, new_rows, new_header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
 
         # Commit changes to branch (replace code with sheet)
-        data = {"message": commit_msg, "content": base64_string, "branch": branch, "sha": new_file_sha}
+        data = {"message": commit_msg, "content": base64_string, "branch": branch}
         current_app.logger.debug("About to commit file to branch %s",
                                  f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
         response = github.put(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}", data=data)
@@ -241,11 +241,11 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
 
-        if new_file_sha != file_sha and not overwrite:
+        if file_sha_theirs != file_sha_original and not overwrite:
             current_app.logger.info("PR created and must be merged manually as repo file had changed")
 
             # Get the changes between the new file and this one:
-            merge_diff, merged_table = getDiff(row_data_parsed, new_rows, new_header, initial_data_parsed)
+            merge_diff, merged_table = get_diff(initial_data_parsed, row_data_parsed, new_rows, new_header)
             # update rows for comparison:
             (file_sha3, rows3, header3) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
             # todo: delete transient branch here? Github delete code is a test for now.
@@ -255,15 +255,28 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
                 f"repos/{repository.full_name}/git/refs/heads/{branch}")
             if not response:
                 raise Exception(f"Unable to delete branch {branch} in {repository.full_name}")
-            return (
-                json.dumps({
-                    'Error': 'Your change was submitted to the repository but could not be automatically merged due '
-                             'to a conflict. You can view the change <a href="'
-                             + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha,
-                    "file_sha_2": new_file_sha, "pr_branch": branch, "merge_diff": merge_diff,
-                    "merged_table": json.dumps(merged_table),
-                    "rows3": rows3, "header3": header3}), 300  # 400 for missing REPO
-            )
+
+            return jsonify({
+                "success": False,
+                "error": "merge-conflict",
+                "pr": pr_info,
+                "file_sha_1": file_sha_original,
+                "file_sha_2": file_sha_theirs,
+                "merge_diff": merge_diff,
+                "merged_table": json.dumps(merged_table),
+                "their_data": rows3,
+                "their_header": header3,
+            })
+
+            # return (
+            #     json.dumps({
+            #         'Error': 'Your change was submitted to the repository but could not be automatically merged due '
+            #                  'to a conflict. You can view the change <a href="'
+            #                  + pr_info + '" target = "_blank" >here </a>. ', "file_sha_1": file_sha_original,
+            #         "file_sha_2": file_sha_theirs, "pr_branch": branch, "merge_diff": merge_diff,
+            #         "merged_table": json.dumps(merged_table),
+            #         "rows3": rows3, "header3": header3}), 300  # 400 for missing REPO
+            # )
         else:
             # Merge the created PR
             current_app.logger.debug("About to merge created PR")
@@ -294,27 +307,29 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
         thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
-        response = github.get(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
-        if not response or "sha" not in response:
-            raise Exception(
-                f"Unable to get the newly updated SHA value for {spreadsheet} in {repository.full_name}/{folder}"
-            )
-        new_file_sha = response['sha']
-        if restart:  # todo: does this need to be anywhere else also?
-            return (json.dumps({"message": "Success",
-                                "file_sha": new_file_sha}), 360)
-        else:
-            return (json.dumps({"message": "Success",
-                                "file_sha": new_file_sha}), 200)
+        (saved_sha, saved_rows, saved_header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
+        github.get(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
+        return jsonify({
+            "success": True,
+            "new_rows": saved_rows,
+            "new_header": new_header,
+            "new_sha": saved_sha
+        })
+
+        # if restart:  # todo: does this need to be anywhere else also?
+        #     return (json.dumps({"message": "Success",
+        #                         "file_sha": file_sha_theirs}), 360)
+        # else:
+        #     return (json.dumps({"message": "Success",
+        #                         "file_sha": file_sha_theirs}), 200)
 
     except Exception as err:
         current_app.logger.error(err)
         traceback.print_exc()
-        return (
-            json.dumps({"message": "Failed",
-                        "Error": format(err)}),
-            400,
-        )
+        return jsonify({
+            "success": False,
+            "error": str(err),
+        }), 400
 
 
 # todo: use this function to compare initial spreadsheet to server version - check for updates?
@@ -436,14 +451,14 @@ def checkNotUnique(cell, column, headers, table):
     return False
 
 
-def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2server, header, 3initial)
+def get_diff(data_base, data_ours, data_theirs, row_header):  # (1saving, 2server, header, 3initial)
 
     # print(f'the type of row_data_3 is: ')
     # print(type(row_data_3))
 
     # sort out row_data_1 format to be the same as row_data_2
     new_row_data_1 = []
-    for k in row_data_1:
+    for k in data_ours:
         dictT = {}
         for key, val, item in zip(k, k.values(), k.items()):
             if key != "id":
@@ -456,7 +471,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
 
         # sort out row_data_3 format to be the same as row_data_2
     new_row_data_3 = []
-    for h in row_data_3:
+    for h in data_base:
         dictT3 = {}
         for key, val, item in zip(h, h.values(), h.items()):
             if key != "id":
@@ -473,7 +488,7 @@ def getDiff(row_data_1, row_data_2, row_header, row_data_3):  # (1saving, 2serve
 
     row_data_combo_1.extend(
         [list(r.values()) for r in new_row_data_1])  # row_data_1 has extra "id" column for some reason???!!!
-    row_data_combo_2.extend([list(s.values()) for s in row_data_2])
+    row_data_combo_2.extend([list(s.values()) for s in data_theirs])
     row_data_combo_3.extend([list(t.values()) for t in new_row_data_3])
 
     # checking:
