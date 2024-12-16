@@ -476,7 +476,7 @@ class ExcelOntology:
 
             if term.id is None or term.label is None:
                 self._logger.error(f"Term without id or label encountered. This should not happen. Term: {term}")
-                continue
+                # continue
 
             if term.is_resolved():
                 continue

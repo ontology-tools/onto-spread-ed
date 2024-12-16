@@ -522,9 +522,7 @@ async function saveChanges() {
   //check for validate errors:
   await validateImmediate("popup")
 
-  if (!valid.value && false) {
-    console.log("validate errors!!!");
-
+  if (!valid.value) {
     const saveValidationMessage = `<ul style="list-style: none; padding: 0; margin: 0;">${allDiagnostics.value
         .map(m => `<li style="margin: 0; padding: 0; display: block"><span class="badge text-bg-${m.type === 'error' ? 'danger' : m.type}">${m.type}</span>
                             Row ${m.diagnostic.row}: ${DIAGNOSTIC_DATA[m.diagnostic.type].message(m.diagnostic)}</li>`)
@@ -545,7 +543,7 @@ async function saveChanges() {
           label: 'Show errors in table',
           className: 'btn-primary',
           callback: function () {
-            validateButtons();
+            filterToDiagnostics.value = ["error", "warning"];
           }
         },
         cancel: {
@@ -735,7 +733,7 @@ const RIBBON = {
     await tabulator.value!.addRow(rowObj);
     await tabulator.value?.scrollToRow(idNum, "top", true);
 
-    historyService.recordRowAdded(rowObj["id"], tabulator.value!.getRow(rowObj["id"]).getPosition() as number)
+    historyService.recordRowAdded(rowObj["id"], tabulator.value!.getRow(rowObj["id"]).getPosition() as number, rowObj)
   },
   async deleteSelectedRows() {
     if (selectedRows.value.length > 1) {

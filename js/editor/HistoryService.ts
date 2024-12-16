@@ -111,8 +111,8 @@ export class HistoryService {
         this.backupChanges();
     }
 
-    public recordRowAdded(id: number, position: number) {
-        this._history.value?.push({type: "add", row: id as number, position, newFields: {}})
+    public recordRowAdded(id: number, position: number, values: Record<string, any> = {}) {
+        this._history.value?.push({type: "add", row: id as number, position, newFields: values})
 
         this._future.value = []
 
