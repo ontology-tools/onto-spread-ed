@@ -4,12 +4,13 @@ import {RowComponent, TabulatorFull as Tabulator} from 'tabulator-tables';
 import {columnDefFor, setRowColor} from "./tabulator-config.ts"
 import {COLUMN_NAMES, CURATION_STATUS} from "./constants.ts";
 import {alertDialog, confirmDialog, promptDialog} from "../common/bootbox"
-import {ChangeRecord, Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig} from "../common/model";
+import {Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig} from "../common/model";
 import Diagnostic from "../common/Diagnostic.vue"
 import {BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController} from "bootstrap-vue-next"
 import {DIAGNOSTIC_DATA} from "../common/diagnostic-data.ts";
 import {debounce} from "../common/debounce.ts";
 import Merger from "./Merger.vue";
+import {HistoryService} from "./HistoryService.ts"
 
 interface SpreadsheetData {
   header: string[],
@@ -37,11 +38,11 @@ const tableData = computed(() => spreadsheetData.value?.rows?.map((r, i) => ({
   id: i,
   ...r
 })) ?? [])
-const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => columnDefFor(h, suggestions.value, () => tabulator.value)))
+const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => columnDefFor(h, suggestions.value, () => tabulator.value!)))
 const path = location.pathname.split('/edit/')[1];
 const repo = path.substring(0, path.indexOf("/"));
 const filePath = path.substring(path.indexOf("/") + 1);
-const fileName = filePath.split('/').at(-1)
+const fileName = filePath.split('/').at(-1)!
 const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
 const tableBuilt = ref<boolean>(false);
 const selectedRows = ref<RowComponent[]>([]);
@@ -50,8 +51,7 @@ const showDiagnosticList = ref<boolean>(false);
 
 const filterToDiagnostics = ref<("error" | "warning" | "info")[]>([]);
 
-const changes = ref<ChangeRecord[]>([])
-const changed = computed(() => changes.value.length > 0)
+const historyService = new HistoryService(fileFolder, fileName, repo);
 
 // Submit fields
 const submitCommitMessage = ref<string>(`Updating ${fileName}`);
@@ -130,8 +130,6 @@ watchEffect(() => {
       nestedFieldSeparator: "|>",
       layout: "fitColumns",
       movableRows: false,
-      groupBy: "Id",
-      groupStartOpen: true,
       persistence: true,
       history: true, //records table interaction
       scrollToRowPosition: "bottom", //for scrollToRow()
@@ -163,12 +161,12 @@ watchEffect(() => {
         row.getElement()?.classList?.remove("has-error", "has-warning", "changed")
         row.getCells().forEach(c => c.getElement()?.classList?.remove("has-error", "has-warning", "changed"))
 
-        for (const change of changes.value) {
-          if (change.row === row.getPosition() as number) {
+        for (const change of historyService.history) {
+          if (change.row === row.getData()["id"] as number) {
             if (change.type === "add") {
               row.getElement()?.classList?.add("changed")
             } else if (change.type === "change") {
-              for (const field in change.fields) {
+              for (const field in change.newFields) {
                 row.getCell(field)?.getElement()?.classList?.add("changed")
               }
             }
@@ -199,30 +197,10 @@ watchEffect(() => {
       validate();
     })
     instance.on("rowSelectionChanged", (_, selected) => selectedRows.value = selected)
-    // instance.on("rowSelected", row => {
-    //   console.trace("Not implemented")
-    // });
-    // instance.on("rowDeselected", row => {
-    //   console.trace("Not implemented")
-    // });
-    // instance.on("cellEditing", cell => {
-    //   console.trace("Not implemented")
-    // });
     instance.on("cellEdited", async cell => {
-      recordChange(cell.getValue(), cell.getRow().getPosition() as number, cell.getColumn().getField())
+      console.log("cellEdited")
+      historyService.recordChange(cell.getValue(), cell.getOldValue(), cell.getRow().getData()["id"], cell.getColumn().getField())
       cell.getRow().reformat();
-    });
-    // instance.on("cellEditCancelled", cell => {
-    //   console.trace("Not implemented")
-    // });
-    instance.on("dataChanged", _ => {
-      // validate()
-    });
-    instance.on("rowAdded", row => {
-      changes.value?.push({type: "add", row: row.getPosition() as number, fields: {}})
-    });
-    instance.on("rowDeleted", row => {
-      changes.value?.push({type: "delete", row: row.getPosition() as number, fields: {}})
     });
 
     tabulator.value = instance;
@@ -236,6 +214,40 @@ watchEffect(() => {
 
   tabulator.value.setFilter(row => filterToDiagnostics.value.length === 0 || !!diagnostics.value[row["id"]]?.find(d => filterToDiagnostics.value.includes(d.type)))
 })
+
+watch(tableBuilt, async () => {
+  if (historyService.canRestoreChanges()) {
+    const changes = historyService.storedHistory().map(c => {
+      if (c.type === "add") {
+        return `<li>Added row ${c.row}</li>`
+      } else if (c.type === "change") {
+        return `<li>Changed row ${c.row}: ${Object.keys(c.oldFields).map(f => `${f} from "${c.oldFields[f]}" to "${c.newFields[f]}"`).join(", ")}</li>`
+      } else if (c.type === "delete") {
+        return `<li>Deleted row ${c.row}</li>`
+      }
+    }).join("\n")
+    const restoreChanges = await confirmDialog({
+      title: "Unsaved changes",
+      message: `<p>You have unsaved changes. Do you want to restore them?</p><ul>${changes}</ul>`,
+      buttons: {
+        confirm: {
+          label: 'Restore',
+          className: 'btn-success',
+        },
+        cancel: {
+          label: 'Discard',
+          className: 'btn-danger',
+        },
+      }
+    })
+
+    if (restoreChanges) {
+      historyService.restoreChanges(tabulator.value!);
+    } else {
+      historyService.clear()
+    }
+  }
+}, {once: true})
 
 async function validateImmediate(progress: "toast" | "popup" = "toast") {
   verifying.value = true;
@@ -251,7 +263,7 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
           "Validating ..."
         ])
       })
-    });
+    }) ?? null;
   } else {
     validating.value = true;
   }
@@ -358,7 +370,9 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
 
     showDiagnosticList.value = !valid.value;
   } catch {
-    removeToast?.(toast);
+    if (toast) {
+      removeToast?.(toast);
+    }
     showToast?.({
       props: {
         value: 5000,
@@ -446,48 +460,13 @@ function saveCurator(row: RowComponent) {
 
     if (curators !== "") {
       const cellValue = data[COLUMN_NAMES.CURATOR];
-      const rowValue = row.getPosition();//save absolute row position
+      const rowValue = data["id"];//save absolute row position
       const columnValue = "Curator"; //column name
-      recordChange(cellValue, rowValue as number, columnValue);
+      historyService.recordChange(cellValue, rowValue as number, columnValue);
     }
   }
 }
 
-function recordChange(value: string, rowPosition: number, columnName: string) {
-  const changeRecord: ChangeRecord = {
-    type: "change",
-    row: rowPosition,
-    fields: {
-      [columnName]: value
-    }
-  }
-
-  changes.value.push(changeRecord)
-}
-
-function backupChanges() {
-  const tableArray = tabulator?.value?.getData();
-  //whole table:
-  const jsonArray = JSON.stringify(tableArray);
-  localStorage.setItem("savedTableData" + fileName, jsonArray);
-  //changed cells:
-  if (changes.value.length > 0) {
-    const cellArray = JSON.stringify(changes);
-    localStorage.setItem("savedChanges" + fileName, cellArray);
-  }
-}
-
-function restoreChanges() {
-  const jsonData = (localStorage.getItem("savedTableData" + fileName) ?? "") as string;
-  const data = JSON.parse(jsonData);
-
-  tabulator.value?.setData(data);
-
-  const jsonChanges = (localStorage.getItem("savedChanges" + fileName) ?? "") as string;
-  changes.value = JSON.parse(jsonChanges);
-
-  tabulator.value?.getRows()?.forEach(r => r.reformat())
-}
 
 function clearFormatting() {
   tabulator.value?.clearSort(); // clear sorting as well
@@ -592,7 +571,7 @@ async function submitChanges(commitMessage: string, details: string, merge_strat
   const initialData = JSON.stringify(spreadsheetData.value?.rows).replaceAll("&", "and")
 
   try {
-    const data = {
+    const data: Record<string, any> = {
       repo_key: spreadsheet.repo_name,
       file_sha: spreadsheet.file_sha,
       folder: fileFolder,
@@ -625,9 +604,7 @@ async function submitChanges(commitMessage: string, details: string, merge_strat
     try {
       const result = await response.json();
       if (result.success) {
-        window.localStorage.removeItem("savedChanged" + fileName)
-        changes.value = [];
-        backupChanges()
+        historyService.clear()
 
         mode.value = "edit";
 
@@ -720,6 +697,16 @@ const RIBBON = {
   downloadFile() {
 
   },
+  undo() {
+    if (tabulator.value) {
+      historyService.undo(tabulator.value)
+    }
+  },
+  redo() {
+    if (tabulator.value) {
+      historyService.redo(tabulator.value)
+    }
+  },
   async addRow() {
     const idNum = tabulator.value?.getDataCount() ?? 0;
     const rowObj: { id: number, [k: string]: unknown } = {id: idNum} // add to end of table! 
@@ -747,6 +734,8 @@ const RIBBON = {
     clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
     await tabulator.value!.addRow(rowObj);
     await tabulator.value?.scrollToRow(idNum, "top", true);
+
+    historyService.recordRowAdded(rowObj["id"], tabulator.value!.getRow(rowObj["id"]).getPosition() as number)
   },
   async deleteSelectedRows() {
     if (selectedRows.value.length > 1) {
@@ -762,44 +751,49 @@ const RIBBON = {
       //if selectedRows ID column is not null and "" then don't delete!
       const data = row.getData();
       if (data[COLUMN_NAMES.ID] === undefined || data[COLUMN_NAMES.CURATION_STATUS] === undefined) {
+        historyService.recordRowDeleted(data["id"] as number, row.getPosition() as number, data)
+        row.deselect();
+
         tabulator.value?.deleteRow(row);
       } else {
         const cell = row.getCell(COLUMN_NAMES.ID);
         if (cell.getValue().trim() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
           //set to obsolete and show a message here
+          const prevCurationStatus = data[COLUMN_NAMES.CURATION_STATUS]
           data[COLUMN_NAMES.CURATION_STATUS] = CURATION_STATUS.OBSOLETE;
-
-          //save change:
-          const cellValue = data[COLUMN_NAMES.CURATION_STATUS];
-          const rowValue = row.getPosition() as number; //save absolute row position
-          const columnValue = COLUMN_NAMES.CURATION_STATUS; //column name
-          recordChange(cellValue, rowValue, columnValue);
 
           await alertDialog({message: "You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead."});
           row.deselect();
 
+
           //set initials of "Curator"
+          const prevCurator = data[COLUMN_NAMES.CURATION_STATUS]
           if (COLUMN_NAMES.CURATOR in data) {
             data[COLUMN_NAMES.CURATOR] = [data[COLUMN_NAMES.CURATOR], LOGIN_INITIALS].filter(x => !!x).join("; ")
           }
 
-          //save curator column to local storage for backup here
-          //{value, row, columnName}
-          //data[curator], row.getPosition(), "Curator"
-          if (data[COLUMN_NAMES.CURATOR] !== "" && data[COLUMN_NAMES.CURATOR] !== null) {
-            const cellValue = data[COLUMN_NAMES.CURATOR];
-            const rowValue = row.getPosition() as number; //save absolute row position
-            const columnValue = "Curator"; //column name
-            recordChange(cellValue, rowValue, columnValue);
+          //save change:
+          const prev = {
+            [COLUMN_NAMES.CURATION_STATUS]: prevCurationStatus,
+            [COLUMN_NAMES.CURATOR]: prevCurator
           }
+          const value = {
+            [COLUMN_NAMES.CURATION_STATUS]: data[COLUMN_NAMES.CURATION_STATUS],
+            [COLUMN_NAMES.CURATOR]: data[COLUMN_NAMES.CURATOR]
+          }
+
+          const rowValue = data["id"]; //save absolute row position
+          const columnValue = COLUMN_NAMES.CURATION_STATUS; //column name
+          historyService.recordChange(value, prev, rowValue, columnValue);
         } else {
           // ID is "" or null, we can delete 
+          historyService.recordRowDeleted(data["id"] as number, row.getPosition() as number, data)
+          row.deselect();
+
           tabulator.value?.deleteRow(row);
         }
       }
     }
-
-    backupChanges();
   },
   async markAsReviewed() {
     for (let row of selectedRows.value) {
@@ -808,6 +802,7 @@ const RIBBON = {
       }
 
       const data = row.getData();
+      const prev = data[COLUMN_NAMES.TO_BE_REVIEWED_BY]
       const cell = row.getCell(COLUMN_NAMES.TO_BE_REVIEWED_BY);
       //save "curator":
       saveCurator(row);
@@ -819,12 +814,11 @@ const RIBBON = {
       //backup changes
 
       const cellValueData = data[COLUMN_NAMES.TO_BE_REVIEWED_BY];
-      const rowValue = row.getPosition() as number;//save absolute row position
+      const rowValue = data["id"];//save absolute row position
       const columnValue = "To be reviewed by"; //column name
-      recordChange(cellValueData, rowValue, columnValue);
+      historyService.recordChange(cellValueData, prev, rowValue, columnValue);
     }
 
-    backupChanges();
     tabulator.value?.redraw();
   },
   highlightOwn() {
@@ -841,12 +835,8 @@ const RIBBON = {
     }
 
     for (const row of selectedRows.value) {
-      //services:
-      //1. Don't repeat initials already present
-      //2. add selected initials (in dropdown) to cell
-      //3. join with "; " except the first one (if cellValue !== null)
-
       const cell = row.getCell(COLUMN_NAMES.TO_BE_REVIEWED_BY);
+      const prev = cell.getValue()
 
       const reviewers = [cell.getValue()?.trim(), ...result].filter(x => !!x).join("; ")
 
@@ -854,10 +844,9 @@ const RIBBON = {
       row.deselect();
       // backup changes:
       const cellValueData = reviewers;
-      const rowValue = row.getPosition() as number;//save absolute row position
+      const rowValue = row.getData()["id"];//save absolute row position
       const columnValue = "To be reviewed by"; //column name
-      recordChange(cellValueData, rowValue, columnValue);
-      backupChanges();
+      historyService.recordChange(cellValueData, prev, rowValue, columnValue);
     }
   },
   removeFilters() {
@@ -919,16 +908,26 @@ function defColumnSize(field: string): number {
         <div class="card p-0">
           <div class="card-body ribbon p-0 m-0">
             <div class="ribbon-full">
-              <button :disabled="locked || !changed" class="btn-ribbon" @click="RIBBON.saveFile()">
+              <button :disabled="locked || !historyService.canUndo()" class="btn-ribbon" @click="RIBBON.saveFile()">
                 <i class="fas fa-save" style="color: cornflowerblue"></i><br>
                 Save
               </button>
+            </div>
+            <span class="ribbon-title" style="grid-column: span 2">Edit</span>
+
+            <div class="ribbon-small">
+              <button :disabled="locked || !historyService.canUndo()" class="btn-ribbon" @click="RIBBON.undo()">
+                <i class="fas fa-undo"></i> Undo
+              </button>
+              <button :disabled="locked || !historyService.canRedo()" class="btn-ribbon" @click="RIBBON.redo()">
+                <i class="fas fa-redo"></i> Redo
+              </button>
+
               <button :disabled="locked" class="btn-ribbon" @click="RIBBON.downloadFile()">
                 <i class="fas fa-download" style="color: cornflowerblue"></i><br>
                 Download
               </button>
             </div>
-            <span class="ribbon-title" style="column-span: 2">File</span>
 
             <div class="ribbon-splitter"></div>
 
@@ -1116,7 +1115,7 @@ function defColumnSize(field: string): number {
       <BSpinner class="m-4" style="width: 5rem; height: 5rem;"/>
     </p>
 
-    <h4 class="text-center">Validating</h4>
+    <h4 class="text-center">Validating..</h4>
   </BModal>
 </template>
 

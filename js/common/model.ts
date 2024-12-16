@@ -112,11 +112,30 @@ export interface RepositoryConfig {
     }
 }
 
-export interface ChangeRecord {
+interface _BaseChangeRecord {
     type: "change" | "add" | "delete",
     row: number,
-    fields: { [k: string]: string }
 }
+
+export interface UpdateChangeRecord extends _BaseChangeRecord {
+    type: "change",
+    oldFields: { [k: string]: string },
+    newFields: { [k: string]: string }
+}
+
+export interface AddChangeRecord extends _BaseChangeRecord {
+    type: "add",
+    newFields: { [k: string]: string },
+    position: number,
+}
+
+export interface DeleteChangeRecord extends _BaseChangeRecord {
+    type: "delete",
+    oldFields: { [k: string]: string },
+    position: number,
+}
+
+export type ChangeRecord = UpdateChangeRecord | AddChangeRecord | DeleteChangeRecord;
 
 export interface MergeConflict {
     row: number,
