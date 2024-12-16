@@ -498,7 +498,7 @@ function sendVisualisationRequest(filter: string[], sendType: "sheet" | "select"
 
 function saveChanges() {
   //check for validate errors:
-  if (!valid.value) {
+  if (!valid.value && false) {
     console.log("validate errors!!!");
 
     const saveValidationMessage = "<ul style=\"list-style: none; padding: 0; margin: 0;\">" + allDiagnostics.value
@@ -737,7 +737,10 @@ const RIBBON = {
     const rowObj: { id: number, [k: string]: unknown } = {id: idNum} // add to end of table! 
     for (const column of tabulator.value?.getColumns() ?? []) {
       const field = column.getField();
-      rowObj[column.getField()] = "";
+      if (!field) {
+        continue;
+      }
+      rowObj[field] = "";
 
       switch (field?.toLowerCase()) {
         case COLUMN_NAMES.CURATION_STATUS.toLowerCase():
