@@ -34,7 +34,7 @@ class SpreadsheetSearcher:
 
             self.storage.create_index(schema)
 
-    def search_for(self, repo_name, search_string="", assigned_user="", fields=None):
+    def search_for(self, repo_name, search_string="", assigned_user="", fields=None, limit: Optional[int] = 100):
         if fields is None:
             fields = ["class_id", "label", "definition", "parent", "tobereviewedby"]
 
@@ -48,7 +48,7 @@ class SpreadsheetSearcher:
                               (" AND tobereviewedby:" + assigned_user if assigned_user else ""))
 
         with ix.searcher() as searcher:
-            results = searcher.search(query, limit=100)
+            results = searcher.search(query, limit=limit)
             resultslist = []
             for hit in results:
                 allfields = {}

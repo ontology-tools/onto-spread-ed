@@ -13,6 +13,7 @@ from onto_spread_ed.model.ExcelOntology import ExcelOntology
 from onto_spread_ed.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
 from onto_spread_ed.release.common import order_sources
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
+from onto_spread_ed.services.FileCache import FileCache
 from onto_spread_ed.utils import get_file
 
 bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
@@ -158,7 +159,7 @@ def validate_line(entity: Dict[str, Any],
 
 @bp.route("/file", methods=("POST",))
 @requires_permissions("view")
-def validate_file(config: ConfigurationService, gh: GitHub):
+def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
     data = json.loads(request.data)
 
     try:
@@ -196,7 +197,7 @@ def validate_file(config: ConfigurationService, gh: GitHub):
     release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
 
     try:
-        external_raw = get_file(gh, repo.full_name, release_script.external.target.file).decode()
+        external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
 
         external = ExcelOntology.from_owl(external_raw, repo.prefixes)
         o.import_other_excel_ontology(external.value)
@@ -232,7 +233,8 @@ def validate_file(config: ConfigurationService, gh: GitHub):
             o.import_other_excel_ontology(ExcelOntology.from_excel(f"tmp:///{k}", sources))
 
     o.resolve()
-    result = o.validate()
+    # Exclude missing ID here as they are generated if needed on save
+    result = o.validate(exclude=["missing-id"])
 
     return jsonify({
         "success": True,

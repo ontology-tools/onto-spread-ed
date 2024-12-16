@@ -31,11 +31,12 @@ const table = ref<HTMLDivElement | null>(null); //reference to your table elemen
 const tabulator = ref<Tabulator | null>(null); //variable to hold your table
 // const tableData = reactive([]); //data for table to display
 const spreadsheetData = ref<SpreadsheetData | null>(null);
+const suggestions = ref<string[]>([]);
 const tableData = computed(() => spreadsheetData.value?.rows?.map((r, i) => ({
   id: i,
   ...r
 })) ?? [])
-const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => columnDefFor(h, () => tabulator.value)))
+const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => columnDefFor(h, suggestions.value, () => tabulator.value)))
 const path = location.pathname.split('/edit/')[1];
 const repo = path.substring(0, path.indexOf("/"));
 const filePath = path.substring(path.indexOf("/") + 1);
@@ -58,8 +59,9 @@ const submitDetailedMessage = ref<string>("");
 // Generic flag to lock the UI
 const lock = ref<boolean>(false);
 const saving = ref<boolean>(false);
+const validating = ref<boolean>(false);
 const verifying = ref<boolean>(false);
-const locked = computed(() => lock.value || !tableBuilt || saving.value || verifying.value)
+const locked = computed(() => lock.value || !tableBuilt.value || saving.value || verifying.value)
 
 const valid = computed(() => errors.value.length <= 0 && warnings.value.length <= 0);
 
@@ -102,6 +104,7 @@ watchEffect(() => {
       reactiveData: true, //enable data reactivity
       columns: tableColumns.value, //define table columns
       columnDefaults: {
+        editable: () => !locked.value,
         tooltip(_, cell) {
           const messages = diagnostics.value[cell.getRow().getData()["id"]] ?? []
 
@@ -147,18 +150,18 @@ watchEffect(() => {
         setRowColor(row, data);
 
         if (data[COLUMN_NAMES.CURATOR]?.indexOf(LOGIN_INITIALS) >= 0) {
-          row.getElement().classList.add("assigned-to-me")
+          row.getElement()?.classList?.add("assigned-to-me")
         } else {
-          row.getElement().classList.remove("assigned-to-me")
+          row.getElement()?.classList?.remove("assigned-to-me")
         }
 
-        row.getElement().classList.remove("has-error", "has-warning", "changed")
-        row.getCells().forEach(c => c.getElement().classList.remove("has-error", "has-warning", "changed"))
+        row.getElement()?.classList?.remove("has-error", "has-warning", "changed")
+        row.getCells().forEach(c => c.getElement()?.classList?.remove("has-error", "has-warning", "changed"))
 
         for (const change of changes.value) {
           if (change.row === row.getPosition() as number) {
             if (change.type === "add") {
-              row.getElement().classList.add("changed")
+              row.getElement()?.classList?.add("changed")
             } else if (change.type === "change") {
               for (const field in change.fields) {
                 row.getCell(field)?.getElement()?.classList?.add("changed")
@@ -202,6 +205,7 @@ watchEffect(() => {
     // });
     instance.on("cellEdited", async cell => {
       recordChange(cell.getValue(), cell.getRow().getPosition() as number, cell.getColumn().getField())
+      cell.getRow().reformat();
     });
     // instance.on("cellEditCancelled", cell => {
     //   console.trace("Not implemented")
@@ -228,19 +232,24 @@ watchEffect(() => {
   tabulator.value.setFilter(row => filterToDiagnostics.value.length === 0 || !!diagnostics.value[row["id"]]?.find(d => filterToDiagnostics.value.includes(d.type)))
 })
 
-async function validateImmediate() {
+async function validateImmediate(progress: "toast" | "popup" = "toast") {
   verifying.value = true;
-  const toast = showToast?.({
-    props: {
-      value: true,
-    },
-    component: h(BToast, null, {
-      default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-        h("div", {class: "spinner-border text-primary spinner-border-sm"}),
-        "Validating ..."
-      ])
-    })
-  })!;
+  let toast;
+  if (progress === "toast") {
+    toast = showToast?.({
+      props: {
+        value: true,
+      },
+      component: h(BToast, null, {
+        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+          h("div", {class: "spinner-border text-primary spinner-border-sm"}),
+          "Validating ..."
+        ])
+      })
+    });
+  } else {
+    validating.value = true;
+  }
   const rows = tabulator?.value?.getData();
 
   if (!rows) {
@@ -289,7 +298,11 @@ async function validateImmediate() {
 
     tabulator.value?.getRows()?.forEach(r => r.reformat())
 
-    removeToast?.(toast);
+    if (toast) {
+      removeToast?.(toast);
+    } else {
+      validating.value = false;
+    }
 
     if (valid.value) {
       showToast?.({
@@ -362,28 +375,53 @@ async function validateImmediate() {
 
 const validate = debounce(() => validateImmediate());
 
-async function loadData() {
-  console.log({repo, filePath})
-  const response = await (await fetch(`${URL_PREFIX}/api/edit/get/${repo}/${filePath}`)).json()
 
-  if (!response.success) {
-    await alertDialog({
-      title: "Failed to load data",
-      message: `The spreadsheet '${filePath}' could not be loaded: ${response.error}`
-    })
-  } else {
-    console.log(response.spreadsheet)
-    spreadsheetData.value = response.spreadsheet;
+const onError = (message: string) => alertDialog({
+  title: "Failed to load data",
+  message: `The spreadsheet '${filePath}' could not be loaded: ${message}`
+})
+
+async function loadData() {
+  try {
+    const response = await (await fetch(`${URL_PREFIX}/api/edit/get/${repo}/${filePath}`)).json()
+
+    if (!response.success) {
+      await onError(response.error)
+    } else {
+      spreadsheetData.value = response.spreadsheet;
+    }
+
+    // load suggestions in background - don't wait for it here
+    setTimeout(() => loadSuggestions(), 0)
+  } catch (e) {
+    await onError(e!.toString())
+  }
+}
+
+async function loadSuggestions() {
+  try {
+    const response = await (await fetch(`${URL_PREFIX}/api/edit/suggestions/${repo}`)).json()
+
+    if (!response.success) {
+      await onError(response.error)
+    } else {
+
+      // Mutate single object to ensure auto complete works
+      suggestions.value.splice(0, suggestions.value.length)
+      suggestions.value.push(...response.suggestions)
+    }
+  } catch (e) {
+    await onError(e!.toString())
   }
 }
 
 async function scrollAndHighlightRow(position: number) {
-  const row = tabulator.value?.getRowFromPosition(position);
+  const row = tabulator.value?.getRow(position)
   await row?.scrollTo("center", true)
 
-  row?.getElement().classList.add("highlight");
+  row?.getElement()?.classList?.add("highlight");
   await new Promise(r => setTimeout(r, 3000))
-  row?.getElement().classList.remove("highlight");
+  row?.getElement()?.classList?.remove("highlight");
 }
 
 
@@ -496,16 +534,17 @@ function sendVisualisationRequest(filter: string[], sendType: "sheet" | "select"
   document.body.removeChild(form);
 }
 
-function saveChanges() {
+async function saveChanges() {
   //check for validate errors:
+  await validateImmediate("popup")
+
   if (!valid.value && false) {
     console.log("validate errors!!!");
 
-    const saveValidationMessage = "<ul style=\"list-style: none; padding: 0; margin: 0;\">" + allDiagnostics.value
-            .map(m => `<li style="margin: 0; padding: 0; display: block"><span class="badge text-bg-${m.type === 'error' ? 'danger' : m.type}">${m.type}</span>
+    const saveValidationMessage = `<ul style="list-style: none; padding: 0; margin: 0;">${allDiagnostics.value
+        .map(m => `<li style="margin: 0; padding: 0; display: block"><span class="badge text-bg-${m.type === 'error' ? 'danger' : m.type}">${m.type}</span>
                             Row ${m.diagnostic.row}: ${DIAGNOSTIC_DATA[m.diagnostic.type].message(m.diagnostic)}</li>`)
-            .join("\n")
-        + "</ul>"
+        .join("\n")}</ul>`
 
     bootbox.dialog({
       title: "There are validation errors, are you sure you want to save?",
@@ -572,25 +611,42 @@ async function submitChanges(commitMessage: string, details: string) {
 
     saving.value = false;
 
-    if (response.status === 200) {
-      window.localStorage.removeItem("savedChanged" + fileName)
-      changes.value = [];
-      backupChanges()
+    try {
+      const result = await response.json();
+      if (result.success) {
+        window.localStorage.removeItem("savedChanged" + fileName)
+        changes.value = [];
+        backupChanges()
 
-      const responseData = await response.json();
-      spreadsheetData.value!.file_sha = responseData['file_sha']
+        spreadsheetData.value!.file_sha = result.new_sha
+        spreadsheetData.value!.header = result.new_header
+        spreadsheetData.value!.rows = result.new_rows
+        tabulator.value?.setData(tableData.value)
 
-      showToast?.({
-        props: {
-          title: 'Saved!',
-          body: "Changes were saved successfully to the repository.",
-          value: true,
-          variant: 'success',
-          pos: 'top-center',
+        showToast?.({
+          props: {
+            title: 'Saved!',
+            body: "Changes were saved successfully to the repository.",
+            value: true,
+            variant: 'success',
+            pos: 'top-center',
 
+          }
+        })
+      } else {
+        const error = result.error;
+        if (error === "merge-conflict") {
+
+        } else {
+
+          await alertDialog({
+            title: `An error occured while saving the file`,
+            message: `<p>An error occured while saving the file:</p><p>${error}</p>`,
+            className: "danger"
+          })
         }
-      })
-    } else {
+      }
+    } catch {
       await alertDialog({
         title: `Error ${response.status}`,
         message: `<p>
@@ -732,7 +788,7 @@ const RIBBON = {
   downloadFile() {
 
   },
-  addRow() {
+  async addRow() {
     const idNum = tabulator.value?.getDataCount() ?? 0;
     const rowObj: { id: number, [k: string]: unknown } = {id: idNum} // add to end of table! 
     for (const column of tabulator.value?.getColumns() ?? []) {
@@ -757,7 +813,8 @@ const RIBBON = {
     }
 
     clearFormatting(); //needs to be here, not after table.addRow or bad things happen        
-    tabulator.value?.addRow(rowObj);
+    await tabulator.value!.addRow(rowObj);
+    await tabulator.value?.scrollToRow(idNum, "center", true);
   },
   async deleteSelectedRows() {
     if (selectedRows.value.length > 1) {
@@ -1026,6 +1083,9 @@ function defColumnSize(field: string): number {
       <div id="contentTable" ref="table" class="table table-bordered table-hover table-sm"
            style="font-size: 0.8em; margin-bottom: 0 !important;">
       </div>
+      <div class="loading-data" v-if="!tabulator">
+        <div class="loader"></div>
+      </div>
     </div>
 
 
@@ -1067,7 +1127,7 @@ function defColumnSize(field: string): number {
                     'fa-info-circle': d.type ==='info',
                     [`text-${d.type === 'error' ? 'danger' : d.type}`]: true}"></i>
 
-          <a class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 1)" v-if="d.diagnostic.row > 0">Row
+          <a class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 2)" v-if="d.diagnostic.row > 0">Row
             {{ d.diagnostic.row - 1 }}</a>
 
           <Diagnostic :diagnostic="d.diagnostic" format="inline" class="dg-diagnostic"></Diagnostic>
@@ -1106,6 +1166,15 @@ function defColumnSize(field: string): number {
     </p>
 
     <h4 class="text-center">Saving file..</h4>
+  </BModal>
+
+  <BModal v-model="validating" centered
+          no-close-on-backdrop no-close-on-esc no-footer no-header variant="primary">
+    <p class="text-center">
+      <BSpinner class="m-4" style="width: 5rem; height: 5rem;"/>
+    </p>
+
+    <h4 class="text-center">Validating</h4>
   </BModal>
 </template>
 
@@ -1335,6 +1404,14 @@ function defColumnSize(field: string): number {
     }
   }
 
+  .tabulator-tableholder {
+    padding-bottom: 200px;
+  }
+
+  .tabulator-cell input[type=text] {
+    background: white;
+  }
+
   .tabulator.table .tabulator-row.tabulator-selected {
     background-color: grey !important;
   }
@@ -1365,6 +1442,17 @@ function defColumnSize(field: string): number {
   .has-error {
     color: red !important;
     font-weight: bold;
+  }
+
+  .loading-data {
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    height: 100%;
+
+    .loader {
+      transform: scale(2)
+    }
   }
 
 }

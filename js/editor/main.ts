@@ -13,6 +13,7 @@ import {$filters} from "../common/filter";
 
 const app = createApp(Editor)
 
+
 app.use(createBootstrap())
 
 app.config.globalProperties.$filters = $filters

@@ -1,8 +1,8 @@
 import {COLUMN_NAMES, CURATION_STATUS} from "./constants.ts";
-import {ColumnDefinition, RowComponent, Tabulator} from "tabulator-tables";
+import {ColumnComponent, ColumnDefinition, MenuObject, RowComponent, Tabulator} from "tabulator-tables";
 
 
-export function setRowColor(row: RowComponent, data, navigateToRow: number = -1) {
+export function setRowColor(row: RowComponent, data: Record<string, string | null | undefined>, navigateToRow: number = -1) {
     const curation_status = data[COLUMN_NAMES.CURATION_STATUS]?.toLowerCase().replace(/\s+/g, '') ?? null
 
     if (curation_status !== null) {
@@ -26,17 +26,16 @@ export function setRowColor(row: RowComponent, data, navigateToRow: number = -1)
 }
 
 
-const headerMenuFactory = (table: () => Tabulator) => [
+const headerMenuFactory = (table: () => Tabulator): MenuObject<ColumnComponent>[] => [
     {
         label: "Hide Column",
-        action: function (e, column: ColumnDefinition) {
+        action(_, column: ColumnComponent) {
             column.hide();
         }
     },
     {
         label: "Show Hidden",
-        action: function (e, column: ColumnDefinition) {
-            console.log(table)
+        action() {
             const allColumns = table().getColumns();
             for (const column of allColumns) {
                 column.show()
@@ -45,7 +44,7 @@ const headerMenuFactory = (table: () => Tabulator) => [
     },
     {
         label: "Reset All Column Widths",
-        action: function (e, column) {
+        action() {
             const allColumns = table().getColumns();
             for (const column of allColumns) { //don't re-size checkbox column (column 0)
                 //"E-CigO" and "Fuzzy set" are a different size
@@ -60,16 +59,14 @@ const headerMenuFactory = (table: () => Tabulator) => [
 ]
 
 
-export function columnDefFor(fieldName: string, table: () => Tabulator): ColumnDefinition {
+export function columnDefFor(fieldName: string, suggestionsRef: string[], table: () => Tabulator): ColumnDefinition {
     const headerMenu = headerMenuFactory(table);
-    const TODO_suggestValuesArray = ["Test A", "Test B"]
     if (fieldName == COLUMN_NAMES.CURATION_STATUS) {
         return ({
             title: fieldName,
             field: fieldName,
             sorter: "string",
             editor: "list",
-            editable: true,
             editorParams: {values: ["Pre-proposed", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"]},
             headerFilter: "input",
             width: "200",
@@ -106,7 +103,6 @@ export function columnDefFor(fieldName: string, table: () => Tabulator): ColumnD
             field: fieldName,
             sorter: "string",
             editor: "textarea",
-            editable: true,
             headerFilter: "input",
             width: "200",
             formatter: "textarea",
@@ -120,13 +116,12 @@ export function columnDefFor(fieldName: string, table: () => Tabulator): ColumnD
             sorter: "string",
             editor: "list",
             editorParams: {
-                values: TODO_suggestValuesArray,
+                values: suggestionsRef,
                 autocomplete: true,
                 freetext: true,
                 allowEmpty: true,
-                // elementAttributes: {formatter: "textarea"},
+                elementAttributes: {formatter: "textarea"},
             },
-            editable: true,
             headerFilter: "input",
             width: "200",
             formatter: "textarea",
@@ -139,13 +134,12 @@ export function columnDefFor(fieldName: string, table: () => Tabulator): ColumnD
             sorter: "string",
             editor: "list",
             editorParams: {
-                values: TODO_suggestValuesArray,
+                values: suggestionsRef,
                 autocomplete: true,
                 freetext: true,
                 allowEmpty: true,
                 // elementAttributes: {formatter: "textarea"},
             },
-            editable: true,
             headerFilter: "input",
             width: "200",
             formatter: "textarea",
@@ -157,7 +151,6 @@ export function columnDefFor(fieldName: string, table: () => Tabulator): ColumnD
             field: fieldName,
             sorter: "string",
             editor: "textarea",
-            editable: true,
             headerFilter: "input",
             width: "200",
             formatter: "textarea",

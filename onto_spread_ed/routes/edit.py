@@ -1,10 +1,9 @@
 import base64
 import io
 import json
-import pathlib
 import threading
 import traceback
-from datetime import date, datetime
+from datetime import datetime
 
 import daff
 import openpyxl
@@ -42,15 +41,8 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
     else:
         current_app.logger.info(f"The user {g.user.github_login} has no known metadata")
         user_initials = g.user.github_login[0:2]
-    # Build suggestions data:
-    if repo_key not in ontodb.releases or date.today() > ontodb.releasedates[repo_key]:
-        ontodb.parseRelease(repo_key)
-    suggestions = ontodb.getReleaseLabels(repo_key)
-    suggestions = list(dict.fromkeys(suggestions))
 
     # Contains actual names of files built and optimized by vite
-    vite_manifest = {}
-    # TODO: if pathlib.Path.exists("template"):
 
     breadcrumb_segments = [repo_key, *folder.split("/"), spreadsheet]
 
@@ -69,9 +61,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
                            rows=json.dumps(rows),
                            file_sha=file_sha,
                            go_to_row=go_to_row,
-                           type=type,
-                           suggestions=json.dumps(suggestions),
-                           vite_manifest=vite_manifest
+                           type=type
                            )
 
 
@@ -142,7 +132,8 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
             sheet.cell(row=1, column=c + 1).value = header[c]
             sheet.cell(row=1, column=c + 1).font = Font(size=12, bold=True)
         for r, row in enumerate(row_data_parsed):
-            del row["id"]  # Tabulator-added ID column
+            if "id" in row:
+                del row["id"]  # Tabulator-added ID column
             for c, field in enumerate(header):
                 sheet.cell(row=r + 2, column=c + 1).value = row[field]
                 # Set row background colours according to 'Curation status'
@@ -215,7 +206,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
         (file_sha_theirs, new_rows, new_header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
 
         # Commit changes to branch (replace code with sheet)
-        data = {"message": commit_msg, "content": base64_string, "branch": branch}
+        data = {"message": commit_msg, "content": base64_string, "branch": branch, "sha": file_sha_theirs}
         current_app.logger.debug("About to commit file to branch %s",
                                  f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
         response = github.put(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}", data=data)
