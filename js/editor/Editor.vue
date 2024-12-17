@@ -232,7 +232,7 @@ watchEffect(() => {
     instance.on("rowSelectionChanged", (_, selected) => selectedRows.value = selected)
     instance.on("cellEdited", async cell => {
       console.log("cellEdited")
-      historyService.recordChange(cell.getValue(), cell.getOldValue(), cell.getRow().getData()["id"], cell.getColumn().getField())
+      historyService.recordChange(cell.getValue(), cell.getOldValue() ?? null, cell.getRow().getData()["id"], cell.getColumn().getField())
       cell.getRow().reformat();
     });
 
@@ -847,17 +847,16 @@ const RIBBON = {
 
           //save change:
           const prev = {
-            [COLUMN_NAMES.CURATION_STATUS]: prevCurationStatus,
-            [COLUMN_NAMES.CURATOR]: prevCurator
+            [COLUMN_NAMES.CURATION_STATUS]: prevCurationStatus ?? null,
+            [COLUMN_NAMES.CURATOR]: prevCurator ?? null
           }
           const value = {
             [COLUMN_NAMES.CURATION_STATUS]: data[COLUMN_NAMES.CURATION_STATUS],
             [COLUMN_NAMES.CURATOR]: data[COLUMN_NAMES.CURATOR]
           }
 
-          const rowValue = data["id"]; //save absolute row position
-          const columnValue = COLUMN_NAMES.CURATION_STATUS; //column name
-          historyService.recordChange(value, prev, rowValue, columnValue);
+          const rowValue = data["id"];
+          historyService.recordChange(value, prev, rowValue);
         } else {
           // ID is "" or null, we can delete 
           historyService.recordRowDeleted(data["id"] as number, row.getPosition() as number, data)
@@ -889,7 +888,7 @@ const RIBBON = {
       const cellValueData = data[COLUMN_NAMES.TO_BE_REVIEWED_BY];
       const rowValue = data["id"];//save absolute row position
       const columnValue = "To be reviewed by"; //column name
-      historyService.recordChange(cellValueData, prev, rowValue, columnValue);
+      historyService.recordChange(cellValueData, prev ?? null, rowValue, columnValue);
     }
 
     tabulator.value?.redraw();
@@ -919,7 +918,7 @@ const RIBBON = {
       const cellValueData = reviewers;
       const rowValue = row.getData()["id"];//save absolute row position
       const columnValue = "To be reviewed by"; //column name
-      historyService.recordChange(cellValueData, prev, rowValue, columnValue);
+      historyService.recordChange(cellValueData, prev ?? null, rowValue, columnValue);
     }
   },
   removeFilters() {

@@ -90,18 +90,32 @@ export class HistoryService {
         }
     }
 
-    public recordChange(value: Record<string, any>, oldValue: Record<string, any>, rowPosition: number, columnName: string): void
+    public recordChange(value: Record<string, any>, oldValue: Record<string, any>, rowPosition: number,): void
     public recordChange(value: string, oldValue: string, rowPosition: number, columnName: string): void
-    public recordChange<T extends string | Record<string, any>>(value: T, oldValue: T, rowPosition: number, columnName: string): void {
+    public recordChange<T extends string | Record<string, any>>(value: T, oldValue: T, rowPosition: number, columnName?: string): void {
+        const oldFields: Record<string, any> = (typeof oldValue === "object" && oldValue !== null ? oldValue : {
+            [columnName!]: oldValue ?? ""
+        })
+        const newFields: Record<string, any> = typeof value === "object" && oldValue !== null ? value : {
+            [columnName!]: value ?? ""
+        }
+
+        if (Object.keys(oldFields).length !== Object.keys(newFields).length) {
+            // Change cannot be reproduced - skip it
+            return
+        }
+
+        if (Object.entries(oldFields).filter(([k, v]) => newFields[k] !== v).length === 0) {
+            // No change - skip it
+            return;
+        }
+
+
         const changeRecord: ChangeRecord = {
             type: "change",
             row: rowPosition,
-            newFields: typeof value === "string" ? {
-                [columnName]: value
-            } : value,
-            oldFields: typeof oldValue === "string" ? {
-                [columnName]: oldValue
-            } : oldValue
+            newFields,
+            oldFields
         }
 
         this._history.value.push(changeRecord)
