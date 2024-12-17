@@ -2,8 +2,8 @@ export const CURATION_STATUS = {
     DISCUSSED: "Discussed",
     READY: "Ready",
     PROPOSED: "Proposed",
-    TO_BE_DISCUSSED: "ToBeDiscussed",
-    IN_DISCUSSION: "InDiscussion",
+    TO_BE_DISCUSSED: "To be discussed",
+    IN_DISCUSSION: "In discussion",
     PUBLISHED: "Published",
     OBSOLETE: "Obsolete",
     EXTERNAL: "External",
@@ -17,5 +17,6 @@ export const COLUMN_NAMES = {
     ID: "ID",
     E_CIGO: "E-CigO",
     FUZZY_SET: "Fuzzy set",
-    RELATIONSHIP_TYPE: "Relationship type"
+    RELATIONSHIP_TYPE: "Relationship type",
+    LABEL: "Label"
 }

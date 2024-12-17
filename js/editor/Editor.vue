@@ -42,9 +42,11 @@ const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => colu
 
 const path = location.pathname.split('/edit/')[1];
 const repo = path.substring(0, path.indexOf("/"));
-const filePath = path.substring(path.indexOf("/") + 1);
-const fileName = filePath.split('/').at(-1)!
+const filePath = decodeURIComponent(path.substring(path.indexOf("/") + 1));
+const fileName = decodeURIComponent(filePath.split('/').at(-1)!)
 const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
+
+console.log({path, repo, filePath, fileName, fileFolder})
 
 const urlParams = new URLSearchParams(window.location.search);
 const navigateToRow = urlParams.has("row") ? Number.parseInt(urlParams.get("row") ?? "0") - 2 : null;
@@ -75,7 +77,9 @@ const verifying = ref<boolean>(false);
 const locked = computed(() => lock.value || !tableBuilt.value || saving.value || verifying.value)
 
 const valid = computed(() => errors.value.length <= 0 && warnings.value.length <= 0);
-const canValidate = computed(() => !!spreadsheetData.value?.header?.includes("ID"));
+const canValidate = computed(() => !!spreadsheetData.value?.header?.includes(COLUMN_NAMES.ID));
+const canReview = computed(() => spreadsheetData.value?.header?.includes(COLUMN_NAMES.CURATOR) && spreadsheetData.value?.header?.includes(COLUMN_NAMES.TO_BE_REVIEWED_BY));
+const canVisualise = computed(() => spreadsheetData.value?.header?.includes(COLUMN_NAMES.ID) && spreadsheetData.value?.header?.includes(COLUMN_NAMES.LABEL));
 
 const saveDialogOpen = ref<boolean>(false);
 
@@ -199,6 +203,10 @@ watchEffect(() => {
             row.getCell("Parent")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-label/)) {
             row.getCell("Label")?.getElement()?.classList?.add(`has-${message.type}`)
+          } else if (d.type.match(/-domain/)) {
+            row.getCell("Domain")?.getElement()?.classList?.add(`has-${message.type}`)
+          } else if (d.type.match(/-range/)) {
+            row.getCell("Range")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-id/)) {
             row.getCell("ID")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-relation-value/)) {
@@ -1017,26 +1025,29 @@ function defColumnSize(field: string): number {
             </div>
             <span class="ribbon-title" style="column-span: 2">Data</span>
 
-            <div class="ribbon-splitter"></div>
+            <template v-if="canReview">
+              <div class="ribbon-splitter"></div>
 
-            <div class="ribbon-full">
-              <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
-                      @click="RIBBON.markAsReviewed()">
-                <i class="fas fa-clipboard-check" style="color: green"></i><br>
-                Reviewed
-              </button>
-            </div>
+              <div class="ribbon-full">
+                <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
+                        @click="RIBBON.markAsReviewed()">
+                  <i class="fas fa-clipboard-check" style="color: green"></i><br>
+                  Reviewed
+                </button>
+              </div>
 
-            <span class="ribbon-title" style="grid-column: span 2">Review</span>
+              <span class="ribbon-title" style="grid-column: span 2">Review</span>
 
-            <div class="ribbon-small">
-              <button :disabled="locked" class="btn-ribbon" @click="RIBBON.highlightOwn()">
-                <i class="fas fa-user"></i> Highlight yours
-              </button>
-              <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon" @click="RIBBON.askForReview()">
-                <i class="fas fa-clipboard"></i> Ask for review
-              </button>
-            </div>
+              <div class="ribbon-small">
+                <button :disabled="locked" class="btn-ribbon" @click="RIBBON.highlightOwn()">
+                  <i class="fas fa-user"></i> Highlight yours
+                </button>
+                <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
+                        @click="RIBBON.askForReview()">
+                  <i class="fas fa-clipboard"></i> Ask for review
+                </button>
+              </div>
+            </template>
 
 
             <div class="ribbon-splitter"></div>
@@ -1056,30 +1067,32 @@ function defColumnSize(field: string): number {
             </div>
 
             <span class="ribbon-title">View</span>
-            <div class="ribbon-splitter"></div>
 
+            <template v-if="canVisualise">
+              <div class="ribbon-splitter"></div>
+              <div class="ribbon-small">
+                <button :disabled="locked" class="btn-ribbon" @click="RIBBON.visualiseSheet()">
+                  <i class="fab fa-uncharted" style="color: #198754"></i> Sheet
+                </button>
+                <button :disabled="locked" class="btn-ribbon" @click="RIBBON.visualiseSelection()">
+                  <i class="fab fa-uncharted" style="color: #198754"></i> Selection
+                </button>
+              </div>
 
-            <div class="ribbon-small">
-              <button :disabled="locked" class="btn-ribbon" @click="RIBBON.visualiseSheet()">
-                <i class="fab fa-uncharted" style="color: #198754"></i> Sheet
-              </button>
-              <button :disabled="locked" class="btn-ribbon" @click="RIBBON.visualiseSelection()">
-                <i class="fab fa-uncharted" style="color: #198754"></i> Selection
-              </button>
-            </div>
+              <span class="ribbon-title">Visualise</span>
+            </template>
 
-            <span class="ribbon-title">Visualise</span>
-            <div class="ribbon-splitter"></div>
+            <template v-if="canValidate">
+              <div class="ribbon-splitter"></div>
+              <div class="ribbon-full">
+                <button :disabled="locked" class="btn-ribbon" @click="RIBBON.validate()">
+                  <i class="fas fa-spell-check" style="color: orange"></i><br>
+                  Validate
+                </button>
+              </div>
+              <span class="ribbon-title" style="grid-column: span 2">Validation</span>
+            </template>
 
-
-            <div class="ribbon-full">
-              <button :disabled="locked || !canValidate" class="btn-ribbon" @click="RIBBON.validate()">
-                <i class="fas fa-spell-check" style="color: orange"></i><br>
-                Validate
-              </button>
-            </div>
-
-            <span class="ribbon-title" style="grid-column: span 2">Validation</span>
 
             <div class="ribbon-splitter"></div>
 

@@ -55,9 +55,6 @@ def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name
         _logger.info(f"Not adding obsolete entity '{entity_data.get('ID')}' to index")
         return
 
-    _logger.debug(
-        f"Adding entity data '{entity_data.get('ID')}' to index for repository '{repo_name}' and sheet '{sheet_name}'")
-
     if "ID" in rowdata:
         class_id = rowdata["ID"]
     else:
@@ -80,6 +77,9 @@ def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name
         to_be_reviewed_by = None
 
     if class_id or label or definition or parent:
+        _logger.debug(
+            f"Adding entity data '{entity_data.get('ID')}' to index for repository '{repo_name}' and sheet '{sheet_name}'")
+
         writer.add_document(repo=repo_name,
                             spreadsheet=sheet_name,
                             class_id=(class_id if class_id else None),

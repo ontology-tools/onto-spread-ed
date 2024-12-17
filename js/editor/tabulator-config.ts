@@ -3,11 +3,11 @@ import {ColumnComponent, ColumnDefinition, MenuObject, RowComponent, Tabulator} 
 
 
 export function setRowColor(row: RowComponent, data: Record<string, string | null | undefined>, navigateToRow: number = -1) {
-    const curation_status = data[COLUMN_NAMES.CURATION_STATUS]?.toLowerCase().replace(/\s+/g, '') ?? null
+    const curation_status = data[COLUMN_NAMES.CURATION_STATUS]?.toLowerCase()?.trim() ?? null
 
     if (curation_status !== null) {
         for (let status of Object.values(CURATION_STATUS)) {
-            if (curation_status.indexOf(status.toLowerCase()) !== -1) {
+            if (curation_status === status.toLowerCase()) {
                 // Remove all other curation status css classes
                 for (const c of row.getElement().classList) {
                     if (c.startsWith(`ose-curation-status-`)) {
@@ -15,7 +15,7 @@ export function setRowColor(row: RowComponent, data: Record<string, string | nul
                     }
                 }
                 // Add curation status css class
-                row.getElement().classList.add(`ose-curation-status-${status.toLowerCase()}`)
+                row.getElement().classList.add(`ose-curation-status-${status.toLowerCase().replace(/[^a-z]/g, '_')}`)
             }
         }
     }
