@@ -23,6 +23,7 @@ class AddictOVocabService(APIService):
         auth_token = config.app_config.get(PROP_ADDICTO_VOCAB_API_AUTH_TOKEN,
                                            os.environ.get(PROP_ADDICTO_VOCAB_API_AUTH_TOKEN, None))
 
-        api_client = AddictOVocabClient(path, session, auth_token, config.app_config.get("DEBUG", False))
+        api_client = AddictOVocabClient(path, session, auth_token,
+                                        config.app_config.get("ENVIRONMENT", "debug") != "production")
 
         super().__init__(config, api_client)
