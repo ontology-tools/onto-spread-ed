@@ -1118,51 +1118,54 @@ function defColumnSize(field: string): number {
     </div>
 
 
-    <button class="toggle-diagnostics bg-secondary" @click="showDiagnosticList = !showDiagnosticList"
-            :style="{bottom: showDiagnosticList ? '200px' : '0'} ">
-      <template v-if="showDiagnosticList">
-        <i class="fa fa-chevron-down"></i> Hide validation messages
-      </template>
-      <template v-else>
-        <i class="fa fa-chevron-up"></i> Show validation messages
-      </template>
-    </button>
-    <div class="row border-1 border-danger overflow-scroll bg-secondary-subtle" style="height: 200px; min-height: 200px"
-         v-if="showDiagnosticList">
-      <div class="diagnostics-header bg-secondary">
-        <button :class="{active: filterToDiagnostics.includes('error')}" :disabled="locked"
-                class="btn-diagnostics-filter"
-                @click="RIBBON.filterToErrors()">
-          <i class="fas fa-circle-xmark" style="color: indianred"></i> Errors ({{ errors.length }})
-        </button>
-        <button :class="{active: filterToDiagnostics.includes('warning')}" :disabled="locked"
-                class="btn-diagnostics-filter"
-                @click="RIBBON.filterToWarnings()">
-          <i class="fas fa-exclamation-triangle" style="color: orange"></i> Warnings ({{ warnings.length }})
-        </button>
-        <button :class="{active: filterToDiagnostics.includes('info')}" :disabled="locked"
-                class="btn-diagnostics-filter"
-                @click="RIBBON.filterToInfos()">
-          <i class="fas fa-info-circle" style="color: dodgerblue"></i> Infos ({{ infos.length }})
-        </button>
-      </div>
-      <div class="diagnostics-grid">
-        <template
-            v-for="d of allDiagnostics.filter(x => filterToDiagnostics.length === 0 || filterToDiagnostics.includes(x.type))">
-          <i class="fa dg-type"
+    <template v-if="canValidate">
+      <button class="toggle-diagnostics bg-secondary" @click="showDiagnosticList = !showDiagnosticList"
+              :style="{bottom: showDiagnosticList ? '200px' : '0'} ">
+        <template v-if="showDiagnosticList">
+          <i class="fa fa-chevron-down"></i> Hide validation messages
+        </template>
+        <template v-else>
+          <i class="fa fa-chevron-up"></i> Show validation messages
+        </template>
+      </button>
+      <div class="row border-1 border-danger overflow-scroll bg-secondary-subtle"
+           style="height: 200px; min-height: 200px"
+           v-if="showDiagnosticList">
+        <div class="diagnostics-header bg-secondary">
+          <button :class="{active: filterToDiagnostics.includes('error')}" :disabled="locked"
+                  class="btn-diagnostics-filter"
+                  @click="RIBBON.filterToErrors()">
+            <i class="fas fa-circle-xmark" style="color: indianred"></i> Errors ({{ errors.length }})
+          </button>
+          <button :class="{active: filterToDiagnostics.includes('warning')}" :disabled="locked"
+                  class="btn-diagnostics-filter"
+                  @click="RIBBON.filterToWarnings()">
+            <i class="fas fa-exclamation-triangle" style="color: orange"></i> Warnings ({{ warnings.length }})
+          </button>
+          <button :class="{active: filterToDiagnostics.includes('info')}" :disabled="locked"
+                  class="btn-diagnostics-filter"
+                  @click="RIBBON.filterToInfos()">
+            <i class="fas fa-info-circle" style="color: dodgerblue"></i> Infos ({{ infos.length }})
+          </button>
+        </div>
+        <div class="diagnostics-grid">
+          <template
+              v-for="d of allDiagnostics.filter(x => filterToDiagnostics.length === 0 || filterToDiagnostics.includes(x.type))">
+            <i class="fa dg-type"
 
-             :class="{'fa-circle-xmark': d.type === 'error',
+               :class="{'fa-circle-xmark': d.type === 'error',
                     'fa-triangle-exclamation': d.type === 'warning',
                     'fa-info-circle': d.type ==='info',
                     [`text-${d.type === 'error' ? 'danger' : d.type}`]: true}"></i>
 
-          <a class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 2)" v-if="d.diagnostic.row > 0">Row
-            {{ d.diagnostic.row - 1 }}</a>
+            <a class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 2)" v-if="d.diagnostic.row > 0">Row
+              {{ d.diagnostic.row - 1 }}</a>
 
-          <Diagnostic :diagnostic="d.diagnostic" format="inline" class="dg-diagnostic"></Diagnostic>
-        </template>
+            <Diagnostic :diagnostic="d.diagnostic" format="inline" class="dg-diagnostic"></Diagnostic>
+          </template>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
   <div class="merge-container" v-if="mode === 'merge' && mergedData !== null">
     <Merger :conflicts="mergeConflicts" v-model="mergedData" @save="MERGE_COMMANDS.save"></Merger>
