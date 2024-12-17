@@ -39,11 +39,17 @@ const tableData = computed(() => spreadsheetData.value?.rows?.map((r, i) => ({
   ...r
 })) ?? [])
 const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => columnDefFor(h, suggestions.value, () => tabulator.value!)))
+
 const path = location.pathname.split('/edit/')[1];
 const repo = path.substring(0, path.indexOf("/"));
 const filePath = path.substring(path.indexOf("/") + 1);
 const fileName = filePath.split('/').at(-1)!
 const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
+
+const urlParams = new URLSearchParams(window.location.search);
+const navigateToRow = urlParams.has("row") ? Number.parseInt(urlParams.get("row") ?? "0") - 2 : null;
+const urlFilter = JSON.parse(urlParams.get("filter") ?? "null") as Record<string, string> | null
+
 const tableBuilt = ref<boolean>(false);
 const selectedRows = ref<RowComponent[]>([]);
 
@@ -69,6 +75,7 @@ const verifying = ref<boolean>(false);
 const locked = computed(() => lock.value || !tableBuilt.value || saving.value || verifying.value)
 
 const valid = computed(() => errors.value.length <= 0 && warnings.value.length <= 0);
+const canValidate = computed(() => !!spreadsheetData.value?.header?.includes("ID"));
 
 const saveDialogOpen = ref<boolean>(false);
 
@@ -80,6 +87,11 @@ const errors = computed(() => allDiagnostics.value.filter(x => x.type === "error
 const warnings = computed(() => allDiagnostics.value.filter(x => x.type === "warning"));
 const infos = computed(() => allDiagnostics.value.filter(x => x.type === "info"));
 
+const onBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (historyService.canUndo()) {
+    e.preventDefault();
+  }
+}
 
 const onWindowSizeChanged = debounce(() => {
   if (!tableBuilt.value) {
@@ -93,9 +105,11 @@ let checkForUpdatesTimer: number | undefined;
 onMounted(() => {
   loadData()
   window.addEventListener("resize", onWindowSizeChanged);
+  window.addEventListener("beforeunload", onBeforeUnload);
 })
 onUnmounted(() => {
   window.removeEventListener("resize", onWindowSizeChanged);
+  window.removeEventListener("beforeunload", onBeforeUnload);
   if (checkForUpdatesTimer) {
     clearInterval(checkForUpdatesTimer)
   }
@@ -147,7 +161,8 @@ watchEffect(() => {
         resizable: false,
         frozen: true,
         headerHozAlign: "center",
-        hozAlign: "center"
+        hozAlign: "center",
+        width: 50,
       },
 
       //highlight on load table:
@@ -192,6 +207,10 @@ watchEffect(() => {
             row.getElement().classList.add(`has-${message.type}`)
           }
         }
+
+        if (navigateToRow === row.getIndex()) {
+          row.getElement().style.boxShadow = "inset 0 0 10px 5px #ffcb00"
+        }
       },
     });
 
@@ -199,6 +218,16 @@ watchEffect(() => {
     instance.on("tableBuilt", () => {
       tableBuilt.value = true;
       validate();
+
+      if (urlFilter) {
+        for (const field in urlFilter) {
+          instance.setHeaderFilterValue(field, urlFilter[field])
+        }
+      }
+
+      if (navigateToRow !== null) {
+        instance.scrollToRow(navigateToRow, "top")
+      }
     })
     instance.on("rowSelectionChanged", (_, selected) => selectedRows.value = selected)
     instance.on("cellEdited", async cell => {
@@ -228,7 +257,7 @@ watch(tableBuilt, async () => {
       if (c.type === "add") {
         return `<li>Added row ${c.row}</li>`
       } else if (c.type === "change") {
-        return `<li>Changed row ${c.row}: ${Object.keys(c.oldFields).map(f => `${f} from "${c.oldFields[f]}" to "${c.newFields[f]}"`).join(", ")}</li>`
+        return `<li>Changed row ${c.row}: ${Object.keys(c.newFields ?? {}).map(f => `${f} from "${c.oldFields?.[f]}" to "${c.newFields[f]}"`).join(", ")}</li>`
       } else if (c.type === "delete") {
         return `<li>Deleted row ${c.row}</li>`
       }
@@ -257,6 +286,10 @@ watch(tableBuilt, async () => {
 }, {once: true})
 
 async function validateImmediate(progress: "toast" | "popup" = "toast") {
+  if (!canValidate.value) {
+    return
+  }
+
   verifying.value = true;
   let toast: ControllerKey | null = null;
   if (progress === "toast") {
@@ -1041,7 +1074,7 @@ function defColumnSize(field: string): number {
 
 
             <div class="ribbon-full">
-              <button :disabled="locked" class="btn-ribbon" @click="RIBBON.validate()">
+              <button :disabled="locked || !canValidate" class="btn-ribbon" @click="RIBBON.validate()">
                 <i class="fas fa-spell-check" style="color: orange"></i><br>
                 Validate
               </button>
@@ -1397,10 +1430,6 @@ function defColumnSize(field: string): number {
     background-color: grey !important;
   }
 
-  .tabulator.table .tabulator-row .tabulator-cell.tabulator-row-header {
-    background: none !important;
-  }
-
   .tabulator.table.highlight-assigned .assigned-to-me .tabulator-cell {
     color: black;
     font-weight: bold;
@@ -1412,6 +1441,12 @@ function defColumnSize(field: string): number {
 
     &.highlight {
       box-shadow: inset 0 0 10px 5px #ffcb00;
+    }
+  }
+
+  .tabulator.table {
+    .tabulator-headers, .tabulator-row {
+      padding-left: 0;
     }
   }
 

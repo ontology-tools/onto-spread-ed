@@ -1,4 +1,5 @@
 import json
+from urllib.parse import quote_plus
 
 from flask import Blueprint, g, render_template, redirect, url_for, request, session, jsonify, current_app
 from flask_github import GitHub
@@ -90,7 +91,7 @@ def direct():
     if any(x is None for x in [typ, repo_str, sheet_str, go_to_row]):
         return jsonify("invalid number of arguments for get"), 400
 
-    url = '/edit' + '/' + repo_str + '/' + sheet_str
+    url = '/edit' + '/' + repo_str + '/' + sheet_str + "?filter=" + quote_plus(json.dumps({"Label": go_to_row}))
 
     session['type'] = typ
     session['label'] = go_to_row
