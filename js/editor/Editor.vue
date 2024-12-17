@@ -46,8 +46,6 @@ const filePath = decodeURIComponent(path.substring(path.indexOf("/") + 1));
 const fileName = decodeURIComponent(filePath.split('/').at(-1)!)
 const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
 
-console.log({path, repo, filePath, fileName, fileFolder})
-
 const urlParams = new URLSearchParams(window.location.search);
 const navigateToRow = urlParams.has("row") ? Number.parseInt(urlParams.get("row") ?? "0") - 2 : null;
 const urlFilter = JSON.parse(urlParams.get("filter") ?? "null") as Record<string, string> | null
@@ -98,11 +96,13 @@ const onBeforeUnload = (e: BeforeUnloadEvent) => {
 }
 
 const onWindowSizeChanged = debounce(() => {
-  if (!tableBuilt.value) {
+  if (!tableBuilt.value || tabulator.value === null) {
     return;
   }
 
-  tabulator.value?.setHeight(document.querySelector(".row.editor-row")?.getBoundingClientRect()?.height ?? 400)
+  const firstRow = tabulator.value.getRows("visible")?.[0]
+  tabulator.value.setHeight(document.querySelector(".row.editor-row")?.getBoundingClientRect()?.height ?? 400)
+  tabulator.value.scrollToRow(firstRow ?? 0, "top")
 })
 
 let checkForUpdatesTimer: number | undefined;
@@ -233,7 +233,7 @@ watchEffect(() => {
         }
       }
 
-      if (history?.replaceState !== undefined) {
+      if (history?.replaceState !== undefined && urlFilter) {
         // Remove filter from url so that on reload the table is not filtered again
         const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
         window.history.replaceState({path: newurl}, '', newurl);
@@ -245,7 +245,6 @@ watchEffect(() => {
     })
     instance.on("rowSelectionChanged", (_, selected) => selectedRows.value = selected)
     instance.on("cellEdited", async cell => {
-      console.log("cellEdited")
       historyService.recordChange(cell.getValue(), cell.getOldValue() ?? null, cell.getRow().getData()["id"], cell.getColumn().getField())
       cell.getRow().reformat();
     });
@@ -262,7 +261,7 @@ watchEffect(() => {
     return
   }
 
-  tabulator.value.setFilter(row => filterToDiagnostics.value.length === 0 || !!diagnostics.value[row["id"]]?.find(d => filterToDiagnostics.value.includes(d.type)))
+  tabulator.value.setFilter(row => (filterToDiagnostics.value.length === 0 || !!diagnostics.value[row["id"]]?.find(d => filterToDiagnostics.value.includes(d.type))))
 })
 
 watch(tableBuilt, async () => {
