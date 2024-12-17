@@ -89,12 +89,16 @@ const onWindowSizeChanged = debounce(() => {
   tabulator.value?.setHeight(document.querySelector(".row.editor-row")?.getBoundingClientRect()?.height ?? 400)
 })
 
+let checkForUpdatesTimer: number | undefined;
 onMounted(() => {
   loadData()
   window.addEventListener("resize", onWindowSizeChanged);
 })
 onUnmounted(() => {
   window.removeEventListener("resize", onWindowSizeChanged);
+  if (checkForUpdatesTimer) {
+    clearInterval(checkForUpdatesTimer)
+  }
 })
 
 watch(showDiagnosticList, () => {
@@ -204,6 +208,9 @@ watchEffect(() => {
     });
 
     tabulator.value = instance;
+
+    const state = {}
+    checkForUpdatesTimer = setInterval(() => checkForUpdates(state), 60 * 1000)
   }
 })
 
@@ -443,6 +450,40 @@ async function scrollAndHighlightRow(position: number) {
   row?.getElement()?.classList?.remove("highlight");
 }
 
+async function checkForUpdates(state: any) {
+  if (state.toast || locked.value) {
+    return;
+  }
+
+  const response = await fetch(`${URL_PREFIX}/checkForUpdates`, {
+    method: "POST",
+    headers: {
+      "Content-TYpe": "application/x-www-form-urlencoded",
+      "Accept": "application/json",
+    },
+    body: `repo_key=${repo}&folder=${fileFolder}&spreadsheet=${fileName}&file_sha=${spreadsheetData.value?.file_sha}`,
+  });
+
+  const result = await response.json();
+  if (result.message === "Success") {
+    // No updates
+  } else {
+    state.toast = showToast?.({
+      props: {
+        value: true,
+        variant: "warning",
+        pos: "top-center"
+      },
+      component: h(BToast, null, {
+        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+          h("div", {class: "spinner-grow spinner-grow-sm text-white mr-2"}),
+          "Updates available"
+        ])
+      })
+    }) ?? null;
+  }
+}
+
 
 /************* UTILITY FROM OLD ****************/
 
@@ -456,13 +497,14 @@ function saveCurator(row: RowComponent) {
     const curators = [...cellValue?.split(";")?.map(x => x.trim()), LOGIN_INITIALS]
         .filter((x, i, self) => !!x && self.indexOf(x) === i)
         .join("; ")
+    const prev = data[COLUMN_NAMES.CURATOR];
     data[COLUMN_NAMES.CURATOR] = curators;
 
     if (curators !== "") {
       const cellValue = data[COLUMN_NAMES.CURATOR];
       const rowValue = data["id"];//save absolute row position
       const columnValue = "Curator"; //column name
-      historyService.recordChange(cellValue, rowValue as number, columnValue);
+      historyService.recordChange(cellValue, prev, rowValue as number, columnValue);
     }
   }
 }
@@ -972,7 +1014,7 @@ function defColumnSize(field: string): number {
               <button :disabled="locked" class="btn-ribbon" @click="RIBBON.removeFilters()">
                 <i class="fas fa-filter-circle-xmark" style="color: indianred"></i> Remove filters
               </button>
-              <button :disabled="locked || !!tabulator?.getColumns()?.find(c => !c.isVisible())" class="btn-ribbon"
+              <button :disabled="locked || !tabulator?.getColumns()?.find(c => !c.isVisible())" class="btn-ribbon"
                       @click="RIBBON.showHiddenColumns">
                 <i class="fas fa-eye" style="color: cornflowerblue"></i> Show hidden columns
               </button>
