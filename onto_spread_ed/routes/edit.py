@@ -203,7 +203,6 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
                         row_data_parsed[r]["ID"] = new_id
                         for c in range(len(header)):
                             if c == 0:
-                                restart = True
                                 sheet.cell(row=r + 2, column=c + 1).value = new_id
 
         # Create version for saving
@@ -333,13 +332,6 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
             "new_sha": saved_sha,
             "merge_strategy": merge_strategy
         })
-
-        # if restart:  # todo: does this need to be anywhere else also?
-        #     return (json.dumps({"message": "Success",
-        #                         "file_sha": file_sha_theirs}), 360)
-        # else:
-        #     return (json.dumps({"message": "Success",
-        #                         "file_sha": file_sha_theirs}), 200)
 
     except Exception as err:
         current_app.logger.error(err)

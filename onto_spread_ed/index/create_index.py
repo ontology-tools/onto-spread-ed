@@ -78,7 +78,8 @@ def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name
 
     if class_id or label or definition or parent:
         _logger.debug(
-            f"Adding entity data '{entity_data.get('ID')}' to index for repository '{repo_name}' and sheet '{sheet_name}'")
+            f"Adding entity data '{entity_data.get('ID')}' to index for repository '{repo_name}'"
+            f"and sheet '{sheet_name}'")
 
         writer.add_document(repo=repo_name,
                             spreadsheet=sheet_name,

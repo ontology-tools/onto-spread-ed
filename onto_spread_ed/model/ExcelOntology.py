@@ -589,8 +589,9 @@ class ExcelOntology:
 
         return result
 
-    def validate(self, only: Optional[List[DIAGNOSTIC_KIND]] = None, exclude: Optional[List[DIAGNOSTIC_KIND]] = None) -> \
-            Result[tuple]:
+    def validate(self,
+                 only: Optional[List[DIAGNOSTIC_KIND]] = None,
+                 exclude: Optional[List[DIAGNOSTIC_KIND]] = None) -> Result[tuple]:
         """
         Validate the loaded ontology. Checks for various errors such as unknown parents, related terms, duplicates, etc.
 

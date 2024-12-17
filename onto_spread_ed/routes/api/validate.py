@@ -222,8 +222,9 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
 
         for source in file_release_file.sources:
             # Evaluate lazily to avoid loading unnecessary files in case type not in ["classes", "relations"]
-            excel_source = lambda: spreadsheet if source.file == file else BytesIO(
-                get_file(gh, repo.full_name, source.file))
+            def excel_source():
+                return spreadsheet if source.file == file else BytesIO(get_file(gh, repo.full_name, source.file))
+
             ontology = o if source.file == file else other_sources
             if source.type == "classes":
                 ontology.add_terms_from_excel(source.file, excel_source())
