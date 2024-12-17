@@ -218,14 +218,19 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
 
         sources = order_sources(dict((k, release_script.files[k]) for k in needs))
 
+        other_sources = ExcelOntology("tmp:///other_sources/")
+
         for source in file_release_file.sources:
             # Evaluate lazily to avoid loading unnecessary files in case type not in ["classes", "relations"]
             excel_source = lambda: spreadsheet if source.file == file else BytesIO(
                 get_file(gh, repo.full_name, source.file))
+            ontology = o if source.file == file else other_sources
             if source.type == "classes":
-                o.add_terms_from_excel(source.file, excel_source())
+                ontology.add_terms_from_excel(source.file, excel_source())
             elif source.type == "relations":
-                o.add_relations_from_excel(source.file, excel_source())
+                ontology.add_relations_from_excel(source.file, excel_source())
+
+        o.import_other_excel_ontology(other_sources)
 
         for k, dependency in sources:
             sources = [(s.file, BytesIO(get_file(gh, repo.full_name, s.file)), s.type) for s in dependency.sources]

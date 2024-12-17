@@ -615,7 +615,7 @@ class ExcelOntology:
         by_label: Dict[str, List[Union[UnresolvedTerm, UnresolvedRelation]]] = {}
 
         for term in self._terms:
-            result.template = {"row": term.origin[1]} if term.origin is not None else {}
+            result.template = {"row": term.origin[1], "origin": term.origin[0]} if term.origin is not None else {}
             if lower(term.curation_status()) in self._ignore_status + self._discard_status:
                 self._logger.debug(f"Not validating {term.curation_status()} term {term.label} ({term.id})")
                 continue

@@ -233,6 +233,12 @@ watchEffect(() => {
         }
       }
 
+      if (history?.replaceState !== undefined) {
+        // Remove filter from url so that on reload the table is not filtered again
+        const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({path: newurl}, '', newurl);
+      }
+
       if (navigateToRow !== null) {
         instance.scrollToRow(navigateToRow, "top")
       }
