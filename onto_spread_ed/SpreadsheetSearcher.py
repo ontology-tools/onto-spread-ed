@@ -8,7 +8,7 @@ from flask_github import GitHub
 from whoosh.qparser import MultifieldParser, QueryParser
 
 from .index.FileStorage import FileStorage
-from .index.create_index import add_entity_data_to_index, to_entity_data_list, re_write_entity_data_set
+from .index.create_index import add_entity_data_to_index, re_write_entity_data_set
 from .index.schema import schema
 from .services.ConfigurationService import ConfigurationService
 from .utils.github import get_spreadsheet, get_spreadsheets
@@ -34,7 +34,7 @@ class SpreadsheetSearcher:
 
             self.storage.create_index(schema)
 
-    def search_for(self, repo_name, search_string="", assigned_user="", fields=None):
+    def search_for(self, repo_name, search_string="", assigned_user="", fields=None, limit: Optional[int] = 100):
         if fields is None:
             fields = ["class_id", "label", "definition", "parent", "tobereviewedby"]
 
@@ -48,7 +48,7 @@ class SpreadsheetSearcher:
                               (" AND tobereviewedby:" + assigned_user if assigned_user else ""))
 
         with ix.searcher() as searcher:
-            results = searcher.search(query, limit=100)
+            results = searcher.search(query, limit=limit)
             resultslist = []
             for hit in results:
                 allfields = {}
@@ -59,7 +59,7 @@ class SpreadsheetSearcher:
         ix.close()
         return resultslist
 
-    def update_index(self, repo_name, folder, sheet_name, header, sheet_data):
+    def update_index(self, repo_name, folder, sheet_name, sheet_data):
         self.threadLock.acquire()
         self._logger.debug("Update of index start")
 
@@ -76,11 +76,11 @@ class SpreadsheetSearcher:
             writer.commit()
             writer = ix.writer(timeout=60)  # Wait 60s for the writer lock
 
-            for r in range(len(sheet_data)):
-                row = [v for v in sheet_data[r].values()]
-                del row[0]  # Tabulator-added ID column
+            for row in sheet_data:
+                if "id" in row:
+                    del row["id"]  # Tabulator-added ID column
 
-                add_entity_data_to_index((header, row), repo_name, folder + '/' + sheet_name, writer)
+                add_entity_data_to_index(row, repo_name, folder + '/' + sheet_name, writer)
 
             writer.commit(optimize=True)
 
@@ -181,7 +181,7 @@ class SpreadsheetSearcher:
                 for file in excel_files:
                     _, data, _ = get_spreadsheet(self.github, config.full_name, "", file)
 
-                    entity_data = to_entity_data_list(data)
+                    entity_data = data
 
                     spreadsheet = file
                     self._logger.debug(f"Rewriting entity data for repository '{short_repo} ({config.full_name})' "

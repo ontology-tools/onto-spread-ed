@@ -1,11 +1,20 @@
 import json
-from typing import Any, Dict
+from io import BytesIO
+from typing import Any, Dict, List, Optional
 
 import jsonschema
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
+from flask_github import GitHub
+from openpyxl.workbook import Workbook
 
 from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
 from onto_spread_ed.guards.with_permission import requires_permissions
+from onto_spread_ed.model.ExcelOntology import ExcelOntology
+from onto_spread_ed.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
+from onto_spread_ed.release.common import order_sources
+from onto_spread_ed.services.ConfigurationService import ConfigurationService
+from onto_spread_ed.services.FileCache import FileCache
+from onto_spread_ed.utils import get_file
 
 bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
 
@@ -28,6 +37,26 @@ VERIFY_ENTITY_SCHEMA = {
         }
     },
     "title": "schema"
+}
+
+VERIFY_FILE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["repository", "spreadsheet", "rows"],
+    "properties": {
+        "repository": {
+            "type": "string",
+        },
+        "spreadsheet": {
+            "type": "string",
+        },
+        "rows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+            }
+        }
+    }
 }
 
 
@@ -130,5 +159,93 @@ def validate_line(entity: Dict[str, Any],
 
 @bp.route("/file", methods=("POST",))
 @requires_permissions("view")
-def validate_file():
-    pass
+def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
+    data = json.loads(request.data)
+
+    try:
+        jsonschema.validate(data, VERIFY_FILE_SCHEMA)
+    except jsonschema.ValidationError as e:
+        return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
+
+    repo, file, rows = data["repository"], data["spreadsheet"], data["rows"]
+
+    if len(rows) < 1:
+        return jsonify({
+            "success": True,
+            "valid": True,
+            "errors": [],
+            "warnings": [],
+            "infos": []
+        })
+
+    header = list(rows[0].keys())
+
+    wb = Workbook()
+    ws = wb.active
+
+    ws.append(header)
+    for row in rows:
+        ws.append([row[h] for h in header])
+
+    spreadsheet = BytesIO()
+    wb.save(spreadsheet)
+
+    repo = config.get(repo)
+
+    o = ExcelOntology(f"temp://{file}")
+
+    release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+
+    try:
+        external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
+
+        external = ExcelOntology.from_owl(external_raw, repo.prefixes)
+        o.import_other_excel_ontology(external.value)
+    except Exception as e:
+        current_app.logger.error(e)
+
+    file_key: Optional[str]
+    file_release_file: Optional[ReleaseScriptFile]
+    file_key, file_release_file = next(
+        ((k, f) for (k, f) in release_script.files.items() if any(s.file == file for s in f.sources)), (None, None))
+    if file_key is not None and file_release_file is not None:
+        release_files: List[ReleaseScriptFile] = [file_release_file] if file_release_file is not None else []
+        needs = []
+        while len(release_files) > 0:
+            release_file = release_files.pop(0)
+            needs.extend(release_file.needs)
+            release_files.extend([release_script.files[n] for n in release_file.needs])
+
+        sources = order_sources(dict((k, release_script.files[k]) for k in needs))
+
+        other_sources = ExcelOntology("tmp:///other_sources/")
+
+        for source in file_release_file.sources:
+            # Evaluate lazily to avoid loading unnecessary files in case type not in ["classes", "relations"]
+            def excel_source():
+                return spreadsheet if source.file == file else BytesIO(get_file(gh, repo.full_name, source.file))
+
+            ontology = o if source.file == file else other_sources
+            if source.type == "classes":
+                ontology.add_terms_from_excel(source.file, excel_source())
+            elif source.type == "relations":
+                ontology.add_relations_from_excel(source.file, excel_source())
+
+        o.import_other_excel_ontology(other_sources)
+
+        for k, dependency in sources:
+            sources = [(s.file, BytesIO(get_file(gh, repo.full_name, s.file)), s.type) for s in dependency.sources]
+
+            o.import_other_excel_ontology(ExcelOntology.from_excel(f"tmp:///{k}", sources))
+
+    o.resolve()
+    # Exclude missing ID here as they are generated if needed on save
+    result = o.validate(exclude=["missing-id"])
+
+    return jsonify({
+        "success": True,
+        "valid": result.ok() and not result.has_errors(),
+        "errors": result.errors,
+        "warnings": result.warnings,
+        "infos": result.infos,
+    })

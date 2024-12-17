@@ -3,6 +3,13 @@ const vuePlugin = require("esbuild-plugin-vue3")
 const path = require("path")
 const fs = require("fs")
 
+const unpluginVue = require('unplugin-vue-components/esbuild')
+const bootstrapVueNext = require('bootstrap-vue-next')
+const BootstrapVueNextResolver = bootstrapVueNext.BootstrapVueNextResolver 
+
+
+const Components = unpluginVue.default
+
 
 const ROOT_DIR = "js"
 
@@ -17,7 +24,13 @@ async function main() {
                 entryPoints: [entryPoint],
                 bundle: true,
                 outfile: path.join("onto_spread_ed", "static", "js", `${dir}.js`),
-                plugins: [vuePlugin({cssInline: true})],
+                plugins: [
+                    vuePlugin({cssInline: true}),
+                    Components({
+                        resolvers: [BootstrapVueNextResolver()],
+                    })
+                ],
+                sourcemap: true,
             }
 
             console.log(`Building ${dir}...`)

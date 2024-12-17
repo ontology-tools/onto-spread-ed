@@ -3,24 +3,7 @@
 import CollapsibleCard from "../common/CollapsibleCard.vue";
 import {computed, ref} from "vue";
 import {alertDialog, promptDialog} from "../common/bootbox.ts";
-
-interface RepositoryConfig {
-  short_name: string
-  full_name: string
-
-  id_digits: number
-  indexed_files: string[]
-  main_branch: string
-  prefixes: { [K: string]: string }
-  release_file: string
-  release_script_path: string
-  subontologies: {
-    [K: string]: {
-      release_file: string
-      excel_file: string
-    }
-  }
-}
+import {RepositoryConfig} from "../common/model.ts";
 
 declare var SETTINGS: {
   repositories: RepositoryConfig[],
