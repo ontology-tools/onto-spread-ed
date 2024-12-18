@@ -20,7 +20,8 @@ class BCIOSearchService(APIService):
         auth_token = config.app_config.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN,
                                            os.environ.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, None))
 
-        api_client = BCIOSearchClient(path, session, auth_token, config.app_config.get("DEBUG", False))
+        api_client = BCIOSearchClient(path, session, auth_token,
+                                      config.app_config.get("ENVIRONMENT", "debug") != "production")
 
         super().__init__(config, api_client)
 

@@ -78,6 +78,9 @@ def create_app(config_filename=None):
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
 
+    # Set custom json encoder
+    app.json.default = dump_default  # noqa: F405
+
     load_config(app, config_filename)
 
     CORS(app, resources={

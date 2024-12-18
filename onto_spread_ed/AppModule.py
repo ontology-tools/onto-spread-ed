@@ -10,6 +10,7 @@ from .OntologyDataStore import OntologyDataStore
 from .PermissionManager import PermissionManager
 from .SpreadsheetSearcher import SpreadsheetSearcher
 from .services.ConfigurationService import ConfigurationService
+from .services.FileCache import FileCache
 from .services.LocalConfigurationService import LocalConfigurationService
 from .services.OntoloyBuildService import OntologyBuildService
 from .services.RepositoryConfigurationService import RepositoryConfigurationService
@@ -77,3 +78,8 @@ class AppModule(Module):
     @request
     def permission_manager(self, app: Flask) -> PermissionManager:
         return PermissionManager(app.config)
+
+    @provider
+    @request
+    def file_cache(self) -> FileCache:
+        return FileCache()

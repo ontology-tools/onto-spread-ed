@@ -9,6 +9,7 @@ from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set, Liter
 
 import openpyxl
 from openpyxl.worksheet.worksheet import Worksheet
+from pyhornedowl import pyhornedowl
 from typing_extensions import Self
 
 from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
@@ -18,7 +19,35 @@ from .Result import Result
 from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
 from .Term import Term, UnresolvedTerm
 from .TermIdentifier import TermIdentifier
+from .. import constants
 from ..utils import str_empty, lower, str_space_eq
+
+# Same as js/common/model.ts
+DIAGNOSTIC_KIND = Literal[
+    "unknown-column",
+    "incomplete-term",
+    "unknown-relation",
+    "missing-label",
+    "missing-label",
+    "missing-id",
+    "inconsistent-import",
+    "missing-import",
+    "no-parent",
+    "unknown-parent",
+    "missing-parent", "ignored-parent",
+    "unknown-disjoint",
+    "missing-disjoint", "ignored-disjoint",
+    "unknown-relation-value",
+    "missing-relation-value",
+    "ignored-relation-value",
+    "unknown-domain",
+    "missing-domain",
+    "ignored-domain",
+    "unknown-range",
+    "missing-range",
+    "ignored-range",
+    "duplicate"
+]
 
 
 @dataclass
@@ -447,7 +476,7 @@ class ExcelOntology:
 
             if term.id is None or term.label is None:
                 self._logger.error(f"Term without id or label encountered. This should not happen. Term: {term}")
-                continue
+                # continue
 
             if term.is_resolved():
                 continue
@@ -560,7 +589,9 @@ class ExcelOntology:
 
         return result
 
-    def validate(self, only: Optional[List[str]] = None, exclude: Optional[List[str]] = None) -> Result[tuple]:
+    def validate(self,
+                 only: Optional[List[DIAGNOSTIC_KIND]] = None,
+                 exclude: Optional[List[DIAGNOSTIC_KIND]] = None) -> Result[tuple]:
         """
         Validate the loaded ontology. Checks for various errors such as unknown parents, related terms, duplicates, etc.
 
@@ -570,10 +601,11 @@ class ExcelOntology:
         """
         result = Result()
 
-        def c(*args: str) -> bool:
+        def c(arg1: DIAGNOSTIC_KIND, arg2: Optional[DIAGNOSTIC_KIND] = None) -> bool:
             """
             Helper function to check if specific errors or warnings should be flagged
             """
+            args = [a for a in [arg1, arg2] if a is not None]
             return (only is None or any(a in only for a in args)) and \
                 (exclude is None or not all(a in exclude for a in args))
 
@@ -584,7 +616,7 @@ class ExcelOntology:
         by_label: Dict[str, List[Union[UnresolvedTerm, UnresolvedRelation]]] = {}
 
         for term in self._terms:
-            result.template = {"row": term.origin[1]} if term.origin is not None else {}
+            result.template = {"row": term.origin[1], "origin": term.origin[0]} if term.origin is not None else {}
             if lower(term.curation_status()) in self._ignore_status + self._discard_status:
                 self._logger.debug(f"Not validating {term.curation_status()} term {term.label} ({term.id})")
                 continue
@@ -779,6 +811,8 @@ class ExcelOntology:
                 if len(duplicates) > 1:
                     mismatches = []
                     for a, b in itertools.combinations(duplicates, 2):
+                        if a.id is None or b.id is None or a.label is None or b.label is None:
+                            continue
                         if a.label != b.label:
                             mismatches.append(("label", a, b))
                         if a.id != b.id:
@@ -829,3 +863,69 @@ class ExcelOntology:
 
     def add_relation(self, relation: Relation):
         self._relations.append(UnresolvedRelation(**dataclasses.asdict(relation)))
+
+    @classmethod
+    def from_excel(cls, iri: str, files: Tuple[str, Union[bytes, str, BytesIO], Literal["classes", "relations"]]):
+        ontology = ExcelOntology(iri)
+        for name, file, kind in files:
+            if kind == "classes":
+                ontology.add_terms_from_excel(name, file)
+            elif kind == "relations":
+                ontology.add_relations_from_excel(name, file)
+
+        return ontology
+
+    @classmethod
+    def from_owl(cls, externals_owl: str, prefixes: Dict[str, str]) -> Result[Self]:
+        result = Result()
+        ontology = pyhornedowl.open_ontology(externals_owl, "rdf")
+        self = ExcelOntology(ontology.get_iri())
+        for (p, d) in prefixes.items():
+            ontology.prefix_mapping.add_prefix(p, d)
+
+        for c in ontology.get_classes():
+            id = ontology.get_id_for_iri(c)
+            labels = ontology.get_annotations(c, constants.RDFS_LABEL)
+
+            if id is None:
+                result.warning(type='unknown-id', msg=f'Unable to determine id of external term "{c}"')
+            if len(labels) == 0:
+                result.warning(type='unknown-label', msg=f'Unable to determine label of external term "{c}"')
+
+            if id is not None:
+                for label in labels:
+                    self.add_term(Term(
+                        id=id,
+                        label=label,
+                        origin=("<external>", -1),
+                        relations=[],
+                        sub_class_of=[],
+                        equivalent_to=[],
+                        disjoint_with=[]
+                    ))
+
+        for r in ontology.get_object_properties():
+            id = ontology.get_id_for_iri(r)
+            label = ontology.get_annotation(r, constants.RDFS_LABEL)
+
+            if id is None:
+                result.warning(type='unknown-id', msg=f'Unable to determine id of external relation "{r}"')
+            if label is None:
+                result.warning(type='unknown-label', msg=f'Unable to determine label of external relation "{r}"')
+
+            if id is not None and label is not None:
+                self.add_relation(Relation(
+                    id=id,
+                    label=label,
+                    origin=("<external>", -1),
+                    equivalent_relations=[],
+                    inverse_of=[],
+                    relations=[],
+                    owl_property_type=OWLPropertyType.ObjectProperty,
+                    sub_property_of=[],
+                    domain=None,
+                    range=None
+                ))
+
+        result.value = self
+        return result

@@ -265,21 +265,7 @@
         function openSheet(type, repo, sheet, go_to_row) {
             console.log(sheet + " " + sheet + " " + go_to_row + " " + type);
 
-            jQuery.ajax({
-                url: URL_PREFIX + '/direct',
-                dataType: 'text',
-                type: 'POST',
-                async: 'false',
-                data: {
-                    type: JSON.stringify({type}),
-                    go_to_row: JSON.stringify({go_to_row}),
-                    repo: JSON.stringify({repo}),
-                    sheet: JSON.stringify({sheet})
-                },
-                success: function (data) {
-                    window.location.href = URL_PREFIX + '/edit/' + repo + '/' + sheet;
-                }
-            });
+            window.location.href = URL_PREFIX + `/direct?type=${type}&repo=${repo}&sheet=${sheet}&go_to_row=${go_to_row}`;
         }
 
 

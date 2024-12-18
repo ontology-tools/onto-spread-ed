@@ -1,8 +1,7 @@
 
-
 :root {
-    --bs-callout-link: 10,88,202;
-    --bs-callout-code-color: #ab296a;
+  --bs-callout-link: 10, 88, 202;
+  --bs-callout-code-color: #ab296a;
 }
 
 .callout-success {
@@ -28,6 +27,7 @@
   --bd-callout-bg: var(--bs-info-bg-subtle);
   --bd-callout-border: var(--bs-info-border-subtle);
 }
+
 .callout {
   --bs-link-color-rgb: var(--bs-callout-link);
   --bs-code-color: var(--bs-callout-code-color);
@@ -47,25 +47,89 @@
 }
 
 //.release {
-  .modal-dialog .release-file-settings {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-gap: 8px 16px;
+.modal-dialog .release-file-settings {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-gap: 8px 16px;
 
-    h4 {
-      grid-column: 1/3
-    }
-
-    label {
-      grid-column: 1;
-    }
-
-    input, textarea {
-      grid-column: 2;
-    }
-
-    span {
-      grid-column: 3;
-    }
+  h4 {
+    grid-column: 1/3
   }
+
+  label {
+    grid-column: 1;
+  }
+
+  input, textarea {
+    grid-column: 2;
+  }
+
+  span {
+    grid-column: 3;
+  }
+}
+
 //}
+
+
+.breadcrumb-item.active {
+  font-weight: bold;
+}
+
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 40px;
+  aspect-ratio: 1;
+  position: relative;
+}
+
+.loader:before,
+.loader:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -8px 0 0 -8px;
+  width: 16px;
+  aspect-ratio: 1;
+  background: #3FB8AF;
+  animation: l2-1 2s infinite,
+  l2-2 1s infinite;
+}
+
+.loader:after {
+  background: #FF3D7F;
+  animation-delay: -1s, 0s;
+}
+
+@keyframes l2-1 {
+  0% {
+    top: 0;
+    left: 0
+  }
+  25% {
+    top: 100%;
+    left: 0
+  }
+  50% {
+    top: 100%;
+    left: 100%
+  }
+  75% {
+    top: 0;
+    left: 100%
+  }
+  100% {
+    top: 0;
+    left: 0
+  }
+}
+
+@keyframes l2-2 {
+  40%, 50% {
+    transform: rotate(0.25turn) scale(0.5)
+  }
+  100% {
+    transform: rotate(0.5turn) scale(1)
+  }
+}

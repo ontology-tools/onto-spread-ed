@@ -60,7 +60,7 @@ class APIService(abc.ABC):
         lock = asyncio.Lock()
 
         # Only allow 5 concurrent calls to the API
-        sem = asyncio.Semaphore(1)
+        sem = asyncio.Semaphore(5)
 
         async def handle_external(o: pyhornedowl.PyIndexedOntology, term_iri: str):
             nonlocal step, total

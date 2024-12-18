@@ -6,12 +6,17 @@ import os
 import jsonschema
 import openpyxl
 from flask import Blueprint, request, jsonify, current_app, g, Response
-from flask_github import GitHub
+from flask_github import GitHub, GitHubError
 from openpyxl.worksheet.worksheet import Worksheet
 
+from onto_spread_ed.PermissionManager import PermissionManager
+from onto_spread_ed.SpreadsheetSearcher import SpreadsheetSearcher
 from onto_spread_ed.guards.with_permission import requires_permissions
+from onto_spread_ed.model.ExcelOntology import ExcelOntology
+from onto_spread_ed.model.ReleaseScript import ReleaseScript
 from onto_spread_ed.services.ConfigurationService import ConfigurationService
-from onto_spread_ed.utils import github
+from onto_spread_ed.services.FileCache import FileCache
+from onto_spread_ed.utils import github, get_spreadsheet
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
@@ -93,3 +98,60 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
         return Response(status=200)
 
     return Response(status=204)
+
+
+@bp.route("/get/<repo>/<path:path>", methods=["GET"])
+@requires_permissions("view")
+def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager,
+             searcher: SpreadsheetSearcher):
+    if not permission_manager.current_user_has_permissions(repository=repo):
+        return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
+
+    [folder, spreadsheet] = path.rsplit('/', 1)
+
+    repository = config.get(repo)
+    try:
+        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_name, folder, spreadsheet)
+
+        suggestions = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
+
+        data = dict(
+            header=header,
+            rows=rows,
+            file_sha=file_sha,
+            repo_name=repo,
+            folder=path,
+            spreadsheet_name=spreadsheet,
+        )
+
+        return jsonify({"success": True, "spreadsheet": data, "suggestions": suggestions}), 200
+    except GitHubError as e:
+        current_app.logger.error(e)
+        return jsonify({"success": False, "error": f"Failed when communicating with github: {e}"}), 200
+
+
+@bp.route("/suggestions/<repo>", methods=["GET"])
+@requires_permissions("view")
+def get_suggestions(repo: str, permission_manager: PermissionManager, config: ConfigurationService, gh: GitHub,
+                    searcher: SpreadsheetSearcher, cache: FileCache):
+    if not permission_manager.current_user_has_permissions(repository=repo):
+        return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
+
+    suggestions_index = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
+
+    repo = config.get(repo)
+    release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+
+    suggestions_external = []
+    try:
+        external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
+
+        external = ExcelOntology.from_owl(external_raw, repo.prefixes).value
+
+        suggestions_external = [t.label for t in external.terms()]
+    except Exception as e:
+        current_app.logger.error(e)
+
+    suggestions = suggestions_index + suggestions_external
+
+    return jsonify({"success": True, "suggestions": suggestions}), 200

@@ -1,6 +1,6 @@
 import io
 import logging
-from typing import List, Tuple, Union, Dict
+from typing import List, Union, Dict
 
 import openpyxl
 from whoosh.index import FileIndex
@@ -9,19 +9,7 @@ from whoosh.writing import SegmentWriter
 
 _logger = logging.getLogger(__name__)
 
-EntityData = Tuple[List, List]
-"""
-Combines a header with data
-"""
-
-
-def to_entity_data(data: Union[Dict[str, str]]) -> EntityData:
-    if isinstance(data, dict):
-        return list(data.keys()), list(data.values())
-
-
-def to_entity_data_list(raw: Union[List[Dict[str, str]]]) -> List[EntityData]:
-    return [to_entity_data(x) for x in raw]
+EntityData = Dict[str, str]
 
 
 def parse_input_sheet(file: Union[str, bytes, io.BytesIO]) -> List[EntityData]:
@@ -44,7 +32,7 @@ def parse_input_sheet(file: Union[str, bytes, io.BytesIO]) -> List[EntityData]:
 
     header = [i.value for i in next(data)]
 
-    return [(header, [i.value for i in row]) for row in data]
+    return [{header[i]: cell.value for i, cell in enumerate(row)} for row in data]
 
 
 def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, entity_data: List[EntityData]):
@@ -61,37 +49,38 @@ def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, 
 
 
 def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name: str, writer: SegmentWriter):
-    header, rowdata = entity_data
+    rowdata = entity_data
 
-    if 'Curation status' in entity_data and str(entity_data[header.index("Curation status")]) == "Obsolete":
-        _logger.info(f"Not adding obsolete entity '{entity_data[1][0]}' to index")
+    if 'Curation status' in entity_data and str(entity_data["Curation status"]) == "Obsolete":
+        _logger.info(f"Not adding obsolete entity '{entity_data.get('ID')}' to index")
         return
 
-    _logger.debug(
-        f"Adding entity data '{entity_data[1][0]}' to index for repository '{repo_name}' and sheet '{sheet_name}'")
-
-    if "ID" in header:
-        class_id = rowdata[header.index("ID")]
+    if "ID" in rowdata:
+        class_id = rowdata["ID"]
     else:
         class_id = None
-    if "Label" in header:
-        label = rowdata[header.index("Label")]
+    if "Label" in rowdata:
+        label = rowdata["Label"]
     else:
         label = None
-    if "Definition" in header:
-        definition = rowdata[header.index("Definition")]
+    if "Definition" in rowdata:
+        definition = rowdata["Definition"]
     else:
         definition = None
-    if "Parent" in header:
-        parent = rowdata[header.index("Parent")]
+    if "Parent" in rowdata:
+        parent = rowdata["Parent"]
     else:
         parent = None
-    if "To be reviewed by" in header:
-        to_be_reviewed_by = rowdata[header.index("To be reviewed by")]
+    if "To be reviewed by" in rowdata:
+        to_be_reviewed_by = rowdata["To be reviewed by"]
     else:
         to_be_reviewed_by = None
 
     if class_id or label or definition or parent:
+        _logger.debug(
+            f"Adding entity data '{entity_data.get('ID')}' to index for repository '{repo_name}'"
+            f"and sheet '{sheet_name}'")
+
         writer.add_document(repo=repo_name,
                             spreadsheet=sheet_name,
                             class_id=(class_id if class_id else None),
