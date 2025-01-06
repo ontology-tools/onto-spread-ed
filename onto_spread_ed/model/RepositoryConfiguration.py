@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Literal
 
 
 @dataclass
@@ -23,6 +23,9 @@ class RepositoryConfiguration:
     release_file: str = field(default=DEFAULT)
     release_script_path: str = ".onto-ed/release_script.json"
     subontologies: Dict[str, SubOntologyConfiguration] = field(default_factory=lambda: {})
+
+    validation: List[Literal['include-external', 'include-dependencies']] = field(
+        default_factory=lambda: ["include-external", "include-dependencies"])
 
     def __post_init__(self):
         if self.release_file == DEFAULT:

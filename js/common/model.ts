@@ -110,6 +110,7 @@ export interface RepositoryConfig {
             excel_file: string
         }
     }
+    validation: ("include-external" | "include-dependencies")[]
 }
 
 interface _BaseChangeRecord {

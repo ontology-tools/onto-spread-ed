@@ -194,54 +194,62 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
 
     o = ExcelOntology(f"temp://{file}")
 
-    release_script: ReleaseScript
-    try:
-        release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
-    except Exception as e:
-        current_app.logger.error(e)
-        return jsonify({"success": False, "error": f"Failed to load release script: {e}"}), 500
+    if "include-external" in repo.validation or "include-dependencies" in repo.validation:
+        release_script: ReleaseScript
+        try:
+            release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify({"success": False, "error": f"Failed to load release script: {e}"}), 500
 
-    try:
-        external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
+        if "include-external" in repo.validation:
+            try:
+                external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
 
-        external = ExcelOntology.from_owl(external_raw, repo.prefixes)
-        o.import_other_excel_ontology(external.value)
-    except Exception as e:
-        current_app.logger.error(e)
+                external = ExcelOntology.from_owl(external_raw, repo.prefixes)
+                o.import_other_excel_ontology(external.value)
+            except Exception as e:
+                current_app.logger.error(e)
 
-    file_key: Optional[str]
-    file_release_file: Optional[ReleaseScriptFile]
-    file_key, file_release_file = next(
-        ((k, f) for (k, f) in release_script.files.items() if any(s.file == file for s in f.sources)), (None, None))
-    if file_key is not None and file_release_file is not None:
-        release_files: List[ReleaseScriptFile] = [file_release_file] if file_release_file is not None else []
-        needs = []
-        while len(release_files) > 0:
-            release_file = release_files.pop(0)
-            needs.extend(release_file.needs)
-            release_files.extend([release_script.files[n] for n in release_file.needs])
+        if "include-dependencies" in repo.validation:
+            file_key: Optional[str]
+            file_release_file: Optional[ReleaseScriptFile]
+            file_key, file_release_file = next(
+                ((k, f) for (k, f) in release_script.files.items() if any(s.file == file for s in f.sources)),
+                (None, None))
+            if file_key is not None and file_release_file is not None:
+                release_files: List[ReleaseScriptFile] = [file_release_file] if file_release_file is not None else []
+                needs = []
+                while len(release_files) > 0:
+                    release_file = release_files.pop(0)
+                    needs.extend(release_file.needs)
+                    release_files.extend([release_script.files[n] for n in release_file.needs])
 
-        sources = order_sources(dict((k, release_script.files[k]) for k in needs))
+                sources = order_sources(dict((k, release_script.files[k]) for k in needs))
 
-        other_sources = ExcelOntology("tmp:///other_sources/")
+                other_sources = ExcelOntology("tmp:///other_sources/")
 
-        for source in file_release_file.sources:
-            # Evaluate lazily to avoid loading unnecessary files in case type not in ["classes", "relations"]
-            def excel_source():
-                return spreadsheet if source.file == file else BytesIO(get_file(gh, repo.full_name, source.file))
+                for source in file_release_file.sources:
+                    # Evaluate lazily to avoid loading unnecessary files in case type not in ["classes", "relations"]
+                    def excel_source():
+                        return spreadsheet if source.file == file else BytesIO(
+                            get_file(gh, repo.full_name, source.file))
 
-            ontology = o if source.file == file else other_sources
-            if source.type == "classes":
-                ontology.add_terms_from_excel(source.file, excel_source())
-            elif source.type == "relations":
-                ontology.add_relations_from_excel(source.file, excel_source())
+                    ontology = o if source.file == file else other_sources
+                    if source.type == "classes":
+                        ontology.add_terms_from_excel(source.file, excel_source())
+                    elif source.type == "relations":
+                        ontology.add_relations_from_excel(source.file, excel_source())
 
-        o.import_other_excel_ontology(other_sources)
+                o.import_other_excel_ontology(other_sources)
 
-        for k, dependency in sources:
-            sources = [(s.file, BytesIO(get_file(gh, repo.full_name, s.file)), s.type) for s in dependency.sources]
+                for k, dependency in sources:
+                    sources = [(s.file, BytesIO(get_file(gh, repo.full_name, s.file)), s.type) for s in
+                               dependency.sources]
 
-            o.import_other_excel_ontology(ExcelOntology.from_excel(f"tmp:///{k}", sources))
+                    o.import_other_excel_ontology(ExcelOntology.from_excel(f"tmp:///{k}", sources))
+    else:
+        o.add_terms_from_excel(file, spreadsheet)
 
     o.resolve()
     # Exclude missing ID here as they are generated if needed on save
