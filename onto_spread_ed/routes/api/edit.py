@@ -107,7 +107,9 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
     if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
 
-    [folder, spreadsheet] = path.rsplit('/', 1)
+    path_parts = reversed(path.rsplit("/", 1))
+    spreadsheet = next(path_parts)
+    folder = next(path_parts, "")
 
     repository = config.get(repo)
     try:
@@ -140,10 +142,13 @@ def get_suggestions(repo: str, permission_manager: PermissionManager, config: Co
     suggestions_index = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
 
     repo = config.get(repo)
-    release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+
+    release_script: ReleaseScript
 
     suggestions_external = []
     try:
+        release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+
         external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
 
         external = ExcelOntology.from_owl(external_raw, repo.prefixes).value

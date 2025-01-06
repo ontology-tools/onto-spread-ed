@@ -12,7 +12,6 @@ from flask import Blueprint, session, current_app, g, render_template, request, 
 from flask_github import GitHub
 from openpyxl.styles import Font, PatternFill
 
-from ..OntologyDataStore import OntologyDataStore
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..guards.with_permission import requires_permissions
 from ..services.ConfigurationService import ConfigurationService
@@ -21,9 +20,13 @@ from ..utils.github import get_spreadsheet, get_csv, create_branch
 bp = Blueprint("edit", __name__, template_folder="../templates")
 
 
-@bp.route('/edit/<repo_key>/<path:folder>/<spreadsheet>')
+@bp.route('/edit/<repo_key>/<path:path>')
 @requires_permissions("view")
-def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStore, config: ConfigurationService):
+def edit(repo_key: str, path: str, github: GitHub, config: ConfigurationService):
+    path_parts = reversed(path.rsplit("/", 1))
+    spreadsheet = next(path_parts)
+    folder = next(path_parts, "")
+
     if session.get('label') is None:
         go_to_row = ""
     else:
@@ -45,7 +48,7 @@ def edit(repo_key, folder, spreadsheet, github: GitHub, ontodb: OntologyDataStor
 
     # Contains actual names of files built and optimized by vite
 
-    breadcrumb_segments = [repo_key, *folder.split("/"), spreadsheet]
+    breadcrumb_segments = [repo_key, *path.split("/")]
 
     return render_template('edit.html',
                            login=g.user.github_login,

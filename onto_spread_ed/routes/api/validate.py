@@ -194,7 +194,12 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
 
     o = ExcelOntology(f"temp://{file}")
 
-    release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+    release_script: ReleaseScript
+    try:
+        release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify({"success": False, "error": f"Failed to load release script: {e}"}), 500
 
     try:
         external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
