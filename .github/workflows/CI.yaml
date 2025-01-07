@@ -76,7 +76,7 @@ jobs:
         echo "${{secrets.deploymentFingerprint }}" >> $HOME/.ssh/known_hosts
     - name: Debug
       run: >
-        ls -la && ls -la .ssh/ &&
+        ls -la && ls -la $HOME/.ssh/ &&
         echo "Private key: $(sha256sum privkey)" &&
         echo "Known Hosts: $(sha256sum $HOME/.ssh/known_hosts)" &&
         cat $HOME/.ssh/known_hosts
