@@ -66,7 +66,7 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: app
-    - name: Deploy app
+    - name: Setup SSH environment
       env:
         PRIVATE_KEY: ${{ secrets.deploymentKey }}
       run: >
@@ -74,6 +74,14 @@ jobs:
         chmod 600 privkey &&
         mkdir -p $HOME/.ssh &&
         echo "${{secrets.deploymentFingerprint }}" >> $HOME/.ssh/known_hosts &&
+    - name: Debug
+      run: >
+        ls -la && ls -la .ssh/ &&
+        echo "Private key: $(sha256sum privkey)" &&
+        echo "Known Hosts: $(sha256sum $HOME/.ssh/known_hosts)" &&
+        cat $HOME/.ssh/known_hosts
+    - name: Deploy app
+      run: >
         scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
   deploy-prod:
