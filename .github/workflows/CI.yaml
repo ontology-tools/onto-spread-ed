@@ -83,7 +83,7 @@ jobs:
         cat $HOME/.ssh/known_hosts
     - name: Deploy app
       run: >
-        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
+        scp -v -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
   deploy-prod:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
