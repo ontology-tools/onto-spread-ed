@@ -66,24 +66,15 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: app
-    - name: Setup SSH environment
+    - name: Deploy app
       env:
         PRIVATE_KEY: ${{ secrets.deploymentKey }}
-        KNOWN_HOSTS: ${{ secrets.deploymentFingerprint }}
       run: >
         echo $PRIVATE_KEY | base64 --decode > privkey &&
         chmod 600 privkey &&
         mkdir -p $HOME/.ssh &&
-        echo $KNOWN_HOSTS | base64 --decode > $HOME/.ssh/known_hosts
-    - name: Debug
-      run: >
-        ls -la && ls -la $HOME/.ssh/ &&
-        echo "Private key: $(sha256sum privkey)" &&
-        echo "Known Hosts: $(sha256sum $HOME/.ssh/known_hosts)" &&
-        cat $HOME/.ssh/known_hosts
-    - name: Deploy app
-      run: >
-        scp -v -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
+        echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
+        scp -O -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
   deploy-prod:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -104,6 +95,6 @@ jobs:
         echo $PRIVATE_KEY | base64 --decode > privkey &&
         chmod 600 privkey &&
         mkdir -p $HOME/.ssh &&
-        echo "${{secrets.deploymentFingerprint }}" >> $HOME/.ssh/known_hosts &&
-        scp -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
+        echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
+        scp -O -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy hbcptools"
