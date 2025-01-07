@@ -73,7 +73,7 @@ jobs:
         echo $PRIVATE_KEY | base64 --decode > privkey &&
         chmod 600 privkey &&
         mkdir -p $HOME/.ssh &&
-        echo "${{secrets.deploymentFingerprint }}" >> $HOME/.ssh/known_hosts &&
+        echo "${{secrets.deploymentFingerprint }}" >> $HOME/.ssh/known_hosts
     - name: Debug
       run: >
         ls -la && ls -la .ssh/ &&
