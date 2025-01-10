@@ -1464,6 +1464,8 @@ function defColumnSize(field: string): number {
     box-shadow: inset 0 0 0 0 transparent;
     transition: box-shadow 500ms;
 
+    border-width: 1px !important;
+
     &.highlight {
       box-shadow: inset 0 0 10px 5px #ffcb00;
     }
