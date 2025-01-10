@@ -27,7 +27,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     "no-parent": {
         severity: "error",
         title: d => `Term has no parent`,
-        message: d => `The term <code>${ d.term.label }</code> (<code>${ d.term.id }</code>) has no parent!`,
+        message: d => `The term <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) has no parent!`,
     },
     "ignored-parent": {
         severity: "error",
@@ -48,7 +48,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     "unknown-disjoint": {
         severity: "error",
         title: d => `Unknown disjoint class`,
-        message: d => `The class <code>${ d.term.label }</code> (<code>${ d.term.id }</code>) is
+        message: d => `The class <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) is
               specified to
               be disjoint with <code>${ d.disjoint_class.label }</code> but it is not known.<br>`,
     },
@@ -171,7 +171,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     "missing-import": {
         severity: "warning",
         title: d => `Missing import`,
-        message: d => `The term <code>${ d.term.label }</code> (<code>${ d.term.id }</code>) has the curation
+        message: d => `The term <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) has the curation
               status
               "External" but is not included in the externally imported terms.` + (d.term.id ? ` Does the term still exist in
                 ${ d.term.id.split(":")[0] }?` : ""),
@@ -179,7 +179,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     "inconsistent-import": {
         severity: "warning",
         title: d => `Inconsistent import`,
-        message: d => `The term <code>${ d.term.label }</code> (<code>${ d.term.id }</code>) has the curation
+        message: d => `The term <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) has the curation
               status "External" but its ` +
             (d.term.id !== d.imported_term.id ? `ID (<code>${d.imported_term.id}</code>)` : `label (<code>${d.imported_term.label}</code>)`) +
             ` differs.`,

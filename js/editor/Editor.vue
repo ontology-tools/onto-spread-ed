@@ -11,6 +11,7 @@ import {DIAGNOSTIC_DATA} from "../common/diagnostic-data.ts";
 import {debounce} from "../common/debounce.ts";
 import Merger from "./Merger.vue";
 import {HistoryService} from "./HistoryService.ts"
+import {getCell} from "../common/tabulator-extensions.ts";
 
 interface SpreadsheetData {
   header: string[],
@@ -190,7 +191,7 @@ watchEffect(() => {
               row.getElement()?.classList?.add("changed")
             } else if (change.type === "change") {
               for (const field in change.newFields) {
-                row.getCell(field)?.getElement()?.classList?.add("changed")
+                getCell(row, field)?.getElement()?.classList?.add("changed")
               }
             }
           }
@@ -200,17 +201,17 @@ watchEffect(() => {
         for (const message of messages) {
           const d = message.diagnostic
           if (d.type.match(/-parent/)) {
-            row.getCell("Parent")?.getElement()?.classList?.add(`has-${message.type}`)
+            getCell(row, "Parent")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-label/)) {
-            row.getCell("Label")?.getElement()?.classList?.add(`has-${message.type}`)
+            getCell(row, "Label")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-domain/)) {
-            row.getCell("Domain")?.getElement()?.classList?.add(`has-${message.type}`)
+            getCell(row, "Domain")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-range/)) {
-            row.getCell("Range")?.getElement()?.classList?.add(`has-${message.type}`)
+            getCell(row, "Range")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-id/)) {
-            row.getCell("ID")?.getElement()?.classList?.add(`has-${message.type}`)
+            getCell(row, "ID")?.getElement()?.classList?.add(`has-${message.type}`)
           } else if (d.type.match(/-relation-value/)) {
-            row.getCell(`REL '${d.relation?.label}'`)?.getElement()?.classList?.add(`has-${message.type}`)
+            getCell(row, `REL '${d.relation?.label}'`)?.getElement()?.classList?.add(`has-${message.type}`)
           } else {
             row.getElement().classList.add(`has-${message.type}`)
           }
@@ -422,7 +423,8 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
     }
 
     showDiagnosticList.value = !valid.value;
-  } catch {
+  } catch (e) {
+    console.error(e)
     if (toast) {
       removeToast?.(toast);
     }
@@ -842,8 +844,8 @@ const RIBBON = {
 
         tabulator.value?.deleteRow(row);
       } else {
-        const cell = row.getCell(COLUMN_NAMES.ID);
-        if (cell.getValue().trim() !== "" && cell.getValue() !== null) { //got a defined ID - don't delete!
+        const cell = getCell(row, COLUMN_NAMES.ID);
+        if (cell?.getValue() !== null && cell?.getValue().trim() !== "") { //got a defined ID - don't delete!
           //set to obsolete and show a message here
           const prevCurationStatus = data[COLUMN_NAMES.CURATION_STATUS]
           data[COLUMN_NAMES.CURATION_STATUS] = CURATION_STATUS.OBSOLETE;
@@ -882,17 +884,17 @@ const RIBBON = {
   },
   async markAsReviewed() {
     for (let row of selectedRows.value) {
-      if (row.getCell(COLUMN_NAMES.TO_BE_REVIEWED_BY) === undefined) {
+      if (getCell(row, COLUMN_NAMES.TO_BE_REVIEWED_BY) === null) {
         continue;
       }
 
       const data = row.getData();
       const prev = data[COLUMN_NAMES.TO_BE_REVIEWED_BY]
-      const cell = row.getCell(COLUMN_NAMES.TO_BE_REVIEWED_BY);
+      const cell = getCell(row, COLUMN_NAMES.TO_BE_REVIEWED_BY);
       //save "curator":
       saveCurator(row);
 
-      const cellValue: string | undefined | null = cell.getValue();
+      const cellValue: string | undefined | null = cell?.getValue();
       const reviewers = cellValue?.split(";")?.map(x => x.trim()).filter(x => x !== LOGIN_INITIALS).join("; ");
       await row.update({[COLUMN_NAMES.TO_BE_REVIEWED_BY]: reviewers});
       row.deselect(); //triggers rowDeselected()
@@ -920,7 +922,11 @@ const RIBBON = {
     }
 
     for (const row of selectedRows.value) {
-      const cell = row.getCell(COLUMN_NAMES.TO_BE_REVIEWED_BY);
+      const cell = getCell(row, COLUMN_NAMES.TO_BE_REVIEWED_BY);
+      if (cell === null) {
+        continue
+      }
+
       const prev = cell.getValue()
 
       const reviewers = [cell.getValue()?.trim(), ...result].filter(x => !!x).join("; ")

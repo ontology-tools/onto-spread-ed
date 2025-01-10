@@ -55,12 +55,12 @@ class PermissionManager:
 
     def has_permissions(self, user_name: str, *permissions: str, repository: Optional[str] = None) -> bool:
         user_permission = self.user_permission(user_name)
-        user_repos = self._user_repos.get(user_name, {})
 
         if "admin" in user_permission:
             return True
 
-        return all(p in user_permission for p in permissions) and (repository is None or repository in user_repos)
+        return all(p in user_permission for p in permissions) and (
+                repository is None or self.can_access_repo(user_name, repository))
 
     def current_user_has_permissions(self, *permissions: str, repository: Optional[str] = None) -> bool:
         """
@@ -72,3 +72,7 @@ class PermissionManager:
 
         user_name = g.user.github_login if g.user else "*"
         return self.has_permissions(user_name, *permissions, repository=repository)
+
+    def can_access_repo(self, user_name: str, repository: Optional[str] = None) -> bool:
+        user_repos = self._user_repos.get(user_name, {})
+        return repository == "*" or repository in user_repos
