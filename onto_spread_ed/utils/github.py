@@ -74,10 +74,9 @@ def parse_spreadsheet(data: bytes) -> Tuple[List[Dict[str, str]], List[str]]:
 
 def get_spreadsheet(github: GitHub,
                     repository_name: str,
-                    folder: str,
-                    spreadsheet: str) -> Tuple[str, List[Dict[str, str]], List[str]]:
+                    path: str) -> Tuple[str, List[Dict[str, str]], List[str]]:
     spreadsheet_file = github.get(
-        f'repos/{repository_name}/contents/{folder}/{spreadsheet}'
+        f'repos/{repository_name}/contents/{path}'
     )
     file_sha = spreadsheet_file['sha']
     base64_bytes = spreadsheet_file['content'].encode('utf-8')

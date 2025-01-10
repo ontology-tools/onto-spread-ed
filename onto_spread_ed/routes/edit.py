@@ -39,7 +39,7 @@ def edit(repo_key: str, path: str, github: GitHub, config: ConfigurationService)
         type = session.get('type')
         session.pop('type', None)
     repository = config.get(repo_key)
-    (file_sha, rows, header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
+    (file_sha, rows, header) = get_spreadsheet(github, repository.full_name, path)
     if g.user.github_login in config.app_config['USERS']:
         user_initials = config.app_config['USERS'][g.user.github_login]["initials"]
     else:
@@ -88,8 +88,7 @@ def download_spreadsheet(github: GitHub, config: ConfigurationService):
 def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService):
     saveData = request.json
     repo_key = saveData.get("repo_key")
-    folder = saveData.get("folder")
-    spreadsheet = saveData.get("spreadsheet")
+    path = saveData.get("path")
     row_data = saveData.get("rowData")
     initial_data = saveData.get("initialData")
     file_sha_original = saveData.get("file_sha").strip()
@@ -104,13 +103,12 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
     # What if 'Label' column not present?
     initial_data = sorted(initial_data_parsed, key=lambda k: k.get('Label', None) or "")
 
-    return _save(searcher, github, config, repo_key, folder, spreadsheet, row_data, initial_data, file_sha_original,
-                 commit_msg, commit_msg_extra, header, merge_strategy
-                 )
+    return _save(searcher, github, config, repo_key, path, row_data, initial_data, file_sha_original,
+                 commit_msg, commit_msg_extra, header, merge_strategy)
 
 
-def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService, repo_key: str, folder: str,
-          spreadsheet: str, row_data_parsed, initial_data_parsed, file_sha_original: str, commit_msg: str,
+def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService, repo_key: str, path: str,
+          row_data_parsed, initial_data_parsed, file_sha_original: str, commit_msg: str,
           commit_msg_extra: str,
           header, merge_strategy: str):
     overwrite = merge_strategy is not None
@@ -121,7 +119,7 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
     default_branch = repository.main_branch
     try:
         if merge_strategy == "theirs":
-            (sha, rows, header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
+            (sha, rows, header) = get_spreadsheet(github, repository.full_name, path)
             return jsonify({
                 "success": True,
                 "new_rows": rows,
@@ -221,18 +219,18 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
         create_branch(github, repository.full_name, branch, default_branch)
 
         current_app.logger.debug("About to get latest version of the spreadsheet file %s",
-                                 f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
+                                 f"repos/{repository.full_name}/contents/{path}")
         # Get the sha for the file
-        (file_sha_theirs, new_rows, new_header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
+        (file_sha_theirs, new_rows, new_header) = get_spreadsheet(github, repository.full_name, path)
 
         # Commit changes to branch (replace code with sheet)
         data = {"message": commit_msg, "content": base64_string, "branch": branch, "sha": file_sha_theirs}
         current_app.logger.debug("About to commit file to branch %s",
-                                 f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
-        response = github.put(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}", data=data)
+                                 f"repos/{repository.full_name}/contents/{path}")
+        response = github.put(f"repos/{repository.full_name}/contents/{path}", data=data)
         if not response:
             raise Exception(
-                f"Unable to commit addition of {spreadsheet} to branch {branch} in {repository.full_name}"
+                f"Unable to commit addition of {path} to branch {branch} in {repository.full_name}"
             )
 
         # Create a PR for the change
@@ -284,7 +282,7 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
                     "merged_table": merged_data,
                 })
             else:
-                return _save(searcher, github, config, repo_key, folder, spreadsheet, merged_data, initial_data_parsed,
+                return _save(searcher, github, config, repo_key, path, merged_data, initial_data_parsed,
                              file_sha_original, commit_msg, commit_msg_extra, header, "automatic")
 
             # return (
@@ -321,13 +319,13 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
         current_app.logger.info("Save succeeded.")
         # Update the search index for this file ASYNCHRONOUSLY (don't wait)
         thread = threading.Thread(target=searcher.update_index,
-                                  args=(repo_key, folder, spreadsheet, row_data_parsed))
+                                  args=(repo_key, path, row_data_parsed))
         thread.daemon = True  # Daemonize thread
         thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
-        (saved_sha, saved_rows, saved_header) = get_spreadsheet(github, repository.full_name, folder, spreadsheet)
-        github.get(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
+        (saved_sha, saved_rows, saved_header) = get_spreadsheet(github, repository.full_name, path)
+        github.get(f"repos/{repository.full_name}/contents/{path}")
         return jsonify({
             "success": True,
             "new_rows": saved_rows,
@@ -668,7 +666,7 @@ def edit_external(repo_key, folder_path, github: GitHub, config: ConfigurationSe
     #     print("spreadsheet: ", spreadsheet)
 
     sheet1, sheet2, sheet3 = spreadsheets
-    (file_sha1, rows1, header1) = get_spreadsheet(github, repository.full_name, folder, sheet1)
+    (file_sha1, rows1, header1) = get_spreadsheet(github, repository.full_name, folder + "/" + sheet1)
     # not a spreadsheet but a csv file:
     (file_sha2, rows2, header2) = get_csv(github, repository.full_name, folder, sheet2)
     (file_sha3, rows3, header3) = get_csv(github, repository.full_name, folder, sheet3)

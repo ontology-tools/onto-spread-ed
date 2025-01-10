@@ -113,7 +113,7 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
 
     repository = config.get(repo)
     try:
-        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_name, folder, spreadsheet)
+        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_name, path)
 
         suggestions = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
 
@@ -122,7 +122,7 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
             rows=rows,
             file_sha=file_sha,
             repo_name=repo,
-            folder=path,
+            folder=folder,
             spreadsheet_name=spreadsheet,
         )
 

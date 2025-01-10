@@ -662,8 +662,7 @@ async function submitChanges(commitMessage: string, details: string, merge_strat
     const data: Record<string, any> = {
       repo_key: spreadsheet.repo_name,
       file_sha: spreadsheet.file_sha,
-      folder: fileFolder,
-      spreadsheet: fileName,
+      path: filePath,
       header: tabulator.value?.getColumns()?.map(c => c.getField())?.slice(1),
       commit_msg: commitMessage,
       commit_msg_extra: details,

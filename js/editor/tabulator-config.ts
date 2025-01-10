@@ -67,7 +67,7 @@ export function columnDefFor(fieldName: string, suggestionsRef: string[], table:
             field: fieldName,
             sorter: "string",
             editor: "list",
-            editorParams: {values: ["Pre-proposed", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete"]},
+            editorParams: {values: ["Pre-proposed", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published", "Obsolete", "External"]},
             headerFilter: "input",
             width: "200",
             formatter: "textarea",

@@ -59,7 +59,7 @@ class SpreadsheetSearcher:
         ix.close()
         return resultslist
 
-    def update_index(self, repo_name, folder, sheet_name, sheet_data):
+    def update_index(self, repo_name, path: str, sheet_data):
         self.threadLock.acquire()
         self._logger.debug("Update of index start")
 
@@ -70,9 +70,9 @@ class SpreadsheetSearcher:
             mparser = MultifieldParser(["repo", "spreadsheet"],
                                        schema=ix.schema)
             self._logger.debug("About to delete for query string: " +
-                               "repo:" + repo_name + " AND spreadsheet:'" + folder + "/" + sheet_name + "'")
+                               "repo:" + repo_name + " AND spreadsheet:'" + path + "'")
             writer.delete_by_query(
-                mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + folder + "/" + sheet_name + "\""))
+                mparser.parse("repo:" + repo_name + " AND spreadsheet:\"" + path + "\""))
             writer.commit()
             writer = ix.writer(timeout=60)  # Wait 60s for the writer lock
 
@@ -80,7 +80,7 @@ class SpreadsheetSearcher:
                 if "id" in row:
                     del row["id"]  # Tabulator-added ID column
 
-                add_entity_data_to_index(row, repo_name, folder + '/' + sheet_name, writer)
+                add_entity_data_to_index(row, repo_name, path, writer)
 
             writer.commit(optimize=True)
 
@@ -179,7 +179,7 @@ class SpreadsheetSearcher:
                 excel_files = get_spreadsheets(self.github, config.full_name, branch, include_pattern=regex)
 
                 for file in excel_files:
-                    _, data, _ = get_spreadsheet(self.github, config.full_name, "", file)
+                    _, data, _ = get_spreadsheet(self.github, config.full_name, file)
 
                     entity_data = data
 
