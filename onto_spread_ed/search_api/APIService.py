@@ -173,3 +173,15 @@ class APIService(abc.ABC):
 
         result.value = ()
         return result
+
+    async def get_all_terms(self) -> List[Term]:
+        next_page = 1
+        items = []
+
+        while next_page is not None:
+            page = await self._api_client.get_terms(next_page)
+
+            items.extend(page.items)
+            next_page = page.next_page
+
+        return items

@@ -58,5 +58,11 @@ SCRIPTS = {
                 "type": "string"
             }
         ]
+    },
+    "cleanup-bcio-vocab": {
+        "title": "Cleanup terms on BCIO Vocab",
+        "module": "scripts.cleanup-bcio-vocab",
+        "function": "main",
+        "arguments": []
     }
 }

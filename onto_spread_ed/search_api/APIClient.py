@@ -1,6 +1,8 @@
 import abc
+import asyncio
 import json
 import logging
+import re
 import urllib
 from abc import ABCMeta
 from itertools import groupby
@@ -8,11 +10,22 @@ from typing import Union, List, Literal, Optional, Dict, Tuple, Any
 
 import aiohttp
 import async_lru
+from attr import dataclass
 
 from onto_spread_ed.model.Result import Result
 from onto_spread_ed.model.Term import Term
 from onto_spread_ed.model.TermIdentifier import TermIdentifier
 from onto_spread_ed.search_api.HttpError import HttpError
+
+
+@dataclass
+class APIPage[T]:
+    items: List[T]
+    page: int
+    total_items: int
+    next_page: int
+    first_page: int
+    last_page: int
 
 
 class APIClient(abc.ABC, metaclass=ABCMeta):
@@ -312,3 +325,25 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
         #     self._logger.debug(f"DIFF <disjoint_with>\n  {old.disjoint_with}\n  {new.disjoint_with}")
         #     result = False
         return result
+
+    async def get_terms(self, page: int, items_per_page: int = 50) -> APIPage[Term]:
+        r = await self._request(f"/terms?page={page}&itemsPerPage={items_per_page}", "get")
+
+        r.raise_for_status()
+
+        data = await r.json()
+
+        view = data.get("hydra:view", dict())
+        next_page_m = re.search(r"page=(\d+)", view.get("hydra:next", ""))
+        next_page = int(next_page_m.group(1)) if next_page_m is not None else None
+        first_page_m = re.search(r"page=(\d+)", view.get("hydra:first", ""))
+        first_page = int(first_page_m.group(1)) if first_page_m is not None else None
+        last_page_m = re.search(r"page=(\d+)", view.get("hydra:last", ""))
+        last_page = int(last_page_m.group(1)) if last_page_m is not None else None
+
+        total_items = data.get("hydra:totalItems", -1)
+
+        items = await asyncio.gather(
+            *(self.convert_from_api_term(term, False) for term in data.get("hydra:member", [])))
+
+        return APIPage(items, page, total_items, next_page, first_page, last_page)

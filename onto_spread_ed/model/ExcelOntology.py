@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set, Literal, Dict
 
 import openpyxl
+from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from pyhornedowl import pyhornedowl
 from typing_extensions import Self
@@ -278,7 +279,9 @@ class ExcelOntology:
         return r
 
     def add_term(self, term: Term):
-        self._terms.append(UnresolvedTerm(**dataclasses.asdict(term)))
+        self._used_relations = set.union(self._used_relations,
+                                         {UnresolvedRelation(r.id, r.label) for r, _ in term.relations})
+        self._terms.append(UnresolvedTerm(**term.__dict__))
 
     def add_imported_terms(self, name: str, file: Union[bytes, str, BytesIO],
                            schema: Optional[Schema] = None) -> Result[tuple]:
@@ -929,3 +932,30 @@ class ExcelOntology:
 
         result.value = self
         return result
+
+    def to_excel(self, include_origin: bool = False) -> Workbook:
+        relations = self.used_relations()
+
+        wb = Workbook()
+        ws: Worksheet = wb.active
+
+        header = ["ID", "Label", "Parent", "Disjoint classes", "Logical definition"] + [
+            (r.label if r.id is None else f"REL '{r.label}'") for r in relations]
+        if include_origin:
+            header += ["origin"]
+
+        ws.append(header)
+
+        for term in self._terms:
+            row = [term.id, term.label,
+                   "; ".join(f"{s.label} [{s.id}]" if s.id else s.label for s in term.sub_class_of),
+                   "; ".join(f"{s.label} [{s.id}]" if s.id else s.label for s in term.disjoint_with),
+                   "; ".join(term.equivalent_to),
+                   ] + [term.get_relation_value(r.identifier()) for r in relations]
+
+            if include_origin:
+                row += [":".join(term.origin)]
+
+            ws.append(row)
+
+        return wb
