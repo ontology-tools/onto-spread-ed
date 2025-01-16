@@ -6,7 +6,7 @@ import re
 import urllib
 from abc import ABCMeta
 from itertools import groupby
-from typing import Union, List, Literal, Optional, Dict, Tuple, Any
+from typing import Union, List, Literal, Optional, Dict, Tuple, Any, TypeVar
 
 import aiohttp
 import async_lru
@@ -17,9 +17,10 @@ from onto_spread_ed.model.Term import Term
 from onto_spread_ed.model.TermIdentifier import TermIdentifier
 from onto_spread_ed.search_api.HttpError import HttpError
 
+T = TypeVar('T')
 
 @dataclass
-class APIPage[T]:
+class APIPage:
     items: List[T]
     page: int
     total_items: int
@@ -326,7 +327,7 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
         #     result = False
         return result
 
-    async def get_terms(self, page: int, items_per_page: int = 50) -> APIPage[Term]:
+    async def get_terms(self, page: int, items_per_page: int = 50) -> APIPage:
         r = await self._request(f"/terms?page={page}&itemsPerPage={items_per_page}", "get")
 
         r.raise_for_status()
