@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import date
 from urllib.request import urlopen
@@ -11,6 +12,8 @@ from onto_spread_ed.services.ConfigurationService import ConfigurationService
 
 
 class OntologyDataStore:
+    _logger = logging.getLogger(__name__)
+
     config: ConfigurationService
     node_props = {"shape": "box", "style": "rounded", "font": "helvetica"}
     rel_cols = {"has part": "blue", "part of": "blue", "contains": "green",
@@ -36,9 +39,14 @@ class OntologyDataStore:
         full_repo_name = config.full_name
         branch = config.main_branch
         location = f"https://raw.githubusercontent.com/{full_repo_name}/{branch}/{ontofilename}"
-        print("Fetching release file from", location)
-        data = urlopen(location).read()  # bytes
-        ontofile = data.decode('utf-8')
+        try:
+            self._logger.debug("Fetching release file from", location)
+            data = urlopen(location).read()  # bytes
+            ontofile = data.decode('utf-8')
+        except:
+            self.releases[repo] = pyhornedowl.PyIndexedOntology()
+            self._logger.error(f"Failed to fetch release file from {location}")
+            return
 
         # Parse it
         if ontofile:
