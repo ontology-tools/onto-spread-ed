@@ -46,6 +46,7 @@ const repo = path.substring(0, path.indexOf("/"));
 const filePath = decodeURIComponent(path.substring(path.indexOf("/") + 1));
 const fileName = decodeURIComponent(filePath.split('/').at(-1)!)
 const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
+const downloadPath = computed(() => `https://raw.githubusercontent.com/${REPOSITORY_CONFIG?.full_name}/${REPOSITORY_CONFIG?.main_branch}/${filePath}`)
 
 const urlParams = new URLSearchParams(window.location.search);
 const navigateToRow = urlParams.has("row") ? Number.parseInt(urlParams.get("row") ?? "0") - 2 : null;
@@ -781,9 +782,6 @@ const RIBBON = {
   saveFile() {
     saveChanges()
   },
-  downloadFile() {
-
-  },
   undo() {
     if (tabulator.value) {
       historyService.undo(tabulator.value)
@@ -1013,10 +1011,11 @@ function defColumnSize(field: string): number {
                 <i class="fas fa-redo"></i> Redo
               </button>
 
-              <button :disabled="locked" class="btn-ribbon" @click="RIBBON.downloadFile()">
+              <a :class="{disabled: locked}" class="btn-ribbon" :href="downloadPath" target="_blank"
+                 :download="fileName">
                 <i class="fas fa-download" style="color: cornflowerblue"></i><br>
                 Download
-              </button>
+              </a>
             </div>
 
             <div class="ribbon-splitter"></div>
@@ -1252,22 +1251,27 @@ function defColumnSize(field: string): number {
       padding: 4px;
       margin: 4px;
 
-      button {
+      button, .btn-ribbon {
         background: none;
         border: none;
 
-        &:hover:not([disabled]) {
+        text-decoration: unset;
+        color: inherit;
+
+        padding: 0 4px;
+
+        &:hover:not([disabled], .disabled) {
           background: #aaaaaa;
         }
 
         &.active {
           background: #c8c8c8;
         }
-      }
 
-      button[disabled], button[disabled]:hover {
-        i {
-          color: #ccc !important;
+        &[disabled], &[disabled]:hover, &.disabled {
+          &, i {
+            color: #ccc !important;
+          }
         }
       }
     }
@@ -1294,7 +1298,7 @@ function defColumnSize(field: string): number {
       display: flex;
       flex-direction: column;
 
-      button {
+      button, .btn-ribbon {
         border-radius: 3px;
 
         display: grid;
@@ -1315,7 +1319,7 @@ function defColumnSize(field: string): number {
       flex-direction: row;
       justify-content: center;
 
-      button {
+      button, .btn-ribbon {
         padding-top: 8px;
         padding-bottom: 8px;
         border-radius: 3px;
