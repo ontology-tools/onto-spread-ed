@@ -107,15 +107,45 @@ const onWindowSizeChanged = debounce(() => {
   tabulator.value.scrollToRow(firstRow ?? 0, "top")
 })
 
+const onKeyPress = (e: KeyboardEvent) => {
+  if (tabulator.value) {
+    if (e.ctrlKey && e.key === "z") {
+      if (!document.execCommand("undo", false)) {
+        historyService.undo(tabulator.value);
+      }
+
+      e.preventDefault();
+    }
+
+    if (e.ctrlKey && (e.key === "y" || e.key === "Z")) {
+      if (!document.execCommand("redo", false)) {
+        historyService.redo(tabulator.value);
+      }
+
+      e.preventDefault();
+    }
+
+    if (e.ctrlKey && e.key === "s") {
+      if (!locked.value && historyService.canUndo()) {
+        saveChanges()
+      }
+
+      e.preventDefault();
+    }
+  }
+}
+
 let checkForUpdatesTimer: number | undefined;
 onMounted(() => {
   loadData()
   window.addEventListener("resize", onWindowSizeChanged);
   window.addEventListener("beforeunload", onBeforeUnload);
+  window.addEventListener("keydown", onKeyPress);
 })
 onUnmounted(() => {
   window.removeEventListener("resize", onWindowSizeChanged);
   window.removeEventListener("beforeunload", onBeforeUnload);
+  window.removeEventListener("keydown", onKeyPress);
   if (checkForUpdatesTimer) {
     clearInterval(checkForUpdatesTimer)
   }
