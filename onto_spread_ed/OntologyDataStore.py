@@ -1,6 +1,7 @@
 import logging
 import re
 from datetime import date
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 import networkx
@@ -43,9 +44,9 @@ class OntologyDataStore:
             self._logger.debug("Fetching release file from", location)
             data = urlopen(location).read()  # bytes
             ontofile = data.decode('utf-8')
-        except:
+        except HTTPError as e:
             self.releases[repo] = pyhornedowl.PyIndexedOntology()
-            self._logger.error(f"Failed to fetch release file from {location}")
+            self._logger.error(f"Failed to fetch release file from {location}: {e}")
             return
 
         # Parse it

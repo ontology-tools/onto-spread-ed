@@ -68,6 +68,8 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
         # stream to base64
         b64content = base64.b64encode(stream.getvalue()).decode()
 
-        return f'The entities in this excel sheet have been identified to be deleted. <a download="to_be_deleted.xlsx" href="data:application/vnd.ms-excel;base64,{b64content}>to_be_deleted.xlsx</a>'
+        return (f'The entities in this excel sheet have been identified to be deleted. '
+                f'<a download="to_be_deleted.xlsx" href="data:application/vnd.ms-excel;base64,{b64content}>'
+                f'to_be_deleted.xlsx</a>')
 
     return asyncio.run(inner())

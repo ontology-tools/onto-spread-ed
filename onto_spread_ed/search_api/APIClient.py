@@ -19,6 +19,7 @@ from onto_spread_ed.search_api.HttpError import HttpError
 
 T = TypeVar('T')
 
+
 @dataclass
 class APIPage:
     items: List[T]
