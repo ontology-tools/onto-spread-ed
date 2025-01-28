@@ -15,7 +15,7 @@ class AddictOVocabClient(APIClient):
         "synonyms": (TermIdentifier(id="IAO:0000118", label="alternative label"), "multiple"),
         "definition": (TermIdentifier(id="IAO:0000115", label="definition"), "single"),
         "informalDefinition": (TermIdentifier(label="informalDefinition"), "single"),
-        "addictoSubOntology": (TermIdentifier(label="lowerLevelOntology"), "single"),
+        "addictoSubOntology": (TermIdentifier(label="lowerLevelOntology"), "multiple"),
         "curatorNote": (TermIdentifier(id="IAO:0000232", label="curator note"), "single"),
         "curationStatus": (TermIdentifier(id="IAO:0000114", label="has curation status"), "single"),
         "comment": (TermIdentifier(id="rdfs:comment", label="rdfs:comment"), "single"),
@@ -29,13 +29,11 @@ class AddictOVocabClient(APIClient):
         data = super().convert_to_api_term(term, with_references)
 
         if "addictoSubOntology" in data and data["addictoSubOntology"] is not None:
-            if data["addictoSubOntology"] == "upper level":
-                data["addictoSubOntology"] = None
-            # lower_level_ontologies = [d.lower().strip() for d in data["addictoSubOntology"]]
-            # if "upper level" in lower_level_ontologies:
-            #     lower_level_ontologies.remove("upper level")
-            #
-            # data["addictoSubOntology"] = lower_level_ontologies
+            lower_level_ontologies = [d.lower().strip() for d in data["addictoSubOntology"]]
+            if "upper level" in lower_level_ontologies:
+                lower_level_ontologies.remove("upper level")
+
+            data["addictoSubOntology"] = lower_level_ontologies
 
         return data
 
