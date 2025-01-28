@@ -108,8 +108,8 @@ class OntologyDataStore:
 
     def parseSheetData(self, repo, data):
         for entry in data:
-            if 'ID' in entry and \
-                    'Label' in entry and \
+            if entry.get('ID', None) is not None and \
+                    entry.get('Label') is not None and \
                     'Definition' in entry and \
                     'Parent' in entry and \
                     len(entry['ID']) > 0:
@@ -122,8 +122,8 @@ class OntologyDataStore:
                     self.graphs[repo].add_node(entryId, label=entryLabel.replace(" ", "\n"),
                                                **OntologyDataStore.node_props)
         for entry in data:
-            if 'ID' in entry and \
-                    'Label' in entry and \
+            if entry.get('ID', None) is not None and \
+                    entry.get('Label') is not None and \
                     'Definition' in entry and \
                     'Parent' in entry and \
                     len(entry['ID']) > 0:
@@ -310,17 +310,21 @@ class OntologyDataStore:
             if 'Curation status' in entry and str(entry['Curation status']) == "Obsolete":
                 pass
             else:
+                id_ = entry.get('ID', None)
+                if id_ is None:
+                    continue
+
                 if filter != "":
                     if str(entry['Curation status']) == filter:
-                        if str(entry['ID']) and str(entry['ID']).strip():  # check for none and blank ID's
-                            if 'ID' in entry and len(entry['ID']) > 0:
-                                ids.append(entry['ID'].replace(":", "_"))
+                        if str(id_) and str(id_).strip():  # check for none and blank ID's
+                            if 'ID' in entry and len(id_) > 0:
+                                ids.append(id_.replace(":", "_"))
                             if 'Parent' in entry:
                                 entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                                 if entryParent in self.label_to_id:
                                     ids.append(self.label_to_id[entryParent])
-                            if ":" in entry['ID'] or "_" in entry['ID']:
-                                entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                            if ":" in id_ or "_" in id_:
+                                entryIri = self.releases[repo].get_iri_for_id(id_.replace("_", ":"))
                                 if entryIri:
                                     descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                                     for d in descs:
@@ -329,24 +333,24 @@ class OntologyDataStore:
                                 graph_descs = None
                                 try:
                                     graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
-                                                                                      entry['ID'].replace(":", "_"))
+                                                                                      id_.replace(":", "_"))
                                 except networkx.exception.NetworkXError:
-                                    print("NetworkXError selection filter: ", str(entry['ID']))
+                                    print("NetworkXError selection filter: ", str(id_))
 
                                 if graph_descs is not None:
                                     for g in graph_descs:
                                         if g not in ids:
                                             ids.append(g)
                 else:
-                    if str(entry['ID']) and str(entry['ID']).strip():  # check for none and blank ID's
-                        if 'ID' in entry and len(entry['ID']) > 0:
-                            ids.append(entry['ID'].replace(":", "_"))
+                    if str(id_) and str(id_).strip():  # check for none and blank ID's
+                        if 'ID' in entry and len(id_) > 0:
+                            ids.append(id_.replace(":", "_"))
                         if 'Parent' in entry:
                             entryParent = re.sub(r"[\[].*?[\]]", "", str(entry['Parent'])).strip()
                             if entryParent in self.label_to_id:
                                 ids.append(self.label_to_id[entryParent])
-                        if ":" in entry['ID'] or "_" in entry['ID']:
-                            entryIri = self.releases[repo].get_iri_for_id(entry['ID'].replace("_", ":"))
+                        if ":" in id_ or "_" in id_:
+                            entryIri = self.releases[repo].get_iri_for_id(id_.replace("_", ":"))
                             if entryIri:
                                 descs = pyhornedowl.get_descendants(self.releases[repo], entryIri)
                                 for d in descs:
@@ -355,9 +359,9 @@ class OntologyDataStore:
                             graph_descs = None
                             try:
                                 graph_descs = networkx.algorithms.dag.descendants(self.graphs[repo],
-                                                                                  entry['ID'].replace(":", "_"))
+                                                                                  id_.replace(":", "_"))
                             except networkx.exception.NetworkXError:
-                                print("NetworkXError selection all: ", str(entry['ID']))
+                                print("NetworkXError selection all: ", str(id_))
 
                             if graph_descs is not None:
                                 for g in graph_descs:
