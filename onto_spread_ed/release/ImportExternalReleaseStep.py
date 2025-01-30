@@ -1,5 +1,5 @@
 import csv
-from typing import Tuple, List
+from typing import Tuple, List, Literal
 
 from .ReleaseStep import ReleaseStep
 from ..model.ExcelOntology import ExcelOntology
@@ -25,31 +25,44 @@ class ImportExternalReleaseStep(ReleaseStep):
 
             self._raise_if_canceled()
 
-        new_parents: List[Tuple[str, str]] = []
+        new_parents: List[Tuple[str, str, Literal["class", "object property", "data_property"]]] = []
         if file.addParentsFile:
             with open(self._local_name(file.addParentsFile)) as f:
-                rows = csv.reader(f)
-                next(rows)
-
+                rows = csv.DictReader(f, skipinitialspace=True)
                 for row in rows:
                     # Skip potential ROBOT header
-                    if row[0] == "ID" or len(row) < 2:
+                    if row.get("ID") == "ID":
                         continue
 
-                    new_parents.append((row[0], row[1]))
+                    id = row.get("ID")
+                    new_parent = row.get("NEW PARENT ID")
+                    type = row.get("TYPE", "class").lower()
+                    if type not in ["class", "object property", "data property"]:
+                        result.warning(type='unknown-owl-type',
+                                       file=file.renameTermFile,
+                                       msg=f"Unknown OWL type '{type}' in column 'TYPE'")
 
-        renamings: List[Tuple[str, str]] = []
+                    new_parents.append((id, new_parent, type))
+
+        renamings: List[Tuple[str, str, Literal["class", "object property", "data_property"]]] = []
         if file.renameTermFile is not None:
             with open(self._local_name(file.renameTermFile)) as f:
-                rows = csv.reader(f)
-                next(rows)
-
+                rows = csv.DictReader(f, skipinitialspace=True)
                 for row in rows:
                     # Skip potential ROBOT header
-                    if row[0] == "ID" or len(row) < 2:
+                    if row.get("ID") == "ID":
                         continue
 
-                    renamings.append((row[0], row[1]))
+                    id = row.get("ID")
+                    new_label = row.get("NEW LABEL")
+                    type = row.get("TYPE", "class").lower()
+                    if type not in ["class", "object property", "data property"]:
+                        result.warning(type='unknown-owl-type',
+                                       file=file.renameTermFile,
+                                       msg=f"Unknown OWL type '{type}' in column 'TYPE'")
+                        type = "class"
+
+                    renamings.append((id, new_label, type))
 
         result += builder.merge_imports(
             ontology.imports(),

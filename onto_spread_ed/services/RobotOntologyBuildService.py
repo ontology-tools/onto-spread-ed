@@ -5,7 +5,7 @@ import os
 import subprocess
 from functools import reduce
 from multiprocessing import Pool
-from typing import Optional, Any, Dict, List, Union, Tuple
+from typing import Optional, Any, Dict, List, Union, Tuple, Literal
 
 from .OntoloyBuildService import OntologyBuildService
 from ..model.ExcelOntology import ExcelOntology, OntologyImport
@@ -43,8 +43,9 @@ class RobotOntologyBuildService(OntologyBuildService):
                       iri: str,
                       main_ontology_name: str,
                       tmp_dir: str,
-                      renamings: List[Tuple[str, str]],
-                      new_parents: List[Tuple[str, str]]) -> Result[str]:
+                      renamings: List[Tuple[str, str, Literal["class", "object property", "data_property"]]],
+                      new_parents: List[Tuple[str, str, Literal["class", "object property", "data_property"]]]
+                      ) -> Result[str]:
 
         download_path = os.path.join("/", "tmp", "onto-ed-release", "robot-download-cache")
         # download_path = os.path.join(tmp_dir, "robot-download-cache")
@@ -122,8 +123,11 @@ class RobotOntologyBuildService(OntologyBuildService):
 
     def _merge_imported_ontologies(self, merged_iri: str, merged_file: str, main_ontology_name: str, download_path: str,
                                    imports: List[OntologyImport],
-                                   renamings: List[Tuple[str, str]],
-                                   new_parents: List[Tuple[str, str]]) -> Result[str]:
+                                   renamings: List[
+                                       Tuple[str, str, Literal["class", "object property", "data_property"]]],
+                                   new_parents: List[
+                                       Tuple[str, str, Literal["class", "object property", "data_property"]]]) -> \
+            Result[str]:
         """
         Merges previously added, downloaded, and extracted ontology terms into one merged ontology
 
@@ -139,15 +143,15 @@ class RobotOntologyBuildService(OntologyBuildService):
         if len(renamings) + len(new_parents) > 0:
             modifications_file = os.path.join(download_path, "external_modifications.csv")
             with open(modifications_file, "w") as f:
-                csv_writer = csv.DictWriter(f, ["ID", "Parent", "Label"])
+                csv_writer = csv.DictWriter(f, ["ID", "Type", "Parent", "Label"])
                 csv_writer.writeheader()
-                csv_writer.writerow({"ID": "ID", "Parent": "SC %", "Label": "LABEL"})
+                csv_writer.writerow({"ID": "ID", "Type": "TYPE", "Parent": "SC %", "Label": "LABEL"})
 
-                for (id, label) in renamings:
-                    csv_writer.writerow({"ID": id, "Label": label})
+                for (id, label, type) in renamings:
+                    csv_writer.writerow({"ID": id, "Type": type, "Label": label})
 
-                for (id, parent) in new_parents:
-                    csv_writer.writerow({"ID": id, "Parent": parent})
+                for (id, parent, type) in new_parents:
+                    csv_writer.writerow({"ID": id, "Type": type, "Parent": parent})
 
             cmd += ["template", "--template", modifications_file]
             for imp in imports:

@@ -76,7 +76,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
               (<code>${
                 d.term.id || "no id"
               }
-            </code>) is not known.`,
+            </code>) for <code>${ d.relation.label }</code> is not known.`,
     },
     "missing-relation-value": {
         severity: "error",
