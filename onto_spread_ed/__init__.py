@@ -9,7 +9,7 @@ from flask_cors import CORS
 from flask_injector import FlaskInjector
 from flask_sqlalchemy import SQLAlchemy
 
-from . import default_config
+from . import default_config, cli
 from .custom_json import *  # noqa: F403, F401
 from .database.User import User
 
@@ -111,5 +111,7 @@ def create_app(config_filename=None):
 
     from . import jinja_extensions
     jinja_extensions.init_app(app, injector.injector)
+
+    cli.init_app(app, injector.injector)
 
     return app
