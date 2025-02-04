@@ -9,12 +9,12 @@ from onto_spread_ed.model.ReleaseScript import ReleaseScriptFile
 
 
 def local_name(tmp: str, remote_name: str, file_ending=None) -> str:
-    external_xlsx = os.path.join(tmp, os.path.basename(remote_name))
+    file_name = os.path.join(tmp, os.path.basename(remote_name))
 
     if file_ending is not None:
-        return external_xlsx[:external_xlsx.rfind(".")] + file_ending
+        return file_name[:file_name.rfind(".")] + file_ending
 
-    return external_xlsx
+    return file_name
 
 
 class ReleaseCanceledException(Exception):
