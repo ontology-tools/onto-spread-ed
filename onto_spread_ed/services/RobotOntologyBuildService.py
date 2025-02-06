@@ -18,7 +18,7 @@ ROBOT = os.environ.get("ROBOT", "robot")
 
 def _import_id(imp: OntologyImport):
     h = hashlib.sha256()
-    h.update(imp.iri.encode())
+    h.update(f"{imp.version_iri}|{imp.iri}".encode())
     return h.hexdigest()
 
 
@@ -52,7 +52,7 @@ class RobotOntologyBuildService(OntologyBuildService):
         os.makedirs(download_path, exist_ok=True)
         result = Result()
         with Pool(1) as p:
-            results = p.starmap(self._download_ontology, {(x.iri, _import_id(x), download_path) for x in imports})
+            results = p.starmap(self._download_ontology, {(x.version_iri if x.version_iri is not None else x.iri, _import_id(x), download_path) for x in imports})
             result = reduce(lambda a, b: a + b, results, result)
 
             if result.has_errors():
@@ -77,10 +77,10 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return result
 
-    def _download_ontology(self, purl: str, name: str, download_path: str) -> Result[Union[str, Tuple]]:
+    def _download_ontology(self, iri: str, name: str, download_path: str) -> Result[Union[str, Tuple]]:
         out = os.path.join(download_path, name + ".owl")
         if not os.path.exists(out):
-            get_ontology_cmd = f'curl -L "{purl}" > {out}'
+            get_ontology_cmd = f'curl -L "{iri}" > {out}'
             return self._execute_command(get_ontology_cmd, shell_flag=True)
 
         return Result(())

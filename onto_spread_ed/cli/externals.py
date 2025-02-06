@@ -1,5 +1,6 @@
 import json
 import logging
+import shutil
 from typing import Callable, Any
 
 import click
@@ -18,11 +19,12 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[tuple[Any, ..
         pass
 
     @group.command("build")
-    @click.option("--release_script", "-r", default=".onto-ed/release_script.json")
-    @click.option("--local_path", "-l", default=".")
+    @click.option("--out", "-o", default="externals.owl")
+    @click.option("--release-script", "-r", default=".onto-ed/release_script.json")
+    @click.option("--local-path", "-l", default=".")
     @click.option('-v', '--verbose', count=True)
     @inject
-    def build(release_script: str, local_path: str, verbose: int):
+    def build(release_script: str, local_path: str, verbose: int, out: str):
         # set log level
         log_level = logging.WARN if verbose == 1 else (
             logging.INFO if verbose == 2 else (
@@ -42,5 +44,9 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[tuple[Any, ..
         command = ImportExternalCommand(context)
 
         command.run(script, local_path)
+
+        outfile = context.local_name(script.external.target.file)
+
+        shutil.copy(outfile, out)
 
         pass

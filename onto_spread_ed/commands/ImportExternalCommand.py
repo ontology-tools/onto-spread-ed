@@ -17,7 +17,7 @@ class ReleaseCommand(Command):
 
 
 class ImportExternalCommand(ReleaseCommand):
-    def run(self, release_script: ReleaseScript, working_dir: str):
+    def run(self, release_script: ReleaseScript, working_dir: str) -> Tuple[Result, bool]:
         builder = RobotOntologyBuildService()
 
         result = Result(())

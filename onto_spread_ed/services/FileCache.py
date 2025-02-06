@@ -11,7 +11,7 @@ from flask_github import GitHub
 from onto_spread_ed.utils import get_file
 
 DEFAULT_LIFE_TIME = 60 * 60 * 24
-DEFAULT_CACHE_DIR = "/var/cache"
+DEFAULT_CACHE_DIR = "~/.cache"
 
 
 @dataclass

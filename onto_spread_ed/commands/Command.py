@@ -23,3 +23,6 @@ class Command(abc.ABC):
 
     def _local_name(self, remote_name, file_ending=None) -> str:
         return self._context.local_name(remote_name, file_ending)
+
+    def cleanup(self):
+        pass
