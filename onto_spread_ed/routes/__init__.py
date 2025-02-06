@@ -8,6 +8,7 @@ def init_app(app: Flask):
     from .search import bp as search
     from .visualize import bp as visualize
     from .admin import bp as admin
+    from .status import bp as status
 
     from .api import blueprints as api_blueprints
 
@@ -17,6 +18,7 @@ def init_app(app: Flask):
     app.register_blueprint(search)
     app.register_blueprint(visualize)
     app.register_blueprint(admin)
+    app.register_blueprint(status)
 
     for bp in api_blueprints:
         app.register_blueprint(bp)
