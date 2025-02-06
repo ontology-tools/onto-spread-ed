@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from .ColumnMapping import ColumnMappingFactory, ColumnMapping, simple, \
     ColumnMappingKind, singleton, LabelMapping, ParentMapping, ManchesterSyntaxMapping, TermMapping, \
-    ChoiceColumnMapping, relation, relation_pattern, internal, PrefixColumnMapping, ignore
+    ChoiceColumnMapping, relation, relation_pattern, internal, PrefixColumnMapping, ignore, IRIMapping
 from .Relation import OWLPropertyType
 from .TermIdentifier import TermIdentifier
 
@@ -73,8 +73,9 @@ DEFAULT_IGNORED_FIELDS = ["Curator", "To be reviewed by", "Reviewer query", "BFO
 DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS, DEFAULT_IGNORED_FIELDS)
 DEFAULT_IMPORT_SCHEMA = Schema([
     simple(["Ontology ID"], ColumnMappingKind.ONTOLOGY_ID),
-    simple(["PURL"], ColumnMappingKind.PURL),
+    singleton(["PURL", "IRI"], IRIMapping, kind=ColumnMappingKind.ONTOLOGY_IRI),
     singleton(["ROOT_ID"], TermMapping, kind=ColumnMappingKind.ROOT_ID, require_id=True, require_label=True),
+    singleton(["VERSION"], IRIMapping, kind=ColumnMappingKind.VERSION_IRI),
     singleton(["IDs"], TermMapping, kind=ColumnMappingKind.IMPORTED_ID, require_id=True, require_label=True,
               separator=";"),
     simple(["Intermediates"], ColumnMappingKind.PLAIN),

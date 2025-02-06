@@ -54,7 +54,8 @@ DIAGNOSTIC_KIND = Literal[
 @dataclass
 class OntologyImport:
     id: str
-    purl: Optional[str] = None
+    iri: Optional[str] = None
+    version_iri: Optional[str] = None
     root_id: Optional[TermIdentifier] = None
     imported_terms: List[TermIdentifier] = field(default_factory=list)
     intermediates: Optional[str] = None  # all | minimal
@@ -214,8 +215,10 @@ class ExcelOntology:
 
             if col.get_kind() == ColumnMappingKind.ONTOLOGY_ID:
                 ontology.id = col.get_value(val)
-            elif col.get_kind() == ColumnMappingKind.PURL:
-                ontology.purl = col.get_value(val)
+            elif col.get_kind() == ColumnMappingKind.ONTOLOGY_IRI:
+                ontology.iri = col.get_value(val)
+            elif col.get_kind() == ColumnMappingKind.VERSION_IRI:
+                ontology.version_iri = col.get_value(val)
             elif col.get_kind() == ColumnMappingKind.ROOT_ID and isinstance(col, TermMapping):
                 ontology.root_id = col.get_value(val)[0]
             elif col.get_kind() == ColumnMappingKind.IMPORTED_ID and isinstance(col, TermMapping):

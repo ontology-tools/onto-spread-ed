@@ -18,7 +18,7 @@ ROBOT = os.environ.get("ROBOT", "robot")
 
 def _import_id(imp: OntologyImport):
     h = hashlib.sha256()
-    h.update(imp.purl.encode())
+    h.update(imp.iri.encode())
     return h.hexdigest()
 
 
@@ -52,7 +52,7 @@ class RobotOntologyBuildService(OntologyBuildService):
         os.makedirs(download_path, exist_ok=True)
         result = Result()
         with Pool(1) as p:
-            results = p.starmap(self._download_ontology, {(x.purl, _import_id(x), download_path) for x in imports})
+            results = p.starmap(self._download_ontology, {(x.iri, _import_id(x), download_path) for x in imports})
             result = reduce(lambda a, b: a + b, results, result)
 
             if result.has_errors():

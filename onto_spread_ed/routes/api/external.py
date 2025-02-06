@@ -119,7 +119,7 @@ def import_term(repo: str, gh: GitHub, config: ConfigurationService):
 
     ontology_import = OntologyImport(
         id=import_ontology_id,
-        purl=import_purl,
+        iri=import_purl,
         root_id=import_root_id,
         imported_terms=[TermIdentifier(**t) for t in import_terms],
         intermediates=import_intermediates,
@@ -174,7 +174,7 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
             if id not in found:
                 ids_str = '; '.join([f"{i.label} [{i.id}]" for i in imp.imported_terms])
                 sheet.append([imp.id,
-                              imp.purl,
+                              imp.iri,
                               imp.root_id if isinstance(imp.root_id,
                                                         str) else f"{imp.root_id.label} [{imp.root_id.id}]",
                               ids_str,

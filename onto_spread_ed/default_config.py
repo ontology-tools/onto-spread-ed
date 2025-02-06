@@ -1,7 +1,6 @@
 import logging
 import os
 
-
 APP_TITLE = "Ontology Spreadsheet Editor"
 ENVIRONMENT = os.environ.get("FLASK_ENV")
 URL_PREFIX = ''
@@ -64,5 +63,17 @@ SCRIPTS = {
         "module": "scripts.cleanup-bcio-vocab",
         "function": "main",
         "arguments": []
+    },
+    "update-externals-to-latest": {
+        "title": "Update external ontologies",
+        "module": "scripts.update-imports-to-latest-versions",
+        "function": "main",
+        "arguments": [
+            {
+                "name": "repo",
+                "description": "In which repository should the script be executed?",
+                "type": "string"
+            }
+        ]
     }
 }

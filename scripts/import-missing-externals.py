@@ -59,7 +59,7 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
                 pref = t.id.split(":")[0]
                 imp = missing_imports.setdefault(pref, OntologyImport(
                     id=pref,
-                    purl=f"http://purl.obolibrary.org/obo/{pref.lower()}.owl",
+                    iri=f"http://purl.obolibrary.org/obo/{pref.lower()}.owl",
                     root_id=TermIdentifier("BFO:0000001", "entity"),
                     intermediates="all",
                     prefixes=[],

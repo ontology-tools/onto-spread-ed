@@ -168,10 +168,10 @@ class LocalConfigurationService(ConfigurationService):
     def loaded_repositories(self) -> List[RepositoryConfiguration]:
         return list(REPOS.values())
 
-    def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
+    def get_file_raw(self, config: RepositoryConfiguration, path: str) -> Optional[bytes]:
         path = os.path.join(current_app.static_folder, path)
         if os.path.exists(path):
-            with open(path, 'r') as f:
+            with open(path, 'rb') as f:
                 return f.read()
 
         return None

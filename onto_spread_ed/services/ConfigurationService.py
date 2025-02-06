@@ -42,8 +42,15 @@ class ConfigurationService(abc.ABC):
     def unload(self, name: str) -> bool:
         ...
 
-    @abc.abstractmethod
     def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
+        file = self.get_file_raw(config, path)
+        if file is not None:
+            return file.decode()
+
+        return None
+
+    @abc.abstractmethod
+    def get_file_raw(self, config: RepositoryConfiguration, path: str) -> Optional[bytes]:
         ...
 
     def get(self, name: str) -> Optional[RepositoryConfiguration]:

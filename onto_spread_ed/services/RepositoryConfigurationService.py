@@ -157,9 +157,9 @@ class RepositoryConfigurationService(ConfigurationService):
 
         return configuration
 
-    def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
-
+    def get_file_raw(self, config: RepositoryConfiguration, path: str) -> Optional[bytes]:
         url = self._base_url.format(full_name=config.full_name, path=path)
+
         try:
             response = self._gh.get(url, headers=self._headers)
         except GitHubError as e:
@@ -170,7 +170,7 @@ class RepositoryConfigurationService(ConfigurationService):
             self._logger.warning(f"Could not get file '{path}': {response}")
             return None
 
-        return response.text
+        return response.content
 
     def unload(self, name: str) -> bool:
         key = next((k for k, v in self._loaded_repositories.items() if

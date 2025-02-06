@@ -4,11 +4,14 @@ import re
 from dataclasses import dataclass
 from typing import Optional, Callable, Union, Any, List, Tuple
 
+import urllib3.util
+
 from .Relation import Relation, OWLPropertyType
 from .TermIdentifier import TermIdentifier
 
 
 class ColumnMappingKind(enum.Enum):
+    VERSION_IRI = 18
     INVERSE_OF = 17
     IGNORE = 16
     RELATION_TYPE = 15
@@ -16,7 +19,7 @@ class ColumnMappingKind(enum.Enum):
     PLAIN = 13
     IMPORTED_ID = 12
     ROOT_ID = 11
-    PURL = 10
+    ONTOLOGY_IRI = 10
     ONTOLOGY_ID = 8
     SUB_PROPERTY_OF = 7
     ID = 0
@@ -113,6 +116,15 @@ class ParentMapping(SimpleColumnMapping):
 @dataclass
 class ManchesterSyntaxMapping(SimpleColumnMapping):
     pass
+
+
+@dataclass
+class IRIMapping(SimpleColumnMapping):
+    allow_curie: bool = False
+
+    def valid(self, value: str) -> bool:
+        return urllib3.util.parse_url(value.strip()) is not None or \
+            self.allow_curie and ":" in value.strip()
 
 
 @dataclass
