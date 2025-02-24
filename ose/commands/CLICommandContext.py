@@ -3,7 +3,6 @@ import shutil
 from typing import Optional
 
 from ose.commands.CommandContext import CommandContext
-from ose.release.common import local_name
 
 
 class CLICommandContext(CommandContext):

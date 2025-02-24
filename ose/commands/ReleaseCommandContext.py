@@ -58,6 +58,3 @@ class ReleaseCommandContext(CommandContext):
 
     def save_file(self, file: str, temporary: bool, **kwargs):
         self.store_artifact(file, kind="intermediate" if temporary else "final", **kwargs)
-
-
-

@@ -4,6 +4,7 @@ from typing import Tuple
 from .CommandContext import CommandContext
 from ..model.Result import Result
 
+
 class CommandCanceledException(Exception):
     pass
 

@@ -1,19 +1,19 @@
-import abc
 import csv
-from typing import List, Tuple, Literal, Optional
+from typing import List, Tuple, Literal
 
 from .Command import Command
-from .CommandContext import CommandContext
 from ..model.ExcelOntology import ExcelOntology
 from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
 from ..model.Result import Result
 from ..services.RobotOntologyBuildService import RobotOntologyBuildService
 
+
 class ReleaseCommand(Command):
     def _store_target_artifact(self, file: ReleaseScriptFile,
-                              kind: Literal["source", "intermediate", "final"] = "final",
-                              downloadable: bool = True):
-        return self._context.save_file(self._local_name(file.target.file), target_file=file.target.file, kind=kind, downloadable=downloadable)
+                               kind: Literal["source", "intermediate", "final"] = "final",
+                               downloadable: bool = True):
+        return self._context.save_file(self._local_name(file.target.file), target_file=file.target.file, kind=kind,
+                                       downloadable=downloadable)
 
 
 class ImportExternalCommand(ReleaseCommand):

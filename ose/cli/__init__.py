@@ -26,6 +26,4 @@ def init_app(app: Flask, injector: Injector):
     for init_group in cli_groups:
         init_group(ose_group, with_injector)
 
-
     app.cli.add_command(ose_group)
-

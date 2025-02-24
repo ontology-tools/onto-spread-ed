@@ -42,7 +42,7 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
             iri = row[iri_index].value
             version = row[version_index].value
 
-            if id in ["GAZ", "OPMI"]: # GAZ is weird and crashes HornedOwl
+            if id in ["GAZ", "OPMI"]:  # GAZ is weird and crashes HornedOwl
                 continue
 
             try:
@@ -61,7 +61,6 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
                 else:
                     version_iri = str(version_iri)
                     if not str_space_eq(old_version, version_iri):
-
                         row[version_index].value = version_iri
 
                         changes.append(f"Updated '{id}' from {old_version} to {version_iri}")
@@ -81,5 +80,3 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
             result.value += changes
 
     return "\n".join(result.value)
-
-
