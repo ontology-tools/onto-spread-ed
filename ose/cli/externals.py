@@ -1,7 +1,7 @@
 import json
 import logging
 import shutil
-from typing import Callable, Any
+from typing import Callable, Any, Dict, Tuple
 
 import click
 from flask.cli import AppGroup
@@ -13,7 +13,7 @@ from ..model.ReleaseScript import ReleaseScript
 logger = logging.getLogger(__name__)
 
 
-def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[tuple[Any, ...], dict[str, Any]], Any]]):
+def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[Tuple[Any, ...], Dict[str, Any]], Any]]):
     @cli.group("externals")
     def group():
         pass
