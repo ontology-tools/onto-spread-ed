@@ -5,14 +5,14 @@ ontospreaded.json.test2
 .idea
 
 node_modules
-onto_spread_ed/static/js
-onto_spread_ed/static/main.css
-onto_spread_ed/static/main.css.map
+ose/static/js
+ose/static/main.css
+ose/static/main.css.map
 
 node_modules
-onto_spread_ed/static/js
-onto_spread_ed/static/main.css
-onto_spread_ed/static/main.css.map
+ose/static/js
+ose/static/main.css
+ose/static/main.css.map
 
 indexdir/
 /venv/

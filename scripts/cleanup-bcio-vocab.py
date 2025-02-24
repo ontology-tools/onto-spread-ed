@@ -6,11 +6,11 @@ import json
 import aiohttp
 from flask_github import GitHub
 
-from onto_spread_ed.model.ExcelOntology import ExcelOntology
-from onto_spread_ed.model.TermIdentifier import TermIdentifier
-from onto_spread_ed.search_api.BCIOSearchService import BCIOSearchService
-from onto_spread_ed.services.ConfigurationService import ConfigurationService
-from onto_spread_ed.utils import get_spreadsheets, get_spreadsheet
+from ose.model.ExcelOntology import ExcelOntology
+from ose.model.TermIdentifier import TermIdentifier
+from ose.search_api.BCIOSearchService import BCIOSearchService
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import get_spreadsheets, get_spreadsheet
 
 
 def main(gh: GitHub, config: ConfigurationService, repo: str):

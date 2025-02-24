@@ -23,7 +23,7 @@ async function main() {
             const opts = {
                 entryPoints: [entryPoint],
                 bundle: true,
-                outfile: path.join("onto_spread_ed", "static", "js", `${dir}.js`),
+                outfile: path.join("ose", "static", "js", `${dir}.js`),
                 plugins: [
                     vuePlugin({cssInline: true}),
                     Components({
