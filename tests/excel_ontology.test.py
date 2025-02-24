@@ -1,6 +1,6 @@
 import unittest
 
-from onto_spread_ed.model.ExcelOntology import ExcelOntology
+from ose.model.ExcelOntology import ExcelOntology
 
 
 class Roundtrip(unittest.TestCase):

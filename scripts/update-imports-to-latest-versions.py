@@ -7,11 +7,11 @@ import pyhornedowl
 import requests
 from flask_github import GitHub
 
-import onto_spread_ed.utils.github as github
-from onto_spread_ed.model.ReleaseScript import ReleaseScript
-from onto_spread_ed.model.Result import Result
-from onto_spread_ed.services.ConfigurationService import ConfigurationService
-from onto_spread_ed.utils import str_space_eq, lower
+import ose.utils.github as github
+from ose.model.ReleaseScript import ReleaseScript
+from ose.model.Result import Result
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import str_space_eq, lower
 
 
 def main(gh: GitHub, config: ConfigurationService, repo: str):

@@ -4,14 +4,14 @@ from typing import Dict
 from flask_github import GitHub
 from pyhornedowl import pyhornedowl
 
-import onto_spread_ed.utils.github as github
-from onto_spread_ed import constants
-from onto_spread_ed.model.ExcelOntology import ExcelOntology, OntologyImport
-from onto_spread_ed.model.Term import Term
-from onto_spread_ed.model.TermIdentifier import TermIdentifier
-from onto_spread_ed.routes.api.external import update_imports
-from onto_spread_ed.services.ConfigurationService import ConfigurationService
-from onto_spread_ed.utils import get_spreadsheets, lower
+import ose.utils.github as github
+from ose import constants
+from ose.model.ExcelOntology import ExcelOntology, OntologyImport
+from ose.model.Term import Term
+from ose.model.TermIdentifier import TermIdentifier
+from ose.routes.api.external import update_imports
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import get_spreadsheets, lower
 
 
 def main(gh: GitHub, config: ConfigurationService, repo: str):
