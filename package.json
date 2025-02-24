@@ -17,7 +17,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build-js": "node build/build.js",
-    "build-css": "npx sass -s compressed --no-source-map ose/static/main.scss:onto_spread_ed/static/main.css",
+    "build-css": "npx sass -s compressed --no-source-map ose/static/main.scss:ose/static/main.css",
     "build": "npm run build-js && npm run build-css"
   },
   "author": "",

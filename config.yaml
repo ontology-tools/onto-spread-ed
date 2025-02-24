@@ -72,12 +72,3 @@ users:
     repositories: [ ]
     groups:
       - public
-
-  'b-gehrke':
-    initials: BG
-    repositories:
-      - BCIO
-      - GMHO
-      - AddictO
-    groups:
-      - admin
