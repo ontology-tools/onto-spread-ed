@@ -40,7 +40,6 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
         for row in rows:
             id = row[id_index].value
             iri = row[iri_index].value
-            version = row[version_index].value
 
             if id in ["GAZ", "OPMI"]:  # GAZ is weird and crashes HornedOwl
                 continue
