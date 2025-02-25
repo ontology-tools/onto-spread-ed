@@ -1,7 +1,8 @@
 import json
 import logging
+import os
 import shutil
-from typing import Callable, Any, Dict, Tuple
+from typing import Callable, Any, Dict, Tuple, Optional
 
 import click
 from flask.cli import AppGroup
@@ -19,12 +20,12 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[Tuple[Any, ..
         pass
 
     @group.command("build")
-    @click.option("--out", "-o", default="externals.owl")
+    @click.option("--out", "-o", default=None)
     @click.option("--release-script", "-r", default=".onto-ed/release_script.json")
     @click.option("--local-path", "-l", default=".")
     @click.option('-v', '--verbose', count=True, default=2)
     @inject
-    def build(release_script: str, local_path: str, verbose: int, out: str):
+    def build(release_script: str, local_path: str, verbose: int, out: Optional[str]):
         # set log level
         log_level = logging.WARN if verbose == 1 else (
             logging.INFO if verbose == 2 else (
@@ -47,5 +48,9 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[Tuple[Any, ..
         command.run(script, local_path)
 
         outfile = context.local_name(script.external.target.file)
+
+        if out is None:
+            out = os.path.join(os.curdir, script.external.target.file)
+
         shutil.copy(outfile, out)
         logger.info(f"External file written to {outfile}")
