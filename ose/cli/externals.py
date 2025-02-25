@@ -52,7 +52,10 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[Tuple[Any, ..
         if out is None:
             out = os.path.join(os.curdir, script.external.target.file)
 
-        if os.path.abspath(out) != os.path.abspath(outfile):
+        out = os.path.abspath(out)
+        outfile = os.path.abspath(outfile)
+
+        if out != outfile:
             shutil.copy(outfile, out)
 
         logger.info(f"External file written to {outfile}")
