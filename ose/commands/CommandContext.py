@@ -14,3 +14,12 @@ class CommandContext(abc.ABC):
     @abc.abstractmethod
     def save_file(self, file: str, temporary: Optional[bool] = None, **kwargs):
         ...
+
+    def cleanup(self) -> None:
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()

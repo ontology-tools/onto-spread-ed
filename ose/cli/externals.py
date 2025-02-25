@@ -41,21 +41,21 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[Tuple[Any, ..
             data = json.load(f)
             script = ReleaseScript.from_json(data)
 
-        context = CLICommandContext(local_path)
-        command = ImportExternalCommand(context)
+        with CLICommandContext(local_path) as context:
+            command = ImportExternalCommand(context)
 
-        logger.info("Running external build command")
-        command.run(script, local_path)
+            logger.info("Running external build command")
+            command.run(script, local_path)
 
-        outfile = context.local_name(script.external.target.file)
+            outfile = context.local_name(script.external.target.file)
 
-        if out is None:
-            out = os.path.join(os.curdir, script.external.target.file)
+            if out is None:
+                out = os.path.join(os.curdir, script.external.target.file)
 
-        out = os.path.abspath(out)
-        outfile = os.path.abspath(outfile)
+            out = os.path.abspath(out)
+            outfile = os.path.abspath(outfile)
 
-        if out != outfile:
-            shutil.copy(outfile, out)
+            if out != outfile:
+                shutil.copy(outfile, out)
 
-        logger.info(f"External file written to {outfile}")
+            logger.info(f"External file written to {outfile}")

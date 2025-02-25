@@ -83,7 +83,12 @@ class RobotOntologyBuildService(OntologyBuildService):
         out = os.path.join(download_path, name + ".owl")
         if not os.path.exists(out):
             get_ontology_cmd = f'curl -L "{iri}" > {out}'
-            return self._execute_command(get_ontology_cmd, shell_flag=True)
+            result = self._execute_command(get_ontology_cmd, shell_flag=True)
+
+            if result.has_errors():
+                self._logger.error(f"Failed to download '{name}' from '{iri}'")
+
+            return result
 
         return Result(())
 
@@ -98,7 +103,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     '--annotate-with-source', 'true',
                     '--upper-term', imp.root_id.id,
                     '--intermediates', imp.intermediates,
-                    '--output', filename]
+                    '--output', f'"{filename}"']
         for prefix, definition in imp.prefixes:
             slim_cmd.append('--prefix')
             slim_cmd.append(f'"{prefix}: {definition}"')
@@ -173,7 +178,7 @@ class RobotOntologyBuildService(OntologyBuildService):
             ['annotate', '--ontology-iri', merged_iri, '--version-iri', merged_iri, '--annotation rdfs:comment ',
              '"This file contains externally imported content for the ' + main_ontology_name +
              '. It was prepared using ROBOT and a custom script from a spreadsheet of imported terms."',
-             '--output', merged_file])
+             '--output', f'"{merged_file}"'])
 
         cmd = " ".join(cmd)
 

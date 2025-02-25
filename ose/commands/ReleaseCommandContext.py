@@ -56,5 +56,5 @@ class ReleaseCommandContext(CommandContext):
                               downloadable: bool = True):
         return self.store_artifact(self._local_name(file.target.file), file.target.file, kind, downloadable)
 
-    def save_file(self, file: str, temporary: bool, **kwargs):
-        self.store_artifact(file, kind="intermediate" if temporary else "final", **kwargs)
+    def save_file(self, file: str, temporary: Optional[bool] = None, **kwargs):
+        return self.store_artifact(file, kind="intermediate" if temporary else "final", **kwargs)
