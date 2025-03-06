@@ -53,7 +53,7 @@ def guess_parent():
 
             guesses = [dict(ontology_id=e.get("definedBy", e["curie"].split(":"))[0],
                             purl=e.get("ontologyIri", None),
-                            term=TermIdentifier(id=e["curie"], label=e["label"])) for e in response.json()["elements"]]
+                            term=TermIdentifier(id=e["curie"], label=next(iter(e["label"])))) for e in response.json()["elements"]]
             guesses = [g for g in guesses if
                        not str_empty(g['ontology_id']) and g['ontology_id'].lower() != prefix.lower()]
 
@@ -82,8 +82,12 @@ def guess_parent():
 
         guesses = [g for g in guesses if not str_empty(g['ontology_id']) and g['ontology_id'].lower() != prefix.lower()]
 
+        for g in guesses:
+            if "label" in g:
+                g["label"] = next(iter(g["label"]))
+
         return jsonify(guesses)
-    except Exception:
+    except Exception as e:
         return jsonify(None)
 
 

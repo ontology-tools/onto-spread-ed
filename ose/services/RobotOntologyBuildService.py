@@ -362,10 +362,13 @@ class RobotOntologyBuildService(OntologyBuildService):
         stdout, stderr = output.communicate()
 
         if output.returncode != 0:
+            sout = stdout.decode() if stdout is not None else None
+            serr = stderr.decode() if stderr is not None else None
             result.error(command=command_str,
-                         out=stdout.decode() if stdout is not None else None,
-                         err=stderr.decode() if stderr is not None else None,
+                         out=sout,
+                         err=serr,
                          code=output.returncode)
+            self._logger.error(f"Command exited with code {output.returncode}: {command_str}\nSTDOUT: {sout}\nSTDERR: {serr}")
 
         result.value = stdout.decode()
         return result

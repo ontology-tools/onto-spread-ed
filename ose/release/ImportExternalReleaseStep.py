@@ -1,9 +1,14 @@
 import csv
 from typing import Tuple, List, Literal
 
+from flask_github import GitHub
+from flask_sqlalchemy import SQLAlchemy
+
 from .ReleaseStep import ReleaseStep
 from ..model.ExcelOntology import ExcelOntology
+from ..model.ReleaseScript import ReleaseScript
 from ..model.Result import Result
+from ..services.ConfigurationService import ConfigurationService
 from ..services.RobotOntologyBuildService import RobotOntologyBuildService
 
 
@@ -12,12 +17,27 @@ class ImportExternalReleaseStep(ReleaseStep):
     def name(cls) -> str:
         return "IMPORT_EXTERNAL"
 
+    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
+                 config: ConfigurationService, *, use_existing_file: bool = False) -> None:
+        super().__init__(db, gh, release_script, release_id, tmp, config)
+
+        self._use_existing_file = use_existing_file
+
     def run(self) -> bool:
+        result = Result(())
+        file = self._release_script.external
+
+        # If e.g. the external owl file is built automatically after each change we can use that file
+        if self._use_existing_file:
+            self._download(file.target.file)
+
+            self.store_target_artifact(file, downloadable=False)
+
+            self._set_release_result(result)
+            return result.ok()
+
         builder = RobotOntologyBuildService()
 
-        result = Result(())
-
-        file = self._release_script.external
         ontology = ExcelOntology(file.target.iri)
         for s in file.sources:
             xlsx = self._local_name(s.file)
