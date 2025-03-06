@@ -29,7 +29,8 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
         rows = sheet.rows
 
         header = next(rows)
-        iri_index = next((i for i, h in enumerate(header) if str_space_eq(lower(h.value), "purl")), None)
+        iri_index = next((i for i, h in enumerate(header) if
+                          str_space_eq(lower(h.value), "purl") or str_space_eq(lower(h.value), "iri")), None)
         version_index = next((i for i, h in enumerate(header) if str_space_eq(lower(h.value), "version")), None)
         id_index = next((i for i, h in enumerate(header) if str_space_eq(lower(h.value), "ontology id")), None)
 
