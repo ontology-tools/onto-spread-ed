@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {computed, onMounted, Ref, ref, watch} from "vue";
 import {Release, ReleaseScript} from "./model.ts"
 import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
@@ -82,7 +82,7 @@ onMounted(() => update())
     <p>
       Currently, there is no release running for {{ repo }}.
       <template v-if="loading">
-        <span style="width: 400px" class="placeholder"></span>
+        <span class="placeholder" style="width: 400px"></span>
       </template>
       <template v-else-if="lastSuccessfulRelease">
         {{ lastSuccessfulRelease.started_by }} started the last successful release on
@@ -104,29 +104,45 @@ onMounted(() => update())
         <i class="fa fa-play"></i>
         Start a release
       </button>
-      <button :disabled="!releaseScript" type="button"
-              class="btn btn-success dropdown-toggle dropdown-toggle-split flex-grow-0"
-              data-bs-toggle="dropdown">
+      <button :disabled="!releaseScript" class="btn btn-success dropdown-toggle dropdown-toggle-split flex-grow-0"
+              data-bs-toggle="dropdown"
+              type="button">
       </button>
 
       <ul class="dropdown-menu">
         <li><a class="dropdown-item" href="#" @click="showAdvanced = !showAdvanced">
-          <i class="fa-regular" :class="[showAdvanced ? 'fa-check-square' : 'fa-square']"></i> Show advanced
+          <i :class="[showAdvanced ? 'fa-check-square' : 'fa-square']" class="fa-regular"></i> Show advanced
           configuration
         </a></li>
       </ul>
     </div>
+    <ul class="list-group mt-2">
+      <li v-for="release in lastReleases" class="list-group-item ">
+        <a class=" d-flex justify-content-between align-items-start" style="text-decoration: none; color: inherit" :href="`${release.id}`">
+          <div class="ms-2 me-auto">
+            <div class="fw-bold">{{ $filters.formatDate(release.start) }}</div>
+            {{ release.started_by }}
+          </div>
+          <span class="badge rounded-pill" :class="{
+            'text-bg-primary': ['running', 'waiting-for-user'].indexOf(release.state) >=0,
+            'text-bg-success': release.state === 'success',
+            'text-bg-error': release.state === 'errored',
+            'text-bg-secondary': release.state === 'canceled',
+          }">{{ release.state }}</span>
+        </a>
+      </li>
+    </ul>
 
 
-    <ReleaseScriptViewer :release-script="releaseScript" v-if="!!releaseScript && showAdvanced"
+    <ReleaseScriptViewer v-if="!!releaseScript && showAdvanced" :release-script="releaseScript"
                          class="mt-2">
       <template v-slot:buttons>
-        <button class="mb-3 btn btn-sm btn-primary"
-                :class="({
+        <button :class="({
                   'btn-primary': saving === 'idle' || saving === 'saving',
                   'btn-success': saving === 'success',
                   'btn-danger': saving === 'error'
                 })"
+                class="mb-3 btn btn-sm btn-primary"
                 @click="saveFile">
           <i v-if="saving === 'idle'" class="fa fa-save"></i>
           <i v-if="saving === 'saving'" class="fa fa-spin fa-spinner"></i>
