@@ -11,7 +11,7 @@ def login(github: GitHub):
     if session.get('user_id', None) is not None:
         session.pop('user_id', None)  # Could be stale
 
-    return github.authorize(scope="user,repo")
+    return github.authorize(scope="user,repo,workflow")
 
 
 @bp.route('/logout')
