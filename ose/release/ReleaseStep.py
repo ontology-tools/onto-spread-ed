@@ -1,5 +1,6 @@
 import abc
 import os
+from datetime import datetime
 from typing import Tuple, Optional, Literal, List
 
 from flask_github import GitHub
@@ -14,7 +15,7 @@ from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
 from ..model.RepositoryConfiguration import RepositoryConfiguration
 from ..model.Result import Result
 from ..services.ConfigurationService import ConfigurationService
-from ..utils import download_file
+from ..utils import download_file, github
 
 
 class ReleaseStep(abc.ABC):
@@ -130,3 +131,18 @@ class ReleaseStep(abc.ABC):
             result.error(type="external-owl-missing",
                          msg="The external OWL file is missing. Ensure it is build before this step")
             return result
+
+    def _calculate_release_name(self) -> str:
+        release_name = f"v{datetime.utcnow().strftime('%Y-%m-%d')}"
+        last_release = github.get_latest_release(self._gh, self._release_script.full_repository_name)
+        if last_release and last_release["name"].startswith(release_name):
+            self._logger.info(f"Release {release_name} already exists.")
+
+            # Release follows format vYYYY-MM-DD[.1,2,3...]
+            # Release exists, increment the number at the end if it exists
+            if "." in last_release["name"]:
+                last_number = int(last_release["name"].split(".")[-1])
+                release_name += f".{last_number + 1}"
+            else:
+                release_name += ".1"
+        return release_name

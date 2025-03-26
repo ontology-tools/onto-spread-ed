@@ -156,3 +156,25 @@ def merge_pr(github: GitHub, repo: str, pr: int, merge_method: Literal['squash',
     github.put(f"repos/{repo}/pulls/{pr}/merge", data=dict(
         merge_method=merge_method
     ))
+
+
+def get_latest_release(gh: GitHub, full_repository_name: str) -> Optional[Dict[str, str]]:
+    try:
+        response = gh.get(f"repos/{full_repository_name}/releases/latest")
+        return response
+    except GitHubError as e:
+        if e.response.status_code == 404:
+            return None
+        else:
+            raise e
+
+
+def create_release(gh: GitHub, full_repository_name: str, tag_name: str, branch: str):
+    data = dict(
+        tag_name=tag_name,
+        target_commitish=branch,
+        name=tag_name,
+        body=f"Release {tag_name}"
+    )
+
+    gh.post(f"repos/{full_repository_name}/releases", data=data)
