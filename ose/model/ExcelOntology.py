@@ -884,7 +884,7 @@ class ExcelOntology:
     @classmethod
     def from_owl(cls, externals_owl: str, prefixes: Dict[str, str]) -> Result[Self]:
         result = Result()
-        ontology = pyhornedowl.open_ontology(externals_owl, "rdf")
+        ontology = pyhornedowl.open_ontology(externals_owl, "owx")
         self = ExcelOntology(ontology.get_iri())
         for (p, d) in prefixes.items():
             ontology.prefix_mapping.add_prefix(p, d)

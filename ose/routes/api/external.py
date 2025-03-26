@@ -5,10 +5,11 @@ import os
 from typing import List
 from urllib import parse
 
+import flask
 import jsonschema
 import openpyxl
 import requests
-from flask import jsonify, Blueprint, request, current_app, g, Response
+from flask import jsonify, Blueprint, request, current_app, Response
 from flask_github import GitHub
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -53,7 +54,8 @@ def guess_parent():
 
             guesses = [dict(ontology_id=e.get("definedBy", e["curie"].split(":"))[0],
                             purl=e.get("ontologyIri", None),
-                            term=TermIdentifier(id=e["curie"], label=next(iter(e["label"])))) for e in response.json()["elements"]]
+                            term=TermIdentifier(id=e["curie"], label=next(iter(e["label"])))) for e in
+                       response.json()["elements"]]
             guesses = [g for g in guesses if
                        not str_empty(g['ontology_id']) and g['ontology_id'].lower() != prefix.lower()]
 
@@ -88,13 +90,14 @@ def guess_parent():
 
         return jsonify(guesses)
     except Exception as e:
+        current_app.logger.error(f"Error guessing parent: {e}")
         return jsonify(None)
 
 
 @bp.route("/<repo>/import", methods=["POST"])
 @requires_permissions("edit")
 def import_term(repo: str, gh: GitHub, config: ConfigurationService):
-    user_name = g.user.github_login if g.user else "*"
+    user_name = flask.g.user.github_login if flask.g.user else "*"
     user_repos = (config.app_config['USERS']
                   .get(user_name, config.app_config['USERS'].get("*", {}))
                   .get("repositories", []))
