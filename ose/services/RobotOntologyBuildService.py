@@ -368,7 +368,8 @@ class RobotOntologyBuildService(OntologyBuildService):
                          out=sout,
                          err=serr,
                          code=output.returncode)
-            self._logger.error(f"Command exited with code {output.returncode}: {command_str}\nSTDOUT: {sout}\nSTDERR: {serr}")
+            self._logger.error(
+                f"Command exited with code {output.returncode}: {command_str}\nSTDOUT: {sout}\nSTDERR: {serr}")
 
         result.value = stdout.decode()
         return result

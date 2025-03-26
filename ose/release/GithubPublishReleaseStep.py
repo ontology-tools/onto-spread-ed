@@ -22,7 +22,6 @@ class GithubPublishReleaseStep(ReleaseStep):
 
         release_name = self._calculate_release_name()
 
-
         artifacts = self.artifacts()
 
         files = [a.target_path for a in artifacts]
