@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 
 import CollapsibleCard from "../common/CollapsibleCard.vue";
 import {computed, ref} from "vue";
@@ -19,7 +19,8 @@ const settings = ref<typeof SETTINGS>(SETTINGS)
 let loading = ref<boolean>(false);
 let deleting = ref<string | null>(null);
 let startupChanging = ref<string | null>(null);
-let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null)
+let installingWorkflow = ref<null | "busy" | "error" | "success">(null);
+let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null || installingWorkflow.value === "busy")
 
 async function toggleStartup(repo: RepositoryConfig) {
   startupChanging.value = repo.full_name;
@@ -126,6 +127,35 @@ async function loadRepository() {
   }
   loading.value = false;
 }
+
+
+async function installWorkflow(name: string, repo: RepositoryConfig) {
+  installingWorkflow.value = "busy";
+  try {
+    const resp = await (await fetch(`${prefix_url}/api/repo/${repo.short_name}/install_workflow/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })).json();
+
+    if (!resp.success) {
+      await alertDialog({
+        title: "Workflow installation failed",
+        message: resp.msg
+      });
+    }
+
+    installingWorkflow.value = "success"
+  } catch (error) {
+    await alertDialog({
+      title: "Workflow installation failed",
+      message: "An error occurred while installing the workflow."
+    });
+
+    installingWorkflow.value = "error"
+  }
+}
 </script>
 
 <template>
@@ -139,7 +169,8 @@ async function loadRepository() {
         {{ repo.short_name }} ({{ repo.full_name }})
       </template>
       <template #buttons>
-        <button class="btn btn-primary btn-sm" @click="toggleStartup(repo)" :disabled="blocked || !settings.changing_startup_allowed">
+        <button :disabled="blocked || !settings.changing_startup_allowed" class="btn btn-primary btn-sm"
+                @click="toggleStartup(repo)">
           <template v-if="settings.startup_repositories.indexOf(repo.full_name) >= 0">
             <i class="fa fa-square-check"></i> Loaded on startup
           </template>
@@ -148,33 +179,33 @@ async function loadRepository() {
           </template>
         </button>
 
-        <button class="btn btn-danger btn-sm btn-circle" @click="$event.stopPropagation(); unloadRepository(repo)"
-                :disabled="blocked"  v-if="settings.loading_new_allowed">
-          <i class="fa" :class="deleting === repo.full_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']"></i>
+        <button v-if="settings.loading_new_allowed" :disabled="blocked"
+                class="btn btn-danger btn-sm btn-circle" @click="$event.stopPropagation(); unloadRepository(repo)">
+          <i :class="deleting === repo.full_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']" class="fa"></i>
         </button>
       </template>
       <template #body>
         <h6>Core settings</h6>
         <div class="input-group input-group-sm mb-3">
           <span class="input-group-text">ID Length</span>
-          <input v-model="repo.id_digits" type="number" class="form-control">
+          <input v-model="repo.id_digits" class="form-control" type="number">
         </div>
 
         <div class="input-group input-group-sm mb-3">
           <span class="input-group-text">Main branch</span>
-          <input v-model="repo.main_branch" type="text" class="form-control">
+          <input v-model="repo.main_branch" class="form-control" type="text">
         </div>
 
         <h6>Release</h6>
 
         <div class="input-group input-group-sm mb-3">
           <span class="input-group-text">Released OWL file</span>
-          <input v-model="repo.release_file" type="text" class="form-control">
+          <input v-model="repo.release_file" class="form-control" type="text">
         </div>
 
         <div class="input-group input-group-sm mb-3">
           <span class="input-group-text">Released script</span>
-          <input v-model="repo.release_script_path" type="text" class="form-control">
+          <input v-model="repo.release_script_path" class="form-control" type="text">
         </div>
 
         <h6>Subontologies</h6>
@@ -185,22 +216,39 @@ async function loadRepository() {
         <template v-for="subontology in repo.subontologies">
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">Excel</span>
-            <input v-model="subontology.excel_file" type="text" class="form-control">
+            <input v-model="subontology.excel_file" class="form-control" type="text">
             <span class="input-group-text">Released</span>
-            <input v-model="subontology.release_file" type="text" class="form-control">
+            <input v-model="subontology.release_file" class="form-control" type="text">
 
-            <button class="btn btn-danger" @click="repo.subontology = repo.subontologies.filter(x => x != subontology)"
-                    :disabled="blocked">
+            <button :disabled="blocked" class="btn btn-danger"
+                    @click="repo.subontology = repo.subontologies.filter(x => x != subontology)">
               <i class="fa fa-trash"></i>
             </button>
           </div>
         </template>
+
+        <h6>Workflows</h6>
+        <p class="text-body-secondary">
+          Install github workflows in this repository
+        </p>
+
+
+        <button :class="{'btn-success': installingWorkflow === 'success', 'btn-danger': installingWorkflow === 'error'}"
+                :disabled="blocked" class="btn btn-primary btn-sm"
+                @click="installWorkflow('externals', repo)">
+          <i v-if="installingWorkflow === 'busy'" class="fa fa-spin fa-spinner"></i>
+          <i v-if="installingWorkflow === 'success'" class="fa fa-check"></i>
+          <i v-if="installingWorkflow === 'error'" class="fa fa-close"></i>
+          <i v-else class="fa fa-file-import"></i>
+          Automatically build externals owl file
+        </button>
       </template>
     </CollapsibleCard>
 
     <div class="d-flex gap-2">
-      <button class="mb-3 btn btn-sm btn-primary add-file" @click="loadRepository" :disabled="blocked" v-if="settings.loading_new_allowed">
-        <i class="fa" :class="loading ? ['fa-spinner', 'fa-spin'] : ['fa-add']"></i>
+      <button v-if="settings.loading_new_allowed" :disabled="blocked" class="mb-3 btn btn-sm btn-primary add-file"
+              @click="loadRepository">
+        <i :class="loading ? ['fa-spinner', 'fa-spin'] : ['fa-add']" class="fa"></i>
         Load repository
       </button>
       <slot name="buttons"></slot>
@@ -208,7 +256,7 @@ async function loadRepository() {
   </div>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .settings {
   display: flex;
   flex-direction: column;

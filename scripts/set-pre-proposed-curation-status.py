@@ -6,12 +6,12 @@ from flask_github import GitHub
 from openpyxl.styles import PatternFill
 from pyhornedowl import pyhornedowl
 
-import onto_spread_ed.utils.github as github
-from onto_spread_ed import constants
-from onto_spread_ed.model.ExcelOntology import ExcelOntology
-from onto_spread_ed.model.Term import UnresolvedTerm, Term
-from onto_spread_ed.services.ConfigurationService import ConfigurationService
-from onto_spread_ed.utils import get_spreadsheets, str_empty
+import ose.utils.github as github
+from ose import constants
+from ose.model.ExcelOntology import ExcelOntology
+from ose.model.Term import UnresolvedTerm, Term
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import get_spreadsheets, str_empty
 
 
 def is_incomplete(term: Union[UnresolvedTerm, Term]):

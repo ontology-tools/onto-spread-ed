@@ -31,8 +31,7 @@ const data = computed(() => ({
 
 <template>
   <template v-if="format === 'long'">
-    <h5>
-      {{ data.title }}
+    <h5 v-html="data.title">
     </h5>
     <p v-html="data.message">
     </p>

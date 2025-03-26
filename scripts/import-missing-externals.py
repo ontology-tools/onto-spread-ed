@@ -4,14 +4,14 @@ from typing import Dict
 from flask_github import GitHub
 from pyhornedowl import pyhornedowl
 
-import onto_spread_ed.utils.github as github
-from onto_spread_ed import constants
-from onto_spread_ed.model.ExcelOntology import ExcelOntology, OntologyImport
-from onto_spread_ed.model.Term import Term
-from onto_spread_ed.model.TermIdentifier import TermIdentifier
-from onto_spread_ed.routes.api.external import update_imports
-from onto_spread_ed.services.ConfigurationService import ConfigurationService
-from onto_spread_ed.utils import get_spreadsheets, lower
+import ose.utils.github as github
+from ose import constants
+from ose.model.ExcelOntology import ExcelOntology, OntologyImport
+from ose.model.Term import Term
+from ose.model.TermIdentifier import TermIdentifier
+from ose.routes.api.external import update_imports
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import get_spreadsheets, lower
 
 
 def main(gh: GitHub, config: ConfigurationService, repo: str):
@@ -25,7 +25,7 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
     externals_content = github.get_file(gh, full_repo, externals_owl).decode()
 
     external_ontology = ExcelOntology(externals_owl)
-    ontology = pyhornedowl.open_ontology(externals_content, "rdf")
+    ontology = pyhornedowl.open_ontology(externals_content, "owx")
     for (p, d) in repository.prefixes:
         ontology.prefix_mapping.add_prefix(p, d)
 
@@ -59,7 +59,7 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
                 pref = t.id.split(":")[0]
                 imp = missing_imports.setdefault(pref, OntologyImport(
                     id=pref,
-                    purl=f"http://purl.obolibrary.org/obo/{pref.lower()}.owl",
+                    iri=f"http://purl.obolibrary.org/obo/{pref.lower()}.owl",
                     root_id=TermIdentifier("BFO:0000001", "entity"),
                     intermediates="all",
                     prefixes=[],

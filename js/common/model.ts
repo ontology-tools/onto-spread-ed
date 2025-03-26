@@ -43,7 +43,7 @@ export interface Release<D = Date> {
     included_files: string[]
 }
 
-// Same as onto_spread_ed/model/ExcelOntology.py
+// Same as ose/model/ExcelOntology.py
 export type DiagnosticKind =
     "unknown-column" |
     "incomplete-term" |
