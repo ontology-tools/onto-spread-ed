@@ -11,8 +11,6 @@ from flask_github import GitHub
 from ose.utils import get_file
 
 DEFAULT_LIFE_TIME = 60 * 60 * 24
-DEFAULT_CACHE_DIR = "~/.cache"
-
 
 @dataclass
 class CacheEntry:
@@ -29,9 +27,9 @@ class FileCache:
     _cache_file: str
     _cache: Dict[str, CacheEntry]
 
-    def __init__(self, life_time: int = DEFAULT_LIFE_TIME):
+    def __init__(self, cache_dir: str, life_time: int = DEFAULT_LIFE_TIME):
         self.lifetime = life_time
-        self.cache_dir = os.path.join(DEFAULT_CACHE_DIR, "ose", "filecache")
+        self.cache_dir = cache_dir
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir, exist_ok=True)
 

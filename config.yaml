@@ -10,6 +10,10 @@ app-title: "Ontology Spreadsheet Editor"
 database-uri: 'sqlite:////tmp/github-flask-ontospreaded.db'
 index-path: 'ose_index'
 
+# Caching
+cache-dir: '.cache/ose'
+cache-life-time: 86400
+
 # Repositories
 repositories:
   # Where to look for repository configration. Possible values: 'repository' or 'local'

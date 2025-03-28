@@ -1,3 +1,5 @@
+import typing
+
 from flask import Flask
 from flask_executor import Executor
 from flask_github import GitHub
@@ -81,5 +83,11 @@ class AppModule(Module):
 
     @provider
     @request
-    def file_cache(self) -> FileCache:
-        return FileCache()
+    def file_cache(self, config: ConfigurationService) -> FileCache:
+        life_time: typing.Union[int,None] = config.app_config.get("CACHE_LIFETIME", None)
+        cache_dir = config.app_config.get("CACHE_DIR")
+
+        if life_time is not None:
+            return FileCache(cache_dir, life_time)
+        else:
+            return FileCache(cache_dir)

@@ -16,6 +16,9 @@ logging.basicConfig(level=LOG_LEVEL)
 GITHUB_CLIENT_ID = None
 GITHUB_CLIENT_SECRET = None
 
+CACHE_DIR = os.path.join(os.environ.get("HOME", "/"), ".cache", "ose")
+CACHE_LIFE_TIME = None
+
 USERS = dict()
 
 CONFIGURATION = "repository"
