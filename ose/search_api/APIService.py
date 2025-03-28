@@ -43,7 +43,7 @@ class APIService(abc.ABC):
 
         external_ontologies_loaded = []
         for external in external_ontologies:
-            ext_ontology = pyhornedowl.open_ontology(external, "rdf")
+            ext_ontology = pyhornedowl.open_ontology(external, "owx")
 
             for (prefix, iri) in config.prefixes.items():
                 ext_ontology.prefix_mapping.add_prefix(prefix, iri)
