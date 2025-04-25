@@ -73,7 +73,6 @@ jobs:
         echo $PRIVATE_KEY | base64 --decode > privkey &&
         chmod 600 privkey &&
         mkdir -p $HOME/.ssh &&
-#        echo ${{secrets.deploymentHost }} ${{secrets.deploymentFingerprint }} >> $HOME/.ssh/known_hosts &&
         scp -o StrictHostKeyChecking=no -O -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
         ssh -o StrictHostKeyChecking=no -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
   deploy-prod:
