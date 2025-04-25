@@ -45,7 +45,11 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[Tuple[Any, ..
             command = ImportExternalCommand(context)
 
             logger.info("Running external build command")
-            command.run(script, local_path)
+            result, ok = command.run(script, local_path)
+
+            if not ok or result.has_errors():
+                logger.error("Command failed. Check the logs above!")
+                return 1
 
             outfile = context.local_name(script.external.target.file)
 
