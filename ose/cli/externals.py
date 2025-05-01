@@ -54,7 +54,7 @@ def init_commands(cli: AppGroup, inject: Callable[[Any], Callable[[Tuple[Any, ..
             outfile = context.local_name(script.external.target.file)
 
             if out is None:
-                out = os.path.join(os.curdir, script.external.target.file)
+                out = os.path.join(local_path, script.external.target.file)
 
             out = os.path.abspath(out)
             outfile = os.path.abspath(outfile)

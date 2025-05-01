@@ -74,6 +74,8 @@ DEFAULT_SCHEMA = Schema(DEFAULT_MAPPINGS, DEFAULT_IGNORED_FIELDS)
 DEFAULT_IMPORT_SCHEMA = Schema([
     simple(["Ontology ID"], ColumnMappingKind.ONTOLOGY_ID),
     singleton(["PURL", "IRI"], IRIMapping, kind=ColumnMappingKind.ONTOLOGY_IRI),
+    singleton(["Exclude", "Excluding", "Excluded", "Remove"], TermMapping, kind=ColumnMappingKind.EXCLUDED_IMPORT_ID,
+              separator=";", require_id=True, require_label=True),
     singleton(["ROOT_ID"], TermMapping, kind=ColumnMappingKind.ROOT_ID, require_id=True, require_label=True),
     singleton(["VERSION"], IRIMapping, kind=ColumnMappingKind.VERSION_IRI),
     singleton(["IDs"], TermMapping, kind=ColumnMappingKind.IMPORTED_ID, require_id=True, require_label=True,

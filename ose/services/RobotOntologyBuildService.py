@@ -103,7 +103,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     '--annotate-with-source', 'true',
                     '--upper-term', imp.root_id.id,
                     '--intermediates', imp.intermediates,
-                    '--output', f'"{filename}"']
+                    ]
         for prefix, definition in imp.prefixes:
             slim_cmd.append('--prefix')
             slim_cmd.append(f'"{prefix}: {definition}"')
@@ -112,6 +112,11 @@ class RobotOntologyBuildService(OntologyBuildService):
             slim_cmd.append('--lower-term')
             slim_cmd.append(term.id)
 
+        if len(imp.excluding) > 0:
+            slim_cmd.extend(['remove', '--preserve-structure', 'false',
+                             *[a for x in imp.excluding for a in ['--term', x.id]]])
+
+        slim_cmd.extend(['--output', f'"{filename}"'])
         slim_cmd = " ".join(slim_cmd)
 
         if os.path.exists(filename) and os.path.exists(filename + ".cache"):

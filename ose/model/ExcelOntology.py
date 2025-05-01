@@ -60,6 +60,7 @@ class OntologyImport:
     imported_terms: List[TermIdentifier] = field(default_factory=list)
     intermediates: Optional[str] = None  # all | minimal
     prefixes: List[(Tuple[str, str])] = field(default_factory=list)
+    excluding: List[TermIdentifier] = field(default_factory=list)
 
 
 class ExcelOntology:
@@ -221,6 +222,8 @@ class ExcelOntology:
                 ontology.version_iri = col.get_value(val)
             elif col.get_kind() == ColumnMappingKind.ROOT_ID and isinstance(col, TermMapping):
                 ontology.root_id = col.get_value(val)[0]
+            elif col.get_kind() == ColumnMappingKind.EXCLUDED_IMPORT_ID and isinstance(col, TermMapping):
+                ontology.excluding += col.get_value(val)
             elif col.get_kind() == ColumnMappingKind.IMPORTED_ID and isinstance(col, TermMapping):
                 ontology.imported_terms = col.get_value(val)
             elif col.get_kind() == ColumnMappingKind.PLAIN and col.get_name().lower() == "intermediates":

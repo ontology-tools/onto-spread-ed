@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts" setup>
 import {ReleaseScript} from "./model.ts";
 import CollapsibleCard from "../common/CollapsibleCard.vue";
 
@@ -12,7 +12,20 @@ function setAnnotations(name: string, annotations: string) {
 }
 
 function setArgs(step: number, args: string) {
-  props.releaseScript.steps[step].args = Object.fromEntries(args.split("\n").map(l => l.split(": ")))
+  props.releaseScript.steps[step].args = Object.fromEntries(args
+      .split("\n")
+      .map(l => l.split(": "))
+      .map(([k, v]) => {
+        if (v === "true") {
+          return [k, true]
+        } else if (v === "false") {
+          return [k, false]
+        } else if (!isNaN(Number(v))) {
+          return [k, Number(v)]
+        } else {
+          return [k, v]
+        }
+      }))
 }
 
 function addDependency(name: string) {
@@ -141,7 +154,7 @@ function deleteFile(event: MouseEvent, name: string) {
       <template #title>
         {{ name }} - {{ file.target.file }}
         <span class="badge text-bg-secondary">{{ file.sources.length }} sources</span>
-        <span class="badge text-bg-secondary ms-1" v-if="file.needs.length > 0">{{
+        <span v-if="file.needs.length > 0" class="badge text-bg-secondary ms-1">{{
             file.needs.length
           }} dependencies</span>
       </template>
@@ -157,24 +170,24 @@ function deleteFile(event: MouseEvent, name: string) {
           <p class="text-body-secondary">Define the location of the target file in the repository and define the IRI of
             the resulting ontology.</p>
           <div class="form-check form-switch mb-3">
-            <input v-model="file.target.publish" class="form-check-input" type="checkbox" role="switch">
+            <input v-model="file.target.publish" class="form-check-input" role="switch" type="checkbox">
             <span class="form-check-label">Publish the file to GitHub</span>
           </div>
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">Path</span>
-            <input v-model="file.target.file" type="text" class="form-control">
+            <input v-model="file.target.file" class="form-control" type="text">
           </div>
 
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">IRI</span>
-            <input v-model="file.target.iri" type="text" class="form-control">
+            <input v-model="file.target.iri" class="form-control" type="text">
           </div>
 
           <div class="input-group input-group-sm mb-3">
             <span class="input-group-text">Annotations</span>
             <textarea :value="Object.entries(file.target.ontology_annotations).map(([k,v]) => `${k}: ${v}`).join('\n')"
-                      @change="setAnnotations(name, $event.target?.value)"
-                      class="form-control">
+                      class="form-control"
+                      @change="setAnnotations(name, $event.target?.value)">
             </textarea>
           </div>
 
@@ -188,7 +201,7 @@ function deleteFile(event: MouseEvent, name: string) {
           <template v-for="source in file.sources">
             <div class="input-group input-group-sm mb-3">
               <span class="input-group-text">Source</span>
-              <input v-model="source.file" type="text" class="form-control">
+              <input v-model="source.file" class="form-control" type="text">
 
               <span class="input-group-text">Type</span>
               <select v-model="source.type" class="form-select" style="flex: unset; width: auto">
@@ -218,9 +231,9 @@ function deleteFile(event: MouseEvent, name: string) {
 
             <div class="input-group input-group-sm mb-3">
               <span class="input-group-text">Dependency</span>
-              <input disabled :value="releaseScript.files[need]?.target.file ?? need"
-                     type="text" class="form-control">
-              <button @click="deleteDependency(name, need)" class="btn btn-danger">
+              <input :value="releaseScript.files[need]?.target.file ?? need" class="form-control"
+                     disabled type="text">
+              <button class="btn btn-danger" @click="deleteDependency(name, need)">
                 <i class="fa fa-trash"></i>
               </button>
             </div>
@@ -278,7 +291,7 @@ function deleteFile(event: MouseEvent, name: string) {
 
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 
 .release-file-settings {
   display: grid;

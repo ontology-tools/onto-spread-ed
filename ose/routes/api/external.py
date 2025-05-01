@@ -156,14 +156,16 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
         sheet: Worksheet = wb.active
 
         data = sheet.rows
-        next(data)
+        header = next(data)
         by_id = dict((i.id.lower(), i) for i in imps)
+
+        id_c = next((i for i, h in enumerate(header) if h.value == "IDs"))
         found = []
         for row in data:
             imp = by_id.get(row[0].value.lower(), None)
             if imp is not None:
                 found.append(imp.id.lower())
-                current = row[3].value
+                current = row[id_c].value
                 if current is None:
                     ids = set()
                 else:
@@ -175,18 +177,18 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
                 if old_ids == ids:
                     continue
 
-                row[3].value = "; ".join(ids)
+                row[id_c].value = "; ".join(ids)
 
-        for id, imp in by_id.items():
-            if id not in found:
-                ids_str = '; '.join([f"{i.label} [{i.id}]" for i in imp.imported_terms])
-                sheet.append([imp.id,
-                              imp.iri,
-                              imp.root_id if isinstance(imp.root_id,
-                                                        str) else f"{imp.root_id.label} [{imp.root_id.id}]",
-                              ids_str,
-                              imp.intermediates,
-                              ";".join(f"{p}: {i}" for p, i in imp.prefixes)])
+        # for id, imp in by_id.items():
+        #     if id not in found:
+        #         ids_str = '; '.join([f"{i.label} [{i.id}]" for i in imp.imported_terms])
+        #         sheet.append([imp.id,
+        #                       imp.iri,
+        #                       imp.root_id if isinstance(imp.root_id,
+        #                                                 str) else f"{imp.root_id.label} [{imp.root_id.id}]",
+        #                       ids_str,
+        #                       imp.intermediates,
+        #                       ";".join(f"{p}: {i}" for p, i in imp.prefixes)])
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)

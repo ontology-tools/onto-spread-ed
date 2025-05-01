@@ -11,6 +11,7 @@ from .TermIdentifier import TermIdentifier
 
 
 class ColumnMappingKind(enum.Enum):
+    EXCLUDED_IMPORT_ID = 19
     VERSION_IRI = 18
     INVERSE_OF = 17
     IGNORE = 16

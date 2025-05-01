@@ -98,7 +98,7 @@ class APIService(abc.ABC):
                     ext_parents = o.get_superclasses(term_iri)
                     # If multiple parents check if they are (immediate) subclasses of each other and only take the most
                     # specific parent.
-                    ext_parents -= set().union(*[o.get_superclasses(i) for i in ext_parents])
+                    ext_parents -= set().union(*[o.get_ancestors(i) for i in ext_parents])
                     ext_parents = [TermIdentifier(id=o.get_id_for_iri(cls)) for cls in ext_parents]
                     ext_parents = [p for p in ext_parents if p.id is not None]
 
