@@ -96,4 +96,4 @@ jobs:
         chmod 600 privkey &&
         mkdir -p $HOME/.ssh &&
         scp -o StrictHostKeyChecking=no -O -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
-        ssh -o StrictHostKeyChecking=no -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
+        ssh -o StrictHostKeyChecking=no -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy hbcptools"
