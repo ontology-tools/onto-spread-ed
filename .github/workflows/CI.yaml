@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.8'
+          python-version: '3.9'
 
       - name: Install Python dependencies
         run: pip install autopep8 flake8
@@ -95,4 +95,4 @@ jobs:
         chmod 600 privkey &&
         mkdir -p $HOME/.ssh &&
         scp -o StrictHostKeyChecking=no -O -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
-        ssh -o StrictHostKeyChecking=no -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy production"
+        ssh -o StrictHostKeyChecking=no -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy hbcptools"
