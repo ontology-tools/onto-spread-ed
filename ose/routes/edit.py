@@ -117,6 +117,13 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
 
     repository = config.get(repo_key)
     default_branch = repository.main_branch
+
+    if path in repository.readonly_files:
+        return jsonify({
+            "success": False,
+            "error": f"The file is readonly: {repository.readonly_files[path]}",
+        }), 405
+
     try:
         if merge_strategy == "theirs":
             (sha, rows, header) = get_spreadsheet(github, repository.full_name, path)

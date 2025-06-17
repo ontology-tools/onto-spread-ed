@@ -110,6 +110,7 @@ export interface RepositoryConfig {
             excel_file: string
         }
     }
+    readonly_files: {[K: string]: string}
     validation: ("include-external" | "include-dependencies")[]
 }
 

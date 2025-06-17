@@ -24,6 +24,8 @@ class RepositoryConfiguration:
     release_script_path: str = ".onto-ed/release_script.json"
     subontologies: Dict[str, SubOntologyConfiguration] = field(default_factory=lambda: {})
 
+    readonly_files: Dict[str, str] = field(default_factory=dict)
+
     validation: List[Literal['include-external', 'include-dependencies']] = field(
         default_factory=lambda: ["include-external", "include-dependencies"])
 

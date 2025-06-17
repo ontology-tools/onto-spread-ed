@@ -76,9 +76,12 @@ const validating = ref<boolean>(false);
 const verifying = ref<boolean>(false);
 const locked = computed(() => lock.value || !tableBuilt.value || saving.value || verifying.value)
 
+const readOnlyMessage = REPOSITORY_CONFIG.readonly_files[filePath] ?? null;
+const isReadOnly = readOnlyMessage !== null;
+
 const valid = computed(() => errors.value.length <= 0 && warnings.value.length <= 0);
 const canValidate = computed(() => !!spreadsheetData.value?.header?.includes(COLUMN_NAMES.ID));
-const canReview = computed(() => spreadsheetData.value?.header?.includes(COLUMN_NAMES.CURATOR) && spreadsheetData.value?.header?.includes(COLUMN_NAMES.TO_BE_REVIEWED_BY));
+const canReview = computed(() => spreadsheetData.value?.header?.includes(COLUMN_NAMES.CURATOR) && spreadsheetData.value?.header?.includes(COLUMN_NAMES.TO_BE_REVIEWED_BY) && !isReadOnly);
 const canVisualise = computed(() => spreadsheetData.value?.header?.includes(COLUMN_NAMES.ID) && spreadsheetData.value?.header?.includes(COLUMN_NAMES.LABEL));
 
 const saveDialogOpen = ref<boolean>(false);
@@ -138,6 +141,24 @@ const onKeyPress = (e: KeyboardEvent) => {
 let checkForUpdatesTimer: number | undefined;
 onMounted(() => {
   loadData()
+
+  if (isReadOnly) {
+    showToast?.({
+      props: {
+        value: true,
+        progressProps: {
+          variant: 'info',
+        }
+      },
+      component: h(BToast, {variant: "warning"}, {
+        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+          h("i", {class: "fa fa-lock"}),
+          h("span", null, `This file is readonly: ${readOnlyMessage}`)
+        ])
+      })
+    })
+  }
+
   window.addEventListener("resize", onWindowSizeChanged);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("keydown", onKeyPress);
@@ -163,7 +184,7 @@ watchEffect(() => {
       reactiveData: true, //enable data reactivity
       columns: tableColumns.value, //define table columns
       columnDefaults: {
-        editable: () => !locked.value,
+        editable: () => !locked.value && !isReadOnly,
         tooltip(_, cell) {
           const messages = diagnostics.value[cell.getRow().getData()["id"]] ?? []
 
@@ -1020,20 +1041,27 @@ function defColumnSize(field: string): number {
 <template>
   <BToastOrchestrator/>
 
-  <div class="editor-container" :class="{'visually-hidden': mode !== 'edit'}">
+  <div :class="{'visually-hidden': mode !== 'edit'}" class="editor-container">
     <div class="row mb-3">
       <div class="col-md-12">
         <div class="card p-0">
           <div class="card-body ribbon p-0 m-0">
-            <div class="ribbon-full">
+            <div v-if="isReadOnly" class="ribbon-full">
+              <a :class="{disabled: locked}" :download="fileName" :href="downloadPath" class="btn-ribbon"
+                 target="_blank">
+                <i class="fas fa-download" style="color: cornflowerblue"></i><br>
+                Download
+              </a>
+            </div>
+            <div v-else class="ribbon-full">
               <button :disabled="locked || !historyService.canUndo()" class="btn-ribbon" @click="RIBBON.saveFile()">
                 <i class="fas fa-save" style="color: cornflowerblue"></i><br>
                 Save
               </button>
             </div>
-            <span class="ribbon-title" style="grid-column: span 2">Edit</span>
+            <span :style="{gridColumn: `span ${2-(+isReadOnly)}`}" class="ribbon-title">Edit</span>
 
-            <div class="ribbon-small">
+            <div v-if="!isReadOnly" class="ribbon-small">
               <button :disabled="locked || !historyService.canUndo()" class="btn-ribbon" @click="RIBBON.undo()">
                 <i class="fas fa-undo"></i> Undo
               </button>
@@ -1041,8 +1069,8 @@ function defColumnSize(field: string): number {
                 <i class="fas fa-redo"></i> Redo
               </button>
 
-              <a :class="{disabled: locked}" class="btn-ribbon" :href="downloadPath" target="_blank"
-                 :download="fileName">
+              <a :class="{disabled: locked}" :download="fileName" :href="downloadPath" class="btn-ribbon"
+                 target="_blank">
                 <i class="fas fa-download" style="color: cornflowerblue"></i><br>
                 Download
               </a>
@@ -1050,19 +1078,21 @@ function defColumnSize(field: string): number {
 
             <div class="ribbon-splitter"></div>
 
-            <div class="ribbon-full">
-              <button :disabled="locked" class="btn-ribbon" @click="RIBBON.addRow()">
-                <i class="fas fa-plus" style="color: green"></i><br>
-                Add row
-              </button>
+            <template v-if="!isReadOnly">
+              <div class="ribbon-full">
+                <button :disabled="locked" class="btn-ribbon" @click="RIBBON.addRow()">
+                  <i class="fas fa-plus" style="color: green"></i><br>
+                  Add row
+                </button>
 
-              <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
-                      @click="RIBBON.deleteSelectedRows()">
-                <i class="fas fa-trash-alt" style="color: indianred"></i><br>
-                Delete
-              </button>
-            </div>
-            <span class="ribbon-title" style="column-span: 2">Data</span>
+                <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
+                        @click="RIBBON.deleteSelectedRows()">
+                  <i class="fas fa-trash-alt" style="color: indianred"></i><br>
+                  Delete
+                </button>
+              </div>
+              <span class="ribbon-title" style="column-span: 2">Data</span>
+            </template>
 
             <template v-if="canReview">
               <div class="ribbon-splitter"></div>
@@ -1141,19 +1171,19 @@ function defColumnSize(field: string): number {
       </div>
     </div>
 
-    <div class="row editor-row" :style="showDiagnosticList ? 'height: calc(100% - 200px)' : 'height: 100%'">
+    <div :style="showDiagnosticList ? 'height: calc(100% - 200px)' : 'height: 100%'" class="row editor-row">
       <div id="contentTable" ref="table" class="table table-bordered table-hover table-sm"
            style="font-size: 0.8em; margin-bottom: 0 !important;">
       </div>
-      <div class="loading-data" v-if="!tabulator">
+      <div v-if="!tabulator" class="loading-data">
         <div class="loader"></div>
       </div>
     </div>
 
 
     <template v-if="canValidate">
-      <button class="toggle-diagnostics bg-secondary" @click="showDiagnosticList = !showDiagnosticList"
-              :style="{bottom: showDiagnosticList ? '200px' : '0'} ">
+      <button :style="{bottom: showDiagnosticList ? '200px' : '0'} " class="toggle-diagnostics bg-secondary"
+              @click="showDiagnosticList = !showDiagnosticList">
         <template v-if="showDiagnosticList">
           <i class="fa fa-chevron-down"></i> Hide validation messages
         </template>
@@ -1161,9 +1191,9 @@ function defColumnSize(field: string): number {
           <i class="fa fa-chevron-up"></i> Show validation messages
         </template>
       </button>
-      <div class="row border-1 border-danger overflow-scroll bg-secondary-subtle"
-           style="height: 200px; min-height: 200px"
-           v-if="showDiagnosticList">
+      <div v-if="showDiagnosticList"
+           class="row border-1 border-danger overflow-scroll bg-secondary-subtle"
+           style="height: 200px; min-height: 200px">
         <div class="diagnostics-header bg-secondary">
           <button :class="{active: filterToDiagnostics.includes('error')}" :disabled="locked"
                   class="btn-diagnostics-filter"
@@ -1184,24 +1214,24 @@ function defColumnSize(field: string): number {
         <div class="diagnostics-grid">
           <template
               v-for="d of allDiagnostics.filter(x => filterToDiagnostics.length === 0 || filterToDiagnostics.includes(x.type))">
-            <i class="fa dg-type"
-
-               :class="{'fa-circle-xmark': d.type === 'error',
+            <i :class="{'fa-circle-xmark': d.type === 'error',
                     'fa-triangle-exclamation': d.type === 'warning',
                     'fa-info-circle': d.type ==='info',
-                    [`text-${d.type === 'error' ? 'danger' : d.type}`]: true}"></i>
+                    [`text-${d.type === 'error' ? 'danger' : d.type}`]: true}"
 
-            <a class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 2)" v-if="d.diagnostic.row > 0">Row
+               class="fa dg-type"></i>
+
+            <a v-if="d.diagnostic.row > 0" class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 2)">Row
               {{ d.diagnostic.row - 1 }}</a>
 
-            <Diagnostic :diagnostic="d.diagnostic" format="inline" class="dg-diagnostic"></Diagnostic>
+            <Diagnostic :diagnostic="d.diagnostic" class="dg-diagnostic" format="inline"></Diagnostic>
           </template>
         </div>
       </div>
     </template>
   </div>
-  <div class="merge-container" v-if="mode === 'merge' && mergedData !== null">
-    <Merger :conflicts="mergeConflicts" v-model="mergedData" @save="MERGE_COMMANDS.save"></Merger>
+  <div v-if="mode === 'merge' && mergedData !== null" class="merge-container">
+    <Merger v-model="mergedData" :conflicts="mergeConflicts" @save="MERGE_COMMANDS.save"></Merger>
   </div>
 
   <BModal v-model="saveDialogOpen" title="Submit changes">
@@ -1286,6 +1316,7 @@ function defColumnSize(field: string): number {
         border: none;
 
         text-decoration: unset;
+        text-align: center;
         color: inherit;
 
         padding: 0 4px;
