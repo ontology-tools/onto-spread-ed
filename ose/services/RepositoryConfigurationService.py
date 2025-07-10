@@ -180,3 +180,13 @@ class RepositoryConfigurationService(ConfigurationService):
             return True
 
         return False
+
+    def reload(self) -> None:
+        self._loaded_repositories.clear()
+        self._load_startups()
+
+        for repo in self.startup_repositories():
+            if self.get(repo) is None:
+                self._logger.error(f"Failed to reload default repo '{repo}'!")
+
+

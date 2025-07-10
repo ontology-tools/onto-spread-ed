@@ -3,6 +3,7 @@ from flask_github import GitHub
 
 from ose.guards.with_permission import requires_permissions
 from ose.services.ConfigurationService import ConfigurationService
+from ose.services.FileCache import FileCache
 from ose.services.RepositoryConfigurationService import RepositoryConfigurationService
 
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
@@ -93,3 +94,22 @@ def remove_startup(config: ConfigurationService):
     success = config.remove_startup_repository(data["full_name"])
 
     return jsonify({"success": success})
+
+
+@bp.route("/repositories/reload", methods=["POST"])
+@requires_permissions("admin")
+def reload_config(config: ConfigurationService):
+    config.reload()
+
+    return jsonify({"success": True, "repositories": config.loaded_repositories()})
+
+
+@bp.route("/clear_caches", methods=["POST"])
+@requires_permissions("admin")
+def clear_caches(cache: FileCache):
+    """
+    Clears caches for the configuration service.
+    """
+    cache.clear()
+
+    return jsonify({"success": True, "message": "Caches cleared successfully"})

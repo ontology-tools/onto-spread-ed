@@ -22,6 +22,12 @@ let startupChanging = ref<string | null>(null);
 let installingWorkflow = ref<null | "busy" | "error" | "success">(null);
 let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null || installingWorkflow.value === "busy")
 
+let buttonStates = ref<{ reload: string | null }>({
+  reload: null,
+})
+
+let runningTimeouts: { [key: string]: number } = {};
+
 async function toggleStartup(repo: RepositoryConfig) {
   startupChanging.value = repo.full_name;
 
@@ -156,6 +162,34 @@ async function installWorkflow(name: string, repo: RepositoryConfig) {
     installingWorkflow.value = "error"
   }
 }
+
+async function reload() {
+  buttonStates.value.reload = "loading"
+  try {
+    const resp = await (await fetch(`${prefix_url}/api/settings/repositories/reload`, {method: "post"})).json();
+    if (resp.success) {
+      settings.value.repositories = resp.repositories;
+      buttonStates.value.reload = "success";
+    } else {
+      await alertDialog({
+        title: "Reloading settings failed",
+        message: resp.error
+      });
+      buttonStates.value.reload = "error";
+    }
+  } catch (error) {
+    await alertDialog({
+      title: "Reloading settings failed",
+      message: "An error occurred while reloading the settings."
+    });
+    buttonStates.value.reload = "error";
+  }
+
+  if (runningTimeouts["reload"]) {
+    clearTimeout(runningTimeouts["reload"]);
+  }
+  runningTimeouts["reload"] = setTimeout(() => buttonStates.value.reload = null, 2000);
+}
 </script>
 
 <template>
@@ -250,6 +284,13 @@ async function installWorkflow(name: string, repo: RepositoryConfig) {
               @click="loadRepository">
         <i :class="loading ? ['fa-spinner', 'fa-spin'] : ['fa-add']" class="fa"></i>
         Load repository
+      </button>
+      <button :class="[{'success': 'btn-success', null: 'btn-primary', 'error': 'btn-danger'}[buttonStates.reload]]" :disabled="blocked || buttonStates.reload === 'loading'"
+              class="mb-3 btn btn-sm btn-primary add-file"
+              @click="reload()">
+        <i :class="{'success': ['fa-check'], 'error': ['fa-cross'], 'loading': ['fa-spinner', 'fa-spin']}[buttonStates.reload] ?? ['fa-refresh']"
+           class="fa"></i>
+        Reload settings
       </button>
       <slot name="buttons"></slot>
     </div>

@@ -1,9 +1,12 @@
-<script setup lang="ts">
-import {onMounted, ref} from "vue";
+<script lang="ts" setup>
+import {h, onMounted, ref} from "vue";
 import {promptDialog} from "../common/bootbox";
+import {BToast, BToastOrchestrator, useToastController} from "bootstrap-vue-next";
 
 declare var URLS: { [key: string]: any }
 const prefix_url = URLS.prefix
+
+const {show: showToast} = useToastController()
 
 async function runScript(scriptName: string) {
   const script = scripts.value[scriptName]
@@ -62,6 +65,51 @@ async function runScript(scriptName: string) {
   }
 }
 
+async function clearCaches() {
+  const dialog = bootbox.dialog({
+    message: '<i class="fa fa-spin fa-spinner"></i> Clearing caches',
+    closeButton: false
+  })
+  let dialogShown$ = new Promise<void>((resolve, _) => {
+    dialog.on('shown.bs.modal', () => resolve())
+  });
+  try {
+
+    await fetch(`${prefix_url}/api/settings/clear_caches`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+
+    await dialogShown$;
+    dialog.modal("hide")
+
+    showToast?.({
+      props: {
+        value: 5000,
+        progressProps: {
+          variant: 'success',
+        }
+      },
+      component: h(BToast, {variant: "success"}, {
+        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
+          h("i", {class: "fa fa-check"}),
+          h("span", null, "Caches cleared!")
+        ])
+      })
+    })
+  } catch (e) {
+    await dialogShown$;
+    dialog.modal("hide")
+
+    bootbox.dialog({
+      message: `<p>An error occurred</p><p>${e}</p>`,
+      title: "Error"
+    })
+  }
+}
+
 const urls = ref(URLS)
 
 const scripts = ref<null | {
@@ -83,10 +131,11 @@ onMounted(async () => {
 </script>
 
 <template>
+  <BToastOrchestrator />
 
   <div class="row align-stretch">
     <div class="col-sm-6 col-md-4 col-lg-3 m-2">
-      <a class="card bg-light" :href="urls.release"
+      <a :href="urls.release" class="card bg-light"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fas fa-upload"></i>
@@ -102,7 +151,7 @@ onMounted(async () => {
     </div>
     <div class="col-sm-6 col-md-4 col-lg-3 m-2">
 
-      <a class="card bg-light" :href="urls.rebuildIndex"
+      <a :href="urls.rebuildIndex" class="card bg-light"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fas fa-folder-open"></i>
@@ -116,9 +165,25 @@ onMounted(async () => {
         </div>
       </a>
     </div>
-    <div class="col-sm-6 col-md-4 col-lg-3 m-2" v-if="'settings' in urls">
+    <div class="col-sm-6 col-md-4 col-lg-3 m-2">
 
-      <a class="card bg-light" :href="urls.settings"
+      <a class="card bg-light" href="#" style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px"
+         @click="clearCaches()">
+        <div class="section p-5 text-center fs-2 bg-light">
+          <i class="fas fa-gauge-high"></i>
+        </div>
+
+        <div class="card-body">
+          <h4>Clear caches</h4>
+          <p>
+            Clear cached files loaded from GitHub to ensure the latest version is used.
+          </p>
+        </div>
+      </a>
+    </div>
+    <div v-if="'settings' in urls" class="col-sm-6 col-md-4 col-lg-3 m-2">
+
+      <a :href="urls.settings" class="card bg-light"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fa-solid fa-gear"></i>
@@ -132,9 +197,9 @@ onMounted(async () => {
         </div>
       </a>
     </div>
-    <div class="col-sm-6 col-md-4 col-lg-3 m-2" v-if="'settings' in urls">
+    <div v-if="'settings' in urls" class="col-sm-6 col-md-4 col-lg-3 m-2">
 
-      <a class="card bg-light" :href="urls.settings"
+      <a :href="urls.settings" class="card bg-light"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fa-solid fa-gear"></i>
@@ -151,8 +216,8 @@ onMounted(async () => {
   </div>
   <div class="row align-stretch">
     <div class="dropdown m-2">
-      <button class="btn btn-danger dropdown-toggle" type="button" data-bs-toggle="dropdown"
-              aria-expanded="false">
+      <button aria-expanded="false" class="btn btn-danger dropdown-toggle" data-bs-toggle="dropdown"
+              type="button">
         Run a script
       </button>
       <ul class="dropdown-menu">
@@ -164,8 +229,9 @@ onMounted(async () => {
     </div>
 
   </div>
+
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 
 </style>

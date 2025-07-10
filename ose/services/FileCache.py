@@ -118,3 +118,12 @@ class FileCache:
                 os.remove(file_path)
             del self._cache[id]
         self._save_cache()
+
+    def clear(self):
+        self._load_cache()
+        for entry in self._cache.values():
+            file_path = os.path.join(self.cache_dir, f"{entry.id}-{entry.filename}")
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        self._cache.clear()
+        self._save_cache()

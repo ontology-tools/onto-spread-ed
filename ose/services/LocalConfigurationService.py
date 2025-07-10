@@ -183,3 +183,8 @@ class LocalConfigurationService(ConfigurationService):
             return True
 
         return False
+
+    def reload(self) -> None:
+        pass
+
+

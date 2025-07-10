@@ -70,3 +70,7 @@ class ConfigurationService(abc.ABC):
 
     def startup_repositories(self) -> List[str]:
         return []
+
+    @abc.abstractmethod
+    def reload(self) -> None:
+        ...
