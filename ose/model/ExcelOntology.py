@@ -10,7 +10,7 @@ from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set, Liter
 import openpyxl
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
-from pyhornedowl import pyhornedowl
+import pyhornedowl
 from typing_extensions import Self
 
 from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
@@ -888,12 +888,21 @@ class ExcelOntology:
     def from_owl(cls, externals_owl: str, prefixes: Dict[str, str]) -> Result[Self]:
         result = Result()
         ontology = pyhornedowl.open_ontology(externals_owl)
+
+        # Add default prefixes
+        ontology.prefix_mapping.add_default_prefix_names()
+
         self = ExcelOntology(ontology.get_iri())
         for (p, d) in prefixes.items():
             ontology.prefix_mapping.add_prefix(p, d)
 
         for c in ontology.get_classes():
             id = ontology.get_id_for_iri(c)
+            
+            # Check if it uses a PURL IRI
+            if id is None and c.startswith("http://purl.obolibrary.org/obo/"):
+                id = c.split("/")[-1].replace("_", ":")
+            
             labels = ontology.get_annotations(c, constants.RDFS_LABEL)
 
             if id is None:
