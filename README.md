@@ -94,7 +94,7 @@ npm install
 
 Edit  `config.yaml` file in the project root. You can control the following parameters via environment variables
 
-| Key |  Description | Possible values | Default |
+| Key |  Description | Default | Possible values  |
 |---|---|---|---|
 | `FLASK_ENV`       | Flask envrionment. See their documentation for more details. | `development`                       | |
 |`FLASK_SECRET_KEY` | Random key used for session management | random | |
@@ -141,11 +141,7 @@ flask run
 
 The application will be available at `http://localhost:5000`.
 
-For production deployment, use a WSGI server like Gunicorn or uwsgi:
-
-```bash
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
+For production deployment, use a WSGI server like Gunicorn or uwsgi.
 
 ### Custom Ontology Repositories
 
