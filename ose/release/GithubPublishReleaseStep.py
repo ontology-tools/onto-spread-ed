@@ -24,7 +24,7 @@ class GithubPublishReleaseStep(ReleaseStep):
 
         artifacts = self.artifacts()
 
-        files = [a.target_path for a in artifacts]
+        files = [a.target_path for a in artifacts if a.kind == "final"]
         self._total_items = len(files)
         for file in files:
             self._next_item(item=file, message="Uploading")
