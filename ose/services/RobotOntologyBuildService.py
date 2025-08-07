@@ -178,6 +178,17 @@ class RobotOntologyBuildService(OntologyBuildService):
         for imp in imports:
             cmd.append('--input')
             cmd.append(os.path.join(download_path, f"{imp.id}.{main_ontology_name}.slim.owl"))
+            
+            
+            
+        cmd.extend([
+            'reason',
+            '--reasoner', 'elk',
+            '--exclude-tautologies', 'true',
+            'reduce',
+            'remove',
+            '--axioms', 'structural-tautologies'
+        ])
 
         cmd.extend(
             ['annotate', '--ontology-iri', merged_iri, '--version-iri', merged_iri, '--annotation rdfs:comment ',
@@ -322,14 +333,24 @@ class RobotOntologyBuildService(OntologyBuildService):
                 "--input", dependency_f.name,
                 "--input", f'"{outfile}"',
                 "--collapse-import-closure", "false",
-                '--output', f'"{outfile}"'
             ]
 
             command.extend([
                 'annotate',
                 '--ontology-iri', f'"{ontology.iri()}"',
-                '--output', f'"{outfile}"'
             ])
+            
+            command.extend([
+                'reason',
+                '--reasoner', 'elk',
+                '--exclude-tautologies', 'true',
+                'reduce',
+                'remove',
+                '--axioms', 'structural-tautologies'
+            ])
+            
+            command.extend([
+                '--output', f'"{outfile}"'])
 
             result += self._execute_command(" ".join(command), cwd=tmp_dir)
 
@@ -342,7 +363,17 @@ class RobotOntologyBuildService(OntologyBuildService):
         command += ["annotate"]
         command += [f'"{s}"' for k, v in annotations.items() for s in ["--annotation", k, v]]
         command += ["--ontology-iri", f'"{iri}"']
-        command += ["--version-iri", f'"{version_iri}"']
+        command += ["--version-iri", f'"{version_iri}"']        
+            
+        command.extend([
+            'reason',
+            '--reasoner', 'elk',
+            '--exclude-tautologies', 'true',
+            'reduce',
+            'remove',
+            '--axioms', 'structural-tautologies'
+        ])
+        
         command += ["--output", f'"{outfile}"']
 
         result = self._execute_command(" ".join(command))
