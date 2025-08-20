@@ -17,7 +17,7 @@ class Result(Generic[A]):
     warnings: list[Message] = field(default_factory=list)
     infos: list[Message] = field(default_factory=list)
 
-    def __add__(self, other):
+    def __add__(self, other: Result[B]) -> Result[B]:
         if isinstance(other, Result):
             return self.merge(other)
 

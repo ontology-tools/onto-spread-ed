@@ -12,13 +12,15 @@
     "sass-loader": "^16.0.2",
     "typescript": "^5.3.3",
     "unplugin-vue-components": "^0.27.5",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "watch": "^1.0.2"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build-js": "node build/build.js",
     "build-css": "npx sass -s compressed --no-source-map ose/static/main.scss:ose/static/main.css",
-    "build": "npm run build-js && npm run build-css"
+    "build": "npm run build-js && npm run build-css",
+    "watch": "watch 'npm run build' ./js"
   },
   "author": "",
   "license": "AGPL",
