@@ -41,9 +41,6 @@ def repo(repo_key, github: GitHub, config: ConfigurationService, folder_path="")
     )
     dirs = []
     spreadsheets = []
-    # go to edit_external:
-    if folder_path == 'imports':
-        return redirect(url_for('edit.edit_external', repo_key=repo_key, folder_path=folder_path))
     for directory in directories:
         if directory['type'] == 'dir':
             dirs.append(directory['name'])
