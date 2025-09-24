@@ -128,23 +128,28 @@ class ExcelOntology:
     def find_term_label(self, id: str) -> Optional[str]:
         return next((t.label for t in (self._terms + self.imported_terms()) if t.id == id), None)
 
-    def term_by_id(self, id: str) -> Optional[Union[Term]]:
+    def term_by_id(self, id: str) -> Optional[Term]:
         return next(iter(t for t in (self.terms()) if t.id == id), None)
 
-    def _term_by_id(self, id: str) -> Optional[Union[UnresolvedTerm]]:
+    def _term_by_id(self, id: str) -> Optional[UnresolvedTerm]:
         return next(iter(t for t in self._terms if t.id == id), None)
 
-    def _term_by_label(self, label: str) -> Optional[Union[UnresolvedTerm]]:
+    def _term_by_label(self, label: str) -> Optional[UnresolvedTerm]:
         return next(iter(t for t in self._terms if t.label == label), None)
 
     def _raw_term_by_id(self,
                         id: str,
-                        exclude: Optional[UnresolvedTerm] = None) -> Optional[Union[Term, TermIdentifier]]:
+                        exclude: Optional[UnresolvedTerm] = None) -> Optional[Union[UnresolvedTerm, TermIdentifier]]:
         terms_ = [t for t in (self._terms + self.imported_terms()) if t.id == id and (exclude is None or exclude != t)]
         terms_.sort(
             key=lambda t: 1 if isinstance(t, UnresolvedTerm) and lower(
                 t.curation_status()) in self._ignore_status else 0)
         return next(iter(terms_), None)
+    
+    def _raw_relation_by_id(self, id: str, exclude: Optional[UnresolvedRelation] = None) -> Optional[Union[UnresolvedRelation, TermIdentifier]]:
+        relations_ = [r for r in (self._relations + self.imported_terms()) if r.id == id and (exclude is None or exclude != r)]
+        relations_.sort(key=lambda r: 1 if isinstance(r, UnresolvedRelation) else 0)
+        return next(iter(relations_), None)
 
     def relations(self) -> List[Relation]:
         return [r.as_resolved() for r in self._relations if not r.is_unresolved()]
@@ -544,7 +549,7 @@ class ExcelOntology:
                     relation.domain.complement(m)
 
             for sub in relation.sub_property_of:
-                matching_terms = [t for t in (self._terms + imported) if
+                matching_terms = [t for t in (self._relations + imported) if
                                   (sub.label is not None and sub.label == t.label or
                                    sub.id is not None and sub.id == t.id)]
 
@@ -768,15 +773,9 @@ class ExcelOntology:
                                  term=relation.__dict__,
                                  parent=p.__dict__)
                 else:
-                    t = self._raw_term_by_id(p.id)
+                    t = self._raw_relation_by_id(p.id)
                     if c("missing-parent") and t is None:
                         result.error(type="missing-parent",
-                                     term=relation.__dict__,
-                                     parent=p.__dict__)
-                    elif c("ignored-parent") and isinstance(t, UnresolvedTerm) and lower(
-                            t.curation_status()) in self._ignore_status:
-                        result.error(type="ignored-parent",
-                                     status=t.curation_status(),
                                      term=relation.__dict__,
                                      parent=p.__dict__)
 

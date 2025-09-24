@@ -11,27 +11,27 @@ from .TermIdentifier import TermIdentifier
 
 
 class ColumnMappingKind(enum.Enum):
-    EXCLUDED_IMPORT_ID = 19
-    VERSION_IRI = 18
-    INVERSE_OF = 17
-    IGNORE = 16
-    RELATION_TYPE = 15
-    PREFIX = 14
-    PLAIN = 13
-    IMPORTED_ID = 12
-    ROOT_ID = 11
-    ONTOLOGY_IRI = 10
+    EXCLUDED_IMPORT_ID = 20
+    VERSION_IRI = 19
+    INVERSE_OF = 18
+    IGNORE = 17
+    RELATION_TYPE = 16
+    PREFIX = 15
+    PLAIN = 14
+    IMPORTED_ID = 13
+    ROOT_ID = 12
+    ONTOLOGY_IRI = 11
+    RANGE = 10
+    DOMAIN = 9
     ONTOLOGY_ID = 8
     SUB_PROPERTY_OF = 7
-    ID = 0
-    LABEL = 1
-    SUB_CLASS_OF = 2
-    EQUIVALENT_TO = 3
-    DISJOINT_WITH = 4
-    RELATION = 5
     SYNONYMS = 6
-    DOMAIN = 8
-    RANGE = 9
+    RELATION = 5
+    DISJOINT_WITH = 4
+    EQUIVALENT_TO = 3
+    SUB_CLASS_OF = 2
+    LABEL = 1
+    ID = 0
 
 
 class ColumnMapping(abc.ABC):
