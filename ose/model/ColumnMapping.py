@@ -139,6 +139,9 @@ class TermMapping(SimpleColumnMapping):
     def get_value(self, value: str) -> List[TermIdentifier]:
         idents = []
         for val in [value.strip()] if self.separator is None else value.strip().split(self.separator):
+            if val.strip() == "":
+                continue
+            
             m = self._term_pattern.match(val.strip())
             label = m.group(1)
             id = m.group(2)
@@ -149,9 +152,12 @@ class TermMapping(SimpleColumnMapping):
         return idents
 
     def valid(self, value: str) -> bool:
-        values = [value]
-        if self.separator is not None:
+        if self.separator is None:
+            values = [value]
+        else:
             values = value.strip().split(self.separator)
+
+        values = [v.strip() for v in values if v.strip() != ""]
 
         for v in values:
             m = self._term_pattern.match(v.strip())

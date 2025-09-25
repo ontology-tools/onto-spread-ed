@@ -20,7 +20,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
               <code>${ d.term.label }</code>
               (<code>${
                 d.term.id || ("no id")
-              }) is neither defined in the Excel files or imported.
+              }</code>) is neither defined in the Excel files or imported.
               If it is an external term, add the missing import the entry with
               <code>${ d.parent.label } [${ d.parent.id }]</code>.`,
     },
@@ -59,7 +59,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
               <code>${ d.term.label }</code>
               (<code>${
                 d.term.id || ("no id")
-              }) is neither defined in the Excel files or imported.
+              }</code>) is neither defined in the Excel files or imported.
               If it is an external term, add the missing import the entry with
               <code>${ d.disjoint_class.label } [${ d.disjoint_class.id }]</code>.`,
     },
@@ -85,7 +85,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
               <code>${ d.term.label }</code>
               (<code>${
                 d.term.id || ("no id")
-              }) is neither defined in the Excel files or imported.
+              }</code>) is neither defined in the Excel files or imported.
               If it is an external term, add the missing import the entry with
               <code>${ d.value.label } [${ d.value.id }]</code>.`,
     },
@@ -112,7 +112,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
               <code>${ d.relation.label }</code>
               (<code>${
                 d.relation.id || ("no id")
-              }) is neither defined in the Excel files or imported.
+              }</code>) is neither defined in the Excel files or imported.
               If it is an external term, add the missing import the entry with
               <code>${ d.range.label } [${ d.range.id }]</code>.`,
     },
@@ -136,7 +136,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
               <code>${ d.relation.label }</code>
               (<code>${
                 d.relation.id || ("no id")
-              }) is neither defined in the Excel files or imported.
+              }</code>) is neither defined in the Excel files or imported.
               If it is an external term, add the missing import the entry with
               <code>${ d.domain.label } [${ d.domain.id }]</code>.`,
     },
