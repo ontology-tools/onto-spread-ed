@@ -145,9 +145,13 @@ class ExcelOntology:
             key=lambda t: 1 if isinstance(t, UnresolvedTerm) and lower(
                 t.curation_status()) in self._ignore_status else 0)
         return next(iter(terms_), None)
-    
-    def _raw_relation_by_id(self, id: str, exclude: Optional[UnresolvedRelation] = None) -> Optional[Union[UnresolvedRelation, TermIdentifier]]:
-        relations_ = [r for r in (self._relations + self.imported_terms()) if r.id == id and (exclude is None or exclude != r)]
+
+    def _raw_relation_by_id(self,
+                            id: str,
+                            exclude: Optional[UnresolvedRelation] = None
+                            ) -> Optional[Union[UnresolvedRelation, TermIdentifier]]:
+        relations_ = [r for r in (self._relations + self.imported_terms())
+                      if r.id == id and (exclude is None or exclude != r)]
         relations_.sort(key=lambda r: 1 if isinstance(r, UnresolvedRelation) else 0)
         return next(iter(relations_), None)
 
@@ -897,11 +901,11 @@ class ExcelOntology:
 
         for c in ontology.get_classes():
             id = ontology.get_id_for_iri(c)
-            
+
             # Check if it uses a PURL IRI
             if id is None and c.startswith("http://purl.obolibrary.org/obo/"):
                 id = c.split("/")[-1].replace("_", ":")
-            
+
             labels = ontology.get_annotations(c, constants.RDFS_LABEL)
 
             if id is None:

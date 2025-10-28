@@ -154,7 +154,7 @@ class APIService(abc.ABC):
         await asyncio.gather(*tasks)
 
         async def work_queue(term: Term):
-            nonlocal step, total
+            nonlocal step
             async with sem:
                 async with lock:
                     step += 1

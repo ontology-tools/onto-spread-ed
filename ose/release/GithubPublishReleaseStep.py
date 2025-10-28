@@ -35,6 +35,7 @@ class GithubPublishReleaseStep(ReleaseStep):
             sleep(1)  # Wait a second to avoid rate limit
             self._raise_if_canceled()
 
+        self._update_progress(message="Creating pull request and release")
         release_body = f"Released version '{release_name}' of {self._release_script.short_repository_name}"
         pr_nr = github.create_pr(self._gh, self._release_script.full_repository_name,
                                  title=f"Release {release_name}",
@@ -45,6 +46,5 @@ class GithubPublishReleaseStep(ReleaseStep):
 
         github.merge_pr(self._gh, self._release_script.full_repository_name, pr_nr, "squash")
         github.create_release(self._gh, self._release_script.full_repository_name, release_name, branch)
-        self._raise_if_canceled()
 
         return True

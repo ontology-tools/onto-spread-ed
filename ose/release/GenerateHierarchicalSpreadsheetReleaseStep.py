@@ -126,7 +126,9 @@ class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
         release_file: str
 
         excel_files = [self._local_name(s.file) for s in file.sources]
-        release_file = next((a.local_path for a in self.artifacts() if a.target_path == file.target.file and a.kind == 'final'), self._local_name(file.target.file))
+        release_file = next((a.local_path for a in self.artifacts()
+                             if a.target_path == file.target.file and a.kind == 'final'),
+                            self._local_name(file.target.file))
 
         ontology = pyhornedowl.open_ontology_from_file(release_file)
 
