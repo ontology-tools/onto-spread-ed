@@ -12,6 +12,7 @@ from ose.utils import get_file
 
 DEFAULT_LIFE_TIME = 60 * 60 * 24
 
+
 @dataclass
 class CacheEntry:
     filename: str

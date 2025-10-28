@@ -178,9 +178,7 @@ class RobotOntologyBuildService(OntologyBuildService):
         for imp in imports:
             cmd.append('--input')
             cmd.append(os.path.join(download_path, f"{imp.id}.{main_ontology_name}.slim.owl"))
-            
-            
-            
+
         cmd.extend([
             'reason',
             '--reasoner', 'elk',
@@ -339,7 +337,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                 'annotate',
                 '--ontology-iri', f'"{ontology.iri()}"',
             ])
-            
+
             command.extend([
                 'reason',
                 '--reasoner', 'elk',
@@ -348,7 +346,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                 'remove',
                 '--axioms', 'structural-tautologies'
             ])
-            
+
             command.extend([
                 '--output', f'"{outfile}"'])
 
@@ -363,8 +361,8 @@ class RobotOntologyBuildService(OntologyBuildService):
         command += ["annotate"]
         command += [f'"{s}"' for k, v in annotations.items() for s in ["--annotation", k, v]]
         command += ["--ontology-iri", f'"{iri}"']
-        command += ["--version-iri", f'"{version_iri}"']        
-            
+        command += ["--version-iri", f'"{version_iri}"']
+
         command.extend([
             'reason',
             '--reasoner', 'elk',
@@ -373,7 +371,7 @@ class RobotOntologyBuildService(OntologyBuildService):
             'remove',
             '--axioms', 'structural-tautologies'
         ])
-        
+
         command += ["--output", f'"{outfile}"']
 
         result = self._execute_command(" ".join(command))

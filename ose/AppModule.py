@@ -91,4 +91,3 @@ class AppModule(Module):
             return FileCache(cache_dir, life_time)
         else:
             return FileCache(cache_dir)
-

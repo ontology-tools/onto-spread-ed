@@ -38,5 +38,10 @@ include = ["ose*"]  # ["*"] by default
 [tool.setuptools.dynamic]
 version = {attr = "ose.__version__"}
 
+[dependency-groups]
+dev = [
+    "flake8>=5.0.4",
+]
+
 [project.scripts]
 ose = "ose.cli_wrapper:main"

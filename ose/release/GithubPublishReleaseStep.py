@@ -24,17 +24,18 @@ class GithubPublishReleaseStep(ReleaseStep):
 
         artifacts = self.artifacts()
 
-        files = [a.target_path for a in artifacts if a.kind == "final"]
-        self._total_items = len(files)
-        for file in files:
-            self._next_item(item=file, message="Uploading")
-            with open(self._local_name(file), "rb") as f:
+        upload_queue = [a for a in artifacts if a.kind == "final"]
+        self._total_items = len(upload_queue)
+        for artifact in upload_queue:
+            self._next_item(item=artifact.target_path, message="Uploading")
+            with open(artifact.local_path, "rb") as f:
                 content = f.read()
-                github.save_file(self._gh, self._release_script.full_repository_name, file, content,
-                                 f"Release {file}.", branch)
+                github.save_file(self._gh, self._release_script.full_repository_name, artifact.target_path, content,
+                                 f"Release {artifact.target_path}.", branch)
             sleep(1)  # Wait a second to avoid rate limit
             self._raise_if_canceled()
 
+        self._update_progress(message="Creating pull request and release")
         release_body = f"Released version '{release_name}' of {self._release_script.short_repository_name}"
         pr_nr = github.create_pr(self._gh, self._release_script.full_repository_name,
                                  title=f"Release {release_name}",
@@ -45,6 +46,5 @@ class GithubPublishReleaseStep(ReleaseStep):
 
         github.merge_pr(self._gh, self._release_script.full_repository_name, pr_nr, "squash")
         github.create_release(self._gh, self._release_script.full_repository_name, release_name, branch)
-        self._raise_if_canceled()
 
         return True

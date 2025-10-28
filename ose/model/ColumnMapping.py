@@ -141,7 +141,7 @@ class TermMapping(SimpleColumnMapping):
         for val in [value.strip()] if self.separator is None else value.strip().split(self.separator):
             if val.strip() == "":
                 continue
-            
+
             m = self._term_pattern.match(val.strip())
             label = m.group(1)
             id = m.group(2)
