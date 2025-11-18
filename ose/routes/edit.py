@@ -198,7 +198,7 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
                         definition = row["Definition"]
 
                     curation_status: str = row.get("Curation status", "None")
-                    if curation_status.lower().strip() != "pre-proposed" and label and parent and definition:
+                    if curation_status.lower().strip() != "pre-proposed" and label and (parent or 'Relationship' in header) and definition:
                         # generate ID here:
                         nextIdStr = str(next_id)
                         next_id += 1
