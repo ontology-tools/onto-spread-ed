@@ -98,13 +98,12 @@ class SpreadsheetSearcher:
         self.threadLock.acquire()
         ix = self.storage.open_index()
 
-        mparser = QueryParser("class_id",
-                              schema=ix.schema)
-        if repo_name == "BCIO":
-            updated_repo_name = "BCIO:"  # in order to eliminate "BCIOR" from results
-        else:
-            updated_repo_name = repo_name
+        mparser = QueryParser("class_id", schema=ix.schema)
+
+        updated_repo_name = repo_name + ":"  # To avoid prefix matching issues (e.g., BCIO vs BCIOR)
+
         query = mparser.parse(updated_repo_name.upper() + "*")
+
         with ix.searcher() as searcher:
             results = searcher.search(query, sortedby="class_id", reverse=True)
             top_hit = next((hit['class_id'].split(":")[1] for hit in results), 0)
