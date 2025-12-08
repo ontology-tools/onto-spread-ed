@@ -106,6 +106,27 @@ class FileCache:
         self._store_cache_entry(id, basename, content, lifetime)
 
         return content
+    
+    def store(self, basename: str, content: bytes, lifetime: Optional[int] = None) -> str:
+        self._load_cache()
+
+        lifetime = lifetime or self.lifetime
+
+        id = "DATA_" + hashlib.md5(content).hexdigest()
+
+        if id in self._cache:
+            existing_content = self._retrieve_from_cache(id)
+            if existing_content is not None:
+                return id
+
+        self._store_cache_entry(id, basename, content, lifetime)
+
+        return id
+    
+    def retrieve(self, id: str) -> Optional[bytes]:
+        self._load_cache()
+        
+        return self._retrieve_from_cache(id)
 
     def cleanup(self):
 

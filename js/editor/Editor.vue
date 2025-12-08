@@ -1,8 +1,11 @@
 <script lang="ts" setup>
+import "tabulator-tables/dist/css/tabulator.min.css";
+import "tabulator-tables/dist/css/tabulator_bootstrap5.min.css";
+
 import {computed, h, onMounted, onUnmounted, ref, watch, watchEffect} from 'vue';
 import {RowComponent, TabulatorFull as Tabulator} from 'tabulator-tables';
 import {columnDefFor, setRowColor} from "./tabulator-config.ts"
-import {COLUMN_NAMES, CURATION_STATUS} from "./constants.ts";
+import {COLUMN_NAMES, CURATION_STATUS} from "../common/constants.ts";
 import {alertDialog, confirmDialog, promptDialog} from "../common/bootbox"
 import {Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig} from "../common/model";
 import Diagnostic from "../common/Diagnostic.vue"
@@ -12,15 +15,7 @@ import {debounce} from "../common/debounce.ts";
 import Merger from "./Merger.vue";
 import {HistoryService} from "./HistoryService.ts"
 import {getCell} from "../common/tabulator-extensions.ts";
-
-interface SpreadsheetData {
-  header: string[],
-  rows: Record<string, string | null | number | boolean>[],
-  file_sha: string,
-  repo_name: string,
-  folder: string,
-  spreadsheet_name: string,
-}
+import { SpreadsheetData } from "../common/spreadsheetdata.ts";
 
 declare var URLS: { [key: string]: any };
 declare var ALL_INITIALS: string[];
@@ -623,41 +618,61 @@ function sendVisualisationRequest(filter: string[], sendType: "sheet" | "select"
     return a - b
   });
 
-  window.open('', 'VisualisationWindow');
+  const visualisationWindow = window.open('', 'VisualisationWindow');
 
-  const form = document.createElement("form");
-  form.setAttribute("method", "post");
-  form.setAttribute("action", URL_PREFIX + "/openVisualise");
-  form.setAttribute("target", 'VisualisationWindow');
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = "sheet";
-  input.value = filePath;
-  form.appendChild(input);
-  const input2 = document.createElement('input');
-  input2.type = 'hidden';
-  input2.name = "repo";
-  input2.value = REPOSITORY_CONFIG.short_name;
-  form.appendChild(input2);
-  const input4 = document.createElement('input');
-  input4.type = 'hidden';
-  input4.name = "table";
-  input4.value = JSON.stringify(tabulator?.value?.getData());
-  form.appendChild(input4);
-  const input5 = document.createElement('input');
-  input5.type = 'hidden';
-  input5.name = "indices";
-  input5.value = JSON.stringify(indices);
-  form.appendChild(input5);
-  const input6 = document.createElement('input');
-  input6.type = 'hidden';
-  input6.name = "filter";
-  input6.value = JSON.stringify(filter);
-  form.appendChild(input6);
-  document.body.appendChild(form);
-  form.target = 'VisualisationWindow';
-  form.submit();
-  document.body.removeChild(form);
+
+  if(visualisationWindow === null) {
+    alert("Pop-up blocked! Please allow pop-ups for this site to open the visualisation window.");
+    return;
+  }
+
+  visualisationWindow?.focus();
+  visualisationWindow.ose = {
+    ...visualisationWindow.ose ?? {},
+    visualise: {
+      selection: selectedRows.value.map(r => r.getIndex()),
+      sheetData: JSON.parse(JSON.stringify(spreadsheetData.value)),
+    }
+  }
+  if (visualisationWindow.oseDataChanged === undefined) {
+    visualisationWindow.location.href = URL_PREFIX + "/openVisualise";
+  } else {
+    visualisationWindow.oseDataChanged?.()
+  }
+
+  // const form = document.createElement("form");
+  // form.setAttribute("method", "post");
+  // form.setAttribute("action", URL_PREFIX + "/openVisualise");
+  // form.setAttribute("target", 'VisualisationWindow');
+  // const input = document.createElement('input');
+  // input.type = 'hidden';
+  // input.name = "sheet";
+  // input.value = filePath;
+  // form.appendChild(input);
+  // const input2 = document.createElement('input');
+  // input2.type = 'hidden';
+  // input2.name = "repo";
+  // input2.value = REPOSITORY_CONFIG.short_name;
+  // form.appendChild(input2);
+  // const input4 = document.createElement('input');
+  // input4.type = 'hidden';
+  // input4.name = "table";
+  // input4.value = JSON.stringify(tabulator?.value?.getData());
+  // form.appendChild(input4);
+  // const input5 = document.createElement('input');
+  // input5.type = 'hidden';
+  // input5.name = "indices";
+  // input5.value = JSON.stringify(indices);
+  // form.appendChild(input5);
+  // const input6 = document.createElement('input');
+  // input6.type = 'hidden';
+  // input6.name = "filter";
+  // input6.value = JSON.stringify(filter);
+  // form.appendChild(input6);
+  // document.body.appendChild(form);
+  // form.target = 'VisualisationWindow';
+  // form.submit();
+  // document.body.removeChild(form);
 }
 
 async function saveChanges() {
@@ -1277,9 +1292,6 @@ function defColumnSize(field: string): number {
 </template>
 
 <style lang="scss">
-@use "tabulator-tables/dist/css/tabulator.min.css";
-@use "tabulator-tables/dist/css/tabulator_bootstrap5.min.css";
-
 .editor-container {
   height: calc(100vh - 143px);
   width: 100%;
@@ -1476,35 +1488,35 @@ function defColumnSize(field: string): number {
 
   .ose-curation-status {
     &-discussed {
-      background: moccasin !important;
+      background: var(--ose-curation-status-discussed) !important;
     }
 
     &-proposed {
-      background: #FFFFFF !important;
+      background: var(--ose-curation-status-proposed) !important;
     }
 
     &-to_be_discussed {
-      background: #eee8aa !important;
+      background: var(--ose-curation-status-to_be_discussed) !important;
     }
 
     &-in_discussion {
-      background: #fffacd !important;
+      background: var(--ose-curation-status-in_discussion) !important;
     }
 
     &-published {
-      background: #7fffd4 !important;
+      background: var(--ose-curation-status-published) !important;
     }
 
     &-obsolete {
-      background: #2f4f4f !important;
+      background: var(--ose-curation-status-obsolete) !important;
     }
 
     &-external {
-      background: #D3D3D3 !important;
+      background: var(--ose-curation-status-external) !important;
     }
 
     &-pre_proposed {
-      background: #ebfad0 !important;
+      background: var(--ose-curation-status-pre_proposed) !important;
     }
   }
 

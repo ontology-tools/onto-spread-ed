@@ -24,74 +24,76 @@ def apiOpenVisualiseAcrossSheets(ontodb: OntologyDataStore):
                                APP_TITLE2=APP_TITLE2)
 
 
-@bp.route('/openVisualise', methods=['POST'])
+@bp.route('/openVisualise', methods=['POST', 'GET'])
 @requires_permissions("view")
 def openVisualise(ontodb: OntologyDataStore):
-    curation_status_filters = ["", "External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published",
-                               "Obsolete"]
-    dotstr_list = []
-    repo = request.form.get("repo")
-    sheet = request.form.get("sheet")
-    table = json.loads(request.form.get("table"))
-    indices = json.loads(request.form.get("indices"))
-    try:
-        filter = json.loads(request.form.get("filter"))
-        if len(filter) > 0:
-            pass
-        else:
-            filter = ""
-    except Exception as err:
-        filter = ""
-        current_app.logger.error(str(err))
-    if repo not in ontodb.releases:
-        ontodb.parseRelease(repo)
+    # curation_status_filters = ["", "External", "Proposed", "To Be Discussed", "In Discussion", "Discussed", "Published",
+    #                            "Obsolete"]
+    # dotstr_list = []
+    # repo = request.form.get("repo")
+    # sheet = request.form.get("sheet")
+    # table = json.loads(request.form.get("table"))
+    # indices = json.loads(request.form.get("indices"))
+    # try:
+    #     filter = json.loads(request.form.get("filter"))
+    #     if len(filter) > 0:
+    #         pass
+    #     else:
+    #         filter = ""
+    # except Exception as err:
+    #     filter = ""
+    #     current_app.logger.error(str(err))
+    # if repo not in ontodb.releases:
+    #     ontodb.parseRelease(repo)
 
-    if len(indices) > 0:  # visualise selection
-        # check if filter is greater than 1:
-        if len(filter) > 1 and filter != "":  # multi-select:
-            for i in range(0, 2):
-                ontodb.parseSheetData(repo, table)
-                dotStr = ontodb.getDotForSelection(repo, table, indices,
-                                                   filter).to_string()  # filter is a list of strings here
-        else:
-            for filter in curation_status_filters:
-                # loop this twice to mitigate ID bug:
-                for i in range(0, 2):
-                    ontodb.parseSheetData(repo, table)
-                    dotStr = ontodb.getDotForSelection(repo, table, indices, filter).to_string()
-                # append dotStr to dotstr_list
-                dotstr_list.append(dotStr)  # all possible graphs
-            # calculate default all values:
-            filter = ""  # default
-            for i in range(0, 2):
-                ontodb.parseSheetData(repo, table)
-                dotStr = ontodb.getDotForSelection(repo, table, indices, filter).to_string()
+    # if len(indices) > 0:  # visualise selection
+    #     # check if filter is greater than 1:
+    #     if len(filter) > 1 and filter != "":  # multi-select:
+    #         for i in range(0, 2):
+    #             ontodb.parseSheetData(repo, table)
+    #             dotStr = ontodb.getDotForSelection(repo, table, indices,
+    #                                                filter).to_string()  # filter is a list of strings here
+    #     else:
+    #         for filter in curation_status_filters:
+    #             # loop this twice to mitigate ID bug:
+    #             for i in range(0, 2):
+    #                 ontodb.parseSheetData(repo, table)
+    #                 dotStr = ontodb.getDotForSelection(repo, table, indices, filter).to_string()
+    #             # append dotStr to dotstr_list
+    #             dotstr_list.append(dotStr)  # all possible graphs
+    #         # calculate default all values:
+    #         filter = ""  # default
+    #         for i in range(0, 2):
+    #             ontodb.parseSheetData(repo, table)
+    #             dotStr = ontodb.getDotForSelection(repo, table, indices, filter).to_string()
 
-    else:
-        # check if filter is greater than 1:
-        if len(filter) > 1 and filter != "":  # multi-select:
-            for i in range(0, 2):
-                ontodb.parseSheetData(repo, table)
-                dotStr = ontodb.getDotForSheetGraph(repo, table,
-                                                    filter).to_string()  # filter is a list of strings here
-                # no dotstr_list here, just one dotStr
-                # dotstr_list.append(dotStr) #all possible graphs
-        else:
-            for filter in curation_status_filters:  # Visualise sheet
-                # loop this twice to mitigate ID bug:
-                for i in range(0, 2):
-                    ontodb.parseSheetData(repo, table)
-                    dotStr = ontodb.getDotForSheetGraph(repo, table, filter).to_string()
-                # append dotStr to dotstr_list
-                dotstr_list.append(dotStr)  # all possible graphs
-            # calculate default all values:
-            filter = ""  # default
-            for i in range(0, 2):
-                ontodb.parseSheetData(repo, table)
-                dotStr = ontodb.getDotForSheetGraph(repo, table, filter).to_string()
+    # else:
+    #     # check if filter is greater than 1:
+    #     if len(filter) > 1 and filter != "":  # multi-select:
+    #         for i in range(0, 2):
+    #             ontodb.parseSheetData(repo, table)
+    #             dotStr = ontodb.getDotForSheetGraph(repo, table,
+    #                                                 filter).to_string()  # filter is a list of strings here
+    #             # no dotstr_list here, just one dotStr
+    #             # dotstr_list.append(dotStr) #all possible graphs
+    #     else:
+    #         for filter in curation_status_filters:  # Visualise sheet
+    #             # loop this twice to mitigate ID bug:
+    #             for i in range(0, 2):
+    #                 ontodb.parseSheetData(repo, table)
+    #                 dotStr = ontodb.getDotForSheetGraph(repo, table, filter).to_string()
+    #             # append dotStr to dotstr_list
+    #             dotstr_list.append(dotStr)  # all possible graphs
+    #         # calculate default all values:
+    #         filter = ""  # default
+    #         for i in range(0, 2):
+    #             ontodb.parseSheetData(repo, table)
+    #             dotStr = ontodb.getDotForSheetGraph(repo, table, filter).to_string()
 
-    return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list,
-                           filter=filter)
+    # return render_template("visualise.html", sheet=sheet, repo=repo, dotStr=dotStr, dotstr_list=dotstr_list,
+    #                        filter=filter)
+    
+    return render_template("visualise.html")
 
 
 @bp.route('/openVisualiseAcrossSheets', methods=['POST'])
