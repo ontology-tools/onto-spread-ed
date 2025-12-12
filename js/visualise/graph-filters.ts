@@ -23,17 +23,18 @@ export function applyGraphFilters(graph: Graph, options: FilterOptions): Filtere
   
   // Filter nodes based on criteria
   for (const node of graph.nodes) {
-    const status = (node.ose_curation ?? CURATION_STATUS.EXTERNAL).trim();
-    const origin = node.ose_origin ?? "<unknown>";
-    const depth = node.visual_depth ?? 0;
+    const status = node.ose_curation;
+    const origin = node.ose_origin;
+    const depth = node.visual_depth;
     const isFromCurrentSheet = !options.currentSheet || origin.endsWith(options.currentSheet);
-    const isParentNode = depth <= 0;
+    const isParentNode = depth < 0;
     const isChildNode = depth > 0;
+    const isRelevantParent = depth === 0; 
 
     // Check each filter condition
     const passesCurationFilter = options.curationFilter.includes(status);
-    const passesDepthFilter = isParentNode || options.numChildLevels === null || depth <= options.numChildLevels;
-    const passesSheetFilter = isFromCurrentSheet 
+    const passesDepthFilter = depth <= (options.numChildLevels ?? Infinity);
+    const passesSheetFilter = isFromCurrentSheet || isRelevantParent
       || (isParentNode && options.showParentsFromOtherSheets)
       || (isChildNode && options.showChildrenFromOtherSheets);
 

@@ -4,10 +4,10 @@ import { SpreadsheetData, VisualisationData, Graph, Row } from '../common/types'
 import svgPanZoom from 'svg-pan-zoom';
 import { CURATION_STATUS } from '../common/constants';
 import * as d3 from 'd3';
-import { 
-  applyGraphFilters, 
+import {
+  applyGraphFilters,
   buildHierarchyTrees,
-  type FilterOptions 
+  type FilterOptions
 } from './graph-filters';
 import {
   performGraphSearch,
@@ -25,6 +25,7 @@ import {
   initializePanZoom,
   type PanZoomState
 } from './graph-renderer';
+import { buildGraphFromSpreadsheet, type DependencyData } from './graph-builder';
 
 declare var URLS: { [key: string]: any };
 const URL_PREFIX = URLS['prefix'];
@@ -33,21 +34,32 @@ const URL_PREFIX = URLS['prefix'];
 const data = ref<VisualisationData | null>(window.ose?.visualise ?? null);
 
 window.oseDataChanged = () => {
+  console.debug("Visualisation data updated in window.ose", window.ose?.visualise);
   data.value = window.ose?.visualise ?? null;
+
+  // Debug the computed sheetData
+  const sheet = data.value?.sheetData;
+  console.debug("Sheet data after update:", {
+    hasSheetData: !!sheet,
+    repo_name: sheet?.repo_name,
+    folder: sheet?.folder,
+    spreadsheet_name: sheet?.spreadsheet_name,
+    rowCount: sheet?.rows?.length || 0,
+    header: sheet?.header
+  });
 }
 
 const svgContainer = useTemplateRef("svgContainer")
 
-const sheetData = computed(() => data.value?.sheetData ?? { 
-  rows: [], 
-  header: [], 
-  file_sha: '', 
-  repo_name: '', 
-  folder: '', 
-  spreadsheet_name: '' 
+const sheetData = computed(() => data.value?.sheetData ?? {
+  rows: [],
+  header: [],
+  file_sha: '',
+  repo_name: '',
+  folder: '',
+  spreadsheet_name: ''
 } as SpreadsheetData<Row>);
 
-const visualisationId = ref<string | null>(null);
 const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
 
@@ -84,7 +96,7 @@ const matchInfo = computed(() => {
 function performSearch() {
   const matches = performGraphSearch(searchQuery.value, nodeIdLabelMap.value);
   searchMatches.value = matches;
-  
+
   if (matches.length > 0) {
     currentMatchIndex.value = 0;
     highlightCurrentMatch();
@@ -103,14 +115,14 @@ function highlightCurrentMatch() {
 
 function zoomToCurrentMatch() {
   if (!panZoomInstance || currentMatchIndex.value < 0 || !svgContainer.value) return;
-  
+
   const currentNodeId = searchMatches.value[currentMatchIndex.value];
   panToNode(currentNodeId, svgContainer.value, panZoomInstance);
 }
 
 function goToNextMatch() {
   if (searchMatches.value.length === 0) return;
-  
+
   currentMatchIndex.value = (currentMatchIndex.value + 1) % searchMatches.value.length;
   highlightCurrentMatch();
   setTimeout(() => zoomToCurrentMatch(), 0);
@@ -118,7 +130,7 @@ function goToNextMatch() {
 
 function goToPreviousMatch() {
   if (searchMatches.value.length === 0) return;
-  
+
   currentMatchIndex.value = (currentMatchIndex.value - 1 + searchMatches.value.length) % searchMatches.value.length;
   highlightCurrentMatch();
   setTimeout(() => zoomToCurrentMatch(), 0);
@@ -133,43 +145,76 @@ function clearSearch() {
 
 
 async function fetchGraph() {
+  // Validate that we have all required data
+  if (!sheetData.value.repo_name || !sheetData.value.folder || !sheetData.value.spreadsheet_name) {
+    console.warn('Cannot fetch graph: missing repo, folder, or spreadsheet name', {
+      repo: sheetData.value.repo_name,
+      folder: sheetData.value.folder,
+      spreadsheet: sheetData.value.spreadsheet_name
+    });
+    return;
+  }
+
+  if (sheetData.value.rows.length === 0) {
+    console.warn('Cannot fetch graph: no rows in spreadsheet');
+    return;
+  }
+
+  console.debug('Fetching graph dependencies...', {
+    repo: sheetData.value.repo_name,
+    folder: sheetData.value.folder,
+    spreadsheet: sheetData.value.spreadsheet_name,
+    rowCount: sheetData.value.rows.length
+  });
+
   loading.value = true;
   error.value = null;
   try {
-    const response = await fetch(`${URL_PREFIX}/api/visualise/generate/${sheetData.value.repo_name}/${sheetData.value.folder}/${sheetData.value.spreadsheet_name}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        header: sheetData.value.header,
-        rows: sheetData.value.rows.map(row => sheetData.value.header.map(h => row[h])),
-      }),
-    });
-    
+    const response = await fetch(`${URL_PREFIX}/api/visualise/dependencies/${sheetData.value.repo_name}/${sheetData.value.folder}/${sheetData.value.spreadsheet_name}`);
+
     if (!response.ok) {
       throw new Error(`Server error: ${response.status} ${response.statusText}`);
     }
-    
+
     const result = await response.json();
-    
+
     if (!result.success) {
-      throw new Error(result.error || 'Failed to generate visualisation');
+      throw new Error(result.error || 'Failed to load dependencies');
     }
 
-    visualisationId.value = result.visualisation_id;
+    console.debug('Dependencies loaded successfully', result.data);
 
-    graph.value = result.graphData as Graph;
+    // Build graph from current spreadsheet data + dependencies on frontend
+    const dependencyData = result.data as DependencyData;
+    graph.value = buildGraphFromSpreadsheet(
+      sheetData.value.rows,
+      sheetData.value.header,
+      sheetData.value.spreadsheet_name,
+      dependencyData
+    );
+
+    console.debug('Graph built successfully', {
+      nodes: graph.value.nodes.length,
+      edges: graph.value.edges.length
+    });
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'An unexpected error occurred';
-    console.error('Failed to fetch graph:', e);
+    console.error('Failed to fetch dependencies:', e);
   } finally {
     loading.value = false;
   }
 }
 
 function renderGraph() {
-  if (!graph.value || !svgContainer.value) return;
+  if (!graph.value || !svgContainer.value) {
+    console.warn('Cannot render graph:', { hasGraph: !!graph.value, hasContainer: !!svgContainer.value });
+    return;
+  }
+
+  console.debug('Rendering graph...', {
+    nodes: graph.value.nodes.length,
+    edges: graph.value.edges.length
+  });
 
   const g = JSON.parse(JSON.stringify(toRaw(graph.value))) as Graph;
 
@@ -184,8 +229,16 @@ function renderGraph() {
 
   const { nodes, hierarchyEdges, relationEdges } = applyGraphFilters(g, filterOptions);
 
+  console.debug('After filtering:', {
+    nodes: nodes.length,
+    hierarchyEdges: hierarchyEdges.length,
+    relationEdges: relationEdges.length
+  });
+
   // Build hierarchical tree structures
   const trees = buildHierarchyTrees(nodes, hierarchyEdges);
+
+  console.debug('Built trees:', trees.length);
 
   // Save current pan/zoom state before clearing the container
   let savedPanZoom: PanZoomState | null = null;
@@ -237,7 +290,7 @@ function renderGraph() {
   function handleEdgeInteraction(sourceId: string, targetId: string, element: SVGElement, action: 'enter' | 'leave' | 'click') {
     // Helper to highlight/unhighlight connected nodes
     function highlightNodes(highlight: boolean) {
-      svg.selectAll('.node').each(function() {
+      svg.selectAll('.node').each(function () {
         const node = d3.select(this);
         const nodeId = node.attr('data-node-id');
         if (nodeId === sourceId || nodeId === targetId) {
@@ -248,7 +301,7 @@ function renderGraph() {
 
     if (action === 'click') {
       const isSameEdge = focusedEdge?.sourceId === sourceId && focusedEdge?.targetId === targetId;
-      
+
       if (isSameEdge) {
         // Unfocus
         highlightNodes(false);
@@ -313,23 +366,26 @@ watchPostEffect(() => {
   }
 });
 
+// Fetch graph when sheet data is available
 watchEffect(() => {
-  if (visualisationId.value) {
-    window.history.replaceState({}, '', `${window.location.pathname}?visualisation_id=${visualisationId.value}`);
+  console.debug('watchEffect triggered:', {
+    rowsLength: sheetData.value.rows.length,
+    repo_name: sheetData.value.repo_name,
+    folder: sheetData.value.folder,
+    spreadsheet_name: sheetData.value.spreadsheet_name,
+    allConditionsMet: sheetData.value.rows.length > 0 &&
+      !!sheetData.value.repo_name &&
+      !!sheetData.value.folder &&
+      !!sheetData.value.spreadsheet_name
+  });
+
+  if (sheetData.value.rows.length > 0 &&
+    sheetData.value.repo_name &&
+    sheetData.value.folder &&
+    sheetData.value.spreadsheet_name) {
+    fetchGraph();
   }
-})
-
-// watchEffect(() => {
-//   if (sheetData.value.rows.length > 0) {
-//     fetchGraph();
-//   }
-// });
-
-// watchEffect(() => {
-//   if (maxChildLevels.value && (numChildLevels.value === null || numChildLevels.value > maxChildLevels.value)) {
-//     numChildLevels.value = maxChildLevels.value;
-//   }
-// })
+});
 
 watch(numChildLevels, (newValue, oldValue) => {
   if (newValue !== oldValue && newValue !== null && oldValue !== null) {
@@ -351,143 +407,114 @@ watch(showParentsFromOtherSheets, (newValue, oldValue) => {
 
 onMounted(async () => {
   if (svgContainer.value) {
-    svgContainer.value.style.height = (window.innerHeight - svgContainer.value.offsetTop - 16) + "px";
-  }
-
-  loading.value = true;
-  error.value = null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const visualisation_id = params.get("visualisation_id");
-    if (visualisation_id) {
-      const response = await fetch(`${URL_PREFIX}/api/visualise/load/${visualisation_id}`);
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to load visualisation');
-      }
-
-      graph.value = result.graphData as Graph;
-      visualisationId.value = visualisation_id;
-      
-      data.value = {
-        selection: [],
-        sheetData: {
-          repo_name: result.repo,
-          folder: result.path.split('/').slice(0, -1).join('/'),
-          spreadsheet_name: result.path.split('/').slice(-1)[0],
-          header: [],
-          rows: [],
-          file_sha: "",
-        }
-      }
-
-      console.log({graph: result.graphData});
-    }
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : 'An unexpected error occurred';
-    console.error('Failed to load visualisation:', e);
-  } finally {
-    loading.value = false;
+    svgContainer.value.style.minHeight = (window.innerHeight - svgContainer.value.offsetTop - 16) + "px";
   }
 });
 
 </script>
 <template>
   <div class="visualise-container">
-    <div class="header d-flex align-items-center justify-content-between">
-      <h3>Hierarchy Tree
-        <small>
-          for {{ data?.sheetData?.spreadsheet_name }}
-        </small>
-      </h3>
+    <div class="header">
+      <div class="header-title-row">
+        <h5 class="mb-0">
+          Hierarchy Tree <small class="text-muted">{{ data?.sheetData?.spreadsheet_name }}</small>
+        </h5>
 
-      <div class="search-bar">
-        <div class="input-group input-group-sm">
-          <input 
-            type="text" 
-            class="form-control" 
-            placeholder="Search classes..." 
-            v-model="searchQuery"
-            @keyup.enter="performSearch"
-          >
-          <button class="btn btn-outline-secondary" type="button" @click="performSearch" title="Search">
-            <i class="fa-solid fa-search"></i>
-          </button>
-          <button 
-            class="btn btn-outline-secondary" 
-            type="button" 
-            @click="goToPreviousMatch" 
-            :disabled="!hasSearchMatches"
-            title="Previous match"
-          >
-            <i class="fa-solid fa-chevron-up"></i>
-          </button>
-          <button 
-            class="btn btn-outline-secondary" 
-            type="button" 
-            @click="goToNextMatch" 
-            :disabled="!hasSearchMatches"
-            title="Next match"
-          >
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <button 
-            class="btn btn-outline-secondary" 
-            type="button" 
-            @click="clearSearch" 
-            :disabled="!searchQuery"
-            title="Clear search"
-          >
-            <i class="fa-solid fa-times"></i>
-          </button>
+        <div class="search-bar">
+          <small class="search-info text-muted">{{ matchInfo }}</small>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control" placeholder="Search classes..." v-model="searchQuery"
+              @keyup.enter="performSearch">
+            <button class="btn btn-outline-secondary" type="button" @click="performSearch" title="Search">
+              <i class="fa-solid fa-search"></i>
+            </button>
+            <button class="btn btn-outline-secondary" type="button" @click="goToPreviousMatch"
+              :disabled="!hasSearchMatches" title="Previous match">
+              <i class="fa-solid fa-chevron-up"></i>
+            </button>
+            <button class="btn btn-outline-secondary" type="button" @click="goToNextMatch" :disabled="!hasSearchMatches"
+              title="Next match">
+              <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <button class="btn btn-outline-secondary" type="button" @click="clearSearch" :disabled="!searchQuery"
+              title="Clear search">
+              <i class="fa-solid fa-times"></i>
+            </button>
+          </div>
         </div>
-        <small class="search-info text-muted">{{ matchInfo }}</small>
       </div>
 
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="ckb_children_other_sheets"
-          v-model="showChildrenFromOtherSheets">
-        <label class="form-check-label" for="ckb_children_other_sheets">
-          Show children from other sheets
-        </label>
+      <div class="filters-card">
+        <div class="filter-section">
+          <span class="filter-section-title">
+            <i class="fa-solid fa-filter"></i>
+            View Options
+          </span>
+          <div class="filter-controls">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="ckb_children_other_sheets"
+                v-model="showChildrenFromOtherSheets">
+              <label class="form-check-label" for="ckb_children_other_sheets">
+                <i class="fa-solid fa-arrow-down"></i>
+                Children
+              </label>
+            </div>
+
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="ckb_parents_other_sheets"
+                v-model="showParentsFromOtherSheets">
+              <label class="form-check-label" for="ckb_parents_other_sheets">
+                <i class="fa-solid fa-arrow-up"></i>
+                Parents
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <span class="filter-section-title">
+            <i class="fa-solid fa-layer-group"></i>
+            Child Levels
+          </span>
+          <div class="filter-controls">
+            <div class="range-control">
+              <div class="range-header">
+                <label for="range_num_child_levels" class="form-label">
+                  Depth: <strong>{{ numChildLevels || 'All' }}</strong>
+                </label>
+                <span class="range-minmax">1–{{ maxChildLevels }}</span>
+              </div>
+              <input type="range" class="form-range" v-model="numChildLevels" min="1" :max="maxChildLevels" step="1"
+                id="range_num_child_levels">
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <span class="filter-section-title">
+            <i class="fa-solid fa-tags"></i>
+            Curation Status
+          </span>
+          <div class="filter-controls">
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <i class="fa-solid fa-filter"></i>
+                {{ curationFilter.length }}/{{ curationStatuses.length }} selected
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li v-for="s in curationStatuses" :key="s">
+                  <a class="dropdown-item" :class="'ose-curation-status-' + s.toLowerCase().replace(' ', '_')" href="#"
+                    @click="toggleCurationFilter(s)">
+                    <i class="fa-solid" :class="curationFilter.indexOf(s) >= 0 ? 'fa-circle-check' : 'fa-circle'"></i>
+                    {{ s }}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div>
-        <label for="range_num_child_levels" class="form-label">Number of child levels ({{ numChildLevels }})</label>
-        <input type="range" class="form-range" v-model="numChildLevels" min="1" :max="maxChildLevels" step="1"
-          id="range_num_child_levels">
-      </div>
-
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="ckb_parents_other_sheets"
-          v-model="showParentsFromOtherSheets">
-        <label class="form-check-label" for="ckb_parents_other_sheets">
-          Show parents from other sheets
-        </label>
-      </div>
-
-      <div class="dropdown">
-        <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-          Curation Status
-        </button>
-        <ul class="dropdown-menu">
-          <li v-for="s in curationStatuses">
-            <a class="dropdown-item" :class="'ose-curation-status-' + s.toLowerCase().replace(' ', '_')" href="#"
-              @click="toggleCurationFilter(s)">
-              <i class="fa-regular" :class="curationFilter.indexOf(s) >= 0 ? ['fa-circle-check'] : ['fa-circle']"></i>
-              {{ s }}
-            </a>
-          </li>
-        </ul>
-      </div>
-
-
     </div>
     <div ref="svgContainer" class="svg-container">
       <div v-if="loading" class="loading-overlay">
@@ -505,7 +532,146 @@ onMounted(async () => {
 </template>
 <style lang="scss">
 .visualise-container {
-  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .header {
+    padding: 0.75rem 1rem;
+    flex-shrink: 0;
+    background: #fff;
+  }
+
+  .header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+
+    h5 {
+      margin: 0;
+      font-weight: 600;
+
+      small {
+        font-size: 0.85rem;
+        font-weight: 400;
+      }
+    }
+  }
+
+  .filters-card {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0.5rem 1rem;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    align-items: center;
+  }
+
+  .filter-section {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    &:not(:last-child) {
+      border-right: 1px solid #e8e8e8;
+      padding-right: 1.5rem;
+    }
+  }
+
+  .filter-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+
+    i {
+      color: #999;
+      font-size: 0.75rem;
+    }
+  }
+
+  .filter-controls {
+    display: flex;
+    gap: 0.75rem;
+
+    .form-check {
+      margin-bottom: 0;
+    }
+
+
+    &.form-switch {
+      display: flex;
+      gap: 10px;
+    }
+
+    .form-check-label {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: #555;
+      cursor: pointer;
+
+      i {
+        color: #999;
+        font-size: 0.7rem;
+      }
+    }
+
+    .form-check-input {
+      cursor: pointer;
+    }
+
+    .dropdown-toggle {
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      padding: 0.25rem 0.6rem;
+
+      i {
+        font-size: 0.7rem;
+      }
+    }
+  }
+
+  .range-control {
+    min-width: 200px;
+
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 0;
+
+      strong {
+        color: #333;
+        font-weight: 600;
+      }
+    }
+
+    .range-minmax {
+      font-size: 0.7rem;
+      color: #999;
+    }
+
+    .form-range {
+      height: 0.35rem;
+      margin: 0;
+    }
+  }
 
   .search-bar {
     display: flex;
@@ -513,12 +679,27 @@ onMounted(async () => {
     gap: 0.5rem;
 
     .input-group {
-      width: 280px;
+      width: 320px;
     }
 
     .search-info {
       min-width: 70px;
       text-align: center;
+      font-size: 0.875rem;
+    }
+  }
+
+  .svg-container {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fafafa;
+
+    svg {
+      width: 100%;
+      height: 100%;
     }
   }
 
@@ -604,7 +785,7 @@ onMounted(async () => {
 
   @each $status in $curation_status {
     .node.ose-curation-status-#{$status} {
-      & > rect {
+      &>rect {
         fill: var(--ose-curation-status-#{$status}) !important;
       }
     }
@@ -616,81 +797,60 @@ onMounted(async () => {
 
   // Default/uncurated status
   .node.ose-curation-status-unknown {
-    & > rect {
+    &>rect {
       fill: #fff !important;
     }
   }
 
-  h3 {
-    margin: 0 0 0.5rem 0;
-    flex-shrink: 0;
+  .link,
+  .relation-link {
+    fill: none;
+    stroke: #999;
+    stroke-opacity: 0.6;
+    stroke-width: 1.5px;
+    cursor: pointer;
+
+    &.highlighted {
+      stroke-opacity: 1 !important;
+      stroke-width: 3px !important;
+    }
+
+    &.focused {
+      stroke-opacity: 1 !important;
+      stroke-width: 3.5px !important;
+      filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+    }
   }
 
-  .svg-container {
-    position: relative;
-    display: block;
-    min-width: 100%;
-    min-height: 100%;
+  .relation-link {
+    stroke-opacity: 0.8;
+  }
 
+  .node {
+    cursor: pointer;
 
-    width: 100%;
-    flex: 1;
-    min-height: 0;
-    overflow: auto;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: #fafafa;
-
-    transition: all 0.2s ease;
-
-    .link, .relation-link {
-      fill: none;
-      stroke: #999;
-      stroke-opacity: 0.6;
-      stroke-width: 1.5px;
-      cursor: pointer;
-      
-      &.highlighted {
-        stroke-opacity: 1 !important;
-        stroke-width: 3px !important;
-      }
-
-      &.focused {
-        stroke-opacity: 1 !important;
-        stroke-width: 3.5px !important;
-        filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
-      }
-    }
-
-    .relation-link {
-      stroke-opacity: 0.8;
-    }
-
-    .node {
-      cursor: pointer;
-
-      &:hover, &.edge-connected {
-        & > rect {
-          stroke: #333 !important;
-          stroke-width: 2px !important;
-        }
-      }
-
-      &.edge-connected > rect {
-        filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.4));
-      }
-
-      &.search-match > rect {
-        stroke: #f59e0b !important;
+    &:hover,
+    &.edge-connected {
+      &>rect {
+        stroke: #333 !important;
         stroke-width: 2px !important;
-        filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6));
       }
+    }
 
-      &.search-current > rect {
-        stroke: #dc2626 !important;
-        stroke-width: 3px !important;
-        filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.8));
-      }
+    &.edge-connected>rect {
+      filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.4));
+    }
+
+    &.search-match>rect {
+      stroke: #f59e0b !important;
+      stroke-width: 2px !important;
+      filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.6));
+    }
+
+    &.search-current>rect {
+      stroke: #dc2626 !important;
+      stroke-width: 3px !important;
+      filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.8));
     }
   }
 }

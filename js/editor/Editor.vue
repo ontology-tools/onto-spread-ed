@@ -624,7 +624,14 @@ function sendVisualisationRequest(sendType: "sheet" | "select") {
   }
 
   // Build the sheet data to send - either full sheet or just selected rows
-  const sheetDataToSend: SpreadsheetData = toRaw({ header: spreadsheetData.value?.header ?? [], rows: rows.map(r => r.getData()) });
+  const sheetDataToSend: SpreadsheetData = toRaw({ 
+    header: spreadsheetData.value?.header ?? [], 
+    rows: rows.map(r => r.getData()),
+    file_sha: spreadsheetData.value?.file_sha ?? '',
+    repo_name: repo,
+    folder: fileFolder,
+    spreadsheet_name: fileName
+  });
 
 
   visualisationWindow?.focus();
@@ -639,9 +646,23 @@ function sendVisualisationRequest(sendType: "sheet" | "select") {
   console.log("Sent data to visualisation window:", visualisationWindow.ose.visualise);
 
   if (visualisationWindow.oseDataChanged === undefined) {
+    console.log("Opening new visualisation window");
     visualisationWindow.location.href = URL_PREFIX + "/openVisualise";
   } else {
-    visualisationWindow.oseDataChanged?.()
+    visualisationWindow.oseDataChanged();
+  }
+
+  // Add hook for when the window reloads to resend the data
+  visualisationWindow.onload = () => {
+    console.log("Visualisation window reloading, will resend data on load");
+    visualisationWindow.ose = {
+      ...visualisationWindow.ose ?? {},
+      visualise: {
+        selection: rows.map((r, i) => (selectedRows.value.includes(r) || sendType === 'sheet') ? i : null).filter(i => i !== null),
+        sheetData: sheetDataToSend,
+      }
+    }
+    visualisationWindow.oseDataChanged?.();
   }
 
   // const form = document.createElement("form");

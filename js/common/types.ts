@@ -17,7 +17,6 @@ export interface Graph {
 }
 
 export interface Edge {
-  key: string
   source: string
   target: string
   type: any
@@ -32,6 +31,7 @@ export interface Node {
   label: string
   ose_curation: string
   ose_origin: string
+  source: 'current' | 'dependencies' | 'derived'
   visual_depth: number
 }
 
