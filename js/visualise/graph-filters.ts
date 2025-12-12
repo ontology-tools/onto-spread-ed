@@ -1,0 +1,124 @@
+import { Graph, Node, Edge } from '../common/types';
+import { CURATION_STATUS } from '../common/constants';
+
+export interface FilterOptions {
+  curationFilter: string[];
+  showChildrenFromOtherSheets: boolean;
+  showParentsFromOtherSheets: boolean;
+  numChildLevels: number | null;
+  currentSheet?: string;
+}
+
+export interface FilteredGraph {
+  nodes: Node[];
+  hierarchyEdges: Edge[];
+  relationEdges: Edge[];
+}
+
+/**
+ * Apply filters to graph nodes and edges
+ */
+export function applyGraphFilters(graph: Graph, options: FilterOptions): FilteredGraph {
+  const filteredNodeIds = new Set<string>();
+  
+  // Filter nodes based on criteria
+  for (const node of graph.nodes) {
+    const status = (node.ose_curation ?? CURATION_STATUS.EXTERNAL).trim();
+    const origin = node.ose_origin ?? "<unknown>";
+    const depth = node.visual_depth ?? 0;
+    const isFromCurrentSheet = !options.currentSheet || origin.endsWith(options.currentSheet);
+    const isParentNode = depth <= 0;
+    const isChildNode = depth > 0;
+
+    // Check each filter condition
+    const passesCurationFilter = options.curationFilter.includes(status);
+    const passesDepthFilter = isParentNode || options.numChildLevels === null || depth <= options.numChildLevels;
+    const passesSheetFilter = isFromCurrentSheet 
+      || (isParentNode && options.showParentsFromOtherSheets)
+      || (isChildNode && options.showChildrenFromOtherSheets);
+
+    if (passesCurationFilter && passesDepthFilter && passesSheetFilter) {
+      filteredNodeIds.add(node.id);
+    }
+  }
+
+  // Filter nodes and edges
+  const nodes = graph.nodes.filter(n => filteredNodeIds.has(n.id));
+  const allEdges = graph.edges.filter(e => 
+    filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)
+  );
+  
+  // Separate subclass_of edges (for hierarchy) from other relation edges
+  const hierarchyEdges = allEdges.filter(e => e.type === 'subclass_of');
+  const relationEdges = allEdges.filter(e => e.type !== 'subclass_of');
+
+  return { nodes, hierarchyEdges, relationEdges };
+}
+
+/**
+ * Build hierarchical tree structure from filtered nodes and edges
+ */
+export interface HierarchyNode {
+  id: string;
+  label: string;
+  ose_curation: string;
+  ose_origin: string;
+  children: HierarchyNode[];
+}
+
+export function buildHierarchyTrees(
+  nodes: Node[], 
+  hierarchyEdges: Edge[]
+): HierarchyNode[] {
+  // Build adjacency map (parent -> children) using only subclass_of edges
+  const childrenMap = new Map<string, string[]>();
+  const parentMap = new Map<string, string>();
+  
+  for (const edge of hierarchyEdges) {
+    // In a directed graph, source -> target means source is parent of target
+    if (!childrenMap.has(edge.source)) {
+      childrenMap.set(edge.source, []);
+    }
+    childrenMap.get(edge.source)!.push(edge.target);
+    parentMap.set(edge.target, edge.source);
+  }
+
+  // Find root nodes (nodes with no parent)
+  const roots = nodes.filter(n => !parentMap.has(n.id));
+
+  // Create node lookup map
+  const nodeMap = new Map<string, Node>();
+  for (const node of nodes) {
+    nodeMap.set(node.id, node);
+  }
+
+  // Recursively build hierarchy
+  function buildHierarchy(nodeId: string): HierarchyNode | null {
+    const node = nodeMap.get(nodeId);
+    if (!node) return null;
+
+    const children: HierarchyNode[] = [];
+    const childIds = childrenMap.get(nodeId) ?? [];
+    for (const childId of childIds) {
+      const child = buildHierarchy(childId);
+      if (child) children.push(child);
+    }
+
+    return {
+      id: node.id,
+      label: node.label,
+      ose_curation: node.ose_curation,
+      ose_origin: node.ose_origin,
+      children
+    };
+  }
+
+  // Build tree for each root
+  const trees: HierarchyNode[] = [];
+  for (const root of roots) {
+    const tree = buildHierarchy(root.id);
+    if (tree) trees.push(tree);
+  }
+
+  return trees;
+}

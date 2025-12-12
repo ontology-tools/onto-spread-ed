@@ -3,7 +3,7 @@ import pickle
 from flask import Blueprint, current_app, g, json, request, jsonify
 from flask_github import GitHub
 import jsonschema
-import networkx
+import networkx as nx
 
 from pydot import Dot
 
@@ -178,7 +178,7 @@ def generate_visualisation(
 
     return (
         jsonify(
-            {"success": True, "visualisation_id": cache_id, "dot": graph.to_string()}
+            {"success": True, "visualisation_id": cache_id, "graphData": nx.node_link_data(graph, edges="edges")}
         ),
         200,
     )
@@ -199,14 +199,14 @@ def _get_node_properties_for_term(
             else:
                 label = term.label
 
-        curation_status = curation_status or "unknown"
-        origin = origin or "unknown"
+        curation_status = curation_status or "External"
+        origin = origin or "<unknown>"
     else:
-        curation_status = curation_status or term.curation_status() or "unknown"
+        curation_status = curation_status or term.curation_status() or "External"
         origin = origin or (term.origin[0] if term.origin is not None else "<unknown>")
         label = label or term.label
 
-    label = label.replace(" ", "\n")
+    # label = label.replace(" ", "\n")
 
     return {
         "ose_curation": curation_status,
@@ -220,9 +220,8 @@ def _get_node_properties_for_term(
 
 
 
-def visualise_ontology(ontology: ExcelOntology) -> Dot:
-    graph = networkx.MultiDiGraph()
-    # graph.add_node("node", **NODE_PROPS)  # Set default node properties
+def visualise_ontology(ontology: ExcelOntology) -> nx.MultiDiGraph:
+    graph = nx.MultiDiGraph()
 
     for term in ontology.terms():
         props = _get_node_properties_for_term(term)
@@ -242,9 +241,6 @@ def visualise_ontology(ontology: ExcelOntology) -> Dot:
                 term.id.replace(":", "_"),
                 type="subclass_of",
             )
-            
-            
-    roots = [n for n in graph if graph.out_degree(n) == 0]
         
 
     node_data = graph.nodes(data=True)
@@ -294,13 +290,8 @@ def visualise_ontology(ontology: ExcelOntology) -> Dot:
                         label=rel.label,
                         type=rel,
                     )
-
-    dot = networkx.nx_pydot.to_pydot(graph)
-
-    for k, v in GRAPH_PROPS.items():
-        dot.set(k, v)
-
-    return dot
+                    
+    return graph
 
 
 @bp.route("/load/<string:visualisation_id>", methods=["GET"])
@@ -315,6 +306,8 @@ def load_visualisation(visualisation_id: str, cache: FileCache):
 
     graph, ontology, repo, path = pickle.loads(cache_data)
 
-    graph = visualise_ontology(ontology)
+    # graph = visualise_ontology(ontology)
+    
+    cache.store(visualisation_id, pickle.dumps((graph, ontology, repo, path)))
 
-    return jsonify({"success": True, "dot": graph.to_string(), "repo": repo, "path": path}), 200
+    return jsonify({"success": True, "graphData": nx.node_link_data(graph, edges="edges"), "repo": repo, "path": path}), 200

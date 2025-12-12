@@ -20,3 +20,4 @@ export const COLUMN_NAMES = {
     RELATIONSHIP_TYPE: "Relationship type",
     LABEL: "Label"
 }
+

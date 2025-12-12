@@ -2,19 +2,19 @@
 import "tabulator-tables/dist/css/tabulator.min.css";
 import "tabulator-tables/dist/css/tabulator_bootstrap5.min.css";
 
-import {computed, h, onMounted, onUnmounted, ref, watch, watchEffect} from 'vue';
-import {RowComponent, TabulatorFull as Tabulator} from 'tabulator-tables';
-import {columnDefFor, setRowColor} from "./tabulator-config.ts"
-import {COLUMN_NAMES, CURATION_STATUS} from "../common/constants.ts";
-import {alertDialog, confirmDialog, promptDialog} from "../common/bootbox"
-import {Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig} from "../common/model";
+import { computed, h, onMounted, onUnmounted, ref, toRaw, watch, watchEffect } from 'vue';
+import { RowComponent, TabulatorFull as Tabulator } from 'tabulator-tables';
+import { columnDefFor, setRowColor } from "./tabulator-config.ts"
+import { COLUMN_NAMES, CURATION_STATUS } from "../common/constants.ts";
+import { alertDialog, confirmDialog, promptDialog } from "../common/bootbox"
+import { Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig } from "../common/model";
 import Diagnostic from "../common/Diagnostic.vue"
-import {BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController} from "bootstrap-vue-next"
-import {DIAGNOSTIC_DATA} from "../common/diagnostic-data.ts";
-import {debounce} from "../common/debounce.ts";
+import { BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController } from "bootstrap-vue-next"
+import { DIAGNOSTIC_DATA } from "../common/diagnostic-data.ts";
+import { debounce } from "../common/debounce.ts";
 import Merger from "./Merger.vue";
-import {HistoryService} from "./HistoryService.ts"
-import {getCell} from "../common/tabulator-extensions.ts";
+import { HistoryService } from "./HistoryService.ts"
+import { getCell } from "../common/tabulator-extensions.ts";
 import { SpreadsheetData } from "../common/spreadsheetdata.ts";
 
 declare var URLS: { [key: string]: any };
@@ -23,7 +23,7 @@ declare var LOGIN_INITIALS: string;
 declare var REPOSITORY_CONFIG: RepositoryConfig;
 const URL_PREFIX = URLS['prefix'];
 
-const {show: showToast, remove: removeToast} = useToastController()
+const { show: showToast, remove: removeToast } = useToastController()
 
 const table = ref<HTMLDivElement | null>(null); //reference to your table element
 const tabulator = ref<Tabulator | null>(null); //variable to hold your table
@@ -145,9 +145,9 @@ onMounted(() => {
           variant: 'info',
         }
       },
-      component: h(BToast, {variant: "warning"}, {
-        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-          h("i", {class: "fa fa-lock"}),
+      component: h(BToast, { variant: "warning" }, {
+        default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+          h("i", { class: "fa fa-lock" }),
           h("span", null, `This file is readonly: ${readOnlyMessage}`)
         ])
       })
@@ -284,7 +284,7 @@ watchEffect(() => {
       if (history?.replaceState !== undefined && urlFilter) {
         // Remove filter from url so that on reload the table is not filtered again
         const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-        window.history.replaceState({path: newurl}, '', newurl);
+        window.history.replaceState({ path: newurl }, '', newurl);
       }
 
       if (navigateToRow !== null) {
@@ -344,7 +344,7 @@ watch(tableBuilt, async () => {
       historyService.clear()
     }
   }
-}, {once: true})
+}, { once: true })
 
 async function validateImmediate(progress: "toast" | "popup" = "toast") {
   if (!canValidate.value) {
@@ -359,8 +359,8 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
         value: true
       },
       component: h(BToast, null, {
-        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-          h("div", {class: "spinner-border text-primary spinner-border-sm"}),
+        default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+          h("div", { class: "spinner-border text-primary spinner-border-sm" }),
           "Validating ..."
         ])
       })
@@ -399,7 +399,7 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
         diagnostics.value[error.row - 2] = []
       }
 
-      diagnostics.value[error.row - 2].push({type: 'error', diagnostic: error, _id: -1})
+      diagnostics.value[error.row - 2].push({ type: 'error', diagnostic: error, _id: -1 })
     }
 
     for (const warning of result.warnings) {
@@ -407,7 +407,7 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
         diagnostics.value[warning.row - 2] = []
       }
 
-      diagnostics.value[warning.row - 2].push({type: 'warning', diagnostic: warning, _id: -1})
+      diagnostics.value[warning.row - 2].push({ type: 'warning', diagnostic: warning, _id: -1 })
     }
 
     allDiagnostics.value.forEach((d, i) => {
@@ -430,9 +430,9 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
             variant: 'success',
           }
         },
-        component: h(BToast, {variant: "success"}, {
-          default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-            h("i", {class: "fa fa-check"}),
+        component: h(BToast, { variant: "success" }, {
+          default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+            h("i", { class: "fa fa-check" }),
             h("span", null, "No errors found!")
           ])
         })
@@ -445,9 +445,9 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
             variant: 'danger',
           }
         },
-        component: h(BToast, {variant: "danger"}, {
-          default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-            h("i", {class: "fa fa-circle-xmark"}),
+        component: h(BToast, { variant: "danger" }, {
+          default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+            h("i", { class: "fa fa-circle-xmark" }),
             h("span", null, `${errors.value.length} errors and ${warnings.value.length} warnings found`)
           ])
         })
@@ -460,9 +460,9 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
             variant: 'warning',
           }
         },
-        component: h(BToast, {variant: "warning"}, {
-          default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-            h("i", {class: "fa fa-triangle-exclamation"}),
+        component: h(BToast, { variant: "warning" }, {
+          default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+            h("i", { class: "fa fa-triangle-exclamation" }),
             h("span", null, `${warnings.value.length} warnings found`)
           ])
         })
@@ -482,9 +482,9 @@ async function validateImmediate(progress: "toast" | "popup" = "toast") {
           variant: 'danger',
         }
       },
-      component: h(BToast, {variant: "danger"}, {
-        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-          h("i", {class: "fa fa-triangle-exclamation"}),
+      component: h(BToast, { variant: "danger" }, {
+        default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+          h("i", { class: "fa fa-triangle-exclamation" }),
           h("span", null, `Problem communicating with the server`)
         ])
       })
@@ -570,8 +570,8 @@ async function checkForUpdates(state: any) {
         pos: "top-center"
       },
       component: h(BToast, null, {
-        default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-          h("div", {class: "spinner-grow spinner-grow-sm text-white mr-2"}),
+        default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+          h("div", { class: "spinner-grow spinner-grow-sm text-white mr-2" }),
           "Updates available"
         ])
       })
@@ -590,8 +590,8 @@ function saveCurator(row: RowComponent) {
   if (data[COLUMN_NAMES.CURATOR] !== undefined) { // if curator column present in table
     const cellValue: string = data[COLUMN_NAMES.CURATOR];
     const curators = [...cellValue?.split(";")?.map(x => x.trim()), LOGIN_INITIALS]
-        .filter((x, i, self) => !!x && self.indexOf(x) === i)
-        .join("; ")
+      .filter((x, i, self) => !!x && self.indexOf(x) === i)
+      .join("; ")
     const prev = data[COLUMN_NAMES.CURATOR];
     data[COLUMN_NAMES.CURATOR] = curators;
 
@@ -610,30 +610,34 @@ function clearFormatting() {
   tabulator.value?.clearFilter(true); // clear header filters       
 }
 
-function sendVisualisationRequest(filter: string[], sendType: "sheet" | "select") {
-  const rows: RowComponent[] = sendType == "select" ? selectedRows.value : tabulator.value?.getRows() ?? [];
+function sendVisualisationRequest(sendType: "sheet" | "select") {
+  const rows: RowComponent[] = tabulator.value?.getRows() ?? [];
 
-  const indices = rows.map(r => r.getIndex())
-  indices.sort(function (a, b) {
-    return a - b
-  });
-
-  const visualisationWindow = window.open('', 'VisualisationWindow');
+  // Use a unique window name per spreadsheet to allow multiple visualisation windows
+  const windowName = `VisualisationWindow_${repo}_${fileName}`.replace(/[^a-zA-Z0-9_]/g, '_');
+  const visualisationWindow = window.open('', windowName);
 
 
-  if(visualisationWindow === null) {
+  if (visualisationWindow === null) {
     alert("Pop-up blocked! Please allow pop-ups for this site to open the visualisation window.");
     return;
   }
+
+  // Build the sheet data to send - either full sheet or just selected rows
+  const sheetDataToSend: SpreadsheetData = toRaw({ header: spreadsheetData.value?.header ?? [], rows: rows.map(r => r.getData()) });
+
 
   visualisationWindow?.focus();
   visualisationWindow.ose = {
     ...visualisationWindow.ose ?? {},
     visualise: {
-      selection: selectedRows.value.map(r => r.getIndex()),
-      sheetData: JSON.parse(JSON.stringify(spreadsheetData.value)),
+      selection: rows.map((r, i) => (selectedRows.value.includes(r) || sendType === 'sheet') ? i : null).filter(i => i !== null),
+      sheetData: sheetDataToSend,
     }
   }
+
+  console.log("Sent data to visualisation window:", visualisationWindow.ose.visualise);
+
   if (visualisationWindow.oseDataChanged === undefined) {
     visualisationWindow.location.href = URL_PREFIX + "/openVisualise";
   } else {
@@ -681,9 +685,9 @@ async function saveChanges() {
 
   if (!valid.value) {
     const saveValidationMessage = `<ul style="list-style: none; padding: 0; margin: 0;">${allDiagnostics.value
-        .map(m => `<li style="margin: 0; padding: 0; display: block"><span class="badge text-bg-${m.type === 'error' ? 'danger' : m.type}">${m.type}</span>
+      .map(m => `<li style="margin: 0; padding: 0; display: block"><span class="badge text-bg-${m.type === 'error' ? 'danger' : m.type}">${m.type}</span>
                             Row ${m.diagnostic.row}: ${DIAGNOSTIC_DATA[m.diagnostic.type].message(m.diagnostic)}</li>`)
-        .join("\n")}</ul>`
+      .join("\n")}</ul>`
 
     bootbox.dialog({
       title: "There are validation errors, are you sure you want to save?",
@@ -782,9 +786,9 @@ async function submitChanges(commitMessage: string, details: string, merge_strat
                 variant: 'success',
               }
             },
-            component: h(BToast, {variant: "success"}, {
-              default: () => h("div", {style: "display: flex; align-items: center; gap: 16px"}, [
-                h("i", {class: "fa fa-save"}),
+            component: h(BToast, { variant: "success" }, {
+              default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+                h("i", { class: "fa fa-save" }),
                 h("span", null, "Changes were saved successfully to the repository.")
               ])
             })
@@ -837,10 +841,10 @@ async function submitChanges(commitMessage: string, details: string, merge_strat
 
 const RIBBON = {
   visualiseSheet() {
-    sendVisualisationRequest([], "sheet");
+    sendVisualisationRequest("sheet");
   },
   visualiseSelection() {
-    sendVisualisationRequest([], "select");
+    sendVisualisationRequest("select");
   },
   validate() {
     validate();
@@ -860,7 +864,7 @@ const RIBBON = {
   },
   async addRow() {
     const idNum = tabulator.value?.getDataCount() ?? 0;
-    const rowObj: { id: number, [k: string]: unknown } = {id: idNum} // add to end of table! 
+    const rowObj: { id: number, [k: string]: unknown } = { id: idNum } // add to end of table! 
     for (const column of tabulator.value?.getColumns() ?? []) {
       const field = column.getField();
       if (!field) {
@@ -913,7 +917,7 @@ const RIBBON = {
           const prevCurationStatus = data[COLUMN_NAMES.CURATION_STATUS]
           data[COLUMN_NAMES.CURATION_STATUS] = CURATION_STATUS.OBSOLETE;
 
-          await alertDialog({message: "You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead."});
+          await alertDialog({ message: "You can't delete a row that has already had an ID assigned. Setting row status to 'Obsolete' instead." });
           row.deselect();
 
 
@@ -959,7 +963,7 @@ const RIBBON = {
 
       const cellValue: string | undefined | null = cell?.getValue();
       const reviewers = cellValue?.split(";")?.map(x => x.trim()).filter(x => x !== LOGIN_INITIALS).join("; ");
-      await row.update({[COLUMN_NAMES.TO_BE_REVIEWED_BY]: reviewers});
+      await row.update({ [COLUMN_NAMES.TO_BE_REVIEWED_BY]: reviewers });
       row.deselect(); //triggers rowDeselected()
       //backup changes
 
@@ -978,7 +982,7 @@ const RIBBON = {
     const result = await promptDialog<string[]>({
       title: "Choose reviewers",
       inputType: 'checkbox',
-      inputOptions: ALL_INITIALS.map(i => ({value: i, text: i}))
+      inputOptions: ALL_INITIALS.map(i => ({ value: i, text: i }))
     });
     if (result === null || result.length === 0) { //cancel or no curator selected
       return;
@@ -994,7 +998,7 @@ const RIBBON = {
 
       const reviewers = [cell.getValue()?.trim(), ...result].filter(x => !!x).join("; ")
 
-      row.update({[COLUMN_NAMES.TO_BE_REVIEWED_BY]: reviewers});
+      row.update({ [COLUMN_NAMES.TO_BE_REVIEWED_BY]: reviewers });
       row.deselect();
       // backup changes:
       const cellValueData = reviewers;
@@ -1054,16 +1058,16 @@ function defColumnSize(field: string): number {
 </script>
 
 <template>
-  <BToastOrchestrator/>
+  <BToastOrchestrator />
 
-  <div :class="{'visually-hidden': mode !== 'edit'}" class="editor-container">
+  <div :class="{ 'visually-hidden': mode !== 'edit' }" class="editor-container">
     <div class="row mb-3">
       <div class="col-md-12">
         <div class="card p-0">
           <div class="card-body ribbon p-0 m-0">
             <div v-if="isReadOnly" class="ribbon-full">
-              <a :class="{disabled: locked}" :download="fileName" :href="downloadPath" class="btn-ribbon"
-                 target="_blank">
+              <a :class="{ disabled: locked }" :download="fileName" :href="downloadPath" class="btn-ribbon"
+                target="_blank">
                 <i class="fas fa-download" style="color: cornflowerblue"></i><br>
                 Download
               </a>
@@ -1074,7 +1078,7 @@ function defColumnSize(field: string): number {
                 Save
               </button>
             </div>
-            <span :style="{gridColumn: `span ${2-(+isReadOnly)}`}" class="ribbon-title">Edit</span>
+            <span :style="{ gridColumn: `span ${2 - (+isReadOnly)}` }" class="ribbon-title">Edit</span>
 
             <div v-if="!isReadOnly" class="ribbon-small">
               <button :disabled="locked || !historyService.canUndo()" class="btn-ribbon" @click="RIBBON.undo()">
@@ -1084,8 +1088,8 @@ function defColumnSize(field: string): number {
                 <i class="fas fa-redo"></i> Redo
               </button>
 
-              <a :class="{disabled: locked}" :download="fileName" :href="downloadPath" class="btn-ribbon"
-                 target="_blank">
+              <a :class="{ disabled: locked }" :download="fileName" :href="downloadPath" class="btn-ribbon"
+                target="_blank">
                 <i class="fas fa-download" style="color: cornflowerblue"></i><br>
                 Download
               </a>
@@ -1101,7 +1105,7 @@ function defColumnSize(field: string): number {
                 </button>
 
                 <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
-                        @click="RIBBON.deleteSelectedRows()">
+                  @click="RIBBON.deleteSelectedRows()">
                   <i class="fas fa-trash-alt" style="color: indianred"></i><br>
                   Delete
                 </button>
@@ -1114,7 +1118,7 @@ function defColumnSize(field: string): number {
 
               <div class="ribbon-full">
                 <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
-                        @click="RIBBON.markAsReviewed()">
+                  @click="RIBBON.markAsReviewed()">
                   <i class="fas fa-clipboard-check" style="color: green"></i><br>
                   Reviewed
                 </button>
@@ -1127,7 +1131,7 @@ function defColumnSize(field: string): number {
                   <i class="fas fa-user"></i> Highlight yours
                 </button>
                 <button :disabled="locked || selectedRows.length <= 0" class="btn-ribbon"
-                        @click="RIBBON.askForReview()">
+                  @click="RIBBON.askForReview()">
                   <i class="fas fa-clipboard"></i> Ask for review
                 </button>
               </div>
@@ -1142,7 +1146,7 @@ function defColumnSize(field: string): number {
                 <i class="fas fa-filter-circle-xmark" style="color: indianred"></i> Remove filters
               </button>
               <button :disabled="locked || !tabulator?.getColumns()?.find(c => !c.isVisible())" class="btn-ribbon"
-                      @click="RIBBON.showHiddenColumns">
+                @click="RIBBON.showHiddenColumns">
                 <i class="fas fa-eye" style="color: cornflowerblue"></i> Show hidden columns
               </button>
               <button :disabled="locked" class="btn-ribbon" @click="RIBBON.resetColumnWidths()">
@@ -1188,7 +1192,7 @@ function defColumnSize(field: string): number {
 
     <div :style="showDiagnosticList ? 'height: calc(100% - 200px)' : 'height: 100%'" class="row editor-row">
       <div id="contentTable" ref="table" class="table table-bordered table-hover table-sm"
-           style="font-size: 0.8em; margin-bottom: 0 !important;">
+        style="font-size: 0.8em; margin-bottom: 0 !important;">
       </div>
       <div v-if="!tabulator" class="loading-data">
         <div class="loader"></div>
@@ -1197,8 +1201,8 @@ function defColumnSize(field: string): number {
 
 
     <template v-if="canValidate">
-      <button :style="{bottom: showDiagnosticList ? '200px' : '0'} " class="toggle-diagnostics bg-secondary"
-              @click="showDiagnosticList = !showDiagnosticList">
+      <button :style="{ bottom: showDiagnosticList ? '200px' : '0' }" class="toggle-diagnostics bg-secondary"
+        @click="showDiagnosticList = !showDiagnosticList">
         <template v-if="showDiagnosticList">
           <i class="fa fa-chevron-down"></i> Hide validation messages
         </template>
@@ -1206,35 +1210,31 @@ function defColumnSize(field: string): number {
           <i class="fa fa-chevron-up"></i> Show validation messages
         </template>
       </button>
-      <div v-if="showDiagnosticList"
-           class="row border-1 border-danger overflow-scroll bg-secondary-subtle"
-           style="height: 200px; min-height: 200px">
+      <div v-if="showDiagnosticList" class="row border-1 border-danger overflow-scroll bg-secondary-subtle"
+        style="height: 200px; min-height: 200px">
         <div class="diagnostics-header bg-secondary">
-          <button :class="{active: filterToDiagnostics.includes('error')}" :disabled="locked"
-                  class="btn-diagnostics-filter"
-                  @click="RIBBON.filterToErrors()">
+          <button :class="{ active: filterToDiagnostics.includes('error') }" :disabled="locked"
+            class="btn-diagnostics-filter" @click="RIBBON.filterToErrors()">
             <i class="fas fa-circle-xmark" style="color: indianred"></i> Errors ({{ errors.length }})
           </button>
-          <button :class="{active: filterToDiagnostics.includes('warning')}" :disabled="locked"
-                  class="btn-diagnostics-filter"
-                  @click="RIBBON.filterToWarnings()">
+          <button :class="{ active: filterToDiagnostics.includes('warning') }" :disabled="locked"
+            class="btn-diagnostics-filter" @click="RIBBON.filterToWarnings()">
             <i class="fas fa-exclamation-triangle" style="color: orange"></i> Warnings ({{ warnings.length }})
           </button>
-          <button :class="{active: filterToDiagnostics.includes('info')}" :disabled="locked"
-                  class="btn-diagnostics-filter"
-                  @click="RIBBON.filterToInfos()">
+          <button :class="{ active: filterToDiagnostics.includes('info') }" :disabled="locked"
+            class="btn-diagnostics-filter" @click="RIBBON.filterToInfos()">
             <i class="fas fa-info-circle" style="color: dodgerblue"></i> Infos ({{ infos.length }})
           </button>
         </div>
         <div class="diagnostics-grid">
           <template
-              v-for="d of allDiagnostics.filter(x => filterToDiagnostics.length === 0 || filterToDiagnostics.includes(x.type))">
-            <i :class="{'fa-circle-xmark': d.type === 'error',
-                    'fa-triangle-exclamation': d.type === 'warning',
-                    'fa-info-circle': d.type ==='info',
-                    [`text-${d.type === 'error' ? 'danger' : d.type}`]: true}"
-
-               class="fa dg-type"></i>
+            v-for="d of allDiagnostics.filter(x => filterToDiagnostics.length === 0 || filterToDiagnostics.includes(x.type))">
+            <i :class="{
+              'fa-circle-xmark': d.type === 'error',
+              'fa-triangle-exclamation': d.type === 'warning',
+              'fa-info-circle': d.type === 'info',
+              [`text-${d.type === 'error' ? 'danger' : d.type}`]: true
+            }" class="fa dg-type"></i>
 
             <a v-if="d.diagnostic.row > 0" class="dg-row" @click="scrollAndHighlightRow(d.diagnostic.row - 2)">Row
               {{ d.diagnostic.row - 1 }}</a>
@@ -1257,12 +1257,12 @@ function defColumnSize(field: string): number {
       <div class="form-group">
         <label for="commit-msg">Commit message</label>
         <input id="commit-msg" v-model="submitCommitMessage" class="form-control" name="commit-msg" required
-               type="text">
+          type="text">
       </div>
       <div class="form-group">
         <label for="descr">Detailed description</label>
         <textarea id="descr" v-model="submitDetailedMessage" class="form-control" name="descr">
-        </textarea>
+      </textarea>
       </div>
     </form>
 
@@ -1272,19 +1272,17 @@ function defColumnSize(field: string): number {
     </template>
   </BModal>
 
-  <BModal v-model="saving" centered
-          no-close-on-backdrop no-close-on-esc no-footer no-header variant="primary">
+  <BModal v-model="saving" centered no-close-on-backdrop no-close-on-esc no-footer no-header variant="primary">
     <p class="text-center">
-      <BSpinner class="m-4" style="width: 5rem; height: 5rem;"/>
+      <BSpinner class="m-4" style="width: 5rem; height: 5rem;" />
     </p>
 
     <h4 class="text-center">Saving file..</h4>
   </BModal>
 
-  <BModal v-model="validating" centered
-          no-close-on-backdrop no-close-on-esc no-footer no-header variant="primary">
+  <BModal v-model="validating" centered no-close-on-backdrop no-close-on-esc no-footer no-header variant="primary">
     <p class="text-center">
-      <BSpinner class="m-4" style="width: 5rem; height: 5rem;"/>
+      <BSpinner class="m-4" style="width: 5rem; height: 5rem;" />
     </p>
 
     <h4 class="text-center">Validating..</h4>
@@ -1313,7 +1311,7 @@ function defColumnSize(field: string): number {
     grid-auto-columns: max-content;
     grid-template-rows: 1fr 2em;
 
-    & > * {
+    &>* {
       margin: 0 2em;
     }
 
@@ -1323,7 +1321,8 @@ function defColumnSize(field: string): number {
       padding: 4px;
       margin: 4px;
 
-      button, .btn-ribbon {
+      button,
+      .btn-ribbon {
         background: none;
         border: none;
 
@@ -1341,8 +1340,12 @@ function defColumnSize(field: string): number {
           background: #c8c8c8;
         }
 
-        &[disabled], &[disabled]:hover, &.disabled {
-          &, i {
+        &[disabled],
+        &[disabled]:hover,
+        &.disabled {
+
+          &,
+          i {
             color: #ccc !important;
           }
         }
@@ -1371,7 +1374,8 @@ function defColumnSize(field: string): number {
       display: flex;
       flex-direction: column;
 
-      button, .btn-ribbon {
+      button,
+      .btn-ribbon {
         border-radius: 3px;
 
         display: grid;
@@ -1392,7 +1396,8 @@ function defColumnSize(field: string): number {
       flex-direction: row;
       justify-content: center;
 
-      button, .btn-ribbon {
+      button,
+      .btn-ribbon {
         padding-top: 8px;
         padding-bottom: 8px;
         border-radius: 3px;
@@ -1479,7 +1484,8 @@ function defColumnSize(field: string): number {
       background: #c8c8c8;
     }
 
-    &[disabled], &[disabled]:hover {
+    &[disabled],
+    &[disabled]:hover {
       i {
         color: #ccc !important;
       }
@@ -1549,7 +1555,9 @@ function defColumnSize(field: string): number {
   }
 
   .tabulator.table {
-    .tabulator-headers, .tabulator-row {
+
+    .tabulator-headers,
+    .tabulator-row {
       padding-left: 0;
     }
   }
@@ -1576,4 +1584,4 @@ function defColumnSize(field: string): number {
   }
 
 }
-</style> 
+</style>
