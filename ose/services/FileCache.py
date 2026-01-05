@@ -110,12 +110,11 @@ class FileCache:
 
         return content
     
-    def store(self, basename: str, content: bytes, lifetime: Optional[int] = None) -> str:
+    def store(self, id: str, content: bytes, basename: Optional[str] = None, lifetime: Optional[int] = None) -> str:
         self._load_cache()
 
         lifetime = lifetime or self.lifetime
-
-        id = "DATA_" + hashlib.md5(content).hexdigest()
+        basename = basename or "CACHE_DATA"
 
         if id in self._cache:
             existing_content = self._retrieve_from_cache(id)

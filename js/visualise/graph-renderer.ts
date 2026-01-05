@@ -190,10 +190,10 @@ export function createArrowMarkers(
   defs.append('marker')
     .attr('id', 'arrow-hierarchy')
     .attr('viewBox', '0 -5 10 10')
-    .attr('refX', 8)
+    .attr('refX', 0)
     .attr('refY', 0)
-    .attr('markerWidth', 6)
-    .attr('markerHeight', 6)
+    .attr('markerWidth', 5)
+    .attr('markerHeight', 5)
     .attr('orient', 'auto')
     .append('path')
     .attr('d', 'M0,-5L10,0L0,5')
@@ -202,8 +202,8 @@ export function createArrowMarkers(
   // Create arrow markers for each relation color
   const usedColors = new Set<string>();
   for (const edge of relationEdges) {
-    const edgeLabel = edge.label || edge.type || '';
-    const edgeColor = RELATION_COLOR_MAP[edgeLabel] || edge.color || 'orange';
+    const edgeLabel = edge.label ?? edge.type ?? '';
+    const edgeColor = RELATION_COLOR_MAP[edgeLabel] ?? edge.color ?? 'orange';
     usedColors.add(edgeColor);
   }
   
@@ -249,8 +249,11 @@ export function drawHierarchyEdges(
         const target = d.target as d3.HierarchyPointNode<HierarchyNode>;
         const targetDims = nodeDimensionsMap.get(target.data.id);
         const targetHeight = targetDims ? targetDims.height / 2 : 12;
-        const adjustedTargetY = target.y! - targetHeight;
-        return `M${source.x},${source.y}C${source.x},${(source.y + adjustedTargetY) / 2} ${target.x},${(source.y + adjustedTargetY) / 2} ${target.x},${adjustedTargetY}`;
+        const adjustedTargetY = target.y! - targetHeight-8;
+        const sourceDims = nodeDimensionsMap.get(source.data.id);
+        const sourceHeight = sourceDims ? sourceDims.height / 2 : 12;
+        const adjustedSourceY = source.y! + sourceHeight;
+        return `M${source.x},${adjustedSourceY}C${source.x},${(adjustedSourceY + adjustedTargetY) / 2} ${target.x},${(adjustedSourceY + adjustedTargetY) / 2} ${target.x},${adjustedTargetY}`;
       })
       .attr('marker-end', 'url(#arrow-hierarchy)')
       .on('mouseenter', function(_event, d) {
@@ -289,26 +292,57 @@ export function drawRelationEdges(
     const edgeColor = RELATION_COLOR_MAP[edgeLabel] || edge.color || 'orange';
     const colorId = edgeColor.replace(/[^a-zA-Z0-9]/g, '_');
 
-    // Get target node dimensions to adjust endpoint
+    // Get node dimensions
+    const sourceDims = nodeDimensionsMap.get(edge.source);
     const targetDims = nodeDimensionsMap.get(edge.target);
+    const sourceWidth = sourceDims ? sourceDims.width / 2 : 40;
+    const targetWidth = targetDims ? targetDims.width / 2 : 40;
+    const sourceHeight = sourceDims ? sourceDims.height / 2 : 12;
     const targetHeight = targetDims ? targetDims.height / 2 : 12;
 
-    // Draw curved path for relation edge
-    const midX = (sourcePos.x + targetPos.x) / 2;
-    const midY = (sourcePos.y + targetPos.y) / 2;
+    // Calculate edge start and end points at node boundaries
     const dx = targetPos.x - sourcePos.x;
     const dy = targetPos.y - sourcePos.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist === 0) continue;
+
+    // Determine if edge is more horizontal or vertical
+    const angle = Math.atan2(dy, dx);
+    const isHorizontal = Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle));
+    
+    // Calculate start point at source node edge
+    let startX: number, startY: number;
+    if (isHorizontal) {
+      // Connect at left/right edge
+      startX = sourcePos.x + (dx > 0 ? sourceWidth : -sourceWidth);
+      startY = sourcePos.y + (dy / dist) * sourceHeight * 0.5;
+    } else {
+      // Connect at top/bottom edge
+      startX = sourcePos.x + (dx / dist) * sourceWidth * 0.5;
+      startY = sourcePos.y + (dy > 0 ? sourceHeight : -sourceHeight);
+    }
+
+    // Calculate end point at target node edge
+    let endX: number, endY: number;
+    if (isHorizontal) {
+      // Connect at left/right edge
+      endX = targetPos.x + (dx > 0 ? -targetWidth : targetWidth);
+      endY = targetPos.y - (dy / dist) * targetHeight * 0.5;
+    } else {
+      // Connect at top/bottom edge
+      endX = targetPos.x - (dx / dist) * targetWidth * 0.5;
+      endY = targetPos.y + (dy > 0 ? -targetHeight : targetHeight);
+    }
+
+    // Draw curved path for relation edge
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
     const offsetAmount = Math.min(30, dist * 0.2);
     const curveOffsetX = dist > 0 ? (-dy / dist) * offsetAmount : 0;
     const curveOffsetY = dist > 0 ? (dx / dist) * offsetAmount : 0;
 
-    // Adjust target position to stop at node edge
-    const angle = Math.atan2(targetPos.y - (midY + curveOffsetY), targetPos.x - (midX + curveOffsetX));
-    const adjustedTargetX = targetPos.x - Math.cos(angle) * 10;
-    const adjustedTargetY = targetPos.y - Math.sin(angle) * targetHeight;
-
-    const pathData = `M${sourcePos.x},${sourcePos.y} Q${midX + curveOffsetX},${midY + curveOffsetY} ${adjustedTargetX},${adjustedTargetY}`;
+    const pathData = `M${startX},${startY} Q${midX + curveOffsetX},${midY + curveOffsetY} ${endX},${endY}`;
 
     const sourceId = edge.source;
     const targetId = edge.target;
@@ -339,15 +373,38 @@ export function drawRelationEdges(
     // Draw label on the edge
     if (edgeLabel) {
       edgesLayer.append('text')
+        .attr('class', 'relation-edge-label')
+        .attr('data-source', sourceId)
+        .attr('data-target', targetId)
         .attr('x', midX + curveOffsetX)
         .attr('y', midY + curveOffsetY - 4)
         .attr('text-anchor', 'middle')
         .style('font-size', '9px')
         .style('fill', edgeColor)
         .style('font-style', 'italic')
-        .text(edgeLabel);
+        .style('cursor', 'pointer')
+        .text(edgeLabel)
+        .on('mouseenter', function() {
+          onEdgeInteraction(sourceId, targetId, this, 'enter');
+        })
+        .on('mouseleave', function() {
+          onEdgeInteraction(sourceId, targetId, this, 'leave');
+        })
+        .on('click', function() {
+          onEdgeInteraction(sourceId, targetId, this, 'click');
+        });
     }
   }
+}
+
+function nodeClasses(d: d3.HierarchyPointNode<HierarchyNode>): string[] {
+  const curationStatus = (d.data.ose_curation ?? CURATION_STATUS.EXTERNAL).toLowerCase().replace(/\s+/g, '_');
+  return [
+    'node',
+    `ose-source-${d.data.ose_source}`,
+    `ose-curation-status-${curationStatus}`,
+    ...(d.data.ose_selected ? ['ose-selected'] : [])
+  ];
 }
 
 /**
@@ -356,7 +413,9 @@ export function drawRelationEdges(
 export function drawNodes(
   nodesLayer: d3.Selection<SVGGElement, unknown, null, undefined>,
   treeLayouts: TreeLayoutData[],
-  nodeDimensionsMap: Map<string, NodeDimensions>
+  nodeDimensionsMap: Map<string, NodeDimensions>,
+  onNodeInteraction: (nodeId: string, element: SVGElement, action: 'enter' | 'leave') => void,
+  onNodeDoubleClick: (nodeData: HierarchyNode) => void
 ) {
   for (const { root, offsetX, offsetY } of treeLayouts) {
     const treeNodesGroup = nodesLayer.append('g')
@@ -367,9 +426,18 @@ export function drawNodes(
       .data(root.descendants())
       .enter()
       .append('g')
-      .attr('class', d => `node ose-curation-status-${(d.data.ose_curation || CURATION_STATUS.EXTERNAL).toLowerCase().replace(/\s+/g, '_')}`)
+      .attr('class', d => nodeClasses(d).join(' '))
       .attr('data-node-id', d => d.data.id)
-      .attr('transform', d => `translate(${d.x},${d.y})`);
+      .attr('transform', d => `translate(${d.x},${d.y})`)
+      .on('mouseenter', function(_event, d) {
+        onNodeInteraction(d.data.id, this, 'enter');
+      })
+      .on('mouseleave', function(_event, d) {
+        onNodeInteraction(d.data.id, this, 'leave');
+      })
+      .on('dblclick', function(_event, d) {
+        onNodeDoubleClick(d.data);
+      });
 
     // Node background rectangle with dynamic dimensions
     nodeGroups.append('rect')
@@ -434,8 +502,8 @@ export function initializePanZoom(
     zoomEnabled: true,
     controlIconsEnabled: true,
     dblClickZoomEnabled: false,
-    contain: false,
-    center: !savedState,
+    contain: true,
+    center: true,
     zoomScaleSensitivity: 0.3,
     minZoom: 0.01,
     maxZoom: 100

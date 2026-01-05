@@ -1,12 +1,14 @@
+from collections.abc import Sequence
 import os
 import pickle
 import logging
+import re
 import traceback
 from flask import Blueprint, current_app, g, json, request, jsonify
 import jsonschema
 
 from ose.guards.with_permission import requires_permissions
-from ose.model.Term import Term
+from ose.model.Term import Term, UnresolvedTerm
 from ose.model.ExcelOntology import ExcelOntology
 from ose.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
 from ose.model.TermIdentifier import TermIdentifier
@@ -53,7 +55,7 @@ def get_dependencies(
             )
 
         # Try to get from cache first
-        cache_key = f"visualisation_deps_{repo}_{path.replace('/', '_')}"
+        cache_key = re.sub(r'[^a-zA-Z0-9-_]', '_', f"visualisation_deps_{repo}_{path}")
         cached_data = cache.retrieve(cache_key)
         if cached_data:
             logger.debug(f"Returning cached data for {cache_key}")
@@ -170,17 +172,21 @@ def get_dependencies(
                         origin="dependency:" + source.file,
                     ).value
                     dependencies_ontology.merge(owl_ontology)
+                    
+                    
+        derived_ontology.import_other_excel_ontology(dependencies_ontology)
+        derived_ontology.resolve()
 
         # Serialize ontology terms to JSON format
-        def terms_to_json(terms_list: list[Term]) -> list[dict]:
+        def terms_to_json(terms_list: Sequence[Term | UnresolvedTerm]) -> list[dict]:
             result = []
             for term in terms_list:
                 term_data = {
                     "id": term.id,
                     "label": term.label,
-                    "curation_status": term.curation_status() or "External",
+                    "curationStatus": term.curation_status() or "External",
                     "origin": term.origin[0] if term.origin else "<unknown>",
-                    "sub_class_of": [
+                    "subClassOf": [
                         {"id": p.id, "label": p.label}
                         for p in term.sub_class_of
                         if p.id is not None
@@ -198,7 +204,7 @@ def get_dependencies(
             return result
 
         dependency_terms = [t for t in dependencies_ontology.terms()]
-        derived_terms = [t for t in derived_ontology.terms()]
+        derived_terms = [t for t in derived_ontology._terms]
 
         logger.info(
             f"Successfully loaded {len(dependency_terms)} dependency terms and {len(derived_terms)} derived terms"

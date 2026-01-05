@@ -16,6 +16,7 @@ import Merger from "./Merger.vue";
 import { HistoryService } from "./HistoryService.ts"
 import { getCell } from "../common/tabulator-extensions.ts";
 import { SpreadsheetData } from "../common/spreadsheetdata.ts";
+import { isFocusWindowMessage, isNavigateToSheetMessage, isNavigateToTermMessage, isScrollToRowMessage } from "../common/messages.ts";
 
 declare var URLS: { [key: string]: any };
 declare var ALL_INITIALS: string[];
@@ -133,6 +134,24 @@ const onKeyPress = (e: KeyboardEvent) => {
   }
 }
 
+const onMessage = (e: MessageEvent) => {
+  if (isScrollToRowMessage(e.data)) {
+    scrollAndHighlightRow(e.data.position)
+  } else if (isFocusWindowMessage(e.data)) {
+    window.focus();
+  } else if (isNavigateToTermMessage(e.data)) {
+    const filter = e.data.termID ? { "ID": e.data.termID } : { "Label": e.data.termLabel };
+    const newurl = `${URL_PREFIX}/edit/${e.data.repo}/${e.data.sheet}?filter=${encodeURIComponent(JSON.stringify(filter))}`;
+    window.location.href = newurl;
+    window.focus();
+  } else if (isNavigateToSheetMessage(e.data)) {
+    const filter = e.data.filter ?? null;
+    const filterParam = filter ? `?filter=${encodeURIComponent(JSON.stringify(filter))}` : "";
+    window.location.href = `${URL_PREFIX}/edit/${e.data.repo}/${e.data.sheet}${filterParam}`;
+    window.focus();
+  }
+}
+
 let checkForUpdatesTimer: number | undefined;
 onMounted(() => {
   loadData()
@@ -157,11 +176,13 @@ onMounted(() => {
   window.addEventListener("resize", onWindowSizeChanged);
   window.addEventListener("beforeunload", onBeforeUnload);
   window.addEventListener("keydown", onKeyPress);
+  window.addEventListener("message", onMessage);
 })
 onUnmounted(() => {
   window.removeEventListener("resize", onWindowSizeChanged);
   window.removeEventListener("beforeunload", onBeforeUnload);
   window.removeEventListener("keydown", onKeyPress);
+  window.removeEventListener("message", onMessage);
   if (checkForUpdatesTimer) {
     clearInterval(checkForUpdatesTimer)
   }
@@ -624,8 +645,8 @@ function sendVisualisationRequest(sendType: "sheet" | "select") {
   }
 
   // Build the sheet data to send - either full sheet or just selected rows
-  const sheetDataToSend: SpreadsheetData = toRaw({ 
-    header: spreadsheetData.value?.header ?? [], 
+  const sheetDataToSend: SpreadsheetData = toRaw({
+    header: spreadsheetData.value?.header ?? [],
     rows: rows.map(r => r.getData()),
     file_sha: spreadsheetData.value?.file_sha ?? '',
     repo_name: repo,
@@ -638,8 +659,8 @@ function sendVisualisationRequest(sendType: "sheet" | "select") {
   visualisationWindow.ose = {
     ...visualisationWindow.ose ?? {},
     visualise: {
-      selection: rows.map((r, i) => (selectedRows.value.includes(r) || sendType === 'sheet') ? i : null).filter(i => i !== null),
-      sheetData: sheetDataToSend,
+      selection: sendType === 'select' ? rows.map((r, i) => selectedRows.value.includes(r) ? i : null).filter(i => i !== null) : null,
+      sheetData: sheetDataToSend
     }
   }
 

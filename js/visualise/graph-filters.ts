@@ -23,10 +23,9 @@ export function applyGraphFilters(graph: Graph, options: FilterOptions): Filtere
   
   // Filter nodes based on criteria
   for (const node of graph.nodes) {
-    const status = node.ose_curation;
-    const origin = node.ose_origin;
-    const depth = node.visual_depth;
-    const isFromCurrentSheet = !options.currentSheet || origin.endsWith(options.currentSheet);
+    const status = node.curationStatus;
+    const depth = node.visualDepth;
+    const isFromCurrentSheet = node.source === 'current';
     const isParentNode = depth < 0;
     const isChildNode = depth > 0;
     const isRelevantParent = depth === 0; 
@@ -64,6 +63,8 @@ export interface HierarchyNode {
   label: string;
   ose_curation: string;
   ose_origin: string;
+  ose_source: 'current' | 'dependencies' | 'derived';
+  ose_selected: boolean;
   children: HierarchyNode[];
 }
 
@@ -108,8 +109,10 @@ export function buildHierarchyTrees(
     return {
       id: node.id,
       label: node.label,
-      ose_curation: node.ose_curation,
-      ose_origin: node.ose_origin,
+      ose_curation: node.curationStatus,
+      ose_origin: node.origin,
+      ose_source: node.source,
+      ose_selected: node.isSelected,
       children
     };
   }

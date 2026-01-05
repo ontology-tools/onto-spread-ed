@@ -1,19 +1,22 @@
 import { CURATION_STATUS } from '../common/constants';
 import { Graph, Node, Row } from '../common/types';
 
+export interface TermDataRelation {
+    relation: { label: string };
+    target: { label: string };
+}
+
 /**
  * Term data from backend
  */
 export interface TermData<ParentId = string | undefined> {
     id: string;
+    index: number;
     label: string;
-    curation_status?: string;
+    curationStatus?: string;
     origin?: string;
-    sub_class_of: { id: ParentId, label: string }[];
-    relations: {
-        relation: { label: string };
-        target: string;
-    }[];
+    subClassOf: { id: ParentId, label: string }[];
+    relations: TermDataRelation[];
 }
 
 export type ResolvedTermData = TermData<string>;
@@ -33,30 +36,24 @@ export function buildGraphFromSpreadsheet(
     currentRows: Row[],
     currentHeader: string[],
     currentSpreadsheetName: string,
-    dependencyData: DependencyData
+    dependencyData: DependencyData,
+    selection?: number[]
 ): Graph {
-    const graph: Graph = {
-        directed: true,
-        multigraph: true,
-        nodes: [],
-        edges: []
-    };
+    const graph: Graph = new Graph();
 
     const relationColumns = currentHeader.filter(h => h.startsWith("REL "));
     console.debug("Relation columns found:", relationColumns);
 
     // Convert current spreadsheet rows to TermData
-    const currentTerms: TermData[] = currentRows.map(row => {
-        const getId = (row: Row) => row['ID'].trim();
-        const getLabel = (row: Row) => row['Label'].trim();
-
-
-        const getCurationStatus = (row: Row) => Object.entries(row)
+    const currentTerms: TermData[] = currentRows.map((row, index) => {
+        const id = row['ID'].trim();
+        const label = row['Label'].trim();
+        const curationStatus = Object.entries(row)
             .find(([k, _]) => k.toLowerCase().includes('curation status'))
             ?.[1].trim() || CURATION_STATUS.PRE_PROPOSED;
-        const getParents = (row: Row) => [{ label: row['Parent'].trim(), id: undefined }];
+        const parents = [{ label: row['Parent'].trim(), id: undefined }];
 
-        const relations: Array<{ relation: { label: string }; target: string }> = [];
+        const relations: TermDataRelation[] = [];
         for (const relCol of relationColumns) {
             const value = row[relCol];
             if (value && typeof value === 'string') {
@@ -64,19 +61,20 @@ export function buildGraphFromSpreadsheet(
                 for (const target of targets) {
                     relations.push({
                         relation: { label: relCol.replace(/REL '([^']+)'.*/, "$1") },
-                        target: target
+                        target: {label: target}
                     });
                 }
             }
         }
 
         return {
-            id: getId(row),
-            label: getLabel(row),
-            curation_status: getCurationStatus(row),
+            id,
+            label,
+            curationStatus,
             origin: currentSpreadsheetName,
-            sub_class_of: getParents(row),
-            relations: relations
+            subClassOf: parents,
+            relations,
+            index
         };
     }).filter(term => term.id); // Filter out rows without IDs
 
@@ -105,7 +103,7 @@ export function buildGraphFromSpreadsheet(
 
     // Resolve parent IDs
     for (const term of currentTerms) {
-        for (const parent of term.sub_class_of) {
+        for (const parent of term.subClassOf) {
             const parentTerm = termsByLabel.get(parent.label);
             if (parentTerm) {
                 parent.id = parentTerm.id;
@@ -117,12 +115,12 @@ export function buildGraphFromSpreadsheet(
 
     const allTerms = new Map<string, ResolvedTermData & { source: 'current' | 'dependencies' | 'derived' }>();
     for (const term of termsByLabel.values()) {
-        const unresolvedParents = term.sub_class_of.filter(p => p.id === undefined);
+        const unresolvedParents = term.subClassOf.filter(p => p.id === undefined);
         if (unresolvedParents.length > 0) {
             console.warn(`Term "${term.label} [${term.id}]" has unresolved parents:`, unresolvedParents);
         }
 
-        term.sub_class_of = term.sub_class_of.filter(p => p.id !== undefined);
+        term.subClassOf = term.subClassOf.filter(p => p.id !== undefined);
         allTerms.set(term.id, term as ResolvedTermData & { source: 'current' | 'dependencies' | 'derived' });
     }
 
@@ -131,24 +129,26 @@ export function buildGraphFromSpreadsheet(
     for (const [id, term] of allTerms) {
         const nodeId = id.replace(':', '_');
         const origin = term.origin || '<unknown>';
-        const curationStatus = term.curation_status || 'External';
+        const curationStatus = term.curationStatus || 'External';
 
-        graph.nodes.push({
+        const node: Node = {
             id: nodeId,
             label: term.label,
             class: `ose-curation-status-${curationStatus.toLowerCase().replace(/\s+/g, '_')}`,
-            ose_curation: curationStatus,
-            ose_origin: origin,
+            curationStatus,
+            origin,
             source: term.source,
-            visual_depth: -Infinity // Will be calculated later
-        });
+            isSelected: selection?.includes(term.index) === true,
+            visualDepth: -Infinity // Will be calculated later
+        };
+        graph.addNode(node);
     }
 
     // Create edges for subclass_of relationships
     for (const [id, term] of allTerms) {
         const nodeId = id.replace(':', '_');
 
-        for (const parent of term.sub_class_of) {
+        for (const parent of term.subClassOf) {
             const parentNodeId = parent.id.replace(':', '_');
 
             // Add parent node if it doesn't exist (external reference)
@@ -156,7 +156,7 @@ export function buildGraphFromSpreadsheet(
                 console.warn(`Parent term with label "${parent.label}" not found for term "${term.label} [${term.id}]"`);
             }
 
-            graph.edges.push({
+            graph.addEdge({
                 source: parentNodeId,
                 target: nodeId,
                 type: 'subclass_of'
@@ -169,19 +169,19 @@ export function buildGraphFromSpreadsheet(
         const nodeId = id.replace(':', '_');
 
         for (const rel of term.relations) {
-            const targetTerm = termsByLabel.get(rel.target);
+            const targetTerm = termsByLabel.get(rel.target.label);
             if (!targetTerm) {
-                console.warn(`Relation target term with label "${rel.target}" not found for term "${term.label} [${term.id}]"`);
+                console.warn(`Relation target term with label "${rel.target.label}" not found for term "${term.label} [${term.id}]"`);
                 continue;
             }
 
             const targetNodeId = targetTerm.id.replace(':', '_');
             const relationColor = getRelationColor(rel.relation.label);
 
-            graph.edges.push({
+            graph.addEdge({
                 source: nodeId,
                 target: targetNodeId,
-                type: rel.relation,
+                type: rel.relation.label,
                 label: rel.relation.label,
                 color: relationColor
             });
@@ -210,28 +210,15 @@ export function buildGraphFromSpreadsheet(
             .map(([id, _]) => id.replace(':', '_'))
     );
 
-    const successors = new Map<string, Set<string>>();
-    const predecessors = new Map<string, Set<string>>();
-    for (const edge of graph.edges) {
-        if (!successors.has(edge.source)) {
-            successors.set(edge.source, new Set());
-        }
-        successors.get(edge.source)!.add(edge.target);
-
-        if (!predecessors.has(edge.target)) {
-            predecessors.set(edge.target, new Set());
-        }
-        predecessors.get(edge.target)!.add(edge.source);
-    }
 
     function isReachableDependency(nodeId: string): boolean {
         if (currentNodeIds.has(nodeId)) {
             return true;
         }
 
-        const children = successors.get(nodeId) ?? new Set();
-        for (const childId of children) {
-            if (isReachableDependency(childId)) {
+        const children = graph.successors(nodeId);
+        for (const child of children) {
+            if (isReachableDependency(child.id)) {
                 return true;
             }
         }
@@ -243,9 +230,9 @@ export function buildGraphFromSpreadsheet(
             return true;
         }
 
-        const parents = predecessors.get(nodeId) ?? new Set();
-        for (const parentId of parents) {
-            if (isReachableDerived(parentId)) {
+        const parents = graph.predecessors(nodeId);
+        for (const parent of parents) {
+            if (isReachableDerived(parent.id)) {
                 return true;
             }
         }
@@ -265,11 +252,28 @@ export function buildGraphFromSpreadsheet(
         return false;
     }
 
-    graph.nodes = graph.nodes.filter(n => isReachable(n.id));
-    graph.edges = graph.edges.filter(e => isReachable(e.source) && isReachable(e.target));
+    for (const node of graph.nodes) {
+        if (!isReachable(node.id)) {
+            graph.removeNode(node.id);
+        }
+    }
 
     // Calculate visual depth for all nodes
     calculateVisualDepth(graph);
+
+    console.log({ graph: graph.clone() })
+
+    // Calculate which nodes are visible for the current selection
+    if (selection && selection.length > 0) {
+        const visibleNodes = new Set(graph.nodes.filter(node => node.isSelected).map(node => node.id));
+        calculateVisibleNodes(graph, visibleNodes);
+
+        for (const node of graph.nodes) {
+            if (!visibleNodes.has(node.id)) {
+                graph.removeNode(node.id);
+            }
+        }
+    }
 
     return graph;
 }
@@ -299,51 +303,26 @@ function getRelationColor(label?: string): string {
  * - 1..n for current sheet and derived nodes based on distance from closest parent with depth 0 (see above)
  */
 function calculateVisualDepth(graph: Graph) {
-    // Build adjacency maps
-    const predecessors = new Map<string, string[]>();
-    const successors = new Map<string, string[]>();
-
-    for (const edge of graph.edges) {
-        if (edge.type === 'subclass_of') {
-            if (!predecessors.has(edge.target)) {
-                predecessors.set(edge.target, []);
-            }
-            predecessors.get(edge.target)!.push(edge.source);
-
-            if (!successors.has(edge.source)) {
-                successors.set(edge.source, []);
-            }
-            successors.get(edge.source)!.push(edge.target);
-        }
-    }
-
-    // Create node lookup map
-    const nodeMap = new Map<string, Node>();
-    for (const node of graph.nodes) {
-        nodeMap.set(node.id, node);
-    }
-
     // Memoization for depth calculation
     const depthCache = new Map<string, number>();
 
-    function getVisualDepth(nodeId: string): number {
-        if (depthCache.has(nodeId)) {
-            return depthCache.get(nodeId)!;
+    function getVisualDepth(node: Node): number {
+        if (depthCache.has(node.id)) {
+            return depthCache.get(node.id)!;
         }
 
-        const node = nodeMap.get(nodeId);
         if (!node) {
-            console.error("Node not found for ID:", nodeId);
+            console.error("Node not found for ID:", node);
             return -Infinity;
         }
 
-        const pred = predecessors.get(nodeId) ?? [];
-        const succ = successors.get(nodeId) ?? [];
-        const isFromCurrentSheet = node.source === 'current';
+        const pred = graph.predecessors(node);
+        const succ = graph.successors(node);
+        const isFromCurrentSheet = node.source !== 'dependencies';
 
         let depth: number;
 
-        if (!isFromCurrentSheet && succ.find(s => nodeMap.get(s)?.source !== 'dependencies')) {
+        if (!isFromCurrentSheet && succ.find(s => s.source !== 'dependencies')) {
             depth = 0;
         } else {
             const maxParentDepth = pred.reduce((d, p) => Math.max(d, getVisualDepth(p)), -1);
@@ -355,13 +334,39 @@ function calculateVisualDepth(graph: Graph) {
             }
         }
 
-        depthCache.set(nodeId, depth);
+        depthCache.set(node.id, depth);
         return depth;
     }
 
 
     // Calculate depth for all nodes
     for (const node of graph.nodes) {
-        node.visual_depth = getVisualDepth(node.id);
+        node.visualDepth = getVisualDepth(node);
+    }
+}
+
+function calculateVisibleNodes(graph: Graph, visibleNodes: Set<string>): void {
+    const isVisible = (node: Node, direction: 'up' | 'down'): boolean => {
+        if (visibleNodes.has(node.id)) {
+            return true;
+        }
+        
+        const fn = direction === 'up' ? graph.predecessors.bind(graph) : graph.successors.bind(graph);
+        
+        const visible = fn(node.id).reduce((acc, n) => isVisible(n, direction) || acc, false)
+
+        if (visible) {
+            visibleNodes.add(node.id);
+        }
+
+        return visible;
+    }
+
+    for (const node of graph.leaves) {
+        isVisible(node, 'up');
+    }
+
+    for (const node of graph.roots) {
+        isVisible(node, 'down');
     }
 }

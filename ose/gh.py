@@ -19,7 +19,7 @@ def init_app(app: Flask):
     @app.route('/github-callback')
     @github.authorized_handler
     def authorized(access_token, db: SQLAlchemy, github: GitHub):
-        next_url = request.args.get('next') or url_for('main.home')
+        next_url = session.pop('next', url_for('main.home'))
         if access_token is None:
             app.logger.warning("Authorization failed.")
             return redirect(url_for('authentication.logout'))

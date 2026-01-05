@@ -7,6 +7,7 @@ import * as d3 from 'd3';
 import {
   applyGraphFilters,
   buildHierarchyTrees,
+  HierarchyNode,
   type FilterOptions
 } from './graph-filters';
 import {
@@ -26,6 +27,7 @@ import {
   type PanZoomState
 } from './graph-renderer';
 import { buildGraphFromSpreadsheet, type DependencyData } from './graph-builder';
+import { NavigateToTermMessage } from '../common/messages';
 
 declare var URLS: { [key: string]: any };
 const URL_PREFIX = URLS['prefix'];
@@ -60,6 +62,8 @@ const sheetData = computed(() => data.value?.sheetData ?? {
   spreadsheet_name: ''
 } as SpreadsheetData<Row>);
 
+const sheetPath = computed(() => `${sheetData.value.folder}/${sheetData.value.spreadsheet_name}`);
+
 const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
 
@@ -76,7 +80,7 @@ const curationFilter = ref<string[]>(Object.values(CURATION_STATUS));
 const showChildrenFromOtherSheets = ref<boolean>(true);
 const showParentsFromOtherSheets = ref<boolean>(true);
 const numChildLevels = ref<number | null>(null);
-const maxChildLevels = computed(() => graph.value ? Math.max(...graph.value.nodes.map(n => n.visual_depth ?? 0), 1) : 1);
+const maxChildLevels = computed(() => graph.value ? Math.max(...graph.value.nodes.map(n => n.visualDepth ?? 0), 1) : 1);
 
 // Store svgPanZoom instance to preserve pan/zoom state across redraws
 let panZoomInstance: ReturnType<typeof svgPanZoom> | null = null;
@@ -92,6 +96,7 @@ const matchInfo = computed(() => {
   if (searchMatches.value.length === 0) return 'No matches';
   return `${currentMatchIndex.value + 1} / ${searchMatches.value.length}`;
 });
+const controlsDisabled = computed(() => !graph.value || loading.value);
 
 function performSearch() {
   const matches = performGraphSearch(searchQuery.value, nodeIdLabelMap.value);
@@ -184,14 +189,24 @@ async function fetchGraph() {
 
     console.debug('Dependencies loaded successfully', result.data);
 
+    // Reset view
+    panZoomInstance?.destroy();
+    panZoomInstance = null;
+    clearSearch();
+
     // Build graph from current spreadsheet data + dependencies on frontend
     const dependencyData = result.data as DependencyData;
+    const selection = data.value?.selection && data.value.selection.length > 0 ? data.value.selection : undefined;
     graph.value = buildGraphFromSpreadsheet(
       sheetData.value.rows,
       sheetData.value.header,
       sheetData.value.spreadsheet_name,
-      dependencyData
+      dependencyData,
+      selection
     );
+
+    // Set child levels to minimum of 3 and max child depth
+    numChildLevels.value = Math.min(3, maxChildLevels.value);
 
     console.debug('Graph built successfully', {
       nodes: graph.value.nodes.length,
@@ -216,7 +231,7 @@ function renderGraph() {
     edges: graph.value.edges.length
   });
 
-  const g = JSON.parse(JSON.stringify(toRaw(graph.value))) as Graph;
+  const g = graph.value.clone();
 
   // Apply filters to graph
   const filterOptions: FilterOptions = {
@@ -256,7 +271,7 @@ function renderGraph() {
   }
 
   // Clear the container
-  svgContainer.value.innerHTML = '';
+  svgContainer.value.querySelector('svg')?.remove();
 
   // Create SVG
   const containerRect = svgContainer.value.getBoundingClientRect();
@@ -286,6 +301,42 @@ function renderGraph() {
   // Track the currently focused/locked edge
   let focusedEdge: { sourceId: string; targetId: string; element: SVGElement } | null = null;
 
+  // Node interaction handler
+  function handleNodeInteraction(nodeId: string, element: SVGElement, action: 'enter' | 'leave') {
+    if (action === 'enter') {
+      // Highlight the node itself
+      d3.select(element).classed('node-hovered', true);
+
+      // Find and highlight all connected edges (both hierarchy and relation edges)
+      svg.selectAll('.link, .relation-link').each(function () {
+        const edge = d3.select(this);
+        const sourceId = edge.attr('data-source');
+        const targetId = edge.attr('data-target');
+
+        if (sourceId === nodeId || targetId === nodeId) {
+          edge.classed('connected', true);
+
+          // Also highlight the connected nodes
+          if (sourceId !== nodeId) {
+            svg.select(`.node[data-node-id="${sourceId}"]`).classed('node-connected', true);
+          }
+          if (targetId !== nodeId) {
+            svg.select(`.node[data-node-id="${targetId}"]`).classed('node-connected', true);
+          }
+        }
+      });
+    } else if (action === 'leave') {
+      // Remove highlight from node
+      d3.select(element).classed('node-hovered', false);
+
+      // Remove highlight from edges (both hierarchy and relation edges)
+      svg.selectAll('.link, .relation-link').classed('connected', false);
+
+      // Remove highlight from connected nodes
+      svg.selectAll('.node').classed('node-connected', false);
+    }
+  }
+
   // Edge interaction handler
   function handleEdgeInteraction(sourceId: string, targetId: string, element: SVGElement, action: 'enter' | 'leave' | 'click') {
     // Helper to highlight/unhighlight connected nodes
@@ -299,32 +350,79 @@ function renderGraph() {
       });
     }
 
+    // Helper to find and highlight the corresponding edge path and label
+    function highlightEdgeElements(highlight: boolean, classToAdd: string) {
+      // Find the edge path
+      svg.selectAll('.link, .relation-link').each(function () {
+        const edge = d3.select(this);
+        if (edge.attr('data-source') === sourceId && edge.attr('data-target') === targetId) {
+          edge.classed(classToAdd, highlight);
+        }
+      });
+
+      // Find the edge label
+      svg.selectAll('.relation-edge-label').each(function () {
+        const label = d3.select(this);
+        if (label.attr('data-source') === sourceId && label.attr('data-target') === targetId) {
+          label.classed(classToAdd, highlight);
+        }
+      });
+    }
+
     if (action === 'click') {
       const isSameEdge = focusedEdge?.sourceId === sourceId && focusedEdge?.targetId === targetId;
 
       if (isSameEdge) {
         // Unfocus
         highlightNodes(false);
-        d3.select(focusedEdge!.element).classed('focused', false);
+        highlightEdgeElements(false, 'focused');
         focusedEdge = null;
       } else {
         // Unfocus previous edge if any
         if (focusedEdge) {
           svg.selectAll('.node').classed('edge-connected', false);
-          d3.select(focusedEdge.element).classed('focused', false);
+          highlightEdgeElements(false, 'focused');
         }
         // Focus new edge
         focusedEdge = { sourceId, targetId, element };
         highlightNodes(true);
-        d3.select(element).classed('focused', true);
+        highlightEdgeElements(true, 'focused');
       }
     } else if (action === 'enter' && !focusedEdge) {
       highlightNodes(true);
-      d3.select(element).classed('highlighted', true);
+      highlightEdgeElements(true, 'highlighted');
     } else if (action === 'leave' && !focusedEdge) {
       highlightNodes(false);
-      d3.select(element).classed('highlighted', false);
+      highlightEdgeElements(false, 'highlighted');
     }
+  }
+
+  // Node double-click handler
+  function handleNodeDoubleClick(nodeData: HierarchyNode) {
+    // Don't navigate for external terms
+    if (nodeData.ose_curation?.toLowerCase() === 'external') {
+      return;
+    }
+
+    // Get the editor window and repo info
+    const editorWindow: Window | null = window.opener;
+    const repo = sheetData.value.repo_name;
+    const originSheet = nodeData.ose_source === "current" ? sheetPath.value : nodeData.ose_origin;
+    const nodeId = nodeData.id;
+
+    if (!editorWindow || !repo || !originSheet || !nodeId) {
+      console.warn('Cannot navigate to term: missing data', { editorWindow, repo, originSheet, nodeId });
+      return;
+    }
+
+    const message: NavigateToTermMessage = {
+      type: "navigateToTerm",
+      repo: repo,
+      sheet: originSheet,
+      termID: nodeId
+    }
+
+    editorWindow.postMessage(message, "*");
   }
 
   // Draw hierarchy edges
@@ -334,20 +432,33 @@ function renderGraph() {
   drawRelationEdges(edgesLayer, relationEdges, nodePositions, nodeDimensionsMap, nodeIdLabelMap.value, handleEdgeInteraction);
 
   // Draw nodes
-  drawNodes(nodesLayer, treeLayouts, nodeDimensionsMap);
+  drawNodes(nodesLayer, treeLayouts, nodeDimensionsMap, handleNodeInteraction, handleNodeDoubleClick);
 
-  // Update viewBox based on actual content
-  const bbox = (g_main.node() as SVGGElement)?.getBBox();
-  if (bbox) {
-    svg.attr('viewBox', `${bbox.x - 20} ${bbox.y - 20} ${bbox.width + 40} ${bbox.height + 40}`);
-  }
+
+
+
 
   // Initialize pan and zoom
-  const svgElement = svgContainer.value.querySelector('svg');
+  const svgElement = svgContainer.value?.querySelector('svg');
   if (svgElement) {
     panZoomInstance = initializePanZoom(svgElement as SVGSVGElement, savedPanZoom);
+
+
+    const bbox = (g_main.node() as SVGGElement)?.getBBox();
+    if (bbox && panZoomInstance && !savedPanZoom) {
+      const scaleX = containerRect.width / bbox.width;
+      const scaleY = containerRect.height / bbox.height;
+      const scale = Math.min(scaleX, scaleY, 1);
+      panZoomInstance.zoom(scale);
+
+      const panX = (containerRect.width - bbox.width * scale) / 2 - bbox.x * scale;
+      const panY = (containerRect.height - bbox.height * scale) / 2 - bbox.y * scale;
+      panZoomInstance.pan({ x: panX, y: panY });
+    }
   }
 }
+
+
 function toggleCurationFilter(status: string) {
   const index = curationFilter.value.indexOf(status);
   if (index >= 0) {
@@ -405,6 +516,13 @@ watch(showParentsFromOtherSheets, (newValue, oldValue) => {
   }
 });
 
+watch(loading, (newValue, oldValue) => {
+  if (newValue && oldValue === false) {
+    svgContainer.value?.querySelector('svg')?.remove();
+    clearSearch();
+  }
+});
+
 onMounted(async () => {
   if (svgContainer.value) {
     svgContainer.value.style.minHeight = (window.innerHeight - svgContainer.value.offsetTop - 16) + "px";
@@ -416,28 +534,35 @@ onMounted(async () => {
   <div class="visualise-container">
     <div class="header">
       <div class="header-title-row">
-        <h5 class="mb-0">
-          Hierarchy Tree <small class="text-muted">{{ data?.sheetData?.spreadsheet_name }}</small>
-        </h5>
+        <div class="title-with-help">
+          <h5 class="mb-0">
+            Hierarchy Tree <small class="text-muted">{{ data?.sheetData?.spreadsheet_name }}</small>
+          </h5>
+          <button class="btn btn-sm btn-link text-secondary p-0 ms-2" type="button" data-bs-toggle="modal"
+            data-bs-target="#legendModal" title="Help & Legend">
+            <i class="fa-solid fa-circle-question"></i>
+          </button>
+        </div>
 
         <div class="search-bar">
           <small class="search-info text-muted">{{ matchInfo }}</small>
           <div class="input-group input-group-sm">
             <input type="text" class="form-control" placeholder="Search classes..." v-model="searchQuery"
-              @keyup.enter="performSearch">
-            <button class="btn btn-outline-secondary" type="button" @click="performSearch" title="Search">
+              @keyup.enter="performSearch" :disabled="controlsDisabled">
+            <button class="btn btn-outline-secondary" type="button" @click="performSearch" title="Search"
+              :disabled="controlsDisabled">
               <i class="fa-solid fa-search"></i>
             </button>
             <button class="btn btn-outline-secondary" type="button" @click="goToPreviousMatch"
-              :disabled="!hasSearchMatches" title="Previous match">
+              :disabled="!hasSearchMatches || controlsDisabled" title="Previous match">
               <i class="fa-solid fa-chevron-up"></i>
             </button>
-            <button class="btn btn-outline-secondary" type="button" @click="goToNextMatch" :disabled="!hasSearchMatches"
-              title="Next match">
+            <button class="btn btn-outline-secondary" type="button" @click="goToNextMatch"
+              :disabled="!hasSearchMatches || controlsDisabled" title="Next match">
               <i class="fa-solid fa-chevron-down"></i>
             </button>
-            <button class="btn btn-outline-secondary" type="button" @click="clearSearch" :disabled="!searchQuery"
-              title="Clear search">
+            <button class="btn btn-outline-secondary" type="button" @click="clearSearch"
+              :disabled="!searchQuery || controlsDisabled" title="Clear search">
               <i class="fa-solid fa-times"></i>
             </button>
           </div>
@@ -448,12 +573,12 @@ onMounted(async () => {
         <div class="filter-section">
           <span class="filter-section-title">
             <i class="fa-solid fa-filter"></i>
-            View Options
+            From other sheets
           </span>
           <div class="filter-controls">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch" id="ckb_children_other_sheets"
-                v-model="showChildrenFromOtherSheets">
+                v-model="showChildrenFromOtherSheets" :disabled="controlsDisabled">
               <label class="form-check-label" for="ckb_children_other_sheets">
                 <i class="fa-solid fa-arrow-down"></i>
                 Children
@@ -462,7 +587,7 @@ onMounted(async () => {
 
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" role="switch" id="ckb_parents_other_sheets"
-                v-model="showParentsFromOtherSheets">
+                v-model="showParentsFromOtherSheets" :disabled="controlsDisabled">
               <label class="form-check-label" for="ckb_parents_other_sheets">
                 <i class="fa-solid fa-arrow-up"></i>
                 Parents
@@ -485,7 +610,7 @@ onMounted(async () => {
                 <span class="range-minmax">1–{{ maxChildLevels }}</span>
               </div>
               <input type="range" class="form-range" v-model="numChildLevels" min="1" :max="maxChildLevels" step="1"
-                id="range_num_child_levels">
+                id="range_num_child_levels" :disabled="controlsDisabled">
             </div>
           </div>
         </div>
@@ -498,7 +623,7 @@ onMounted(async () => {
           <div class="filter-controls">
             <div class="dropdown">
               <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown"
-                aria-expanded="false">
+                aria-expanded="false" :disabled="controlsDisabled">
                 <i class="fa-solid fa-filter"></i>
                 {{ curationFilter.length }}/{{ curationStatuses.length }} selected
               </button>
@@ -527,6 +652,86 @@ onMounted(async () => {
         <span class="error-message">{{ error }}</span>
         <button class="btn btn-primary btn-sm" @click="fetchGraph">Try again</button>
       </div>
+      <div v-else-if="!graph" class="empty-state-overlay">
+        <i class="fa-solid fa-diagram-project"></i>
+        <span class="empty-state-title">No Visualisation Loaded</span>
+        <span class="empty-state-message">To see a visualisation, open a spreadsheet from the editor and click the
+          "Visualise" button in the toolbar.</span>
+      </div>
+    </div>
+
+    <!-- Help & Legend Modal -->
+    <div class="modal fade" id="legendModal" tabindex="-1" aria-labelledby="legendModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="legendModalLabel">
+              <i class="fa-solid fa-circle-info"></i> Help & Legend
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="legend-grid">
+              <div class="legend-item">
+                <h6><i class="fa-solid fa-circle-question"></i> How to Use</h6>
+                <ul>
+                  <li><strong>Pan:</strong> Click and drag the background</li>
+                  <li><strong>Zoom:</strong> Use mouse wheel or pinch gesture</li>
+                  <li><strong>Search:</strong> Find specific classes using the search bar</li>
+                  <li><strong>Children/Parents Switches:</strong> Toggle whether to include children or parents from
+                    other sheets</li>
+                  <li><strong>Child Levels Slider:</strong> Adjust how many levels of child classes to display</li>
+                  <li><strong>Curation Status Filter:</strong> Select which curation statuses to display</li>
+                  <li><strong>Hover on nodes/edges:</strong> Highlight related nodes and edges</li>
+                  <li><strong>Click on edges:</strong> Keep the edge highlighted</li>
+                </ul>
+              </div>
+
+              <div class="legend-item">
+                <h6><i class="fa-solid fa-circle-nodes"></i> Node Types</h6>
+                <div class="node-examples">
+                  <div class="node-example">
+                    <div class="example-node node-current">Current Sheet</div>
+                    <div class="example-node node-current node-selected">Selected Term</div>
+                    <span class="example-desc">Terms from the current spreadsheet (regular border, selected bold)</span>
+                  </div>
+                  <div class="node-example">
+                    <div class="example-node node-dependencies">Dependencies</div>
+                    <span class="example-desc">External terms or terms from other sheets referenced by current terms
+                      (dashed border)</span>
+                  </div>
+                  <div class="node-example">
+                    <div class="example-node node-derived">Derived</div>
+                    <span class="example-desc">Child terms from other sheets (italic text)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="legend-item">
+                <h6><i class="fa-solid fa-arrow-right"></i> Edge Types</h6>
+                <ul>
+                  <li><strong>Subclass Of:</strong> Solid black arrows showing hierarchy (parent → child)</li>
+                  <li><strong>Relations:</strong> Colored arrows showing other relationships (e.g., "has part", "part
+                    of")</li>
+                </ul>
+              </div>
+
+              <div class="legend-item full-width">
+                <h6><i class="fa-solid fa-palette"></i> Curation Status Colors</h6>
+                <div class="status-grid">
+                  <span v-for="status in curationStatuses" :key="status" class="status-badge"
+                    :class="'ose-curation-status-' + status.toLowerCase().replace(' ', '_')">
+                    {{ status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -548,6 +753,11 @@ onMounted(async () => {
     justify-content: space-between;
     margin-bottom: 0.5rem;
 
+    .title-with-help {
+      display: flex;
+      align-items: center;
+    }
+
     h5 {
       margin: 0;
       font-weight: 600;
@@ -555,6 +765,16 @@ onMounted(async () => {
       small {
         font-size: 0.85rem;
         font-weight: 400;
+      }
+    }
+
+    .btn-link {
+      font-size: 1.2rem;
+      line-height: 1;
+      text-decoration: none;
+
+      &:hover {
+        color: #3b82f6 !important;
       }
     }
   }
@@ -604,9 +824,9 @@ onMounted(async () => {
     }
 
 
-    &.form-switch {
+    .form-switch {
       display: flex;
-      gap: 10px;
+      gap: 8px;
     }
 
     .form-check-label {
@@ -687,6 +907,113 @@ onMounted(async () => {
       text-align: center;
       font-size: 0.875rem;
     }
+  }
+
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .legend-item {
+    &.full-width {
+      grid-column: 1 / -1;
+    }
+
+    h6 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      i {
+        color: #3b82f6;
+        font-size: 0.9rem;
+      }
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.875rem;
+      color: #555;
+
+      li {
+        padding: 0.35rem 0;
+        line-height: 1.5;
+      }
+    }
+  }
+
+  .node-examples {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .node-example {
+    display: grid;
+    grid-auto-flow: column;
+    gap: 0.5rem;
+
+    .example-desc {
+      font-size: 0.8rem;
+      color: #666;
+      line-height: 1.4;
+
+      grid-row: 2;
+      grid-column: 1/3;
+    }
+  }
+
+  .example-node {
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #333;
+    border-radius: 4px;
+    background: white;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: center;
+    display: inline-block;
+    align-self: flex-start;
+
+    grid-row: 1;
+
+    &.node-selected {
+      font-weight: bold;
+    }
+
+    &.node-current {
+      border-style: solid;
+    }
+
+    &.node-dependencies {
+      border-style: dashed;
+      font-style: italic;
+    }
+
+    &.node-derived {
+      font-style: italic;
+    }
+  }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
   }
 
   .svg-container {
@@ -775,9 +1102,60 @@ onMounted(async () => {
     }
   }
 
+  .empty-state-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: rgba(250, 250, 250, 0.95);
+    z-index: 10;
+    border-radius: 4px;
+
+    .fa-diagram-project {
+      font-size: 3rem;
+      color: #999;
+    }
+
+    .empty-state-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .empty-state-message {
+      font-size: 0.95rem;
+      color: #666;
+      max-width: 500px;
+      text-align: center;
+      line-height: 1.5;
+    }
+  }
+
   @keyframes spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  .node.ose-selected {
+    font-weight: bold;
+  }
+
+  .node.ose-source-derived {
+    font-style: italic;
+  }
+
+  .node.ose-source-dependencies {
+    font-style: italic;
+
+    &>rect {
+      stroke-dasharray: 4 2 !important;
     }
   }
 
@@ -820,6 +1198,12 @@ onMounted(async () => {
       stroke-width: 3.5px !important;
       filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
     }
+
+    &.connected {
+      stroke-opacity: 1 !important;
+      stroke-width: 3px !important;
+      filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+    }
   }
 
   .relation-link {
@@ -839,6 +1223,18 @@ onMounted(async () => {
 
     &.edge-connected>rect {
       filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.4));
+    }
+
+    &.node-hovered>rect {
+      stroke: #3b82f6 !important;
+      stroke-width: 3px !important;
+      filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.5));
+    }
+
+    &.node-connected>rect {
+      stroke: #3b82f6 !important;
+      stroke-width: 2px !important;
+      filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.3));
     }
 
     &.search-match>rect {
