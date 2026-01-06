@@ -1,11 +1,9 @@
 from collections.abc import Sequence
-import os
 import pickle
 import logging
 import re
 import traceback
-from flask import Blueprint, current_app, g, json, request, jsonify
-import jsonschema
+from flask import Blueprint, g, json, jsonify
 
 from ose.guards.with_permission import requires_permissions
 from ose.model.Term import Term, UnresolvedTerm
@@ -49,7 +47,7 @@ def get_dependencies(
             logger.error(f"Repository configuration not found for: {repo}")
             return (
                 jsonify(
-                    {"msg": f"Repository configuration not found", "success": False}
+                    {"msg": "Repository configuration not found", "success": False}
                 ),
                 500,
             )
@@ -70,7 +68,7 @@ def get_dependencies(
             config.get_file(repository, repository.release_script_path)
         )
         release_script = ReleaseScript.from_json(release_script_json)
-        logger.debug(f"Release script loaded successfully")
+        logger.debug("Release script loaded successfully")
 
         # Load externals
         logger.debug(f"Loading externals from {release_script.external.target.file}")
@@ -112,7 +110,7 @@ def get_dependencies(
                 404,
             )
 
-        logger.debug(f"Loading derived files")
+        logger.debug("Loading derived files")
         derived = get_derived(release_script_file)
         derived = [
             d for i, d in enumerate(derived) if d not in derived[:i]
@@ -147,7 +145,7 @@ def get_dependencies(
                 item for s in dependencies for item in get_dependencies_recursive(s)
             ]
 
-        logger.debug(f"Loading dependency files")
+        logger.debug("Loading dependency files")
         dependencies = get_dependencies_recursive(release_script_file)
         dependencies = [
             d for i, d in enumerate(dependencies) if d not in dependencies[:i]

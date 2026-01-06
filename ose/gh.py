@@ -1,4 +1,4 @@
-from flask import Flask, request, url_for, redirect, g, session
+from flask import Flask, url_for, redirect, g, session
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 

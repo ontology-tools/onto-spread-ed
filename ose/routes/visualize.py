@@ -1,6 +1,5 @@
-import json
 
-from flask import Blueprint, request, current_app, render_template
+from flask import Blueprint, request, render_template
 
 from ..OntologyDataStore import OntologyDataStore
 from ..guards.with_permission import requires_permissions

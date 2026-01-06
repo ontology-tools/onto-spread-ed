@@ -125,7 +125,7 @@ class ExcelOntology:
 
     def terms(self) -> List[Term]:
         return [t.as_resolved() for t in self._terms if not t.is_unresolved() and
-                not lower(t.curation_status()) in self._discard_status and lower(
+                lower(t.curation_status()) not in self._discard_status and lower(
             t.curation_status()) not in self._ignore_status]
 
     def term_by_label(self, label: str) -> Optional[Term]:
