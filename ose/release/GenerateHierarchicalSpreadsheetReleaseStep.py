@@ -44,7 +44,7 @@ class Node:
 
 def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[Node]:
     all_nodes = set(n for n, _ in edges)
-    item_to_node = dict((c, Node(item=c, label=l if l is not None else c, definition=d)) for (c, l, d) in all_nodes)
+    item_to_node = dict((c, Node(item=c, label=lbl if lbl is not None else c, definition=d)) for (c, lbl, d) in all_nodes)
 
     for (child, _, _), parent in edges:
         if parent is None:
