@@ -26,7 +26,7 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
             # If the user is not logged in, then redirect him to the "logged out" page:
             if not g.user:
                 if request.accept_mimetypes.accept_html:
-                    return redirect(url_for("authentication.login"))
+                    return redirect(url_for("authentication.login", next=request.url))
                 else:
                     return jsonify({"success": False, "error": "You are not logged in!"}), 401
 

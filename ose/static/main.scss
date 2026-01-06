@@ -133,3 +133,14 @@
     transform: rotate(0.5turn) scale(1)
   }
 }
+
+:root {
+  --ose-curation-status-discussed: moccasin;
+  --ose-curation-status-proposed: #FFFFFF;
+  --ose-curation-status-to_be_discussed: #eee8aa;
+  --ose-curation-status-in_discussion: #fffacd;
+  --ose-curation-status-published: #7fffd4;
+  --ose-curation-status-obsolete: #2f4f4f;
+  --ose-curation-status-external: #D3D3D3;
+  --ose-curation-status-pre_proposed: #ebfad0;
+}

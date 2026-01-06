@@ -10,7 +10,7 @@ from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set, Liter
 import openpyxl
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
-import pyhornedowl
+import pyhornedowl as ho
 from typing_extensions import Self
 
 from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
@@ -49,6 +49,15 @@ DIAGNOSTIC_KIND = Literal[
     "ignored-range",
     "duplicate"
 ]
+
+def get_id(ontology: ho.PyIndexedOntology, iri: str):
+    id = ontology.get_id_for_iri(iri)
+
+    # Check if it uses a PURL IRI
+    if id is None and iri.startswith("http://purl.obolibrary.org/obo/"):
+        id = iri.split("/")[-1].replace("_", ":")
+        
+    return id
 
 
 @dataclass
@@ -116,7 +125,7 @@ class ExcelOntology:
 
     def terms(self) -> List[Term]:
         return [t.as_resolved() for t in self._terms if not t.is_unresolved() and
-                not lower(t.curation_status()) in self._discard_status and lower(
+                lower(t.curation_status()) not in self._discard_status and lower(
             t.curation_status()) not in self._ignore_status]
 
     def term_by_label(self, label: str) -> Optional[Term]:
@@ -362,6 +371,47 @@ class ExcelOntology:
         self._used_relations = set.union(self._used_relations, other._used_relations)
         self._imports += other._imports
         self._relations += other._relations
+        
+    def add_terms_from_list(self, data: list[list[str]], header: list[str], schema: Optional[Schema] =None, origin: Optional[str] = None) -> Result[tuple]:
+        result = Result()
+        if schema is None:
+            schema = DEFAULT_SCHEMA
+            
+        if origin is None:
+            origin = "<from_list>"
+        
+        mapped: List[Optional[ColumnMapping]] = []
+        for h in header:
+            header_name = h.strip()
+            mapping = schema.get_mapping(origin, header_name)
+            
+            mapped.append(mapping)
+            
+            if mapping is None and not schema.is_ignored(header_name):
+                result.warning(type='unknown-column',
+                               column=header_name,
+                               sheet=origin)
+
+
+        for c in mapped:
+            if isinstance(c, RelationColumnMapping):
+                self._used_relations.add(UnresolvedRelation(**c.relation.__dict__))
+
+        result += Result(())
+        for i, row in enumerate(data):
+            row_idx = i + 2  # +1 for zerobased +1 for header
+            result = result.merge(
+                self._parse_term([(m, c) for m, c in zip(mapped, row) if m is not None],
+                                 dict(row=row_idx, origin=(origin, row_idx))))
+
+            if result.ok():
+                assert result.value is not None
+                term = result.value
+                term.origin = (origin, row_idx)
+                self._terms.append(term)
+
+        return result.merge(Result(()))
+        
 
     def add_terms_from_excel(self, name: str, file: Union[bytes, str, BytesIO],
                              schema: Optional[Schema] = None) -> Result[tuple]:
@@ -877,7 +927,7 @@ class ExcelOntology:
         self._relations.append(UnresolvedRelation(**dataclasses.asdict(relation)))
 
     @classmethod
-    def from_excel(cls, iri: str, files: Tuple[str, Union[bytes, str, BytesIO], Literal["classes", "relations"]]):
+    def from_excel(cls, iri: str, files: list[Tuple[str, Union[bytes, str, BytesIO], Literal["classes", "relations"]]]):
         ontology = ExcelOntology(iri)
         for name, file, kind in files:
             if kind == "classes":
@@ -888,23 +938,19 @@ class ExcelOntology:
         return ontology
 
     @classmethod
-    def from_owl(cls, externals_owl: str, prefixes: Dict[str, str]) -> Result[Self]:
+    def from_owl(cls, externals_owl: str, prefixes: Dict[str, str], origin: str = "<external>") -> Result[Self]:
         result = Result()
-        ontology = pyhornedowl.open_ontology(externals_owl)
+        ontology = ho.open_ontology(externals_owl)
 
         # Add default prefixes
         ontology.prefix_mapping.add_default_prefix_names()
 
-        self = ExcelOntology(ontology.get_iri())
+        self = ExcelOntology(str(ontology.get_iri()))
         for (p, d) in prefixes.items():
             ontology.prefix_mapping.add_prefix(p, d)
 
         for c in ontology.get_classes():
-            id = ontology.get_id_for_iri(c)
-
-            # Check if it uses a PURL IRI
-            if id is None and c.startswith("http://purl.obolibrary.org/obo/"):
-                id = c.split("/")[-1].replace("_", ":")
+            id = get_id(ontology, c)
 
             labels = ontology.get_annotations(c, constants.RDFS_LABEL)
 
@@ -913,32 +959,37 @@ class ExcelOntology:
             if len(labels) == 0:
                 result.warning(type='unknown-label', msg=f'Unable to determine label of external term "{c}"')
 
+            superclasses = ontology.get_superclasses(c)
+            superclass_terms = [TermIdentifier(get_id(ontology, s), ontology.get_annotation(s, constants.RDFS_LABEL)) for s in superclasses]
+            superclass_terms = [s for s in superclass_terms if s.id is not None]
+
             if id is not None:
                 for label in labels:
                     self.add_term(Term(
                         id=id,
                         label=label,
-                        origin=("<external>", -1),
+                        origin=(origin, -1),
                         relations=[],
-                        sub_class_of=[],
+                        sub_class_of=superclass_terms,
                         equivalent_to=[],
                         disjoint_with=[]
                     ))
-
+                    
+            
         for r in ontology.get_object_properties():
             id = ontology.get_id_for_iri(r)
             label = ontology.get_annotation(r, constants.RDFS_LABEL)
 
             if id is None:
-                result.warning(type='unknown-id', msg=f'Unable to determine id of external relation "{r}"')
+                result.warning(type='unknown-id', msg=f'Unable to determine id of {origin} relation "{r}"')
             if label is None:
-                result.warning(type='unknown-label', msg=f'Unable to determine label of external relation "{r}"')
+                result.warning(type='unknown-label', msg=f'Unable to determine label of {origin} relation "{r}"')
 
             if id is not None and label is not None:
                 self.add_relation(Relation(
                     id=id,
                     label=label,
-                    origin=("<external>", -1),
+                    origin=(origin, -1),
                     equivalent_relations=[],
                     inverse_of=[],
                     relations=[],

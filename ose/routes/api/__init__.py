@@ -6,6 +6,7 @@ from .search import bp as search
 from .edit import bp as edit
 from .scripts import bp as scripts
 from .settings import bp as settings
+from .visualise import bp as visualise
 
 blueprints = [
     release,
@@ -15,5 +16,6 @@ blueprints = [
     search,
     edit,
     scripts,
-    settings
+    settings,
+    visualise
 ]

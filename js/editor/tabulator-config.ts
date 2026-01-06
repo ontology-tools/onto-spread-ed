@@ -1,4 +1,4 @@
-import {COLUMN_NAMES, CURATION_STATUS} from "./constants.ts";
+import {COLUMN_NAMES, CURATION_STATUS} from "../common/constants.ts";
 import {ColumnComponent, ColumnDefinition, MenuObject, RowComponent, Tabulator} from "tabulator-tables";
 
 

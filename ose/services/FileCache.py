@@ -61,7 +61,10 @@ class FileCache:
         self._save_cache()
 
     def _retrieve_from_cache(self, id: str):
-        entry = self._cache[id]
+        entry = self._cache.get(id, None)
+        if entry is None:
+            return None
+
         if entry.expires > datetime.now():
             with open(os.path.join(self.cache_dir, f"{id}-{entry.filename}"), "rb") as f:
                 return f.read()
@@ -106,6 +109,26 @@ class FileCache:
         self._store_cache_entry(id, basename, content, lifetime)
 
         return content
+    
+    def store(self, id: str, content: bytes, basename: Optional[str] = None, lifetime: Optional[int] = None) -> str:
+        self._load_cache()
+
+        lifetime = lifetime or self.lifetime
+        basename = basename or "CACHE_DATA"
+
+        if id in self._cache:
+            existing_content = self._retrieve_from_cache(id)
+            if existing_content is not None:
+                return id
+
+        self._store_cache_entry(id, basename, content, lifetime)
+
+        return id
+    
+    def retrieve(self, id: str) -> Optional[bytes]:
+        self._load_cache()
+        
+        return self._retrieve_from_cache(id)
 
     def cleanup(self):
 

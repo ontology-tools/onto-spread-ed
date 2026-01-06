@@ -4,16 +4,17 @@
   "devDependencies": {
     "@types/bootbox": "^5.2.8",
     "@types/bootstrap": "^5.2.10",
+    "@types/d3": "^7.4.3",
     "@types/tabulator-tables": "^6.2.3",
     "@vitejs/plugin-vue": "^5.2.1",
-    "esbuild": "^0.20.1",
-    "esbuild-plugin-vue3": "^0.4.2",
+    "esbuild": "^0.27.0",
+    "esbuild-plugin-vue3": "^0.5.1",
     "sass": "1.44.0",
     "sass-loader": "^16.0.2",
     "typescript": "^5.3.3",
     "unplugin-vue-components": "^0.27.5",
-    "vite": "^5.4.11",
-    "watch": "^1.0.2"
+    "vite": "^6.4.1",
+    "watch": "^0.13.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -26,9 +27,14 @@
   "license": "AGPL",
   "description": "",
   "dependencies": {
+    "@hpcc-js/wasm": "^2.29.0",
     "bootstrap": "5.3.2",
     "bootstrap-vue-next": "^0.26.8",
+    "d3": "^7.9.0",
+    "d3-graphviz": "^5.6.0",
+    "svg-pan-zoom": "github:bumbu/svg-pan-zoom",
     "tabulator-tables": "^6.3.0",
+    "ts-graphviz": "^3.0.6",
     "vue": "^3.5.0"
   }
 }
