@@ -1,8 +1,34 @@
 @use "sass:color";
 
+$primary: #123456;
+
+@import "../../node_modules/bootstrap/scss/bootstrap.scss";
+@import "../../node_modules/bootstrap/scss/variables";
+
+
+@import "./excel-bootstrap-table-filter-style";
+
+.navbar {
+  background-color: fuchsia;
+
+  &.env-production {
+    background-color: #123456;
+  }
+
+  &.env-development {
+    background-color: #48ff00;
+  }
+
+  &.env-test {
+    background-color: #ff4800;
+  }
+}
+
 :root {
   --bs-callout-link: 10, 88, 202;
   --bs-callout-code-color: #ab296a;
+
+  --bs-primary: #123456;
 }
 
 .callout-success {
@@ -75,6 +101,15 @@
 
 .breadcrumb-item.active {
   font-weight: bold;
+}
+
+nav {
+  display: flex;
+  align-items: baseline;
+
+  .breadcrumb {
+    flex-grow: 1;
+  }
 }
 
 /* HTML: <div class="loader"></div> */

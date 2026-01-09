@@ -1,6 +1,6 @@
 import typing
 
-from flask import Flask
+from flask import Flask, Request
 from flask_executor import Executor
 from flask_github import GitHub
 from flask_injector import request
@@ -12,6 +12,7 @@ from ose.services.PluginService import PluginService
 import ose.database as database
 
 from . import gh
+from .injectables import ActiveBranch
 from .OntologyDataStore import OntologyDataStore
 from .PermissionManager import PermissionManager
 from .SpreadsheetSearcher import SpreadsheetSearcher
@@ -29,6 +30,18 @@ class AppModule(Module):
     def init_app(self, app: Flask):
         database.init_app(app)
         gh.init_app(app)
+
+    @provider
+    @request
+    def active_branch(self, r: Request, config: ConfigurationService) -> ActiveBranch:
+        repo_key = r.view_args.get("repo", r.view_args.get("repo_key", None))
+
+        repo = config.get(repo_key) if repo_key is not None else None
+
+        if repo_key is None or repo is None:
+            raise ValueError("Cannot identify active repository to calculate active branch!")
+        
+        return r.args.get('branch', repo.main_branch)
 
     @provider
     @request

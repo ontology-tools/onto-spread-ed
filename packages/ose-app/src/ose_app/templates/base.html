@@ -19,27 +19,23 @@
         <!-- jQuery first, then Popper.js, then Bootstrap JS -->
         <script src="https://code.jquery.com/jquery-3.4.1.min.js"
                 integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
-        <!-- <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script> -->
-        {#        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"#}
-        {#                integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"#}
-        {#                crossorigin="anonymous"></script>#}
-        <!-- Bootbox -->
+
         <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/6.0.0/bootbox.js"></script>
+
+        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
         <!-- Bootstrap CSS -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
               integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-              crossorigin="anonymous">
+              crossorigin="anonymous"> -->
         <!-- Bootstrap filter table CSS -->
-        <link rel="stylesheet" href="{{ url_for('static', filename='excel-bootstrap-table-filter-style.css') }}">
+        <!-- <link rel="stylesheet" href="{{ url_for('static', filename='excel-bootstrap-table-filter-style.css') }}"> -->
 
 
-        <!-- //fontawesome: -->
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous">
 
         <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 
-
-        <link rel="shortcut icon" href="#"/>
 
         <title>{% block title %}{{ config['APP_TITLE'] }} {% endblock %}</title>
 
@@ -51,8 +47,7 @@
     <div class="banner"><i class="fa fa-exclamation-triangle"></i> THIS IS A TEST INSTANCE WORKING WITH (POSSIBLY
         OUTDATED) COPIES OF THE ONTOLOGIES <i class="fa fa-exclamation-triangle"></i></div>
 {% endif %}
-<nav class="navbar navbar-expand-lg p-3"
-     style="background: {{ { 'development': '#48ff00', 'test': '#ff4800', 'production': '#123456'}.get(config['ENVIRONMENT'], 'fuchsia') }}"
+<nav class="navbar navbar-expand-lg p-3 env-{{ config['ENVIRONMENT'] }}"
      data-bs-theme="dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">
@@ -113,19 +108,21 @@
                             {% endif %}
                         {% endfor %}
                     {% endif %}
-
-
-                    {#                    {% if repo_name %}#}
-                    {#                    <li class="breadcrumb-item"><a#}
-                    {#                            href="{{url_for('main.repo', repo_key=repo_name)}}">{{ repo_name }}</a></li>#}
-                    {#                    {% if folder %}#}
-                    {#                    <li class="breadcrumb-item"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder)}}">{{ folder }}</a></li>#}
-                    {#                    {% if spreadsheet_name %}#}
-                    {#                    <li class="breadcrumb-item"><a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder+'/'+spreadsheet_name)}}">{{ spreadsheet_name }}</a></li>#}
-                    {#                    {% endif %}#}
-                    {#                    {% endif %}#}
-                    {#                    {% endif %}#}
                 </ol>
+            {% if branches is defined and active_branch %}
+            <div class="dropdown">
+                <a class="btn btn-primary dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                   aria-expanded="false"><i class="fas fa-code-branch"></i> {{ active_branch }}</a>
+
+                <ul class="dropdown-menu  dropdown-menu-end">
+                    {% for branch in branches %}
+                    <li class="dropdown-item {{ 'disabled' if branch == active_branch else '' }}">
+                        <a class="dropdown-item" href="?branch={{ branch }}">{{ branch }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
             </nav>
         </div>
         <hr/>

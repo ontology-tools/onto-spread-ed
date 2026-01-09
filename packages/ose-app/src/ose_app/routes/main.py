@@ -4,8 +4,12 @@ from urllib.parse import quote_plus
 from flask import Blueprint, g, render_template, redirect, url_for, request, session, jsonify, current_app
 from flask_github import GitHub
 
+from ..injectables import ActiveBranch
+
 from ..guards.with_permission import requires_permissions
 from ose.services.ConfigurationService import ConfigurationService
+
+import ose.utils.github as gh
 
 bp = Blueprint("main", __name__, template_folder="../templates")
 
@@ -34,7 +38,7 @@ def home(config: ConfigurationService):
 @bp.route('/repo/<repo_key>')
 @bp.route('/repo/<repo_key>/<path:folder_path>')
 @requires_permissions("view")
-def repo(repo_key, github: GitHub, config: ConfigurationService, folder_path=""):
+def repo(repo_key, github: GitHub, config: ConfigurationService, active_branch: ActiveBranch, folder_path=""):
     repository = config.get(repo_key)
     directories = github.get(
         f'repos/{repository.full_name}/contents/{folder_path}'
@@ -54,10 +58,16 @@ def repo(repo_key, github: GitHub, config: ConfigurationService, folder_path="")
 
     breadcrumb_segments = [repo_key, *folder_path.split("/")]
 
+    # get from ?branch= query parameter
+    active_branch = request.args.get('branch', repository.main_branch)
+    branches = gh.get_branches(github, repository.full_name)
+
     return render_template('repo.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
                            repo_name=repo_key,
+                           branches=branches,
+                           active_branch=active_branch,
                            folder_path=folder_path,
                            breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i + 1])} for i, s in
                                        enumerate(breadcrumb_segments)],

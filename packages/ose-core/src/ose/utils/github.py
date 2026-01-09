@@ -174,3 +174,7 @@ def create_release(gh: GitHub, full_repository_name: str, tag_name: str, branch:
     )
 
     gh.post(f"repos/{full_repository_name}/releases", data=data)
+
+def get_branches(gh: GitHub, full_repository_name: str) -> list[str]:
+    branches = gh.get(f"repos/{full_repository_name}/branches")
+    return [b["name"] for b in branches]
