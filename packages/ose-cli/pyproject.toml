@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ose-cli"
+description = "CLI for OntoSpreadEd - Ontology spreadsheet editor"
+requires-python = ">= 3.12"
+dynamic = ["version"]
+
+dependencies = [
+    "ose-core",
+    "Flask>=2.3.0",
+    "Flask-Injector",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[project.scripts]
+ose = "ose_cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "ose_cli.__version__"}

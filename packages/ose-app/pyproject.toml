@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ose-app"
+description = "Flask web application for OntoSpreadEd - Ontology spreadsheet editor"
+requires-python = ">= 3.12"
+dynamic = ["version"]
+
+dependencies = [
+    "ose-core",
+    "Flask==2.3.3",
+    "Flask-SQLAlchemy==3.1.1",
+    "Flask-Injector",
+    "GitHub-Flask",
+    "flask-cors==3.0.10",
+    "flask-executor",
+    "Flask-Migrate",
+]
+
+[project.optional-dependencies]
+cli = [
+    "ose-cli",
+]
+dev = [
+    "pytest",
+    "ruff",
+]
+all = [
+    "ose-cli",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ose_app = [
+    "templates/**/*",
+    "static/**/*",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "ose_app.__version__"}

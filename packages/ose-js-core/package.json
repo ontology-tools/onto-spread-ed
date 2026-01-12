@@ -1,0 +1,38 @@
+{
+  "name": "@ose/js-core",
+  "version": "0.1.0",
+  "description": "Core TypeScript library for OntoSpreadEd - shared types, models and utilities",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "license": "LGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ontology-tools/onto-spread-ed.git",
+    "directory": "packages/ose-js-core"
+  },
+  "keywords": [
+    "ontology",
+    "spreadsheet",
+    "editor"
+  ]
+}

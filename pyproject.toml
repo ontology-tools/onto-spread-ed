@@ -1,47 +1,43 @@
+# Monorepo Workspace Configuration
 [build-system]
 requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ose"
+name = "onto-spread-ed-workspace"
+description = "OntoSpreadEd - Ontology spreadsheet editor (monorepo workspace)"
 requires-python = ">= 3.12"
+version = "0.1.0"
 
-dependencies = [
-    "Flask==2.3.3",
-    "pandas",
-    "openpyxl",
-    "Flask-SQLAlchemy==3.1.1",
-    "Flask-Injector",
-    "GitHub-Flask",
-    "jsonschema",
-    "daff",
-    "whoosh",
-    "networkx",
-    "pydot",
-    "py-horned-owl",
-    "ontoutils",
-    "flask-cors==3.0.10",
-    "flask-executor",
-    "aiohttp",
-    "async-lru",
-    "Flask-Migrate",
-    "pyyaml",
-    "dacite"
-
-]
-
-dynamic = ["version"]
-
-[tool.setuptools.packages.find]
-include = ["ose*"]  # ["*"] by default
-
-[tool.setuptools.dynamic]
-version = {attr = "ose.__version__"}
+# This is a workspace root - no packages are published from here
+# Individual packages are in packages/ose-*
 
 [dependency-groups]
 dev = [
-    "flake8>=5.0.4",
+    "ruff",
+    "pytest",
+    "mypy",
 ]
 
-[project.scripts]
-ose = "ose.cli_wrapper:main"
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages/*/tests"]
+
+# For local development with uv/pip, you can install all packages in editable mode:
+# pip install -e packages/ose-core -e packages/ose-cli -e packages/ose-app
+
+# Or with uv workspaces:
+[tool.uv.workspace]
+members = ["packages/ose-core", "packages/ose-cli", "packages/ose-app"]
+
+[tool.uv.sources]
+ose-core = { workspace = true }
+ose-cli = { workspace = true }
+ose-app = { workspace = true }

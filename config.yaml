@@ -14,6 +14,10 @@ index-path: 'ose_index'
 cache-dir: '.cache/ose'
 cache-life-time: 86400
 
+# Plugins
+enable-plugins: true
+plugins-directory: 'plugins'
+
 # Repositories
 repositories:
   # Where to look for repository configration. Possible values: 'repository' or 'local'
