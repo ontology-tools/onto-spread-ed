@@ -8,12 +8,12 @@ from typing import List, Dict, Type
 
 from flask_github import GitHub, GitHubError
 from flask_sqlalchemy import SQLAlchemy
-from flask_sqlalchemy.query import Query
+from sqlalchemy.orm import Query
 
-from .AddictOVocabReleaseStep import AddictOVocabReleaseStep
-from .BCIOSearchReleaseStep import BCIOSearchReleaseStep
+from ose.release.common import fetch_assert_release
+from ose.services.PluginService import PluginService
+
 from .BuildReleaseStep import BuildReleaseStep
-from .GenerateHierarchicalSpreadsheetReleaseStep import GenerateHierarchicalSpreadsheetReleaseStep
 from .GithubPublishReleaseStep import GithubPublishReleaseStep
 from .HumanVerificationReleaseStep import HumanVerificationReleaseStep
 from .ImportExternalReleaseStep import ImportExternalReleaseStep
@@ -26,31 +26,33 @@ from ..database.Release import Release
 from ..model.ReleaseScript import ReleaseScript
 from ..services.ConfigurationService import ConfigurationService
 
-ALL_RELEASE_STEPS: List[Type[ReleaseStep]] = [
+BUILT_IN_RELEASE_STEPS: List[Type[ReleaseStep]] = [
     PreparationReleaseStep,
     ValidationReleaseStep,
     ImportExternalReleaseStep,
     BuildReleaseStep,
     MergeReleaseStep,
-    GenerateHierarchicalSpreadsheetReleaseStep,
     HumanVerificationReleaseStep,
-    BCIOSearchReleaseStep,
-    AddictOVocabReleaseStep,
     GithubPublishReleaseStep,
 ]
 
-ALL_RELEASE_STEPS_DICT: Dict[str, Type[ReleaseStep]] = dict(
-    [(r.name(), r) for r in ALL_RELEASE_STEPS]
+BUILT_IN_RELEASE_STEPS_DICT: Dict[str, Type[ReleaseStep]] = dict(
+    [(r.name(), r) for r in BUILT_IN_RELEASE_STEPS]
 )
 
-
 def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int,
-               config: ConfigurationService) -> None:
+               config: ConfigurationService, plugin_service: PluginService) -> None:
     logger = logging.getLogger(__name__)
+    
+    available_release_steps = BUILT_IN_RELEASE_STEPS_DICT.copy()
+    available_release_steps.update(
+        (step.name(), step) for step in plugin_service.get_release_steps()
+    )
 
+    q: Query[Release] = db.session.query(Release)
+    
     try:
-        q: Query[Release] = db.session.query(Release)
-        release: Release = q.get(release_id)
+        release = fetch_assert_release(q, release_id)
 
         if release.local_dir:
             tmp = release.local_dir
@@ -60,7 +62,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
             tmp = tmp_dir
 
-        last_step = q.get(release_id).step
+        last_step = fetch_assert_release(q, release_id).step
         update_release(q, release_id, {
             Release.state: "running",
             Release.worker_id: f"{os.getpid()}-{threading.current_thread().ident}",
@@ -69,7 +71,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
 
         release_steps = []
         for step in release_script.steps:
-            step_ctor = ALL_RELEASE_STEPS_DICT.get(step.name, None)
+            step_ctor = available_release_steps.get(step.name, None)
             if step_ctor is None:
                 raise ValueError(f"Unknown release step '{step.name}")
 
@@ -81,7 +83,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
                 if not continu:
                     return
 
-                current_step = q.get(release_id).step
+                current_step = fetch_assert_release(q, release_id).step
                 if current_step <= last_step and i != len(release_steps) - 1:
                     logger.error("The step did not change after a release step was executed. "
                                  "Did an error occur? Not running further release steps.")

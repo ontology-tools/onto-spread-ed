@@ -16,7 +16,7 @@ class ImportExternalWithGitHubActionsReleaseStep(ReleaseStep):
 
         self._download(file.target.file)
 
-        self.store_target_artifact(file, downloadable=False)
+        self._store_target_artifact(file, downloadable=False)
 
         self._set_release_result(result)
         return result.ok()

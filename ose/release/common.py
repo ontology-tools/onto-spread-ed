@@ -2,7 +2,7 @@ import os
 from typing import List, Tuple, Dict
 
 from flask_sqlalchemy import SQLAlchemy
-from flask_sqlalchemy.query import Query
+from sqlalchemy.orm import Query
 
 from ose.database.Release import Release, ReleaseArtifact
 from ose.model.ReleaseScript import ReleaseScriptFile
@@ -22,7 +22,7 @@ class ReleaseCanceledException(Exception):
 
 
 def set_release_info(q: Query[Release], release_id: int, details) -> None:
-    r = q.get(release_id)
+    r = fetch_assert_release(q, release_id)
     update_release(q, release_id, {Release.details: {**r.details, r.step: details}})
 
 
@@ -46,9 +46,9 @@ def set_release_result(q, release_id, result):
         update_release(q, release_id, dict(state="waiting-for-user"))
 
 
-def order_sources(files: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, ReleaseScriptFile]]:
+def order_sources(sources: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, ReleaseScriptFile]]:
     queue: List[Tuple[str, ReleaseScriptFile]] = []
-    files: List[Tuple[str, ReleaseScriptFile]] = list(files.items())
+    files: List[Tuple[str, ReleaseScriptFile]] = list(sources.items())
 
     for k, file in files:
         unknown_dependencies = [n for n in file.needs if n not in (x for x, _ in files)]
@@ -85,3 +85,12 @@ def add_artifact(db: SQLAlchemy, artifact: ReleaseArtifact) -> int:
 
 def get_artifacts(q: Query[ReleaseArtifact], release_id: int) -> List[ReleaseArtifact]:
     return q.filter_by(release_id=release_id).all()
+
+
+def fetch_assert_release(q: Query[Release], release_id: int) -> Release:
+    release = q.get(release_id)
+
+    if release is None:
+        raise ValueError(f"Release with id '{release_id}' not found.")
+
+    return release

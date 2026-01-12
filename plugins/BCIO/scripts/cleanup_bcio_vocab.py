@@ -1,26 +1,42 @@
-import asyncio
 import base64
 import io
 import json
 
 import aiohttp
 from flask_github import GitHub
+from injector import inject
 
 from ose.model.ExcelOntology import ExcelOntology
+from ose.model.Script import Script
 from ose.model.TermIdentifier import TermIdentifier
-from ose.search_api.BCIOSearchService import BCIOSearchService
+from ..BCIOSearchService import BCIOSearchService
 from ose.services.ConfigurationService import ConfigurationService
 from ose.utils import get_spreadsheets, get_spreadsheet
 
 
-def main(gh: GitHub, config: ConfigurationService, repo: str):
-    repo = config.get("BCIO")
+class CleanUpBCIOVocabScript(Script):
+    @property
+    def id(self) -> str:
+        return "cleanup-bcio-vocab"
 
-    async def inner():
+    @property
+    def title(self) -> str:
+        return "Cleanup terms on BCIO Vocab"
+
+    @inject
+    def __init__(self, gh: GitHub, config: ConfigurationService) -> None:
+        super().__init__()
+        self.gh = gh
+        self.config = config
+
+    async def run(self) -> str:
+        repo = self.config.get("BCIO")
+
+        assert repo is not None, "BCIO repository configuration not found."
+
         # get all BCIO Vocab terms
         async with aiohttp.ClientSession() as session:
-            service = BCIOSearchService(config, session)
-
+            service = BCIOSearchService(self.config, session)
             bcio_terms = await service.get_all_terms()
 
         bcio_vocab_by_id = dict([(t.id.strip(), t) for t in bcio_terms if t.id is not None])
@@ -30,10 +46,10 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
         active_sheets = repo.indexed_files
         regex = "|".join(f"({r})" for r in active_sheets)
 
-        excel_files = get_spreadsheets(gh, repo.full_name, branch, include_pattern=regex)
+        excel_files = get_spreadsheets(self.gh, repo.full_name, branch, include_pattern=regex)
 
         for file in excel_files:
-            _, data, _ = get_spreadsheet(gh, repo.full_name, file)
+            _, data, _ = get_spreadsheet(self.gh, repo.full_name, file)
 
             for entity in data:
                 term_id = entity.get("ID", "").strip()
@@ -68,8 +84,8 @@ def main(gh: GitHub, config: ConfigurationService, repo: str):
         # stream to base64
         b64content = base64.b64encode(stream.getvalue()).decode()
 
-        return (f'The entities in this excel sheet have been identified to be deleted. '
-                f'<a download="to_be_deleted.xlsx" href="data:application/vnd.ms-excel;base64,{b64content}>'
-                f'to_be_deleted.xlsx</a>')
-
-    return asyncio.run(inner())
+        return (
+            f"The entities in this excel sheet have been identified to be deleted. "
+            f'<a download="to_be_deleted.xlsx" href="data:application/vnd.ms-excel;base64,{b64content}>'
+            f"to_be_deleted.xlsx</a>"
+        )

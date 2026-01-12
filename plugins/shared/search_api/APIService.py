@@ -8,31 +8,33 @@ import pyhornedowl
 from ose.services.ConfigurationService import ConfigurationService
 from .APIClient import APIClient
 from .HttpError import HttpError
-from ..model.ExcelOntology import ExcelOntology
-from ..model.Result import Result
-from ..model.Term import Term
-from ..model.TermIdentifier import TermIdentifier
-from ..utils import lower
+from ose.model.ExcelOntology import ExcelOntology
+from ose.model.Result import Result
+from ose.model.Term import Term
+from ose.model.TermIdentifier import TermIdentifier
+from ose.utils import lower
 
 
-class APIService(abc.ABC):
+class APIService[T: APIClient](abc.ABC):
     _config: ConfigurationService
     _logger: logging.Logger
-    _api_client: APIClient
+    _api_client: T
 
-    def __init__(self, config: ConfigurationService, api_client: APIClient):
+    def __init__(self, config: ConfigurationService, api_client: T):
         self._config = config
         self._api_client = api_client
 
     @property
     @abc.abstractmethod
-    def repository_name(self) -> str:
-        ...
+    def repository_name(self) -> str: ...
 
-    async def update_api(self, ontology: ExcelOntology,
-                         external_ontologies: List[str],
-                         revision_message: str,
-                         update_fn: Optional[Callable[[int, int, str], None]] = None) -> Result[Tuple]:
+    async def update_api(
+        self,
+        ontology: ExcelOntology,
+        external_ontologies: List[str],
+        revision_message: str,
+        update_fn: Optional[Callable[[int, int, str], None]] = None,
+    ) -> Result[Tuple]:
         self._logger.info("Starting update")
         result = Result()
 
@@ -46,7 +48,7 @@ class APIService(abc.ABC):
             ext_ontology = pyhornedowl.open_ontology(external)
 
             if config is not None:
-                for (prefix, iri) in config.prefixes.items():
+                for prefix, iri in config.prefixes.items():
                     ext_ontology.prefix_mapping.add_prefix(prefix, iri)
 
             external_ontologies_loaded.append(ext_ontology)
@@ -80,20 +82,21 @@ class APIService(abc.ABC):
                 term = ontology.term_by_id(term_id)
                 if term is None:
                     ext_label = o.get_annotation(term_iri, "http://www.w3.org/2000/01/rdf-schema#label")
-                    ext_definition = o.get_annotation(term_iri,
-                                                      "http://purl.obolibrary.org/obo/IAO_0000115")
+                    ext_definition = o.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000115")
                     if ext_definition is None:
-                        ext_definition = o.get_annotation(term_iri,
-                                                          "http://purl.obolibrary.org/obo/IAO_0000600")
+                        ext_definition = o.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000600")
                     if ext_definition is None:
                         ext_definition = "no definition provided for external entity"
-                        result.warning(type='external-no-definition',
-                                       msg="No definition was provided for the external " +
-                                           f"entity '{ext_label}' ({term_id}). Using default instead.")
+                        result.warning(
+                            type="external-no-definition",
+                            msg="No definition was provided for the external "
+                            + f"entity '{ext_label}' ({term_id}). Using default instead.",
+                        )
 
                     if ext_label is None:
-                        result.warning(type="external-no-label",
-                                       msg=f"The external term \"{term_id}\" has no label. Skipping it")
+                        result.warning(
+                            type="external-no-label", msg=f'The external term "{term_id}" has no label. Skipping it'
+                        )
                         return
 
                     ext_parents = o.get_superclasses(term_iri)
@@ -107,13 +110,15 @@ class APIService(abc.ABC):
                         self._logger.warning(f"External term has no parents: {term_id}")
                         return
                     if len(ext_parents) > 1:
-                        self._logger.warning(f"Multiple parents defined for external term: {term_id}."
-                                             "Using only the lexicographical first entry.")
+                        self._logger.warning(
+                            f"Multiple parents defined for external term: {term_id}."
+                            "Using only the lexicographical first entry."
+                        )
                         ext_parents = [sorted(ext_parents)[0]]
 
                     ext_relations = [
                         (TermIdentifier("IAO:0000115", "definition"), ext_definition),
-                        (TermIdentifier("IAO:0000114", "has curation status"), "External")
+                        (TermIdentifier("IAO:0000114", "has curation status"), "External"),
                     ]
                     ext_term = Term(term_id, ext_label, ("<external>", -1), ext_relations, ext_parents, [], [])
 
@@ -165,9 +170,7 @@ class APIService(abc.ABC):
                 try:
                     await self._api_client.update_term(term, revision_message)
                 except HttpError as e:
-                    result.error(type='http-error',
-                                 details=e.message,
-                                 response=e.response)
+                    result.error(type="http-error", details=e.message, response=e.response)
 
         tasks = [work_queue(term) for term in queue]
         await asyncio.gather(*tasks)

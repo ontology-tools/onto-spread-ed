@@ -15,7 +15,7 @@ from attr import dataclass
 from ose.model.Result import Result
 from ose.model.Term import Term
 from ose.model.TermIdentifier import TermIdentifier
-from ose.search_api.HttpError import HttpError
+from .HttpError import HttpError
 
 T = TypeVar('T')
 

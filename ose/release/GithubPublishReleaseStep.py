@@ -14,7 +14,7 @@ class GithubPublishReleaseStep(ReleaseStep):
         return "GITHUB_PUBLISH"
 
     def run(self) -> bool:
-        config = self._config.get(self._release_script.full_repository_name)
+        config = self._repo_config
         branch = f"release/{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"
         github.create_branch(self._gh, self._release_script.full_repository_name, branch,
                              config.main_branch)
@@ -22,7 +22,7 @@ class GithubPublishReleaseStep(ReleaseStep):
 
         release_name = self._calculate_release_name()
 
-        artifacts = self.artifacts()
+        artifacts = self._artifacts()
 
         upload_queue = [a for a in artifacts if a.kind == "final"]
         self._total_items = len(upload_queue)

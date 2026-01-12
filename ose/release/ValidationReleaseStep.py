@@ -18,7 +18,7 @@ class ValidationReleaseStep(ReleaseStep):
 
         self._total_items = len(queue)
 
-        external_ontology_result = self.load_externals_ontology()
+        external_ontology_result = self._load_externals_ontology()
         if not external_ontology_result.ok():
             self._set_release_result(external_ontology_result)
             return False
@@ -27,6 +27,10 @@ class ValidationReleaseStep(ReleaseStep):
 
         external = external_ontology_result.value
         validation_result += external_ontology_result
+        
+        if external is None:
+            self._set_release_result(validation_result)
+            return False
 
         # To catch overarching errors
         overall_ontology = ExcelOntology("<final>")

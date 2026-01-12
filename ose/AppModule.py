@@ -5,7 +5,9 @@ from flask_executor import Executor
 from flask_github import GitHub
 from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
-from injector import Module, provider
+from injector import Injector, Module, provider, singleton
+
+from ose.services.PluginService import PluginService
 
 from . import database, gh
 from .OntologyDataStore import OntologyDataStore
@@ -22,10 +24,7 @@ from .services.RobotOntologyBuildService import RobotOntologyBuildService
 class AppModule(Module):
     """Configure the application."""
 
-    def __init__(self):
-        self._config = None
-
-    def init_app(self, app):
+    def init_app(self, app: Flask):
         database.init_app(app)
         gh.init_app(app)
 
@@ -42,47 +41,44 @@ class AppModule(Module):
         return gh.github
 
     @provider
-    @request
+    @singleton
     def ontodb(self, config: ConfigurationService) -> OntologyDataStore:
         return OntologyDataStore(config)
 
     @provider
-    @request
+    @singleton
     def searcher(self, github: GitHub, config: ConfigurationService) -> SpreadsheetSearcher:
         return SpreadsheetSearcher(config, github)
 
     @provider
-    @request
+    @singleton
     def configuration_service(self, app: Flask, github: GitHub) -> ConfigurationService:
-        if self._config is None:
-            configuration_service = app.config.get("REPOSITORIES_SOURCE", "local")
+        configuration_service = app.config.get("REPOSITORIES_SOURCE", "local")
 
-            service = {
-                "local": LocalConfigurationService,
-                "repository": RepositoryConfigurationService
-            }.get(configuration_service, LocalConfigurationService)
+        service = {
+            "local": LocalConfigurationService,
+            "repository": RepositoryConfigurationService
+        }.get(configuration_service, LocalConfigurationService)
 
-            self._config = service(app.config, github)
-
-        return self._config
+        return service(app.config, github)
 
     @provider
-    @request
+    @singleton
     def executor(self, app: Flask) -> Executor:
         return Executor(app)
 
     @provider
-    @request
+    @singleton
     def ontology_builder(self) -> OntologyBuildService:
         return RobotOntologyBuildService()
 
     @provider
-    @request
+    @singleton
     def permission_manager(self, app: Flask) -> PermissionManager:
         return PermissionManager(app.config)
 
     @provider
-    @request
+    @singleton
     def file_cache(self, config: ConfigurationService) -> FileCache:
         life_time: typing.Union[int, None] = config.app_config.get("CACHE_LIFETIME", None)
         cache_dir = config.app_config.get("CACHE_DIR")
@@ -91,3 +87,10 @@ class AppModule(Module):
             return FileCache(cache_dir, life_time)
         else:
             return FileCache(cache_dir)
+        
+    @provider
+    @singleton
+    def plugin_service(self, config: ConfigurationService, injector: Injector) -> PluginService:
+        plugin_service = PluginService(config, injector)
+        plugin_service.load_plugins()
+        return plugin_service

@@ -18,12 +18,18 @@ class BuildReleaseStep(ReleaseStep):
             self._next_item(item=file.target.file, message="Building")
             ontology = ExcelOntology(file.target.iri)
 
-            external_ontology_result = self.load_externals_ontology()
+            external_ontology_result = self._load_externals_ontology()
 
             self._raise_if_canceled()
 
             result += external_ontology_result
-            ontology.import_other_excel_ontology(external_ontology_result.value)
+            external_ontology = external_ontology_result.value
+            
+            if external_ontology is None:
+                self._set_release_result(result)
+                return False
+            
+            ontology.import_other_excel_ontology(external_ontology)
 
             self._raise_if_canceled()
 
@@ -56,7 +62,7 @@ class BuildReleaseStep(ReleaseStep):
                                              self._release_script.prefixes, dependencies, self._working_dir,
                                              self._release_script.iri_prefix)
 
-            self.store_target_artifact(file, kind="intermediate")
+            self._store_target_artifact(file, kind="intermediate")
 
             self._raise_if_canceled()
 

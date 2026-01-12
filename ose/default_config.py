@@ -35,48 +35,5 @@ REPOSITORIES_REPOSITORY_CONFIG_REQUEST_HEADERS = {
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"
 ADDICTO_VOCAB_API_PATH = "https://api.addictovocab.org/"
 
-SCRIPTS = {
-    "set-pre-proposed-curation-status": {
-        "title": "Set 'Pre-proposed' state",
-        "module": "scripts.set-pre-proposed-curation-status",
-        "function": "main",
-        "arguments": [
-            {
-                "name": "repo",
-                "description": "Which repository should the script be executed?",
-                "type": "string",
-                "default": "AddictO"
-            }
-        ]
-    },
-    "import-missing-externals": {
-        "title": "Import missing 'External' terms",
-        "module": "scripts.import-missing-externals",
-        "function": "main",
-        "arguments": [
-            {
-                "name": "repo",
-                "description": "Which repository should the script be executed?",
-                "type": "string"
-            }
-        ]
-    },
-    "cleanup-bcio-vocab": {
-        "title": "Cleanup terms on BCIO Vocab",
-        "module": "scripts.cleanup-bcio-vocab",
-        "function": "main",
-        "arguments": []
-    },
-    "update-externals-to-latest": {
-        "title": "Update external ontologies",
-        "module": "scripts.update-imports-to-latest-versions",
-        "function": "main",
-        "arguments": [
-            {
-                "name": "repo",
-                "description": "In which repository should the script be executed?",
-                "type": "string"
-            }
-        ]
-    }
-}
+
+ENABLE_PLUGINS = True

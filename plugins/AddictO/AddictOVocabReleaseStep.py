@@ -11,16 +11,16 @@ from ose.model.ReleaseScript import ReleaseScript
 from ose.model.Result import Result
 from ose.release.ReleaseStep import ReleaseStep
 from ose.release.common import order_sources
-from ose.search_api.BCIOSearchService import BCIOSearchService
+from .AddictOVocabService import AddictOVocabService
 from ose.services.ConfigurationService import ConfigurationService
 
 
-class BCIOSearchReleaseStep(ReleaseStep):
+class AddictOVocabReleaseStep(ReleaseStep):
     _included_files: List[str]
 
     @classmethod
     def name(cls) -> str:
-        return "BCIO_SEARCH"
+        return "ADDICTO_VOCAB"
 
     def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
                  config: ConfigurationService, *, included_files: List[str]):
@@ -34,9 +34,16 @@ class BCIOSearchReleaseStep(ReleaseStep):
             dict([(k, f) for k, f in self._release_script.files.items() if k in self._included_files]))
 
         ontology = ExcelOntology("")
-        for s in self._release_script.external.sources:
-            xlsx = self._local_name(s.file)
-            result += ontology.add_imported_terms(s.file, xlsx)
+        external_ontology_result = self._load_externals_ontology()
+        if not external_ontology_result.ok():
+            self._set_release_result(external_ontology_result)
+            return False
+
+        self._raise_if_canceled()
+
+        external = external_ontology_result.value
+
+        ontology.import_other_excel_ontology(external)
 
         for i, (k, file) in enumerate(sources):
             for s in file.sources:
@@ -63,7 +70,7 @@ class BCIOSearchReleaseStep(ReleaseStep):
 
     async def run_service(self, ontology: ExcelOntology, externals: List[str]) -> Result[tuple]:
         async with aiohttp.ClientSession() as session:
-            service = BCIOSearchService(self._config, session)
+            service = AddictOVocabService(self._config, session)
             return await service.update_api(
                 ontology,
                 externals,

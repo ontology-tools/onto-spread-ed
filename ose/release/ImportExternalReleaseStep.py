@@ -1,5 +1,5 @@
 import csv
-from typing import Tuple, List, Literal
+from typing import Tuple, List, Literal, cast
 
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
@@ -11,6 +11,8 @@ from ..model.Result import Result
 from ..services.ConfigurationService import ConfigurationService
 from ..services.RobotOntologyBuildService import RobotOntologyBuildService
 
+
+EntityType = Literal["class", "object property", "data_property"]
 
 class ImportExternalReleaseStep(ReleaseStep):
     @classmethod
@@ -31,7 +33,7 @@ class ImportExternalReleaseStep(ReleaseStep):
         if self._use_existing_file:
             self._download(file.target.file)
 
-            self.store_target_artifact(file, downloadable=False)
+            self._store_target_artifact(file, downloadable=False)
 
             self._set_release_result(result)
             return result.ok()
@@ -45,7 +47,7 @@ class ImportExternalReleaseStep(ReleaseStep):
 
             self._raise_if_canceled()
 
-        new_parents: List[Tuple[str, str, Literal["class", "object property", "data_property"]]] = []
+        new_parents: List[Tuple[str, str, EntityType]] = []
         if file.addParentsFile:
             with open(self._local_name(file.addParentsFile)) as f:
                 rows = csv.DictReader(f, skipinitialspace=True)
@@ -56,15 +58,21 @@ class ImportExternalReleaseStep(ReleaseStep):
 
                     id = row.get("ID")
                     new_parent = row.get("NEW PARENT ID")
-                    type = row.get("TYPE", "class").lower()
+                    type = cast(EntityType, row.get("TYPE", "class").lower())
                     if type not in ["class", "object property", "data property"]:
                         result.warning(type='unknown-owl-type',
                                        file=file.renameTermFile,
                                        msg=f"Unknown OWL type '{type}' in column 'TYPE'")
+                        
+                    if id is None or new_parent is None:
+                        result.error(type='invalid-add-parents-entry',
+                                     file=file.addParentsFile,
+                                     msg="Missing ID or NEW PARENT ID in add parents file")
+                        continue
 
                     new_parents.append((id, new_parent, type))
 
-        renamings: List[Tuple[str, str, Literal["class", "object property", "data_property"]]] = []
+        renamings: List[Tuple[str, str, EntityType]] = []
         if file.renameTermFile is not None:
             with open(self._local_name(file.renameTermFile)) as f:
                 rows = csv.DictReader(f, skipinitialspace=True)
@@ -75,12 +83,18 @@ class ImportExternalReleaseStep(ReleaseStep):
 
                     id = row.get("ID")
                     new_label = row.get("NEW LABEL")
-                    type = row.get("TYPE", "class").lower()
+                    type =  cast(EntityType, row.get("TYPE", "class").lower())
                     if type not in ["class", "object property", "data property"]:
                         result.warning(type='unknown-owl-type',
                                        file=file.renameTermFile,
                                        msg=f"Unknown OWL type '{type}' in column 'TYPE'")
                         type = "class"
+                        
+                    if id is None or new_label is None:
+                        result.error(type='invalid-rename-entry',
+                                     file=file.renameTermFile,
+                                     msg="Missing ID or NEW LABEL in rename file")
+                        continue
 
                     renamings.append((id, new_label, type))
 
@@ -96,7 +110,7 @@ class ImportExternalReleaseStep(ReleaseStep):
 
         self._raise_if_canceled()
 
-        self.store_target_artifact(file, downloadable=False)
+        self._store_target_artifact(file, downloadable=False)
 
         self._set_release_result(result)
         return result.ok()

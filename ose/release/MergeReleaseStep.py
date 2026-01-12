@@ -44,7 +44,7 @@ class MergeReleaseStep(ReleaseStep):
                                                version_iri,
                                                file.target.ontology_annotations)
 
-            self.store_target_artifact(file)
+            self._store_target_artifact(file)
 
             self._raise_if_canceled()
 
@@ -60,7 +60,7 @@ class MergeReleaseStep(ReleaseStep):
                                                version_iri,
                                                file.target.ontology_annotations)
 
-            self.store_artifact(out_file, file.target.file)
+            self._store_artifact(out_file, file.target.file)
 
             self._raise_if_canceled()
 

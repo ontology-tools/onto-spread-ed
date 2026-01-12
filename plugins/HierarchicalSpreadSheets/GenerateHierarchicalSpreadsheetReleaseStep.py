@@ -6,15 +6,14 @@ import openpyxl
 import pyhornedowl
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
-from openpyxl.worksheet.worksheet import Worksheet
 from typing_extensions import Self
 
-from .ReleaseStep import ReleaseStep
-from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
-from ..model.Result import Result
-from ..services.ConfigurationService import ConfigurationService
-from ..utils import letters
-from ..utils.github import parse_spreadsheet
+from ose.release.ReleaseStep import ReleaseStep
+from ose.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
+from ose.model.Result import Result
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import letters
+from ose.utils.github import parse_spreadsheet
 
 
 @dataclasses.dataclass
@@ -42,9 +41,9 @@ class Node:
             c.recurse(fn)
 
 
-def form_tree(edges: List[Tuple[Tuple[str, str, str], Optional[str]]]) -> List[Node]:
+def form_tree(edges: List[Tuple[Tuple[str, str | None, str | None], Optional[str]]]) -> List[Node]:
     all_nodes = set(n for n, _ in edges)
-    item_to_node = dict((c, Node(item=c, label=lbl if lbl is not None else c, definition=d)) for (c, lbl, d) in all_nodes)
+    item_to_node = dict((c, Node(item=c, label=lbl if lbl is not None else c, definition=d or "<no definition>")) for (c, lbl, d) in all_nodes)
 
     for (child, _, _), parent in edges:
         if parent is None:
@@ -82,7 +81,8 @@ class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
             hierarchies, ontology = self.build_hierarchy(file)
 
             wb = openpyxl.Workbook()
-            sheet: Worksheet = wb.active
+            assert wb.active is not None
+            sheet = wb.active
 
             height = max(h.height() for h in hierarchies)
             annotations = list({k for h in hierarchies for k in h.annotations.keys()})
@@ -110,7 +110,7 @@ class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
 
             wb.save(self._local_name(file_name))
 
-            self.store_artifact(self._local_name(file_name), f"{path}/{file_name}")
+            self._store_artifact(self._local_name(file_name), f"{path}/{file_name}")
 
         result.warnings = []
         self._set_release_result(result)
@@ -126,7 +126,7 @@ class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
         release_file: str
 
         excel_files = [self._local_name(s.file) for s in file.sources]
-        release_file = next((a.local_path for a in self.artifacts()
+        release_file = next((a.local_path for a in self._artifacts()
                              if a.target_path == file.target.file and a.kind == 'final'),
                             self._local_name(file.target.file))
 
@@ -162,6 +162,9 @@ class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
 
             def annotate(n: Node):
                 id = ontology.get_id_for_iri(n.item)
+                if id is None:
+                    return
+                
                 fields = {
                     "comment": "Comment",
                     "subontology": "Sub-ontology",
@@ -173,8 +176,8 @@ class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
                 for field_key, field in fields.items():
                     node_data = data.get(id, dict())
                     key = next((k for k in node_data.keys() if letters(k) == field_key), None)
-                    if n.annotations.get(field, None) is None:
-                        n.annotations[field] = node_data.get(key, None)
+                    if key is not None and n.annotations.get(field, None) is None:
+                        n.annotations[field] = node_data[key]
 
             for h in hierarchies:
                 h.recurse(annotate)
