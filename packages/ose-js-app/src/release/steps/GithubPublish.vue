@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {Release} from "../model";
+import {Release} from "@ose/js-core";
 import TechnicalError from "../TechnicalError.vue";
 import ProgressIndicator from "../ProgressIndicator.vue";
 

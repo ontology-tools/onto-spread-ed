@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import {Release} from "./model";
-import ProgressIndicator from "./ProgressIndicator.vue";
+import {Release} from "@ose/js-core";
 
 const props = defineProps<{
   release: Release,

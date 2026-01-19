@@ -2,6 +2,8 @@
 {% block title %}{{ config['APP_TITLE'] }}{% endblock %}
 {% block head %}
     {{ super() }}
+
+    <link rel="stylesheet" href="{{ url_for('static', filename="js/assets/settings.css") }}">
 {% endblock %}
 {% block content %}
     <div id="vue-app-settings">

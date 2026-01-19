@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AddictOVocab from "./steps/AddictOVocab.vue";
 import {computed, onMounted, ref, watch} from "vue";
-import {Diagnostic, Release, ReleaseScript} from "./model";
+import {Diagnostic, Release, ReleaseScript} from "@ose/js-core";
 import Setup from "./Setup.vue";
 import Validation from "./steps/Validation.vue";
 import HumanVerification from "./steps/HumanVerification.vue";

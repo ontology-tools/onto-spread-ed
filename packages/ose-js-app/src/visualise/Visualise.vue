@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, toRaw, useTemplateRef, watch, watchEffect, watchPostEffect } from 'vue';
+import { computed, onMounted, ref, useTemplateRef, watch, watchEffect, watchPostEffect } from 'vue';
 import { SpreadsheetData, VisualisationData, Graph, Row } from "@ose/js-core";
 import svgPanZoom from 'svg-pan-zoom';
 import { CURATION_STATUS } from "@ose/js-core";

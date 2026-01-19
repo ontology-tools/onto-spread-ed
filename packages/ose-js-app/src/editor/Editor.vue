@@ -11,11 +11,10 @@ import { Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig } from "@ose
 import Diagnostic from "../common/Diagnostic.vue"
 import { BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController } from "bootstrap-vue-next"
 import { DIAGNOSTIC_DATA } from "@ose/js-core";
-import { debounce } from "@ose/js-core";
+import { debounce, SpreadsheetData } from "@ose/js-core";
 import Merger from "./Merger.vue";
 import { HistoryService } from "./HistoryService"
 import { getCell } from "../common/tabulator-extensions";
-import { SpreadsheetData } from "../common/spreadsheetdata";
 import { isFocusWindowMessage, isNavigateToSheetMessage, isNavigateToTermMessage, isScrollToRowMessage } from "@ose/js-core";
 
 declare var URLS: { [key: string]: any };

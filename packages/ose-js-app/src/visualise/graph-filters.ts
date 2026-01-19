@@ -1,5 +1,4 @@
 import { Graph, Node, Edge } from "@ose/js-core";
-import { CURATION_STATUS } from "@ose/js-core";
 
 export interface FilterOptions {
   curationFilter: string[];

@@ -3,30 +3,10 @@
 {% block head %}
     {{ super() }}
 
-    <link rel="stylesheet" href="{{ url_for('static', filename="js/editor.css") }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename="js/assets/editor.css") }}">
 
-{#    {% if config["ENV"] == "development" %}#}
-{#        <script type="module" src="http://localhost:5173/@vite/client"></script>#}
-{#        <script type="module" src="http://localhost:5173/main.js"></script>#}
-{#    {% endif %}#}
-{#    {% if config["ENV"] == "production" %}#}
-{#        <!-- for cssFile of manifest[name].css -->#}
-{#        <link rel="stylesheet" href="/{{ cssFile }}" />#}
-{##}
-{#        <!-- for chunk of importedChunks(manifest, name) -->#}
-{#        <!-- for cssFile of chunk.css -->#}
-{#        <link rel="stylesheet" href="/{{ cssFile }}" />#}
-{##}
-{#        <script type="module" src="/{{ manifest[name].file }}"></script>#}
-{##}
-{#        <!-- for chunk of importedChunks(manifest, name) -->#}
-{#        <link rel="modulepreload" href="/{{ chunk.file }}" />#}
-{#    {% endif %} #}
 {% endblock %}
 {% block content %}
-    {#    <link href="https://unpkg.com/tabulator-tables@6.3/dist/css/tabulator_simple.min.css" rel="stylesheet">#}
-    {#    <link href="https://unpkg.com/tabulator-tables@6.3/dist/css/bootstrap/tabulator_bootstrap4.min.css" rel="stylesheet">#}
-
     <div id="vue-app-editor"></div>
     <script>
         var URLS = {

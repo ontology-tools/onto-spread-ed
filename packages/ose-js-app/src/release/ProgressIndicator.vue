@@ -1,5 +1,6 @@
 <script setup lang="ts">
 
+import { Release } from "@ose/js-core";
 import {computed} from "vue";
 
 const props = defineProps<{

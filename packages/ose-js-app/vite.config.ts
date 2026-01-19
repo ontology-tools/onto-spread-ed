@@ -33,12 +33,13 @@ export default defineConfig({
     outDir: resolve(__dirname, '../../packages/ose-app/src/ose_app/static/js'),
     emptyOutDir: false,
     sourcemap: true,
+    cssCodeSplit: true,
     rollupOptions: {
       input: entries,
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]',
+        assetFileNames: 'assets/[name][extname]',
       },
     },
   },
