@@ -32,6 +32,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["ose"]
 
 [tool.setuptools.dynamic]
 version = {attr = "ose_core.__version__"}

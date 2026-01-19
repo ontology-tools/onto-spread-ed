@@ -6,12 +6,12 @@ import traceback
 from flask import Blueprint, g, json, jsonify
 
 from ose_app.guards.with_permission import requires_permissions
-from ose_core.model.Term import Term, UnresolvedTerm
-from ose_core.model.ExcelOntology import ExcelOntology
-from ose_core.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
-from ose_core.model.TermIdentifier import TermIdentifier
-from ose_core.services.FileCache import FileCache
-from ose_core.services.ConfigurationService import ConfigurationService
+from ose.model.Term import Term, UnresolvedTerm
+from ose.model.ExcelOntology import ExcelOntology
+from ose.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
+from ose.model.TermIdentifier import TermIdentifier
+from ose.services.FileCache import FileCache
+from ose.services.ConfigurationService import ConfigurationService
 
 logger = logging.getLogger(__name__)
 

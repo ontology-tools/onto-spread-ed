@@ -2,7 +2,7 @@ from flask import Flask, url_for, redirect, g, session
 from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 
-from .database.User import User
+from ose.database.User import User
 
 github = GitHub()
 

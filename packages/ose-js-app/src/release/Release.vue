@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import AddictOVocab from "./steps/AddictOVocab.vue";
-import {computed, onMounted, ref, watch} from "vue";
+import {computed, defineAsyncComponent, onMounted, ref, watch, shallowRef, markRaw, type Component} from "vue";
 import {Diagnostic, Release, ReleaseScript} from "@ose/js-core";
 import Setup from "./Setup.vue";
 import Validation from "./steps/Validation.vue";
 import HumanVerification from "./steps/HumanVerification.vue";
 import GithubPublish from "./steps/GithubPublish.vue";
-import BCIOSearch from "./steps/BCIOSearch.vue";
 import Generic from "./steps/Generic.vue";
 
 declare var SERVER_DATA: { [key: string]: any }
 declare var URLS: { [key: string]: any }
 
-declare var SERVER_DATA: { [key: string]: any }
-declare var URLS: { [key: string]: any }
+interface PluginInfo {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  components: { step_name: string; component_name: string }[];
+  has_static: boolean;
+  js_module: string | null;
+}
 
 const repo = SERVER_DATA.repo
 const prefix_url = URLS.prefix
@@ -24,19 +29,60 @@ const error = ref<string | null>(null)
 
 const selected_step = ref<number | null>(null)
 const selected_sub_step = ref<string | null>(null)
-const _steps: { [k: string]: any } = {
+
+// Built-in step components
+const builtInSteps: { [k: string]: Component } = {
   "VALIDATION": Validation,
   "HUMAN_VERIFICATION": HumanVerification,
   "GITHUB_PUBLISH": GithubPublish,
-  "BCIO_SEARCH": BCIOSearch,
-  "ADDICTO_VOCAB": AddictOVocab
+}
+
+// Dynamic plugin components - will be populated from API
+const pluginSteps = shallowRef<{ [k: string]: Component }>({})
+
+// Combined steps registry
+const _steps = computed(() => ({
+  ...builtInSteps,
+  ...pluginSteps.value
+}))
+
+// Load plugins from API
+async function loadPlugins() {
+  try {
+    const response = await fetch(`${prefix_url}/api/plugins/`);
+    if (!response.ok) return;
+    
+    const plugins: PluginInfo[] = await response.json();
+    const newPluginSteps: { [k: string]: Component } = {};
+    
+    for (const plugin of plugins) {
+      if (!plugin.has_static || !plugin.js_module || plugin.components.length === 0) continue;
+      
+      for (const comp of plugin.components) {
+        // Create async component that loads from plugin's static folder
+        const pluginId = plugin.id;
+        const jsModule = plugin.js_module;
+        const componentName = comp.component_name;
+        
+        newPluginSteps[comp.step_name] = markRaw(defineAsyncComponent(async () => {
+          const moduleUrl = `${prefix_url}/api/plugins/${pluginId}/static/${jsModule}`;
+          const module = await import(/* @vite-ignore */ moduleUrl);
+          return module[componentName] || module.default;
+        }));
+      }
+    }
+    
+    pluginSteps.value = newPluginSteps;
+  } catch (e) {
+    console.error("Failed to load plugins:", e);
+  }
 }
 
 const currentStep = computed<{
   args: any,
   name: string
 } | null>(() => release.value?.release_script.steps[selected_step.value ?? release.value.step] ?? null)
-const stepComponent = computed(() => _steps[currentStep.value?.name] ?? Generic)
+const stepComponent = computed(() => _steps.value[currentStep.value?.name] ?? Generic)
 
 const stepProps = computed(() => {
   const possibleProps = {
@@ -92,6 +138,9 @@ async function poll(withLoading: boolean = false) {
 }
 
 onMounted(async () => {
+  // Load plugins first
+  await loadPlugins();
+  
   const lastPathSegment = window.location.pathname.split("/").slice(-1)[0]
   const releaseId = parseInt(lastPathSegment)
 

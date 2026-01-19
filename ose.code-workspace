@@ -1,0 +1,51 @@
+{
+	"folders": [
+		{
+			"name": "onto-spread-ed",
+			"path": "."
+		},
+		{
+			"name": "ose-app",
+			"path": "packages/ose-app"
+		},
+		{
+			"name": "ose-core",
+			"path": "packages/ose-core"
+		},
+		{
+			"name": "ose-js-core",
+			"path": "packages/ose-js-core"
+		},
+		{
+			"name": "ose-js-app",
+			"path": "packages/ose-js-app"
+		},
+		{
+			"name": "ose-cli",
+			"path": "packages/ose-cli"
+		},
+		{
+			"name": "ose-plugin-addicto",
+			"path": "plugins/ose-plugin-addicto"
+		},
+		{
+			"name": "ose-plugin-hbcp",
+			"path": "plugins/ose-plugin-hbcp"
+		},
+		{
+			"name": "ose-plugin-hierarchical-spreadsheets",
+			"path": "plugins/ose-plugin-hierarchical-spreadsheets"
+		},
+		{
+			"name": "ose-plugin-bcio",
+			"path": "plugins/ose-plugin-bcio"
+		}
+	],
+	"settings": {
+		"workbench.colorCustomizations": {
+			"activityBar.background": "#391A6A",
+			"titleBar.activeBackground": "#4F2594",
+			"titleBar.activeForeground": "#FDFCFE"
+		}
+	}
+}

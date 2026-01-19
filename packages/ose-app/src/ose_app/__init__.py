@@ -18,7 +18,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 
 from .custom_json import *  # noqa: F403, F401
-from .database.User import User
+from ose.database.User import User
 
 __version__ = "0.1.0"
 

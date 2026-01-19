@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import {AutoFixState, Diagnostic as DiagnosticM, Release, Term} from "@ose/js-core";
+import {AutoFixState, Diagnostic as DiagnosticM, Release, Term, ProgressIndicator} from "@ose/js-core";
 import ErrorLink from "../ErrorLink.vue";
 import {guessParent} from "../autofix/guessParent"
-import ProgressIndicator from "../ProgressIndicator.vue";
 import Diagnostic from "../../common/Diagnostic.vue";
 
 declare var URLS: { [key: string]: any }

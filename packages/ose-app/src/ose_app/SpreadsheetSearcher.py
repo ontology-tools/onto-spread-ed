@@ -7,11 +7,11 @@ from typing import Generator, Dict, List, Optional, Any
 from flask_github import GitHub
 from whoosh.qparser import MultifieldParser, QueryParser
 
-from ose_core.index.FileStorage import FileStorage
-from ose_core.index.create_index import add_entity_data_to_index, re_write_entity_data_set
-from ose_core.index.schema import schema
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.utils.github import get_spreadsheet, get_spreadsheets
+from ose.index.FileStorage import FileStorage
+from ose.index.create_index import add_entity_data_to_index, re_write_entity_data_set
+from ose.index.schema import schema
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils.github import get_spreadsheet, get_spreadsheets
 
 
 class SpreadsheetSearcher:

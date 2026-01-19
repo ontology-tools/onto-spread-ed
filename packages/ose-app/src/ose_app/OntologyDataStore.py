@@ -9,7 +9,7 @@ import pyhornedowl
 from pyhornedowl.model import SubClassOf, ObjectSomeValuesFrom, ObjectProperty, Class
 
 from ose_app import constants
-from ose_core.services.ConfigurationService import ConfigurationService
+from ose.services.ConfigurationService import ConfigurationService
 
 
 class OntologyDataStore:

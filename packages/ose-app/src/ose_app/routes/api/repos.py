@@ -6,9 +6,9 @@ from flask import Blueprint, g, jsonify, current_app
 from flask_github import GitHub
 
 from ose_app.guards.with_permission import requires_permissions
-from ose_core.model.ReleaseScript import ReleaseScript
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.utils import save_file
+from ose.model.ReleaseScript import ReleaseScript
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import save_file
 
 bp = Blueprint("api_repo", __name__, url_prefix="/api/repo")
 

@@ -7,18 +7,20 @@ from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
 from injector import Injector, Module, provider, singleton
 
-from ose_core.services.PluginService import PluginService
+from ose.services.PluginService import PluginService
 
-from . import database, gh
+import ose.database as database
+
+from . import gh
 from .OntologyDataStore import OntologyDataStore
 from .PermissionManager import PermissionManager
 from .SpreadsheetSearcher import SpreadsheetSearcher
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.services.FileCache import FileCache
-from ose_core.services.LocalConfigurationService import LocalConfigurationService
-from ose_core.services.OntoloyBuildService import OntologyBuildService
-from ose_core.services.RepositoryConfigurationService import RepositoryConfigurationService
-from ose_core.services.RobotOntologyBuildService import RobotOntologyBuildService
+from ose.services.ConfigurationService import ConfigurationService
+from ose.services.FileCache import FileCache
+from ose.services.LocalConfigurationService import LocalConfigurationService
+from ose.services.OntoloyBuildService import OntologyBuildService
+from ose.services.RepositoryConfigurationService import RepositoryConfigurationService
+from ose.services.RobotOntologyBuildService import RobotOntologyBuildService
 
 
 class AppModule(Module):

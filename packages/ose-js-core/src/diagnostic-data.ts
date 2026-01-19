@@ -1,4 +1,4 @@
-import {Diagnostic, DiagnosticKind, Severity} from "./model";
+import type {Diagnostic, DiagnosticKind, Severity} from "./model";
 
 export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     severity: Severity,
@@ -7,7 +7,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
 }> = {
     "unknown-parent": {
         severity: "error",
-        title: d => `Unknown parent`,
+        title: _ => `Unknown parent`,
         message: d => `The parent <code>${d.parent.label}</code> of <code>${
             (d.term ?? d.relation).label
         }</code>
@@ -15,7 +15,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "missing-parent": {
         severity: "error",
-        title: d => `Missing parent`,
+        title: _ => `Missing parent`,
         message: d => `The parent <code>${ d.parent.label }</code> (<code>${ d.parent.id }</code>) of
               <code>${ d.term.label }</code>
               (<code>${
@@ -26,7 +26,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "no-parent": {
         severity: "error",
-        title: d => `Term has no parent`,
+        title: _ => `Term has no parent`,
         message: d => `The term <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) has no parent!`,
     },
     "ignored-parent": {
@@ -37,24 +37,24 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "missing-label": {
         severity: "error",
-        title: d => `Missing label`,
+        title: _ => `Missing label`,
         message: d => `The term <code>${ d.term.id }</code> has no label.`,
     },
     "missing-id": {
         severity: "error",
-        title: d => `Term has no ID`,
+        title: _ => `Term has no ID`,
         message: d => `              The term <code>${ d.term.label }</code> has no ID but is also not obsolete or pre-proposed. <br>`,
     },
     "unknown-disjoint": {
         severity: "error",
-        title: d => `Unknown disjoint class`,
+        title: _ => `Unknown disjoint class`,
         message: d => `The class <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) is
               specified to
               be disjoint with <code>${ d.disjoint_class.label }</code> but it is not known.<br>`,
     },
     "missing-disjoint": {
         severity: "error",
-        title: d => `Missing disjoint class`,
+        title: _ => `Missing disjoint class`,
         message: d => `The disjoint class <code>${ d.disjoint_class.label }</code> (<code>${ d.disjoint_class.id }</code>) of 
               <code>${ d.term.label }</code>
               (<code>${
@@ -97,7 +97,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "unknown-range": {
         severity: "error",
-        title: d => `Unknown range`,
+        title: _ => `Unknown range`,
         message: d => `The range <code>${ d.relation.range.label }</code> of
               <code>${ d.relation.label }</code>
               (<code>${
@@ -107,7 +107,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "missing-range": {
         severity: "error",
-        title: d => `Missing range`,
+        title: _ => `Missing range`,
         message: d => `The range <code>${ d.relation.range.label }</code> of 
               <code>${ d.relation.label }</code>
               (<code>${
@@ -124,14 +124,14 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "unknown-domain": {
         severity: "error",
-        title: d => `Unknown domain`,
+        title: _ => `Unknown domain`,
         message: d => `The domain <code>${ d.relation.domain.label }</code> of
               <code>${ d.relation.label }</code>
               (<code>${ d.relation.id || "no id" } </code>) is not known.`,
     },
     "missing-domain": {
         severity: "error",
-        title: d => `Missing domain`,
+        title: _ => `Missing domain`,
         message: d => `The domain <code>${ d.relation.domain.label }</code> of 
               <code>${ d.relation.label }</code>
               (<code>${
@@ -148,29 +148,29 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "unknown-relation": {
         severity: "error",
-        title: d => `Unknown relation`,
+        title: _ => `Unknown relation`,
         message: d => `The relation ${d.relation.label ? (`<code>${d.relation.label}</code>` + (d.relation.id ? '(' + d.relation.id + ')' : '')) : d.relation.id} is not known`,
     },
     "duplicate": {
         severity: "error",
-        title: d => `Conflicting entries (duplicates)`,
+        title: _ => `Conflicting entries (duplicates)`,
         message: d => `There are multiple terms for the ${ d.duplicate_field } <code>${ d.duplicate_value }</code>:`,
     },
     "incomplete-term": {
         severity: "warning",
-        title: d => `Incomplete term`,
-        message: d => `There is an incomplete term with no an ID, a label, or a parent defined. Is there an empty line in the
+        title: _ => `Incomplete term`,
+        message: _ => `There is an incomplete term with no an ID, a label, or a parent defined. Is there an empty line in the
               spreadsheet? The line is ignored`,
     },
     "unknown-column": {
         severity: "warning",
-        title: d => `Unmapped column`,
+        title: _ => `Unmapped column`,
         message: d => `The column <code>${ d.column }</code> of <code>${ d.sheet }</code> is not mapped
               to any OWL property or internal field.`,
     },
     "missing-import": {
         severity: "warning",
-        title: d => `Missing import`,
+        title: _ => `Missing import`,
         message: d => `The term <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) has the curation
               status
               "External" but is not included in the externally imported terms.` + (d.term.id ? ` Does the term still exist in
@@ -178,7 +178,7 @@ export const DIAGNOSTIC_DATA: Record<DiagnosticKind, {
     },
     "inconsistent-import": {
         severity: "warning",
-        title: d => `Inconsistent import`,
+        title: _ => `Inconsistent import`,
         message: d => `The term <code>${d.term.label}</code> (<code>${d.term.id ?? 'no id'}</code>) has the curation
               status "External" but its ` +
             (d.term.id !== d.imported_term.id ? `ID (<code>${d.imported_term.id}</code>)` : `label (<code>${d.imported_term.label}</code>)`) +

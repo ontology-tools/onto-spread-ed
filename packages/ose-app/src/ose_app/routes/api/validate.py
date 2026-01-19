@@ -9,12 +9,12 @@ from openpyxl.workbook import Workbook
 
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.guards.with_permission import requires_permissions
-from ose_core.model.ExcelOntology import ExcelOntology
-from ose_core.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
-from ose_core.release.common import order_sources
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.services.FileCache import FileCache
-from ose_core.utils import get_file
+from ose.model.ExcelOntology import ExcelOntology
+from ose.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
+from ose.release.common import order_sources
+from ose.services.ConfigurationService import ConfigurationService
+from ose.services.FileCache import FileCache
+from ose.utils import get_file
 
 bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
 

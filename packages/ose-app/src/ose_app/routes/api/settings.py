@@ -2,9 +2,9 @@ from flask import Blueprint, request, jsonify
 from flask_github import GitHub
 
 from ose_app.guards.with_permission import requires_permissions
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.services.FileCache import FileCache
-from ose_core.services.RepositoryConfigurationService import RepositoryConfigurationService
+from ose.services.ConfigurationService import ConfigurationService
+from ose.services.FileCache import FileCache
+from ose.services.RepositoryConfigurationService import RepositoryConfigurationService
 
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
 

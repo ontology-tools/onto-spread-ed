@@ -29,7 +29,22 @@ dev = [
 ]
 all = [
     "ose-cli",
+    "ose-plugin-addicto",
+    "ose-plugin-bcio",
+    "ose-plugin-hierarchical-spreadsheets",
 ]
+plugins = [
+    "ose-plugin-addicto",
+    "ose-plugin-bcio",
+    "ose-plugin-hierarchical-spreadsheets",
+]
+
+[tool.uv.sources]
+ose-cli = { workspace = true }
+ose-core = { workspace = true }
+ose-plugin-addicto = { workspace = true }
+ose-plugin-bcio = { workspace = true }
+ose-plugin-hierarchical-spreadsheets = { workspace = true }
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -42,3 +57,4 @@ ose_app = [
 
 [tool.setuptools.dynamic]
 version = {attr = "ose_app.__version__"}
+

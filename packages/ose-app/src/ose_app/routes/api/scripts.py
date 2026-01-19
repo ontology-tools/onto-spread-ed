@@ -8,9 +8,9 @@ from flask import Blueprint, current_app, jsonify, request
 from injector import Injector, inject
 
 from ose_app.guards.with_permission import requires_permissions
-from ose_core.model.Script import Script
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.services.PluginService import PluginService
+from ose.model.Script import Script
+from ose.services.ConfigurationService import ConfigurationService
+from ose.services.PluginService import PluginService
 
 bp = Blueprint("api_scripts", __name__, url_prefix="/api/scripts")
 

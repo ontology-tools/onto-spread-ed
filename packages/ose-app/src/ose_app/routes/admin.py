@@ -5,9 +5,9 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import NotFound
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
-from ..database.Release import Release
+from ose.database.Release import Release
 from ..guards.with_permission import requires_permissions
-from ose_core.services.ConfigurationService import ConfigurationService
+from ose.services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("admin", __name__, url_prefix="/admin", template_folder="../templates/admin")
 

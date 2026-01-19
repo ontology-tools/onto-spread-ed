@@ -30,14 +30,24 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "packages/*/tests"]
 
+# This is a workspace root - no Python packages here
+[tool.setuptools]
+py-modules = []
+packages = []
+
 # For local development with uv/pip, you can install all packages in editable mode:
 # pip install -e packages/ose-core -e packages/ose-cli -e packages/ose-app
 
-# Or with uv workspaces:
-[tool.uv.workspace]
-members = ["packages/ose-core", "packages/ose-cli", "packages/ose-app"]
 
 [tool.uv.sources]
 ose-core = { workspace = true }
-ose-cli = { workspace = true }
-ose-app = { workspace = true }
+
+# Or with uv workspaces:
+[tool.uv.workspace]
+members = [
+ "packages/*",
+ "plugins/*",
+]
+exclude = [
+    "packages/ose-js-*",
+]

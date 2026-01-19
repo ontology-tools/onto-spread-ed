@@ -5,7 +5,7 @@ from flask import Blueprint, g, render_template, redirect, url_for, request, ses
 from flask_github import GitHub
 
 from ..guards.with_permission import requires_permissions
-from ose_core.services.ConfigurationService import ConfigurationService
+from ose.services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("main", __name__, template_folder="../templates")
 

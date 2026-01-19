@@ -14,10 +14,10 @@ from flask_github import GitHub
 from openpyxl.worksheet.worksheet import Worksheet
 
 from ose_app.guards.with_permission import requires_permissions
-from ose_core.model.ExcelOntology import OntologyImport
-from ose_core.model.TermIdentifier import TermIdentifier
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.utils import github, str_empty
+from ose.model.ExcelOntology import OntologyImport
+from ose.model.TermIdentifier import TermIdentifier
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import github, str_empty
 
 bp = Blueprint("api_external", __name__, url_prefix="/api/external")
 

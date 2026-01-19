@@ -12,16 +12,16 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import NotFound, BadRequest
 
-from ose_core.services.PluginService import PluginService
+from ose.services.PluginService import PluginService
 
-from ...database.Release import Release, ReleaseArtifact
+from ose.database.Release import Release, ReleaseArtifact
 from ...guards.with_permission import requires_permissions
-from ose_core.model.Diff import diff
-from ose_core.model.ReleaseScript import ReleaseScript
-from ose_core.release.do_release import do_release
-from ose_core.release.common import next_release_step
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.utils import save_file, get_file
+from ose.model.Diff import diff
+from ose.model.ReleaseScript import ReleaseScript
+from ose.release.do_release import do_release
+from ose.release.common import next_release_step
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils import save_file, get_file
 
 bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 

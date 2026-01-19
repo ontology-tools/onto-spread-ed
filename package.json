@@ -4,7 +4,8 @@
   "private": true,
   "description": "OntoSpreadEd - Ontology spreadsheet editor (monorepo)",
   "workspaces": [
-    "packages/ose-js-*"
+    "packages/ose-js-*",
+    "plugins/*"
   ],
   "scripts": {
     "build": "npm run build:js-core && npm run build:js-app",

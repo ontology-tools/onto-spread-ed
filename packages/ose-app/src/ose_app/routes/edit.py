@@ -14,8 +14,8 @@ from openpyxl.styles import Font, PatternFill
 
 from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..guards.with_permission import requires_permissions
-from ose_core.services.ConfigurationService import ConfigurationService
-from ose_core.utils.github import get_spreadsheet, get_csv, create_branch
+from ose.services.ConfigurationService import ConfigurationService
+from ose.utils.github import get_spreadsheet, get_csv, create_branch
 
 bp = Blueprint("edit", __name__, template_folder="../templates")
 
