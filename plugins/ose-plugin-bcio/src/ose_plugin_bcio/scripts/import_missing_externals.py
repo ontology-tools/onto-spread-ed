@@ -100,7 +100,8 @@ class ImportMissingExternalsScript(Script):
         change_branch = f"script/import-missing-{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"
         github.create_branch(self.gh, full_repo, change_branch, branch)
 
-        update_imports(repo, full_repo, self.gh, list(missing_imports.values()), change_branch)
+
+        # update_imports(repo, full_repo, self.gh, list(missing_imports.values()), change_branch)
 
         body = "Imported the terms:\n"
         body += "\n\n".join(

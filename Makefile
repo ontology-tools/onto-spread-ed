@@ -125,16 +125,15 @@ lint: lint-python
 
 ## Run Python linting with ruff
 lint-python:
-	ruff check packages/ plugins/
+	uv run ruff check packages/ plugins/
 
 ## Fix Python linting issues
 lint-python-fix:
-	ruff check --fix packages/ plugins/
-
+	uv run ruff check --fix packages/ plugins/
 ## Run type checking
 type-check:
-	mypy packages/
-	mypy plugins/
+	uv run mypy packages/
+	uv run mypy plugins/
 
 # ============================================================================
 # Cleaning

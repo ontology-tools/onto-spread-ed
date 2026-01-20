@@ -269,8 +269,8 @@ def release_continue(
 
     next_release_step(q, release.id)
 
-    if release.worker_id is None:
-        f = executor.submit(do_release, db, gh, release_script, release.id, config, plugin_service)
+    if release.worker_id is None:        
+        executor.submit(do_release, db, gh, release_script, release.id, config, plugin_service)
 
     return jsonify(release.as_dict())
 
@@ -300,7 +300,7 @@ def release_rerun_step(
     if release.worker_id is None or request.args.get("force", "false").lower() == "true":
         release_script = ReleaseScript.from_json(release.release_script)
 
-        f = executor.submit(do_release, db, gh, release_script, release.id, config, plugin_service)
+        executor.submit(do_release, db, gh, release_script, release.id, config, plugin_service)
 
     return jsonify(release.as_dict())
 

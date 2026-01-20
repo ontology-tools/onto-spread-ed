@@ -1,15 +1,10 @@
 import asyncio
-import importlib
-import sys
 import traceback
 from typing import Coroutine
 
 from flask import Blueprint, current_app, jsonify, request
-from injector import Injector, inject
 
 from ose_app.guards.with_permission import requires_permissions
-from ose.model.Script import Script
-from ose.services.ConfigurationService import ConfigurationService
 from ose.services.PluginService import PluginService
 
 bp = Blueprint("api_scripts", __name__, url_prefix="/api/scripts")

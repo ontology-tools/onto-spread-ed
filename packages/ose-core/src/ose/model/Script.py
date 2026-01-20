@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import inspect
 import logging
-from typing import Any, Callable, Coroutine
+from typing import Callable, Coroutine
 from ose.model.ScriptArgument import ScriptArgument
-import collections
 
 def _not_implemented(*args, **kwargs):
     raise NotImplementedError()
