@@ -1034,7 +1034,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "flask", specifier = ">=2.3.0" },
+    { name = "flask", specifier = "==2.3.3" },
     { name = "flask-injector" },
     { name = "ose-core", editable = "packages/ose-core" },
     { name = "pytest", marker = "extra == 'dev'" },

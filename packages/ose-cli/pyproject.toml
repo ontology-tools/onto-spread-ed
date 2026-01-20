@@ -10,7 +10,7 @@ dynamic = ["version"]
 
 dependencies = [
     "ose-core",
-    "Flask>=2.3.0",
+    "Flask==2.3.3",
     "Flask-Injector",
 ]
 

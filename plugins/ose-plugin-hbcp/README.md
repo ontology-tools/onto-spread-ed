@@ -1,5 +1,27 @@
-# Vue 3 + TypeScript + Vite
+# OSE Plugin: HBCP
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+OntoSpreadEd plugin for HBCP (Human Behaviour Change Project) services.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Description
+
+This plugin provides common functionality for HBCP-related ontology projects. It serves as a base plugin with shared services used by derived plugins like AddictO and BCIO.
+
+Features:
+- Search API client for external vocabulary services
+- HTTP error handling utilities
+- Common service infrastructure
+
+## Installation
+
+```bash
+pip install ose-plugin-hbcp
+```
+
+## Requirements
+
+- Python 3.12+
+- ose-core
+
+## License
+
+LGPL-3.0-or-later

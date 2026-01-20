@@ -1,7 +1,6 @@
 <script setup lang="ts">
 
-import { Release } from "@ose/js-core";
-import ProgressIndicator from "../../../../ose-js-core/src/release/ProgressIndicator.vue";
+import { type Release, ProgressIndicator } from "@ose/js-core";
 
 defineProps<{
   data: any,

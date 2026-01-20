@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ose-plugin-addicto"
 version = "0.1.0"
-description = "Add your description here"
+description = "OntoSpreadEd plugin for AddictO services and workflows"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

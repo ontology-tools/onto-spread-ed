@@ -1,3 +1,4 @@
+@use "sass:color";
 
 :root {
   --bs-callout-link: 10, 88, 202;
@@ -42,7 +43,7 @@
 .banner {
   text-align: center;
   background: yellow;
-  background: repeating-linear-gradient(-45deg, darken(yellow, 30), darken(yellow, 30), 20px, black 20px, black 40px);
+  background: repeating-linear-gradient(-45deg, color.adjust(yellow, $lightness: -30%), color.adjust(yellow, $lightness: -30%), 20px, black 20px, black 40px);
   color: white
 }
 

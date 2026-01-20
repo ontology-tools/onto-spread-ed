@@ -35,10 +35,6 @@ testpaths = ["tests", "packages/*/tests"]
 py-modules = []
 packages = []
 
-# For local development with uv/pip, you can install all packages in editable mode:
-# pip install -e packages/ose-core -e packages/ose-cli -e packages/ose-app
-
-
 [tool.uv.sources]
 ose-core = { workspace = true }
 
@@ -51,3 +47,9 @@ members = [
 exclude = [
     "packages/ose-js-*",
 ]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

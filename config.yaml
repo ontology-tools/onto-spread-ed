@@ -16,7 +16,6 @@ cache-life-time: 86400
 
 # Plugins
 enable-plugins: true
-plugins-directory: 'plugins'
 
 # Repositories
 repositories:

@@ -1,5 +1,26 @@
-# Vue 3 + TypeScript + Vite
+# OSE Plugin: Hierarchical Spreadsheets
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+OntoSpreadEd plugin for generating hierarchical spreadsheet exports during ontology releases.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Description
+
+This plugin adds a release step that generates hierarchical spreadsheet representations of ontologies. It exports ontology structures in a format that preserves parent-child relationships in an easy-to-read tabular format.
+
+## Installation
+
+```bash
+pip install ose-plugin-hierarchical-spreadsheets
+```
+
+## Requirements
+
+- Python 3.12+
+- ose-core
+
+## Usage
+
+Add the `GenerateHierarchicalSpreadsheetReleaseStep` to your release script configuration to include hierarchical spreadsheet generation in your release pipeline.
+
+## License
+
+LGPL-3.0-or-later
