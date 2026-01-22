@@ -6,10 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "ose-app"
 description = "Flask web application for OntoSpreadEd - Ontology spreadsheet editor"
 requires-python = ">= 3.12"
-dynamic = ["version"]
+version = "0.2.5"
 
 dependencies = [
-    "ose-core",
+    "ose-core==0.2.5",
     "Flask==2.3.3",
     "Flask-SQLAlchemy==3.1.1",
     "Flask-Injector",
@@ -54,7 +54,3 @@ ose_app = [
     "templates/**/*",
     "static/**/*",
 ]
-
-[tool.setuptools.dynamic]
-version = {attr = "ose_app.__version__"}
-

@@ -20,8 +20,6 @@ from flask_sqlalchemy import SQLAlchemy
 from .custom_json import *  # noqa: F403, F401
 from ose.database.User import User
 
-__version__ = "0.1.0"
-
 
 def load_config(app: Flask, config_filename):
     from . import default_config

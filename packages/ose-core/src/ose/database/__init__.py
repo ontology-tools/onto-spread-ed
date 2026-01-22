@@ -1,4 +1,4 @@
-import os
+from os.path import join, dirname
 
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
@@ -7,7 +7,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 # Get the migrations directory path relative to this package
-_migrations_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..',  'migrations')
+_migrations_dir = join(dirname(__file__),  'migrations')
 
 
 def init_app(app):
