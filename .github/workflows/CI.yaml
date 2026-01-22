@@ -37,10 +37,16 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Run ruff check (all rules - show all warnings)
-        id: ruff_all
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@v1
+
+      - name: Run ruff with reviewdog (all rules - warnings)
+        if: github.event_name == 'pull_request'
         run: |
-          uv run ruff check packages/ plugins/ --output-format=github
+          uv run ruff check packages/ plugins/ --output-format=rdjson | \
+            reviewdog -f=rdjson -name=ruff -reporter=github-pr-review -filter-mode=nofilter -level=warning
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
       - name: Run ruff check (errors only - for status)
@@ -48,12 +54,6 @@ jobs:
         run: |
           uv run ruff check packages/ plugins/ --select=E,F --output-format=github
         continue-on-error: true
-
-      - name: Set lint result
-        run: |
-          if [ "${{ steps.ruff_errors.outcome }}" == "failure" ]; then
-            echo "PYTHON_LINT_FAILED=true" >> $GITHUB_ENV
-          fi
 
     outputs:
       failed: ${{ steps.ruff_errors.outcome == 'failure' }}
@@ -67,6 +67,7 @@ jobs:
     permissions:
       contents: read
       checks: write
+      pull-requests: write
 
     steps:
       - name: Check out Git repository
@@ -81,17 +82,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check ose-js-core
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@v1
+
+      - name: Type check ose-js-core with reviewdog
         id: check_core
+        if: github.event_name == 'pull_request'
+        run: |
+          npx vue-tsc -p packages/ose-js-core/tsconfig.app.json --noEmit 2>&1 | \
+            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=vue-tsc-core -reporter=github-pr-review -filter-mode=nofilter -level=error
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Type check ose-js-core (for status)
+        id: check_core_status
         run: npx vue-tsc -p packages/ose-js-core/tsconfig.app.json --noEmit
         continue-on-error: true
 
-      - name: Type check ose-js-app
+      - name: Type check ose-js-app with reviewdog
         id: check_app
+        if: github.event_name == 'pull_request'
+        run: |
+          npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit 2>&1 | \
+            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=vue-tsc-app -reporter=github-pr-review -filter-mode=nofilter -level=error
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Type check ose-js-app (for status)
+        id: check_app_status
         run: npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit
         continue-on-error: true
 
-      - name: Type check plugins (warnings only)
+      - name: Type check plugins with reviewdog
+        if: github.event_name == 'pull_request'
         run: |
           for plugin in plugins/*/package.json; do
             dir=$(dirname "$plugin")
@@ -99,13 +124,16 @@ jobs:
               echo "Type checking $dir..."
               tsconfig="$dir/tsconfig.app.json"
               [ ! -f "$tsconfig" ] && tsconfig="$dir/tsconfig.json"
-              npx vue-tsc -p "$tsconfig" --noEmit || true
+              npx vue-tsc -p "$tsconfig" --noEmit 2>&1 | \
+                reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=vue-tsc-plugins -reporter=github-pr-review -filter-mode=nofilter -level=warning || true
             fi
           done
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
     outputs:
-      failed: ${{ steps.check_core.outcome == 'failure' || steps.check_app.outcome == 'failure' }}
+      failed: ${{ steps.check_core_status.outcome == 'failure' || steps.check_app_status.outcome == 'failure' }}
 
   # ==========================================================================
   # Check lint results (fail if any blocking errors)
