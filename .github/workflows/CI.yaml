@@ -15,10 +15,10 @@ env:
 
 jobs:
   # ==========================================================================
-  # Python Linting with Ruff
+  # Linting (Python + TypeScript in one job for simplicity)
   # ==========================================================================
-  lint-python:
-    name: Lint Python
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -34,134 +34,66 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install reviewdog
-        uses: reviewdog/action-setup@v1
-
-      - name: Run ruff with reviewdog (all rules - warnings)
-        if: github.event_name == 'pull_request'
-        run: |
-          uv run ruff check packages/ plugins/ --output-format=rdjson | \
-            reviewdog -f=rdjson -name=ruff -reporter=github-pr-review -filter-mode=nofilter -level=warning
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-      - name: Run ruff check (errors only - for status)
-        id: ruff_errors
-        run: |
-          uv run ruff check packages/ plugins/ --select=E,F --output-format=github
-        continue-on-error: true
-
-    outputs:
-      failed: ${{ steps.ruff_errors.outcome == 'failure' }}
-
-  # ==========================================================================
-  # TypeScript/Vue Type Checking
-  # ==========================================================================
-  lint-typescript:
-    name: Lint TypeScript/Vue
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-
-    steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v4
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
-      - name: Install dependencies
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install npm dependencies
         run: npm ci
 
-      - name: Install reviewdog
-        uses: reviewdog/action-setup@v1
+      - name: reviewdog / ruff
+        uses: reviewdog/action-ruff@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: error
+          filter_mode: nofilter
+          ruff_args: "packages/ plugins/"
 
-      - name: Type check ose-js-core with reviewdog
-        id: check_core
-        if: github.event_name == 'pull_request'
-        run: |
-          npx vue-tsc -p packages/ose-js-core/tsconfig.app.json --noEmit 2>&1 | \
-            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=vue-tsc-core -reporter=github-pr-review -filter-mode=nofilter -level=error
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: reviewdog / tsc (ose-js-core)
+        uses: reviewdog/action-tsc@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: error
+          filter_mode: nofilter
+          tsc_flags: "-p packages/ose-js-core/tsconfig.app.json --noEmit"
+
+      - name: reviewdog / tsc (ose-js-app)
+        uses: reviewdog/action-tsc@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: error
+          filter_mode: nofilter
+          tsc_flags: "-p packages/ose-js-app/tsconfig.json --noEmit"
+
+      - name: reviewdog / tsc (plugins)
+        uses: reviewdog/action-tsc@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: warning
+          filter_mode: nofilter
+          fail_level: none
+          tsc_flags: "-p plugins/ose-plugin-addicto/tsconfig.app.json --noEmit"
         continue-on-error: true
 
-      - name: Type check ose-js-core (for status)
-        id: check_core_status
-        run: npx vue-tsc -p packages/ose-js-core/tsconfig.app.json --noEmit
+      - name: reviewdog / tsc (bcio plugin)
+        uses: reviewdog/action-tsc@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-check
+          level: warning
+          filter_mode: nofilter
+          fail_level: none
+          tsc_flags: "-p plugins/ose-plugin-bcio/tsconfig.app.json --noEmit"
         continue-on-error: true
-
-      - name: Type check ose-js-app with reviewdog
-        id: check_app
-        if: github.event_name == 'pull_request'
-        run: |
-          npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit 2>&1 | \
-            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=vue-tsc-app -reporter=github-pr-review -filter-mode=nofilter -level=error
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-      - name: Type check ose-js-app (for status)
-        id: check_app_status
-        run: npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit
-        continue-on-error: true
-
-      - name: Type check plugins with reviewdog
-        if: github.event_name == 'pull_request'
-        run: |
-          for plugin in plugins/*/package.json; do
-            dir=$(dirname "$plugin")
-            if [ -f "$dir/tsconfig.json" ] || [ -f "$dir/tsconfig.app.json" ]; then
-              echo "Type checking $dir..."
-              tsconfig="$dir/tsconfig.app.json"
-              [ ! -f "$tsconfig" ] && tsconfig="$dir/tsconfig.json"
-              npx vue-tsc -p "$tsconfig" --noEmit 2>&1 | \
-                reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=vue-tsc-plugins -reporter=github-pr-review -filter-mode=nofilter -level=warning || true
-            fi
-          done
-        env:
-          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
-    outputs:
-      failed: ${{ steps.check_core_status.outcome == 'failure' || steps.check_app_status.outcome == 'failure' }}
-
-  # ==========================================================================
-  # Check lint results (fail if any blocking errors)
-  # ==========================================================================
-  lint-results:
-    name: Check Lint Results
-    runs-on: ubuntu-latest
-    needs: [lint-python, lint-typescript]
-    if: always()
-
-    steps:
-      - name: Check for Python lint errors
-        if: needs.lint-python.outputs.failed == 'true'
-        run: |
-          echo "::error::Python linting failed with errors"
-          echo "LINT_FAILED=true" >> $GITHUB_ENV
-
-      - name: Check for TypeScript errors
-        if: needs.lint-typescript.outputs.failed == 'true'
-        run: |
-          echo "::error::TypeScript type checking failed with errors"
-          echo "LINT_FAILED=true" >> $GITHUB_ENV
-
-      - name: Fail if any lint errors
-        if: needs.lint-python.outputs.failed == 'true' || needs.lint-typescript.outputs.failed == 'true'
-        run: |
-          echo "Linting failed. Please fix the errors above."
-          exit 1
 
   # ==========================================================================
   # Build
@@ -169,7 +101,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint-results]
+    needs: [lint]
 
     steps:
       - name: Check out Git repository
