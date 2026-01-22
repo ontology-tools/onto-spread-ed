@@ -46,53 +46,41 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: reviewdog / ruff
-        uses: reviewdog/action-ruff@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check
-          level: error
-          filter_mode: nofilter
-          ruff_args: "packages/ plugins/"
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@v1
 
-      - name: reviewdog / tsc (ose-js-core)
-        uses: reviewdog/action-tsc@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check
-          level: error
-          filter_mode: nofilter
-          tsc_flags: "-p packages/ose-js-core/tsconfig.app.json --noEmit"
+      - name: Lint Python (ruff)
+        run: |
+          uv run ruff check packages/ plugins/ --output-format=rdjson | \
+            reviewdog -f=rdjson -name=ruff -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: reviewdog / tsc (ose-js-app)
-        uses: reviewdog/action-tsc@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check
-          level: error
-          filter_mode: nofilter
-          tsc_flags: "-p packages/ose-js-app/tsconfig.json --noEmit"
+      - name: Type check ose-js-core
+        run: |
+          npx vue-tsc -p packages/ose-js-core/tsconfig.app.json --noEmit 2>&1 | \
+            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-core -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: reviewdog / tsc (plugins)
-        uses: reviewdog/action-tsc@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check
-          level: warning
-          filter_mode: nofilter
-          fail_level: none
-          tsc_flags: "-p plugins/ose-plugin-addicto/tsconfig.app.json --noEmit"
-        continue-on-error: true
+      - name: Type check ose-js-app
+        run: |
+          npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit 2>&1 | \
+            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-app -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: reviewdog / tsc (bcio plugin)
-        uses: reviewdog/action-tsc@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check
-          level: warning
-          filter_mode: nofilter
-          fail_level: none
-          tsc_flags: "-p plugins/ose-plugin-bcio/tsconfig.app.json --noEmit"
+      - name: Type check plugins (warnings only)
+        run: |
+          for plugin in plugins/ose-plugin-addicto plugins/ose-plugin-bcio; do
+            if [ -f "$plugin/tsconfig.app.json" ]; then
+              echo "Type checking $plugin..."
+              npx vue-tsc -p "$plugin/tsconfig.app.json" --noEmit 2>&1 | \
+                reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-plugins -reporter=github-pr-check -level=warning -filter-mode=nofilter || true
+            fi
+          done
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
   # ==========================================================================
