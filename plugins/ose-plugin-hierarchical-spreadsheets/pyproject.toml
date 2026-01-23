@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ose-plugin-hierarchical-spreadsheets"
-version = "0.2.5"
+version = "0.3.0"
 description = "OntoSpreadEd plugin for hierarchical spreadsheet generation"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ose-core==0.2.5",
+    "ose-core==0.3.0",
 ]
 
 [project.entry-points.'ose.plugins']

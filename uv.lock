@@ -962,7 +962,7 @@ wheels = [
 
 [[package]]
 name = "ose-app"
-version = "0.2.5"
+version = "0.3.0"
 source = { editable = "packages/ose-app" }
 dependencies = [
     { name = "flask" },
@@ -1020,9 +1020,10 @@ provides-extras = ["cli", "dev", "all", "plugins"]
 
 [[package]]
 name = "ose-cli"
-version = "0.2.5"
+version = "0.3.0"
 source = { editable = "packages/ose-cli" }
 dependencies = [
+    { name = "click" },
     { name = "flask" },
     { name = "flask-injector" },
     { name = "ose-core" },
@@ -1036,6 +1037,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "click", specifier = ">=8.0" },
     { name = "flask", specifier = "==2.3.3" },
     { name = "flask-injector" },
     { name = "ose-core", editable = "packages/ose-core" },
@@ -1046,13 +1048,16 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "ose-core"
-version = "0.2.5"
+version = "0.3.0"
 source = { editable = "packages/ose-core" }
 dependencies = [
     { name = "aiohttp" },
     { name = "async-lru" },
     { name = "dacite" },
     { name = "daff" },
+    { name = "flask-migrate" },
+    { name = "flask-sqlalchemy" },
+    { name = "github-flask" },
     { name = "jsonschema" },
     { name = "networkx" },
     { name = "ontoutils" },
@@ -1061,6 +1066,8 @@ dependencies = [
     { name = "py-horned-owl" },
     { name = "pydot" },
     { name = "pyyaml" },
+    { name = "typing-extensions" },
+    { name = "urllib3" },
     { name = "whoosh" },
 ]
 
@@ -1076,6 +1083,9 @@ requires-dist = [
     { name = "async-lru" },
     { name = "dacite" },
     { name = "daff" },
+    { name = "flask-migrate" },
+    { name = "flask-sqlalchemy", specifier = "==3.1.1" },
+    { name = "github-flask" },
     { name = "jsonschema" },
     { name = "networkx" },
     { name = "ontoutils" },
@@ -1086,13 +1096,15 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pyyaml" },
     { name = "ruff", marker = "extra == 'dev'" },
+    { name = "typing-extensions", specifier = ">=4.0" },
+    { name = "urllib3" },
     { name = "whoosh" },
 ]
 provides-extras = ["dev"]
 
 [[package]]
 name = "ose-plugin-addicto"
-version = "0.2.5"
+version = "0.3.0"
 source = { editable = "plugins/ose-plugin-addicto" }
 dependencies = [
     { name = "ose-core" },
@@ -1107,7 +1119,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-bcio"
-version = "0.2.5"
+version = "0.3.0"
 source = { editable = "plugins/ose-plugin-bcio" }
 dependencies = [
     { name = "flask-sqlalchemy" },
@@ -1126,7 +1138,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-hbcp"
-version = "0.2.5"
+version = "0.3.0"
 source = { editable = "plugins/ose-plugin-hbcp" }
 dependencies = [
     { name = "ose-core" },
@@ -1137,7 +1149,7 @@ requires-dist = [{ name = "ose-core", editable = "packages/ose-core" }]
 
 [[package]]
 name = "ose-plugin-hierarchical-spreadsheets"
-version = "0.2.5"
+version = "0.3.0"
 source = { editable = "plugins/ose-plugin-hierarchical-spreadsheets" }
 dependencies = [
     { name = "ose-core" },
