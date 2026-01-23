@@ -1,6 +1,6 @@
 {
   "name": "@ose/js-core",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "Core TypeScript library for OntoSpreadEd - shared types, models and utilities",
   "type": "module",
   "main": "./dist/index.js",

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ose-core"
 description = "Core library for OntoSpreadEd - Ontology spreadsheet editor"
 requires-python = ">= 3.12"
-version = "0.2.5"
+version = "0.3.0"
 
 dependencies = [
     "pandas",
