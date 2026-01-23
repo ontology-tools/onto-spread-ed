@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
     "lib": [
@@ -11,7 +11,6 @@
     "skipLibCheck": true,
     /* Bundler mode */
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -21,7 +20,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "js"
-  ]
+  "references": [
+    { "path": "./packages/ose-js-core" },
+    { "path": "./packages/ose-js-app" }
+  ],
+  "include": []
 }

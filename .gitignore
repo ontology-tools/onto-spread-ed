@@ -3,16 +3,20 @@ __pycache__/
 ontospreaded.json
 ontospreaded.json.test2
 .idea
+.cache
+.ruff_cache
+.vscode
 
 node_modules
-ose/static/js
-ose/static/main.css
-ose/static/main.css.map
+**/*.js
+**/*.css
+**/*.css.map
 
-node_modules
-ose/static/js
-ose/static/main.css
-ose/static/main.css.map
 
 indexdir/
-/venv/
+ose_index/
+venv/
+.venv
+
+
+**/*.egg-info

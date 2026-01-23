@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ose-plugin-addicto"
+version = "0.2.5"
+description = "OntoSpreadEd plugin for AddictO services and workflows"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ose-core==0.2.5",
+    "ose-plugin-hbcp==0.2.5",
+]
+
+[project.entry-points.'ose.plugins']
+addicto = "ose_plugin_addicto:AddictOPlugin"
+
+[tool.uv.sources]
+ose-core = { workspace = true }
+ose-plugin-hbcp = { workspace = true }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ose_plugin_addicto = ["static/*"]

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+    {{ super() }}
+
+    <link rel="stylesheet" href="{{ url_for('static', filename="js/assets/editor.css") }}">
+
+{% endblock %}
+{% block content %}
+    <div id="vue-app-editor"></div>
+    <script>
+        var URLS = {
+            prefix: '{{config["URL_PREFIX"]}}'
+        }
+
+        var ALL_INITIALS = {{ all_initials | safe }}
+        var LOGIN_INITIALS = "{{user_initials}}";
+        var REPOSITORY_CONFIG = {{ repository_config | tojson | safe }}
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/editor.js') }}"></script>
+{% endblock %}

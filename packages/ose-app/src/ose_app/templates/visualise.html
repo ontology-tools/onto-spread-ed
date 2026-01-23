@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }}{% endblock %}
+{% block head %}
+    {{ super() }}
+
+    <link rel="stylesheet" href="{{ url_for('static', filename="js/assets/visualise.css") }}">
+    
+{% endblock %}
+{% block content %}
+    <div id="vue-app-visualise"></div>
+    <script>
+        var URLS = {
+            prefix: '{{config["URL_PREFIX"]}}'
+            }
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/visualise.js') }}"></script>
+{% endblock %}

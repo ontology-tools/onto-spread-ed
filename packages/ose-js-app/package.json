@@ -1,0 +1,44 @@
+{
+  "name": "@ose/js-app",
+  "version": "0.2.5",
+  "private": true,
+  "description": "Vue.js web application components for OntoSpreadEd",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@hpcc-js/wasm": "^2.29.0",
+    "@ose/js-core": "*",
+    "bootstrap": "5.3.2",
+    "bootstrap-vue-next": "^0.26.8",
+    "d3": "^7.9.0",
+    "d3-graphviz": "^5.6.0",
+    "svg-pan-zoom": "github:bumbu/svg-pan-zoom",
+    "tabulator-tables": "^6.3.0",
+    "ts-graphviz": "^3.0.6",
+    "vue": "^3.5.24"
+  },
+  "devDependencies": {
+    "@types/bootbox": "^5.2.8",
+    "@types/bootstrap": "^5.2.10",
+    "@types/d3": "^7.4.3",
+    "@types/node": "^24.10.1",
+    "@types/tabulator-tables": "^6.2.3",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.8.1",
+    "sass": "^1.77.0",
+    "typescript": "~5.9.3",
+    "unplugin-vue-components": "^0.27.5",
+    "vite": "^7.2.4",
+    "vue-tsc": "^3.1.4"
+  },
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ontology-tools/onto-spread-ed.git",
+    "directory": "packages/ose-js-app"
+  }
+}

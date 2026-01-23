@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ose-core"
+description = "Core library for OntoSpreadEd - Ontology spreadsheet editor"
+requires-python = ">= 3.12"
+version = "0.2.5"
+
+dependencies = [
+    "pandas",
+    "openpyxl",
+    "jsonschema",
+    "daff",
+    "whoosh",
+    "networkx",
+    "pydot",
+    "py-horned-owl",
+    "ontoutils",
+    "pyyaml",
+    "dacite",
+    "aiohttp",
+    "async-lru",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["ose", "ose.*"]
+
+[tool.setuptools.package-data]
+"ose.database.migrations" = ["alembic.ini", "script.py.mako", "README"]

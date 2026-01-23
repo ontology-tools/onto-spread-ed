@@ -1,40 +1,27 @@
 {
-  "name": "onto_spread_ed",
-  "version": "1.0.0",
-  "devDependencies": {
-    "@types/bootbox": "^5.2.8",
-    "@types/bootstrap": "^5.2.10",
-    "@types/d3": "^7.4.3",
-    "@types/tabulator-tables": "^6.2.3",
-    "@vitejs/plugin-vue": "^5.2.1",
-    "esbuild": "^0.27.0",
-    "esbuild-plugin-vue3": "^0.5.1",
-    "sass": "1.44.0",
-    "sass-loader": "^16.0.2",
-    "typescript": "^5.3.3",
-    "unplugin-vue-components": "^0.27.5",
-    "vite": "^6.4.1",
-    "watch": "^0.13.0"
-  },
+  "name": "onto-spread-ed",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OntoSpreadEd - Ontology spreadsheet editor (monorepo)",
+  "workspaces": [
+    "packages/ose-js-*",
+    "plugins/*"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build-js": "node build/build.js",
-    "build-css": "npx sass -s compressed --no-source-map ose/static/main.scss:ose/static/main.css",
-    "build": "npm run build-js && npm run build-css",
-    "watch": "watch 'npm run build' ./js"
+    "build": "npm run build:js-core && npm run build:js-app",
+    "build:js-core": "npm -w @ose/js-core run build",
+    "build:js-app": "npm -w @ose/js-app run build",
+    "build:css": "npx sass -s compressed --no-source-map packages/ose-app/src/ose_app/static/main.scss:packages/ose-app/src/ose_app/static/main.css",
+    "dev": "npm -w @ose/js-app run dev",
+    "clean": "npm -w @ose/js-core run clean && npm -w @ose/js-app run clean"
   },
-  "author": "",
-  "license": "AGPL",
-  "description": "",
-  "dependencies": {
-    "@hpcc-js/wasm": "^2.29.0",
-    "bootstrap": "5.3.2",
-    "bootstrap-vue-next": "^0.26.8",
-    "d3": "^7.9.0",
-    "d3-graphviz": "^5.6.0",
-    "svg-pan-zoom": "github:bumbu/svg-pan-zoom",
-    "tabulator-tables": "^6.3.0",
-    "ts-graphviz": "^3.0.6",
-    "vue": "^3.5.0"
+  "devDependencies": {
+    "sass": "^1.77.0",
+    "typescript": "~5.9.3"
+  },
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ontology-tools/onto-spread-ed.git"
   }
 }

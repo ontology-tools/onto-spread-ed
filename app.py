@@ -1,6 +1,6 @@
 import os
 
-from ose import create_app
+from ose_app import create_app
 
 config_path = os.path.realpath(os.path.join(os.path.dirname(__file__), "config.yaml"))
 

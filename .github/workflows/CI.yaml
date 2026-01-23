@@ -1,16 +1,29 @@
 name: CI
+
 on:
   push:
     branches:
       - main
       - develop
   pull_request:
+  release:
+    types: [published]
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
 jobs:
-  run-linters:
-    permissions:
-      checks: write
-    name: Run linters
+  # ==========================================================================
+  # Linting (Python + TypeScript in one job for simplicity)
+  # ==========================================================================
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
 
     steps:
       - name: Check out Git repository
@@ -19,69 +32,266 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
-      - name: Run ruff
-        uses: astral-sh/ruff-action@v3
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install reviewdog
+        uses: reviewdog/action-setup@v1
+
+      - name: Lint Python (ruff)
+        run: |
+          uv run ruff check packages/ plugins/ --output-format=rdjson | \
+            reviewdog -f=rdjson -name=ruff -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Type check ose-js-core
+        run: |
+          npx vue-tsc -p packages/ose-js-core/tsconfig.app.json --noEmit 2>&1 | \
+            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-core -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Type check ose-js-app
+      #   run: |
+      #     npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit 2>&1 | \
+      #       reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-app -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
+      #   env:
+      #     REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Type check plugins (warnings only)
+        run: |
+          for plugin in plugins/ose-plugin-addicto plugins/ose-plugin-bcio; do
+            if [ -f "$plugin/tsconfig.app.json" ]; then
+              echo "Type checking $plugin..."
+              npx vue-tsc -p "$plugin/tsconfig.app.json" --noEmit 2>&1 | \
+                reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-plugins -reporter=github-pr-check -level=warning -filter-mode=nofilter || true
+            fi
+          done
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  # ==========================================================================
+  # Build
+  # ==========================================================================
   build:
+    name: Build
     runs-on: ubuntu-latest
-    needs: run-linters
+    needs: [lint]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - name: Install js dependencies
-        run: >
-          npm install
-      - name: Build javascript
-        run: >
-          npm run build
-      - name: Build deploy package
-        run: >
-          tar -czf onto-ed.tar.gz app.py requirements.txt migrations ose scripts
-      - uses: actions/upload-artifact@v4
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: app
-          path: onto-ed.tar.gz
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Build JavaScript packages
+        run: npm run build
+
+      - name: Build CSS
+        run: npm run build:css
+
+      - name: Build Python packages
+        run: |
+          # Build all Python packages
+          for pkg in packages/ose-core packages/ose-cli packages/ose-app; do
+            echo "Building $pkg..."
+            uv build --package $(basename $pkg)
+          done
+          # Build release plugins
+          for plugin in plugins/ose-plugin-hierarchical-spreadsheets; do
+            echo "Building $plugin..."
+            uv build --package $(basename $plugin)
+          done
+
+      - name: Upload Python dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/*.tar.gz
+
+      - name: Upload Python wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-wheels
+          path: dist/*.whl
+
+  # ==========================================================================
+  # Publish Python packages to PyPI (on release)
+  # ==========================================================================
+  publish-python:
+    name: Publish Python to PyPI
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: pypi
+      url: https://pypi.org/project/ose-core/
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download Python dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Download Python wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-wheels
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+
+  # ==========================================================================
+  # Publish JS packages to npm (on release)
+  # ==========================================================================
+  publish-npm:
+    name: Publish JS to npm
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@ose/js-core
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build JavaScript packages
+        run: npm run build
+
+      - name: Publish @ose/js-core to npm
+        run: npm -w @ose/js-core publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ==========================================================================
+  # Deploy to development environment
+  # ==========================================================================
   deploy-dev:
+    name: Deploy to Development
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+    needs: build
     environment:
       name: development
       url: https://test.onto-ed.hbcptools.org/
-    needs:
-      - build
+
     steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: app
-    - name: Deploy app
-      env:
-        PRIVATE_KEY: ${{ secrets.deploymentKey }}
-      run: >
-        echo $PRIVATE_KEY | base64 --decode > privkey &&
-        chmod 600 privkey &&
-        mkdir -p $HOME/.ssh &&
-        scp -o StrictHostKeyChecking=no -O -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
-        ssh -o StrictHostKeyChecking=no -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy development"
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Download Python dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Download Python wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-wheels
+          path: dist/
+
+      - name: Create deployment package
+        run: |
+          tar -czf onto-ed.tar.gz dist/
+
+      - name: Deploy app
+        env:
+          PRIVATE_KEY: ${{ secrets.deploymentKey }}
+        run: |
+          echo "$PRIVATE_KEY" | base64 --decode > privkey
+          chmod 600 privkey
+          mkdir -p "$HOME/.ssh"
+          scp -o StrictHostKeyChecking=no -O -i privkey onto-ed.tar.gz "${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }}"
+          ssh -o StrictHostKeyChecking=no -i privkey "${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}" "sudo ./redeploy development"
+
+  # ==========================================================================
+  # Deploy to production environment
+  # ==========================================================================
   deploy-prod:
+    name: Deploy to Production
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    needs: build
     environment:
       name: hbcptools
       url: https://onto-ed.hbcptools.org/
-    needs:
-      - build
+
     steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: app
-    - name: Deploy app
-      env:
-        PRIVATE_KEY: ${{ secrets.deploymentKey }}
-      run: >
-        echo $PRIVATE_KEY | base64 --decode > privkey &&
-        chmod 600 privkey &&
-        mkdir -p $HOME/.ssh &&
-        scp -o StrictHostKeyChecking=no -O -i privkey onto-ed.tar.gz ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }} &&
-        ssh -o StrictHostKeyChecking=no -i privkey ${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }} "sudo ./redeploy hbcptools"
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Download Python dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Download Python wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-wheels
+          path: dist/
+
+      - name: Create deployment package
+        run: |
+          tar -czf onto-ed.tar.gz dist/
+
+      - name: Deploy app
+        env:
+          PRIVATE_KEY: ${{ secrets.deploymentKey }}
+        run: |
+          echo "$PRIVATE_KEY" | base64 --decode > privkey
+          chmod 600 privkey
+          mkdir -p "$HOME/.ssh"
+          scp -o StrictHostKeyChecking=no -O -i privkey onto-ed.tar.gz "${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}:${{ secrets.deploymentPath }}"
+          ssh -o StrictHostKeyChecking=no -i privkey "${{ secrets.deploymentUser }}@${{ secrets.deploymentHost }}" "sudo ./redeploy hbcptools"

@@ -1,0 +1,147 @@
+@use "sass:color";
+
+:root {
+  --bs-callout-link: 10, 88, 202;
+  --bs-callout-code-color: #ab296a;
+}
+
+.callout-success {
+  --bd-callout-color: var(--bs-success-text-emphasis);
+  --bd-callout-bg: var(--bs-success-bg-subtle);
+  --bd-callout-border: var(--bs-success-border-subtle);
+}
+
+.callout-danger {
+  --bd-callout-color: var(--bs-danger-text-emphasis);
+  --bd-callout-bg: var(--bs-danger-bg-subtle);
+  --bd-callout-border: var(--bs-danger-border-subtle);
+}
+
+.callout-warning {
+  --bd-callout-color: var(--bs-warning-text-emphasis);
+  --bd-callout-bg: var(--bs-warning-bg-subtle);
+  --bd-callout-border: var(--bs-warning-border-subtle);
+}
+
+.callout-info {
+  --bd-callout-color: var(--bs-info-text-emphasis);
+  --bd-callout-bg: var(--bs-info-bg-subtle);
+  --bd-callout-border: var(--bs-info-border-subtle);
+}
+
+.callout {
+  --bs-link-color-rgb: var(--bs-callout-link);
+  --bs-code-color: var(--bs-callout-code-color);
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  color: var(--bd-callout-color, inherit);
+  background-color: var(--bd-callout-bg, var(--bs-gray-100));
+  border-left: 0.25rem solid var(--bd-callout-border, var(--bs-gray-300));
+}
+
+.banner {
+  text-align: center;
+  background: yellow;
+  background: repeating-linear-gradient(-45deg, color.adjust(yellow, $lightness: -30%), color.adjust(yellow, $lightness: -30%), 20px, black 20px, black 40px);
+  color: white
+}
+
+//.release {
+.modal-dialog .release-file-settings {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-gap: 8px 16px;
+
+  h4 {
+    grid-column: 1/3
+  }
+
+  label {
+    grid-column: 1;
+  }
+
+  input, textarea {
+    grid-column: 2;
+  }
+
+  span {
+    grid-column: 3;
+  }
+}
+
+//}
+
+
+.breadcrumb-item.active {
+  font-weight: bold;
+}
+
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 40px;
+  aspect-ratio: 1;
+  position: relative;
+}
+
+.loader:before,
+.loader:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: -8px 0 0 -8px;
+  width: 16px;
+  aspect-ratio: 1;
+  background: #3FB8AF;
+  animation: l2-1 2s infinite,
+  l2-2 1s infinite;
+}
+
+.loader:after {
+  background: #FF3D7F;
+  animation-delay: -1s, 0s;
+}
+
+@keyframes l2-1 {
+  0% {
+    top: 0;
+    left: 0
+  }
+  25% {
+    top: 100%;
+    left: 0
+  }
+  50% {
+    top: 100%;
+    left: 100%
+  }
+  75% {
+    top: 0;
+    left: 100%
+  }
+  100% {
+    top: 0;
+    left: 0
+  }
+}
+
+@keyframes l2-2 {
+  40%, 50% {
+    transform: rotate(0.25turn) scale(0.5)
+  }
+  100% {
+    transform: rotate(0.5turn) scale(1)
+  }
+}
+
+:root {
+  --ose-curation-status-discussed: moccasin;
+  --ose-curation-status-proposed: #FFFFFF;
+  --ose-curation-status-to_be_discussed: #eee8aa;
+  --ose-curation-status-in_discussion: #fffacd;
+  --ose-curation-status-published: #7fffd4;
+  --ose-curation-status-obsolete: #2f4f4f;
+  --ose-curation-status-external: #D3D3D3;
+  --ose-curation-status-pre_proposed: #ebfad0;
+}
