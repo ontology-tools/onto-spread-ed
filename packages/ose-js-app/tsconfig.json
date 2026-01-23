@@ -20,6 +20,5 @@
       "@ose/js-core/*": ["../ose-js-core/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "references": [{ "path": "../ose-js-core" }]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }
