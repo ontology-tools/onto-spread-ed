@@ -5,7 +5,7 @@ import dts from 'vite-plugin-dts'
 import { resolve } from 'path';
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     dts({
@@ -15,6 +15,13 @@ export default defineConfig({
     })
   ],
   build: {
+    sourcemap: mode === 'production' ? true : 'inline',
+    minify: mode === 'production',
+    cssCodeSplit: true,
+    esbuild: {
+      drop: mode === 'production' || true ? ['console', 'debugger'] : [],
+    },
+
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'ose_js_core',
@@ -29,4 +36,4 @@ export default defineConfig({
       }
     }
   }
-})
+}));

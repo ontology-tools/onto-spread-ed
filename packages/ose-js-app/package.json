@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch",
+    "dev": "vite build -m development --minify false --watch",
     "clean": "rm -rf dist"
   },
   "dependencies": {
