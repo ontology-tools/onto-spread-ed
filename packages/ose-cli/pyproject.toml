@@ -12,6 +12,7 @@ dependencies = [
     "ose-core==0.2.5",
     "Flask==2.3.3",
     "Flask-Injector",
+    "click>=8.0",
 ]
 
 [project.optional-dependencies]
