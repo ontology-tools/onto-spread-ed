@@ -17,7 +17,7 @@ for (const dir of dirs) {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({mode}) => ({
   plugins: [
     vue(),
     Components({
@@ -32,8 +32,12 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, '../../packages/ose-app/src/ose_app/static/js'),
     emptyOutDir: false,
-    sourcemap: true,
+    sourcemap: mode === 'production' ? false : 'inline',
+    minify: mode === 'production',
     cssCodeSplit: true,
+    esbuild: {
+      drop: mode === 'production' ? ['console', 'debugger'] : [],
+    },
     rollupOptions: {
       input: entries,
       output: {
@@ -43,4 +47,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

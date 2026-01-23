@@ -1,11 +1,11 @@
 
 declare global {
-    interface Window {
-        ose?: {
-            visualise?: VisualisationData;
-        };
-        oseDataChanged?: () => void;
-    }
+  interface Window {
+    ose?: {
+      visualise?: VisualisationData;
+    };
+    oseDataChanged?: () => void;
+  }
 }
 
 export class Graph {
@@ -95,6 +95,18 @@ export class Graph {
   public addEdge(edge: Edge): void {
     this._edges.push(edge);
 
+    const unknownSource = this._nodes.has(edge.source) === false;
+    const unknownTarget = this._nodes.has(edge.target) === false;
+    if (unknownSource) {
+      console.warn(`Trying to add edge '[${edge.label || edge.type}] ${edge.source} -> ${edge.target}' with unknown source node id '${edge.source}'`);
+    }
+    if (unknownTarget) {
+      console.warn(`Trying to add edge '[${edge.label || edge.type}] ${edge.source} -> ${edge.target}' with unknown target node id '${edge.target}'`);
+    }
+    if (unknownSource || unknownTarget) {
+      return;
+    }
+
     if (!this._successors.has(edge.source)) {
       this._successors.set(edge.source, new Set<string>());
     }
@@ -117,9 +129,15 @@ export class Graph {
   public predecessors(nodeId: string): Node[]
   public predecessors(nodeOrId: Node | string): Node[] {
     const nodeId = typeof nodeOrId === 'string' ? nodeOrId : nodeOrId.id;
-    return Array.from(this._predecessors.get(nodeId) || []).map(id => this._nodes.get(id)!);
+    return Array.from(this._predecessors.get(nodeId) || []).map(id => {
+      const n = this._nodes.get(id);
+      if (!n) {
+        console.error(`Inconsistent graph: predecessor node of '${nodeId}' not found with id ${id}`);
+      }
+      return n;
+    }).filter(x => !!x);
   }
-  
+
   public reachable(nodeId: string): Set<string> {
     const visited = new Set<string>();
     const stack = [nodeId];
