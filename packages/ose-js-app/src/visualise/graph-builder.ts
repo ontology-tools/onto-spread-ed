@@ -50,7 +50,7 @@ export function buildGraphFromSpreadsheet(
         const label = row['Label'].trim();
         const curationStatus = Object.entries(row)
             .find(([k, _]) => k.toLowerCase().includes('curation status'))
-            ?.[1].trim() || CURATION_STATUS.PRE_PROPOSED;
+            ?.[1]?.trim() || CURATION_STATUS.PRE_PROPOSED;
         const parents = [{ label: row['Parent'].trim(), id: undefined }];
 
         const relations: TermDataRelation[] = [];

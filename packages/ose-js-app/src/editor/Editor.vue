@@ -5,7 +5,7 @@ import "tabulator-tables/dist/css/tabulator_bootstrap5.min.css";
 import { computed, h, onMounted, onUnmounted, ref, toRaw, watch, watchEffect } from 'vue';
 import { RowComponent, TabulatorFull as Tabulator } from 'tabulator-tables';
 import { columnDefFor, setRowColor } from "./tabulator-config"
-import { COLUMN_NAMES, CURATION_STATUS } from "@ose/js-core";
+import { COLUMN_NAMES, CURATION_STATUS, isRow, Row } from "@ose/js-core";
 import { alertDialog, confirmDialog, promptDialog } from "../common/bootbox"
 import { Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig } from "@ose/js-core";
 import Diagnostic from "../common/Diagnostic.vue"
@@ -643,10 +643,29 @@ function sendVisualisationRequest(sendType: "sheet" | "select") {
     return;
   }
 
+  const rowData = rows.map(r => {
+    const data = r.getData();
+
+    if (typeof data.ID !== "string" || data.ID.trim() === "") {
+      // Generate temp ID for visualisation
+      data.ID = `_:vis-${r.getIndex() + 1}`;
+    }
+
+    return data;
+  }).filter((x => {
+    if (isRow(x)) {
+      return x;
+    } else {
+      console.warn(`Skipping invalid row data for visualisation: ${JSON.stringify(x)}`);
+
+      return false
+    }
+  }) as (x: object) => x is Row);
+
   // Build the sheet data to send - either full sheet or just selected rows
-  const sheetDataToSend: SpreadsheetData = toRaw({
-    header: spreadsheetData.value?.header ?? [],
-    rows: rows.map(r => r.getData()),
+  const sheetDataToSend: SpreadsheetData<Row> = toRaw({
+    header: [...spreadsheetData.value?.header ?? []],
+    rows: rowData,
     file_sha: spreadsheetData.value?.file_sha ?? '',
     repo_name: repo,
     folder: fileFolder,

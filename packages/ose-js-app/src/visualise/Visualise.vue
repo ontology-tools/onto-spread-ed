@@ -151,7 +151,7 @@ function clearSearch() {
 
 async function fetchGraph() {
   // Validate that we have all required data
-  if (!sheetData.value.repo_name || !sheetData.value.folder || !sheetData.value.spreadsheet_name) {
+  if (!sheetData.value.repo_name || !sheetData.value.spreadsheet_name) {
     console.warn('Cannot fetch graph: missing repo, folder, or spreadsheet name', {
       repo: sheetData.value.repo_name,
       folder: sheetData.value.folder,
@@ -486,13 +486,11 @@ watchEffect(() => {
     spreadsheet_name: sheetData.value.spreadsheet_name,
     allConditionsMet: sheetData.value.rows.length > 0 &&
       !!sheetData.value.repo_name &&
-      !!sheetData.value.folder &&
       !!sheetData.value.spreadsheet_name
   });
 
   if (sheetData.value.rows.length > 0 &&
     sheetData.value.repo_name &&
-    sheetData.value.folder &&
     sheetData.value.spreadsheet_name) {
     fetchGraph();
   }
