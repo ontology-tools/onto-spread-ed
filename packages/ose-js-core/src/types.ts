@@ -211,6 +211,13 @@ export interface Row {
   [key: string]: string;
 }
 
+export function isRow(obj: any): obj is Row {
+  return obj && typeof obj === 'object' &&
+    'Label' in obj && typeof obj['Label'] === 'string' &&
+    'ID' in obj && typeof obj['ID'] === 'string' &&
+    'Parent' in obj && typeof obj['Parent'] === 'string';
+}
+
 export interface VisualisationData {
   /**
    * Data for the spreadsheet being visualised
