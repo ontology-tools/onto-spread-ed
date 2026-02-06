@@ -5,6 +5,13 @@ This package provides the web interface for the OntoSpreadEd
 ontology spreadsheet editor.
 """
 
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("ose-app")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 # Do the custom json serialization
 import json
 import logging
@@ -68,6 +75,9 @@ def load_config(app: Flask, config_filename):
     # add aliases
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config.get("DATABASE_URI")
 
+    # set version
+    app.config["APP_VERSION"] = __version__
+
     # set log level
     level = app.config.get("LOG_LEVEL", "WARNING")
     level = level.upper() if isinstance(level, str) else "WARNING"
@@ -123,6 +133,7 @@ def create_app(config_filename=None):
     # CLI is optional - only initialize if ose-cli is installed
     try:
         import ose_cli
+
         ose_cli.init_app(app, injector.injector)
     except ImportError:
         app.logger.debug("ose-cli not installed, CLI commands not available")

@@ -1,3 +1,10 @@
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("ose-plugin-hbcp")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 from ose.model.Plugin import Plugin
 
 
