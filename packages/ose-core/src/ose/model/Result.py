@@ -47,3 +47,12 @@ class Result(Generic[A]):
 
     def has_errors(self) -> bool:
         return len(self.errors) > 0
+    
+    def ok_or_raise(self) -> A:
+        if self.has_errors():
+            raise Exception(f"Result has errors: {self.errors}")
+        
+        if not self.ok():
+            raise Exception(f"Result has no value: {self.errors}")
+        
+        return self.value

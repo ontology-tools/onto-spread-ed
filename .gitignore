@@ -22,3 +22,5 @@ venv/
 **/*.egg-info
 
 startup-repositories.yaml
+
+ssl/
