@@ -120,14 +120,18 @@ jobs:
       - name: Build Python packages
         run: |
           # Build all Python packages
-          for pkg in packages/ose-core packages/ose-cli packages/ose-app; do
-            echo "Building $pkg..."
-            uv build --package $(basename $pkg)
+          for pkg in packages/ose-*; do
+            if [ -f "$pkg/pyproject.toml" ]; then
+              echo "Building $pkg..."
+              uv build --package $(basename $pkg)
+            fi
           done
-          # Build release plugins
-          for plugin in plugins/ose-plugin-hierarchical-spreadsheets; do
-            echo "Building $plugin..."
-            uv build --package $(basename $plugin)
+          # Build all plugins
+          for plugin in plugins/ose-plugin-*; do
+            if [ -f "$plugin/pyproject.toml" ]; then
+              echo "Building $plugin..."
+              uv build --package $(basename $plugin)
+            fi
           done
 
       - name: Upload Python dist artifacts
