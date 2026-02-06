@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import {computed, defineAsyncComponent, onMounted, ref, watch, shallowRef, markRaw, type Component} from "vue";
-import {Diagnostic, Release, ReleaseScript} from "@ose/js-core";
+import { computed, defineAsyncComponent, onMounted, ref, watch, shallowRef, markRaw, type Component, h } from "vue";
+import { Diagnostic, Release, ReleaseScript } from "@ose/js-core";
 import Setup from "./Setup.vue";
 import Validation from "./steps/Validation.vue";
 import HumanVerification from "./steps/HumanVerification.vue";
 import GithubPublish from "./steps/GithubPublish.vue";
 import Generic from "./steps/Generic.vue";
+import { BToast, useToastController } from "bootstrap-vue-next";
 
 declare var SERVER_DATA: { [key: string]: any }
 declare var URLS: { [key: string]: any }
@@ -30,6 +31,8 @@ const error = ref<string | null>(null)
 const selected_step = ref<number | null>(null)
 const selected_sub_step = ref<string | null>(null)
 
+const { show: showToast } = useToastController();
+
 // Built-in step components
 const builtInSteps: { [k: string]: Component } = {
   "VALIDATION": Validation,
@@ -51,19 +54,19 @@ async function loadPlugins() {
   try {
     const response = await fetch(`${prefix_url}/api/plugins/`);
     if (!response.ok) return;
-    
+
     const plugins: PluginInfo[] = await response.json();
     const newPluginSteps: { [k: string]: Component } = {};
-    
+
     for (const plugin of plugins) {
       if (!plugin.has_static || !plugin.js_module || plugin.components.length === 0) continue;
-      
+
       for (const comp of plugin.components) {
         // Create async component that loads from plugin's static folder
         const pluginId = plugin.id;
         const jsModule = plugin.js_module;
         const componentName = comp.component_name;
-        
+
         newPluginSteps[comp.step_name] = markRaw(defineAsyncComponent(async () => {
           const moduleUrl = `${prefix_url}/api/plugins/${pluginId}/static/${jsModule}`;
           const module = await import(/* @vite-ignore */ moduleUrl);
@@ -71,7 +74,7 @@ async function loadPlugins() {
         }));
       }
     }
-    
+
     pluginSteps.value = newPluginSteps;
   } catch (e) {
     console.error("Failed to load plugins:", e);
@@ -110,11 +113,11 @@ function subSteps(data?: any): null | { [k: string]: SubStepContent } {
   if (data instanceof Object) {
     const val = data as { [key: string]: Partial<SubStepContent> }
     const steps = Object.entries(val)
-        .filter(([k, v]) =>
-            !k.startsWith("_") &&
-            ["warnings", "errors", "infos"].indexOf(k) < 0 &&
-            Array.isArray(v?.warnings) && Array.isArray(v?.errors)
-        ) as unknown as [string, SubStepContent][]
+      .filter(([k, v]) =>
+        !k.startsWith("_") &&
+        ["warnings", "errors", "infos"].indexOf(k) < 0 &&
+        Array.isArray(v?.warnings) && Array.isArray(v?.errors)
+      ) as unknown as [string, SubStepContent][]
     return steps.length > 0 ? Object.fromEntries(steps) : null;
   }
 
@@ -140,7 +143,7 @@ async function poll(withLoading: boolean = false) {
 onMounted(async () => {
   // Load plugins first
   await loadPlugins();
-  
+
   const lastPathSegment = window.location.pathname.split("/").slice(-1)[0]
   const releaseId = parseInt(lastPathSegment)
 
@@ -216,15 +219,38 @@ async function _request<T = any, S = T>(request: () => Promise<Response>, post: 
   }
 }
 
+async function rerunStep() {
+  showToast?.({
+    props: {
+      value: 5000,
+      progressProps: {
+        variant: 'success',
+      }
+    },
+    component: h(BToast, { variant: "success" }, {
+      default: () => h("div", { style: "display: flex; align-items: center; gap: 16px" }, [
+        h("i", { class: "fa fa-check" }),
+        h("span", null, "Requesting rerun!")
+      ])
+    })
+  })
+
+  await fetch(`${prefix_url}/api/release/${repo}/rerun-step?force=true`, {
+    method: "POST"
+  })
+
+  startPolling()
+}
+
 async function startRelease(releaseScript: ReleaseScript) {
   const r = await _request<Release>(() =>
-      fetch(prefix_url + "/api/release/start", {
-        method: "post",
-        body: JSON.stringify(releaseScript),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      }))
+    fetch(prefix_url + "/api/release/start", {
+      method: "post",
+      body: JSON.stringify(releaseScript),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }))
 
   if (r) {
     release.value = r
@@ -293,6 +319,7 @@ async function doReleaseControl(type: string) {
 </script>
 
 <template>
+  <BToastOrchestrator />
   <div class="release">
     <div class="d-flex gap-2 align-items-center">
       <h1 id="lbl-release-title">
@@ -300,7 +327,7 @@ async function doReleaseControl(type: string) {
         Release {{ repo }}
       </h1>
       <span id="release-info" class="align-self-end mb-2 text-muted" v-if="release">
-          started by {{ release.started_by }} on {{ $filters.formatDate(release.start) }}
+        started by {{ release.started_by }} on {{ $filters.formatDate(release.start) }}
       </span>
       <span class="flex-fill"></span>
 
@@ -320,15 +347,14 @@ async function doReleaseControl(type: string) {
         <h4>An error occurred</h4>
         {{ error }}
       </div>
-      <Setup v-if="!release" style="max-width: 1080px; margin: 0 auto"
-             :repo="repo"
-             @settingsConfirmed="startRelease($event)"></Setup>
+      <Setup v-if="!release" style="max-width: 1080px; margin: 0 auto" :repo="repo"
+        @settingsConfirmed="startRelease($event)"></Setup>
     </template>
 
 
     <template v-if="release !== null">
       <div style="display: grid;grid-template-columns: 240px 1fr;grid-gap: 50px" class="text-start w-100"
-           id="release-core">
+        id="release-core">
         <div class="sidebar border" style="grid-column: 1">
           <ul class="list-unstyled ps-2">
             <li class="mb-1" v-for="(step, i) in release.release_script.steps">
@@ -347,7 +373,7 @@ async function doReleaseControl(type: string) {
                   <i v-else-if="(val.warnings?.length ?? 0) > 0" class="fa fa-triangle-exclamation text-warning"></i>
                   <i v-else class="fa fa-check-circle text-success"></i>
                   <a class="btn border-0 text-truncate"
-                     @click="selected_sub_step = selected_sub_step === key ? null : key">
+                    @click="selected_sub_step = selected_sub_step === key ? null : key">
                     <strong v-if="selected_sub_step === key">{{ key }}</strong>
                     <template v-else>{{ key }}</template>
                   </a>
@@ -367,11 +393,11 @@ async function doReleaseControl(type: string) {
             <pre>{{ details.error.long }}</pre>
           </div>
 
-          <component :is="stepComponent" v-bind="stepProps"
-                     @release-control="doReleaseControl"></component>
+          <component :is="stepComponent" v-bind="stepProps" @release-control="doReleaseControl"></component>
         </div>
       </div>
     </template>
+
   </div>
 
   <div class="loading" v-if="loading">
@@ -380,6 +406,10 @@ async function doReleaseControl(type: string) {
       </div>
       <h5>Loading...</h5>
     </div>
+  </div>
+
+  <div style="font-size: x-small; position: absolute; bottom: 4px; right: 8px; color: #888;">
+    <a href="#" @click.prevent="rerunStep()">Rerun</a>
   </div>
 </template>
 

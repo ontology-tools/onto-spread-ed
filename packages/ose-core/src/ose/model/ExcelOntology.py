@@ -137,7 +137,7 @@ class ExcelOntology:
     def find_term_label(self, id: str) -> Optional[str]:
         return next((t.label for t in (self._terms + self.imported_terms()) if t.id == id), None)
 
-    def term_by_id(self, id: str) -> Optional[Term]:
+    def term_by_id(self, id: str | None) -> Optional[Term]:
         return next(iter(t for t in (self.terms()) if t.id == id), None)
 
     def _term_by_id(self, id: str) -> Optional[UnresolvedTerm]:

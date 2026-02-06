@@ -18,6 +18,12 @@ dev = [
     "pytest",
     "mypy",
 ]
+plugins = [
+    "ose-plugin-addicto",
+    "ose-plugin-bcio",
+    "ose-plugin-hierarchical-spreadsheets",
+    "ose-plugin-hbcp",
+]
 
 [tool.ruff]
 line-length = 120
@@ -37,6 +43,10 @@ packages = []
 
 [tool.uv.sources]
 ose-core = { workspace = true }
+ose-plugin-addicto = { workspace = true }
+ose-plugin-bcio = { workspace = true }
+ose-plugin-hierarchical-spreadsheets = { workspace = true }
+ose-plugin-hbcp = { workspace = true }
 
 # Or with uv workspaces:
 [tool.uv.workspace]

@@ -23,21 +23,6 @@ dependencies = [
 cli = [
     "ose-cli",
 ]
-dev = [
-    "pytest",
-    "ruff",
-]
-all = [
-    "ose-cli",
-    "ose-plugin-addicto",
-    "ose-plugin-bcio",
-    "ose-plugin-hierarchical-spreadsheets",
-]
-plugins = [
-    "ose-plugin-addicto",
-    "ose-plugin-bcio",
-    "ose-plugin-hierarchical-spreadsheets",
-]
 
 [tool.uv.sources]
 ose-cli = { workspace = true }
@@ -53,4 +38,9 @@ where = ["src"]
 ose_app = [
     "templates/**/*",
     "static/**/*",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.13",
 ]
