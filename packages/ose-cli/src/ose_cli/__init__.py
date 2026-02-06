@@ -5,7 +5,12 @@ This package provides CLI commands for the OntoSpreadEd
 ontology spreadsheet editor.
 """
 
-__version__ = "0.1.0"
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("ose-cli")
+except PackageNotFoundError:
+    __version__ = "unknown"
 
 import functools
 
@@ -20,9 +25,11 @@ def init_app(app: Flask, injector: Injector):
     cli_groups = []
 
     from .release import init_commands as release
+
     cli_groups.append(release)
 
     from .externals import init_commands as externals
+
     cli_groups.append(externals)
 
     def with_injector(fn):

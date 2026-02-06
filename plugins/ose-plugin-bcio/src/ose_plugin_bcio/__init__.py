@@ -1,3 +1,10 @@
+from importlib.metadata import version, PackageNotFoundError
+
+try:
+    __version__ = version("ose-plugin-bcio")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 from ose.model.Plugin import Plugin, PluginComponent
 from .BCIOSearchReleaseStep import BCIOSearchReleaseStep
 from .scripts.cleanup_bcio_vocab import CleanUpBCIOVocabScript

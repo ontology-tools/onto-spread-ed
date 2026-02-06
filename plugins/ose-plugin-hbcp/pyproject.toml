@@ -1,11 +1,11 @@
 [project]
 name = "ose-plugin-hbcp"
-version = "0.3.0"
+version = "0.3.1"
 description = "OntoSpreadEd plugin for HBCP common services"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ose-core==0.3.0",
+    "ose-core==0.3.1",
 ]
 
 [build-system]
