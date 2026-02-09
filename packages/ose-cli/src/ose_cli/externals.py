@@ -68,7 +68,6 @@ def register_commands(cli):
 
 def init_commands(cli, inject: Callable[[Any], Callable[[Tuple[Any, ...], Dict[str, Any]], Any]]):
     """Initialize commands for Flask CLI (backward compatibility)"""
-    from flask.cli import AppGroup
     
     @cli.group("externals")
     def group():

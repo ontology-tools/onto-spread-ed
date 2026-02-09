@@ -1,4 +1,6 @@
 import click
+from .externals import register_commands as register_externals
+from .release import register_commands as register_release
 
 
 @click.group()
@@ -8,9 +10,6 @@ def cli():
 
 
 # Register command groups
-from .externals import register_commands as register_externals
-from .release import register_commands as register_release
-
 register_externals(cli)
 register_release(cli)
 
