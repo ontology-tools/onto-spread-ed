@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Flask",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "FLASK_APP": "ose_app:create_app",
+                "FLASK_DEBUG": "1",
+                "FLASK_ENV": "development",
+                "FLASK_PORT": "8080",
+                "FLASK_SECRET_KEY": "fsasfdjoi",
+                "OSE_LOG_LEVEL": "debug",
+                "OSE_ENVIRONMENT": "development",
+                "ROBOT": "${env:HOME}/.local/bin/robot"
+            },
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                "run",
+                "--debug",
+                "--port",
+                "8080",
+            ],
+            "justMyCode": false,
+            "jinja": true,
+            "autoStartBrowser": false,
+            "preLaunchTask": "OSE: Update DB"
+        },
+        {
+            "name": "OSE CLI: Externals Build",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "ose_cli",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": [
+                "externals",
+                "build",
+                "-vvv"
+            ],
+            "cwd": "${workspaceFolder}/../BCIO",
+            "justMyCode": false
+        },
+    ]
+}

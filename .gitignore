@@ -1,11 +1,8 @@
 ### Python ###
 __pycache__/
-ontospreaded.json
-ontospreaded.json.test2
 .idea
 .cache
 .ruff_cache
-.vscode
 
 node_modules
 **/*.js
@@ -24,3 +21,5 @@ venv/
 startup-repositories.yaml
 
 ssl/
+
+.env
