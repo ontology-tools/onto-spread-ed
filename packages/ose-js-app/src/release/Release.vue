@@ -98,8 +98,18 @@ const stepProps = computed(() => {
   const component = stepComponent.value;
 
   if (component) {
-    const required = Object.keys(component.props)
-    return Object.fromEntries(Object.entries(possibleProps).filter(([k, _]) => required.indexOf(k) >= 0))
+    // For async components, try to get the resolved component's props
+    // AsyncComponentWrapper stores the resolved component in __asyncResolved
+    const resolvedComponent = component.__asyncResolved || component;
+    const componentProps = resolvedComponent.props;
+
+    if (componentProps) {
+      const required = Object.keys(componentProps)
+      return Object.fromEntries(Object.entries(possibleProps).filter(([k, _]) => required.indexOf(k) >= 0))
+    }
+
+    // Fallback: pass all props for unresolved async components
+    return possibleProps;
   }
 
   return null;
@@ -296,8 +306,19 @@ function stepIconClasses(step: number): string[] {
       return "fa fa-triangle-exclamation text-danger".split(" ")
     } else if (warningsOfStep(step) > 0) {
       return "fa fa-triangle-exclamation text-warning".split(" ")
-    } else if (release.value?.step === step && release.value.state !== 'completed') {
-      return "fa-regular fa-circle text-primary".split(" ")
+    } else if (release.value?.step === step) {
+      switch (release.value?.state) {
+        case "canceled":
+          return ["fa-regular", "fa-circle-xmark", "text-danger"]
+        case "waiting-for-user":
+          return ["fa-solid", "fa-user-clock", "text-warning"]
+        case "errored":
+          return ["fa-solid", "fa-triangle-exclamation", "text-danger"]
+        case "completed":
+          return ["fa-regular", "fa-circle-check", "text-success"]
+        default:
+          return ["fa-regular", "fa-circle", "text-primary"]
+      }
     } else {
       return "fa-regular fa-check-circle text-success".split(" ")
     }
