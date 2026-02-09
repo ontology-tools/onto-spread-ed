@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ose-plugin-addicto"
-version = "0.3.1"
+version = "1.3.2"
 description = "OntoSpreadEd plugin for AddictO services and workflows"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ose-core==0.3.1",
-    "ose-plugin-hbcp==0.3.1",
+    "ose-core==1.3.2",
+    "ose-plugin-hbcp==1.3.2",
 ]
 
 [project.entry-points.'ose.plugins']
