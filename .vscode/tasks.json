@@ -1,0 +1,62 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "OSE: Update DB",
+            "command": "${workspaceFolder}/.venv/bin/python",
+            "args": [
+                "-m",
+                "flask",
+                "--app",
+                "ose_app:create_app",
+                "db",
+                "upgrade"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "OSE: Build JS",
+            "type": "npm",
+            "script": "build",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Build JS core and JS app"
+        },
+        {
+            "label": "OSE: Build JS (watch)",
+            "type": "npm",
+            "script": "dev",
+            "group": "build",
+            "isBackground": true,
+            "problemMatcher": [],
+            "detail": "Watch and rebuild JS app on changes"
+        },
+        {
+            "label": "OSE: Build CSS",
+            "type": "npm",
+            "script": "build:css",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Build SCSS to CSS"
+        },
+        {
+            "label": "OSE: Install Python Packages (dev)",
+            "type": "shell",
+            "command": "uv",
+            "args": [
+                "sync",
+                "--all-packages",
+                "--group",
+                "plugins"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "detail": "Install all Python packages including plugins with uv"
+        }
+    ]
+}

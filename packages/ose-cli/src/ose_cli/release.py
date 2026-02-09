@@ -1,6 +1,5 @@
 from typing import Callable, Any, Dict, Tuple
 
-import click
 
 
 def register_commands(cli):
@@ -13,7 +12,6 @@ def register_commands(cli):
 
 def init_commands(cli, _: Callable[[Any], Callable[[Tuple[Any, ...], Dict[str, Any]], Any]]):
     """Initialize commands for Flask CLI (backward compatibility)"""
-    from flask.cli import AppGroup
     
     @cli.group("release")
     def group():
