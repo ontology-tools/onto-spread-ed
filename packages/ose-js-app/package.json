@@ -1,5 +1,5 @@
 {
-  "name": "@ose/js-app",
+  "name": "@ontospreaded/js-app",
   "version": "0.3.1",
   "private": true,
   "description": "Vue.js web application components for OntoSpreadEd",
@@ -38,7 +38,7 @@
   "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ontology-tools/onto-spread-ed.git",
+    "url": "git+https://github.com/ontology-tools/onto-spread-ed.git",
     "directory": "packages/ose-js-app"
   }
 }
