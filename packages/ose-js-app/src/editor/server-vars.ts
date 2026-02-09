@@ -1,4 +1,4 @@
-import {RepositoryConfig} from "@ose/js-core";
+import {RepositoryConfig} from "@ontospreaded/js-core";
 
 export declare var URLS: { [key: string]: any };
 export declare var ALL_INITIALS: string[];

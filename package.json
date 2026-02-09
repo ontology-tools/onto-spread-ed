@@ -9,12 +9,12 @@
   ],
   "scripts": {
     "build": "npm run build:js-core && npm run build:shims && npm run build:js-app",
-    "build:js-core": "npm -w @ose/js-core run build",
+    "build:js-core": "npm -w @ontospreaded/js-core run build",
     "build:shims": "node scripts/generate-shims.mjs",
-    "build:js-app": "npm -w @ose/js-app run build",
+    "build:js-app": "npm -w @ontospreaded/js-app run build",
     "build:css": "npx sass -s compressed --no-source-map packages/ose-app/src/ose_app/static/main.scss:packages/ose-app/src/ose_app/static/main.css",
-    "dev": "npm -w @ose/js-app run dev",
-    "clean": "npm -w @ose/js-core run clean && npm -w @ose/js-app run clean"
+    "dev": "npm -w @ontospreaded/js-app run dev",
+    "clean": "npm -w @ontospreaded/js-core run clean && npm -w @ontospreaded/js-app run clean"
   },
   "devDependencies": {
     "sass": "^1.77.0",

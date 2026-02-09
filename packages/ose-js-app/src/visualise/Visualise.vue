@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { computed, onMounted, ref, useTemplateRef, watch, watchEffect, watchPostEffect } from 'vue';
-import { SpreadsheetData, VisualisationData, Graph, Row } from "@ose/js-core";
+import { SpreadsheetData, VisualisationData, Graph, Row } from "@ontospreaded/js-core";
 import svgPanZoom from 'svg-pan-zoom';
-import { CURATION_STATUS } from "@ose/js-core";
+import { CURATION_STATUS } from "@ontospreaded/js-core";
 import * as d3 from 'd3';
 import {
   applyGraphFilters,
@@ -27,7 +27,7 @@ import {
   type PanZoomState
 } from './graph-renderer';
 import { buildGraphFromSpreadsheet, type DependencyData } from './graph-builder';
-import { NavigateToTermMessage } from "@ose/js-core";
+import { NavigateToTermMessage } from "@ontospreaded/js-core";
 
 declare var URLS: { [key: string]: any };
 const URL_PREFIX = URLS['prefix'];

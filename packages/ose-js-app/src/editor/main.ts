@@ -9,7 +9,7 @@ import {createBootstrap} from 'bootstrap-vue-next'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue-next/dist/bootstrap-vue-next.css'
 
-import {$filters} from "@ose/js-core";
+import {$filters} from "@ontospreaded/js-core";
 
 const app = createApp(Editor)
 

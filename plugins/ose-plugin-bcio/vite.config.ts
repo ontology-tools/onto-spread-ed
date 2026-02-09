@@ -14,11 +14,11 @@ export default defineConfig({
       fileName: 'ose-plugin-bcio',
     },
     rollupOptions: {
-      external: ['vue', '@ose/js-core'],
+      external: ['vue', '@ontospreaded/js-core'],
       output: {
         globals: {
           vue: 'Vue',
-          '@ose/js-core': 'OseJsCore'
+          '@ontospreaded/js-core': 'OseJsCore'
         }
       }
     }

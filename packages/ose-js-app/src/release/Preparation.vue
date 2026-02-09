@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {onMounted, Ref, ref} from "vue";
-import {ReleaseScript} from "@ose/js-core";
+import {ReleaseScript} from "@ontospreaded/js-core";
 import RepositorySelector from "./RepositorySelector.vue";
 import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
 

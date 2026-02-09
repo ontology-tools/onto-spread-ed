@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import {AutoFixState, Diagnostic as DiagnosticM, Release, Term, ProgressIndicator} from "@ose/js-core";
+import {AutoFixState, Diagnostic as DiagnosticM, Release, Term, ProgressIndicator} from "@ontospreaded/js-core";
 import ErrorLink from "../ErrorLink.vue";
 import {guessParent} from "../autofix/guessParent"
 import Diagnostic from "../../common/Diagnostic.vue";

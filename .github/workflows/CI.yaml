@@ -187,7 +187,7 @@ jobs:
 
       - name: Package JS artifacts
         run: |
-          npm pack -w @ose/js-core --pack-destination dist/
+          npm pack -w @ontospreaded/js-core --pack-destination dist/
 
       - name: Upload assets to release
         uses: softprops/action-gh-release@v2
@@ -239,7 +239,7 @@ jobs:
     if: github.event_name == 'release' && github.event.action == 'published'
     environment:
       name: npm
-      url: https://www.npmjs.com/package/@ose/js-core
+      url: https://www.npmjs.com/package/@ontospreaded/js-core
     permissions:
       contents: read
       id-token: write
@@ -261,8 +261,8 @@ jobs:
       - name: Build JavaScript packages
         run: npm run build
 
-      - name: Publish @ose/js-core to npm
-        run: npm -w @ose/js-core publish --provenance --access public
+      - name: Publish @ontospreaded/js-core to npm
+        run: npm -w @ontospreaded/js-core publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {Release, ProgressIndicator} from "@ose/js-core";
+import {Release, ProgressIndicator} from "@ontospreaded/js-core";
 import TechnicalError from "../TechnicalError.vue";
 
 defineProps<{

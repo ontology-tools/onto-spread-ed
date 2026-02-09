@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { type Release, ProgressIndicator } from "@ose/js-core";
+import { type Release, ProgressIndicator } from "@ontospreaded/js-core";
 
 defineProps<{
   data: any,

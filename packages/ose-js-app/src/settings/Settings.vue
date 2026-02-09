@@ -3,7 +3,7 @@
 import CollapsibleCard from "../common/CollapsibleCard.vue";
 import {computed, ref} from "vue";
 import {alertDialog, promptDialog} from "../common/bootbox";
-import {RepositoryConfig} from "@ose/js-core";
+import {RepositoryConfig} from "@ontospreaded/js-core";
 
 declare var SETTINGS: {
   repositories: RepositoryConfig[],

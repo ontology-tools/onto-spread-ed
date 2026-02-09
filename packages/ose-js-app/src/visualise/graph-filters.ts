@@ -1,4 +1,4 @@
-import { Graph, Node, Edge } from "@ose/js-core";
+import { Graph, Node, Edge } from "@ontospreaded/js-core";
 
 export interface FilterOptions {
   curationFilter: string[];

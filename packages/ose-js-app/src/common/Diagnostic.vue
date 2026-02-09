@@ -1,8 +1,8 @@
 <script setup lang="ts">
 
-import {Diagnostic, Severity} from "@ose/js-core";
+import {Diagnostic, Severity} from "@ontospreaded/js-core";
 import {computed} from "vue";
-import {DIAGNOSTIC_DATA} from "@ose/js-core";
+import {DIAGNOSTIC_DATA} from "@ontospreaded/js-core";
 
 const props = withDefaults(defineProps<{
   diagnostic: Diagnostic,

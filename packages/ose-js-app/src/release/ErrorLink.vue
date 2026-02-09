@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 import {computed} from "vue";
-import {Diagnostic, Term} from "@ose/js-core";
+import {Diagnostic, Term} from "@ontospreaded/js-core";
 
 const props = defineProps<{
   short_repository_name: string,

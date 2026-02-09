@@ -5,17 +5,17 @@ import "tabulator-tables/dist/css/tabulator_bootstrap5.min.css";
 import { computed, h, onMounted, onUnmounted, ref, toRaw, watch, watchEffect } from 'vue';
 import { RowComponent, TabulatorFull as Tabulator } from 'tabulator-tables';
 import { columnDefFor, setRowColor } from "./tabulator-config"
-import { COLUMN_NAMES, CURATION_STATUS, isRow, Row } from "@ose/js-core";
+import { COLUMN_NAMES, CURATION_STATUS, isRow, Row } from "@ontospreaded/js-core";
 import { alertDialog, confirmDialog, promptDialog } from "../common/bootbox"
-import { Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig } from "@ose/js-core";
+import { Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig } from "@ontospreaded/js-core";
 import Diagnostic from "../common/Diagnostic.vue"
 import { BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController } from "bootstrap-vue-next"
-import { DIAGNOSTIC_DATA } from "@ose/js-core";
-import { debounce, SpreadsheetData } from "@ose/js-core";
+import { DIAGNOSTIC_DATA } from "@ontospreaded/js-core";
+import { debounce, SpreadsheetData } from "@ontospreaded/js-core";
 import Merger from "./Merger.vue";
 import { HistoryService } from "./HistoryService"
 import { getCell } from "../common/tabulator-extensions";
-import { isFocusWindowMessage, isNavigateToSheetMessage, isNavigateToTermMessage, isScrollToRowMessage } from "@ose/js-core";
+import { isFocusWindowMessage, isNavigateToSheetMessage, isNavigateToTermMessage, isScrollToRowMessage } from "@ontospreaded/js-core";
 
 declare var URLS: { [key: string]: any };
 declare var ALL_INITIALS: string[];

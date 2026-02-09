@@ -1,4 +1,4 @@
-import {AutoFixState, Diagnostic, Term, TermIdentifier} from "@ose/js-core";
+import {AutoFixState, Diagnostic, Term, TermIdentifier} from "@ontospreaded/js-core";
 import {confirmDialog, promptDialog} from "../../common/bootbox";
 
 export interface ParentGuess {

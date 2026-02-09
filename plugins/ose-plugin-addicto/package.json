@@ -12,10 +12,10 @@
   },
   "peerDependencies": {
     "vue": "^3.5.24",
-    "@ose/js-core": "*"
+    "@ontospreaded/js-core": "*"
   },
   "devDependencies": {
-    "@ose/js-core": "*",
+    "@ontospreaded/js-core": "*",
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",

@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
 import svgPanZoom from 'svg-pan-zoom';
-import { Edge } from "@ose/js-core";
+import { Edge } from "@ontospreaded/js-core";
 import { HierarchyNode } from './graph-filters';
-import { CURATION_STATUS } from "@ose/js-core";
+import { CURATION_STATUS } from "@ontospreaded/js-core";
 
 // Relation color map (matching RELATION_COLOR_MAP in visualise.py)
 export const RELATION_COLOR_MAP: Record<string, string> = {

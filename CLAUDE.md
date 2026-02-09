@@ -136,7 +136,7 @@ Plugins can provide:
 The GitHub Actions workflow (`.github/workflows/CI.yaml`) handles:
 - **PR checks**: Python linting (ruff) and TypeScript type-checking (vue-tsc)
 - **Build**: JS/CSS/Python package builds
-- **Publish**: PyPI (ose-core, ose-app, ose-cli) and npm (@ose/js-core) on release
+- **Publish**: PyPI (ose-core, ose-app, ose-cli) and npm (@ontospreaded/js-core) on release
 - **Deploy**: Automatic deployment to dev/prod environments
 
 ## Code Style

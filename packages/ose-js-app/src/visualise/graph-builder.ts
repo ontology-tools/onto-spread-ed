@@ -1,5 +1,5 @@
-import { CURATION_STATUS } from "@ose/js-core";
-import { Graph, Node, Row } from "@ose/js-core";
+import { CURATION_STATUS } from "@ontospreaded/js-core";
+import { Graph, Node, Row } from "@ontospreaded/js-core";
 
 export interface TermDataRelation {
     relation: { label: string };

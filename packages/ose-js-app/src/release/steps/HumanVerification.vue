@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {Release} from "@ose/js-core";
+import {Release} from "@ontospreaded/js-core";
 import {computed, ref} from "vue";
 
 const props = defineProps<{

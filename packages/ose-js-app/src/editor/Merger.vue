@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {MergeConflict} from "@ose/js-core";
+import {MergeConflict} from "@ontospreaded/js-core";
 import {computed, onMounted, ref, watch, watchEffect} from "vue";
 
 onMounted(() => {

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {ReleaseScript} from "@ose/js-core";
+import {ReleaseScript} from "@ontospreaded/js-core";
 import CollapsibleCard from "../common/CollapsibleCard.vue";
 
 const props = defineProps<{

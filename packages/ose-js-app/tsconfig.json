@@ -16,8 +16,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@ose/js-core": ["../ose-js-core/src"],
-      "@ose/js-core/*": ["../ose-js-core/src/*"]
+      "@ontospreaded/js-core": ["../ose-js-core/src"],
+      "@ontospreaded/js-core/*": ["../ose-js-core/src/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]

@@ -14,7 +14,7 @@ This package provides TypeScript type definitions, models, and utility functions
 ## Installation
 
 ```bash
-npm install @ose/js-core
+npm install @ontospreaded/js-core
 ```
 
 ## Requirements

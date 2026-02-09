@@ -1,6 +1,6 @@
 import {createApp} from "vue";
 import Settings from "./Settings.vue";
-import {$filters} from "@ose/js-core";
+import {$filters} from "@ontospreaded/js-core";
 
 
 const app = createApp(Settings)

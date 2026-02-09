@@ -1,4 +1,4 @@
-import {COLUMN_NAMES, CURATION_STATUS} from "@ose/js-core";
+import {COLUMN_NAMES, CURATION_STATUS} from "@ontospreaded/js-core";
 import {ColumnComponent, ColumnDefinition, MenuObject, RowComponent, Tabulator} from "tabulator-tables";
 
 

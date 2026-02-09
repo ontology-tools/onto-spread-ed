@@ -1,5 +1,5 @@
 import {ref, Ref} from "vue";
-import {ChangeRecord} from "@ose/js-core";
+import {ChangeRecord} from "@ontospreaded/js-core";
 
 export interface Updatable {
     updateData(updates: ({ id: number } & Record<string, any>)[]): unknown,

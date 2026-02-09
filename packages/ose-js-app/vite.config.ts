@@ -26,7 +26,7 @@ export default defineConfig(({mode}) => ({
   ],
   resolve: {
     alias: {
-      '@ose/js-core': resolve(__dirname, '../ose-js-core/src'),
+      '@ontospreaded/js-core': resolve(__dirname, '../ose-js-core/src'),
     },
   },
   build: {

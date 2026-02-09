@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, ref, watch, shallowRef, markRaw, type Component, h } from "vue";
-import { Diagnostic, Release, ReleaseScript } from "@ose/js-core";
+import { Diagnostic, Release, ReleaseScript } from "@ontospreaded/js-core";
 import Setup from "./Setup.vue";
 import Validation from "./steps/Validation.vue";
 import HumanVerification from "./steps/HumanVerification.vue";

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, Ref, ref, watch} from "vue";
-import {Release, ReleaseScript} from "@ose/js-core"
+import {Release, ReleaseScript} from "@ontospreaded/js-core"
 import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
 
 const showAdvanced = ref<boolean>()
