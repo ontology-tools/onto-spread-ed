@@ -140,8 +140,6 @@ class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
             self._store_artifact(self._local_name(file_name), f"{path}/{file_name}")
         
         
-        result.value = None
-        result.warnings = []
         self._set_release_result(result)
         return result.ok()
         

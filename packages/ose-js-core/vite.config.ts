@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => ({
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'ose_js_core',
       fileName: 'index',
+      formats: ['es'],
     },
     rollupOptions: {
       external: ['vue'],
