@@ -40,8 +40,13 @@ def home(config: ConfigurationService):
 @requires_permissions("view")
 def repo(repo_key, github: GitHub, config: ConfigurationService, active_branch: ActiveBranch, folder_path=""):
     repository = config.get(repo_key)
+    # get from ?branch= query parameter
+    active_branch = request.args.get('branch', repository.main_branch)
+    branches = gh.get_branches(github, repository.full_name)
+    params = {"ref": active_branch} if active_branch != repository.main_branch else {}
     directories = github.get(
-        f'repos/{repository.full_name}/contents/{folder_path}'
+        f'repos/{repository.full_name}/contents/{folder_path}',
+        params=params
     )
     dirs = []
     spreadsheets = []
@@ -58,16 +63,13 @@ def repo(repo_key, github: GitHub, config: ConfigurationService, active_branch: 
 
     breadcrumb_segments = [repo_key, *folder_path.split("/")]
 
-    # get from ?branch= query parameter
-    active_branch = request.args.get('branch', repository.main_branch)
-    branches = gh.get_branches(github, repository.full_name)
-
     return render_template('repo.html',
                            login=g.user.github_login,
                            user_initials=user_initials,
                            repo_name=repo_key,
                            branches=branches,
                            active_branch=active_branch,
+                           main_branch=repository.main_branch,
                            folder_path=folder_path,
                            breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i + 1])} for i, s in
                                        enumerate(breadcrumb_segments)],
@@ -94,11 +96,14 @@ def direct():
         repo_str = args.get("repo", None)
         sheet_str = args.get("sheet", None)
         go_to_row = args.get("go_to_row", None)
+        branch = args.get("branch", None)
 
     if any(x is None for x in [typ, repo_str, sheet_str, go_to_row]):
         return jsonify("invalid number of arguments for get"), 400
 
     url = '/edit' + '/' + repo_str + '/' + sheet_str + "?filter=" + quote_plus(json.dumps({"Label": go_to_row}))
+    if branch:
+        url += "&branch=" + quote_plus(branch)
 
     session['type'] = typ
     session['label'] = go_to_row

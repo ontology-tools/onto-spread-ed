@@ -1,4 +1,2 @@
-class ActiveBranch(str): pass
-"""
-Injector token to get the currently selected branch
-"""
+class ActiveBranch(str):
+    """Injector token to get the currently selected branch"""

@@ -2,9 +2,8 @@
 
 $primary: #123456;
 
-@import "../../node_modules/bootstrap/scss/bootstrap.scss";
-@import "../../node_modules/bootstrap/scss/variables";
-
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap/scss/variables";
 
 @import "./excel-bootstrap-table-filter-style";
 
@@ -101,6 +100,23 @@ $primary: #123456;
 
 .breadcrumb-item.active {
   font-weight: bold;
+}
+
+.branch-item {
+  display: grid !important;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 4px;
+}
+
+.branch-icon {
+  color: goldenrod;
+  text-align: center;
+  grid-column: 1;
+}
+
+.branch-name {
+  grid-column: 2;
 }
 
 nav {

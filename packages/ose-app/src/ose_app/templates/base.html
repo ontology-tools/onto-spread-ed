@@ -3,11 +3,11 @@
 
 <head>
     {% block head %}
-        <!-- Required meta tags -->
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <!-- Import map for dynamically loaded plugin modules -->
-        <script type="importmap">
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Import map for dynamically loaded plugin modules -->
+    <script type="importmap">
         {
             "imports": {
                 "vue": "{{ url_for('static', filename='js/vue-shim.js') }}",
@@ -15,144 +15,150 @@
             }
         }
         </script>
-        <!-- Optional JavaScript -->
-        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-        <script src="https://code.jquery.com/jquery-3.4.1.min.js"
-                integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"
+        integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/6.0.0/bootbox.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/6.0.0/bootbox.js"></script>
 
-        <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
-        <!-- Bootstrap CSS -->
-        <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    <!-- Bootstrap CSS -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
               integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
               crossorigin="anonymous"> -->
-        <!-- Bootstrap filter table CSS -->
-        <!-- <link rel="stylesheet" href="{{ url_for('static', filename='excel-bootstrap-table-filter-style.css') }}"> -->
+    <!-- Bootstrap filter table CSS -->
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='excel-bootstrap-table-filter-style.css') }}"> -->
 
 
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous">
 
-        <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
 
 
-        <title>{% block title %}{{ config['APP_TITLE'] }} {% endblock %}</title>
+    <title>{% block title %}{{ config['APP_TITLE'] }} {% endblock %}</title>
 
     {% endblock %}
 </head>
 
 <body>
-{% if config['ENVIRONMENT'] == 'test' %}
+    {% if config['ENVIRONMENT'] == 'test' %}
     <div class="banner"><i class="fa fa-exclamation-triangle"></i> THIS IS A TEST INSTANCE WORKING WITH (POSSIBLY
         OUTDATED) COPIES OF THE ONTOLOGIES <i class="fa fa-exclamation-triangle"></i></div>
-{% endif %}
-<nav class="navbar navbar-expand-lg p-3 env-{{ config['ENVIRONMENT'] }}"
-     data-bs-theme="dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="#">
-            {% if APP_TITLE2 is defined %}
+    {% endif %}
+    <nav class="navbar navbar-expand-lg p-3 env-{{ config['ENVIRONMENT'] }}" data-bs-theme="dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                {% if APP_TITLE2 is defined %}
                 {{ APP_TITLE2 }}
-            {% else %}
+                {% else %}
                 {{ config['APP_TITLE'] }}
-            {% endif %}
-        </a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" href="{{ url_for('main.home') }}">
-                        <i class="fa fa-home"></i> Home
-                    </a>
-                </li>
-                {% if has_any_permission("hierarchical-spreadsheets", "index", "repository-config-view") %}
+                {% endif %}
+            </a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('main.home') }}">
+                            <i class="fa fa-home"></i> Home
+                        </a>
+                    </li>
+                    {% if has_any_permission("hierarchical-spreadsheets", "index", "repository-config-view") %}
                     <li class="nav-item">
                         <a class="nav-link active" aria-current="page" href="{{ url_for('admin.dashboard') }}">
                             <i class="fa fa-gear"></i> Admin
                         </a>
                     </li>
-                {% endif %}
-            </ul>
-        </div>
+                    {% endif %}
+                </ul>
+            </div>
 
-        {% if login %}
+            {% if login %}
             <div class="dropdown">
                 <a class="btn btn-light dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                   aria-expanded="false"><i class="fas fa-user"></i> {{ login }}</a>
+                    aria-expanded="false"><i class="fas fa-user"></i> {{ login }}</a>
 
                 <ul class="dropdown-menu  dropdown-menu-end">
                     <li><a class="dropdown-item" href="{{ url_for('authentication.logout') }}">Logout</a></li>
                 </ul>
 
             </div>
-        {% endif %}
-    </div>
-</nav>
-<div class="container-fluid">
-    <div id="content">
-
-        <div class="container-fluid">
-            <nav aria-label="breadcrumb" style="margin-top: 14px">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}">Home</a></li>
-                    {% if breadcrumb is defined %}
-                        {% for segment in breadcrumb %}
-                            {% if loop.last %}
-                                <li class="breadcrumb-item active" aria-current="page">
-                                    {{ segment.name }}
-                                </li>
-                            {% else %}
-
-                                <li class="breadcrumb-item">
-                                    <a href="{{ config[URL_PREFIX] }}/{{ segment.path }}">{{ segment.name }}</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-                </ol>
-            {% if branches is defined and active_branch %}
-            <div class="dropdown">
-                <a class="btn btn-primary dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                   aria-expanded="false"><i class="fas fa-code-branch"></i> {{ active_branch }}</a>
-
-                <ul class="dropdown-menu  dropdown-menu-end">
-                    {% for branch in branches %}
-                    <li class="dropdown-item {{ 'disabled' if branch == active_branch else '' }}">
-                        <a class="dropdown-item" href="?branch={{ branch }}">{{ branch }}</a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
             {% endif %}
-            </nav>
         </div>
-        <hr/>
+    </nav>
+    <div class="container-fluid">
+        <div id="content">
 
-        {% block content %}{% endblock %}
+            <div class="container-fluid">
+                <nav aria-label="breadcrumb" style="margin-top: 14px">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('main.home') }}">Home</a></li>
+                        {% if breadcrumb is defined %}
+                        {% for segment in breadcrumb %}
+                        {% if loop.last %}
+                        <li class="breadcrumb-item active" aria-current="page">
+                            {{ segment.name }}
+                        </li>
+                        {% else %}
 
+                        <li class="breadcrumb-item">
+                            <a
+                                href="{{ config[URL_PREFIX] }}/{{ segment.path }}{% if active_branch is defined and active_branch %}?branch={{ active_branch }}{% endif %}">{{
+                                segment.name }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                        {% endif %}
+                    </ol>
+                    {% if branches is defined and active_branch %}
+                    <div class="dropdown">
+                        <a class="btn btn-primary dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false"><i class="fas fa-code-branch"></i> {{ active_branch }}</a>
+
+                        <ul class="dropdown-menu  dropdown-menu-end">
+                            {% for branch in branches %}
+                            <li>
+                                <a class="dropdown-item branch-item {{ 'active' if branch == active_branch else '' }}" href="?branch={{ branch }}"><span
+                                        class="branch-icon">{% if main_branch is defined and branch == main_branch %}<i
+                                            class="fas fa-star" title="Default branch"></i>{% endif %}</span><span
+                                        class="branch-name">{{ branch }}</span></a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </nav>
+            </div>
+            <hr />
+
+            {% block content %}{% endblock %}
+
+        </div>
+
+        {# <div id="footer">#}
+            {# {% block footer %}#}
+            {#
+            <hr />#}
+            {# <p class="text-center">#}
+                {# <a href="mailto:j.hastings@ucl.ac.uk">Contact</a>#}
+                {# </p>#}
+            {# {% endblock %}#}
+            {#
+        </div>#}
+        <div class="version-info">
+            <small>v{{ config['APP_VERSION'] }}</small>
+        </div>
     </div>
 
-{#    <div id="footer">#}
-{#        {% block footer %}#}
-{#            <hr/>#}
-{#            <p class="text-center">#}
-{#                <a href="mailto:j.hastings@ucl.ac.uk">Contact</a>#}
-{#            </p>#}
-{#        {% endblock %}#}
-{#    </div>#}
-    <div class="version-info">
-        <small>v{{ config['APP_VERSION'] }}</small>
-    </div>
-</div>
 
 
 
+    {% block javascriptblock %}
 
-{% block javascriptblock %}
-
-{% endblock %}
+    {% endblock %}
 
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous"></script>
 </body>
