@@ -6,14 +6,12 @@ import networkx as nx
 
 import openpyxl
 import pyhornedowl
-from flask_github import GitHub
-from flask_sqlalchemy import SQLAlchemy
 from typing_extensions import Self
 
+from ose.release.ReleaseContext import ReleaseContext
 from ose.release.ReleaseStep import ReleaseStep
-from ose.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
+from ose.model.ReleaseScript import ReleaseScriptFile
 from ose.model.Result import Result
-from ose.services.ConfigurationService import ConfigurationService
 
 from ose.model.ExcelOntology import ExcelOntology
 from ose.model.TermIdentifier import TermIdentifier
@@ -70,16 +68,11 @@ def form_tree(edges: List[Tuple[Tuple[str, str | None, str | None], Optional[str
 class GenerateHierarchicalSpreadsheetReleaseStep(ReleaseStep):
     def __init__(
         self,
-        db: SQLAlchemy,
-        gh: GitHub,
-        release_script: ReleaseScript,
-        release_id: int,
-        tmp: str,
-        config: ConfigurationService,
+        context: ReleaseContext,
         *,
         included_files: Dict[str, str],
     ) -> None:
-        super().__init__(db, gh, release_script, release_id, tmp, config)
+        super().__init__(context)
 
         self._included_files = included_files
 

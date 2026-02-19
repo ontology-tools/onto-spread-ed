@@ -3,16 +3,13 @@ from datetime import datetime
 from typing import List
 
 import aiohttp
-from flask_github import GitHub
-from flask_sqlalchemy import SQLAlchemy
 
 from ose.model.ExcelOntology import ExcelOntology
-from ose.model.ReleaseScript import ReleaseScript
 from ose.model.Result import Result
+from ose.release.ReleaseContext import ReleaseContext
 from ose.release.ReleaseStep import ReleaseStep
 from ose.release.common import order_sources
 from .BCIOSearchService import BCIOSearchService
-from ose.services.ConfigurationService import ConfigurationService
 
 
 class BCIOSearchReleaseStep(ReleaseStep):
@@ -22,18 +19,12 @@ class BCIOSearchReleaseStep(ReleaseStep):
     def name(cls) -> str:
         return "BCIO_SEARCH"
 
-    def __init__(
-        self,
-        db: SQLAlchemy,
-        gh: GitHub,
-        release_script: ReleaseScript,
-        release_id: int,
-        tmp: str,
-        config: ConfigurationService,
-        *,
-        included_files: List[str],
-    ):
-        super().__init__(db, gh, release_script, release_id, tmp, config)
+    @classmethod
+    def accepts_context(cls, context: ReleaseContext) -> bool:
+        return context.config_service is not None
+
+    def __init__(self, context: ReleaseContext, *, included_files: List[str]):
+        super().__init__(context)
 
         self._included_files = included_files
 
@@ -72,8 +63,11 @@ class BCIOSearchReleaseStep(ReleaseStep):
         return result.ok()
 
     async def run_service(self, ontology: ExcelOntology, externals: List[str]) -> Result[tuple]:
+        config_service = self._context.config_service
+        assert config_service is not None  # Guaranteed by accepts_context
+
         async with aiohttp.ClientSession() as session:
-            service = BCIOSearchService(self._config, session)
+            service = BCIOSearchService(config_service, session)
             return await service.update_api(
                 ontology,
                 externals,

@@ -21,6 +21,7 @@ from .MergeReleaseStep import MergeReleaseStep
 from .PreparationReleaseStep import PreparationReleaseStep
 from .ReleaseStep import ReleaseStep
 from .ValidationReleaseStep import ValidationReleaseStep
+from .WebReleaseContext import WebReleaseContext
 from .common import update_release, ReleaseCanceledException, set_release_info
 from ..database.Release import Release
 from ..model.ReleaseScript import ReleaseScript
@@ -69,13 +70,16 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
             Release.local_dir: tmp
         })
 
+        # Create a single context for all release steps
+        context = WebReleaseContext(db, gh, release_script, release_id, tmp, config)
+
         release_steps = []
         for step in release_script.steps:
             step_ctor = available_release_steps.get(step.name, None)
             if step_ctor is None:
                 raise ValueError(f"Unknown release step '{step.name}")
 
-            release_steps.append(step_ctor(db, gh, release_script, release_id, tmp, config, **step.args))
+            release_steps.append(step_ctor(context, **step.args))
 
         for i, step in enumerate(release_steps):
             if last_step <= i:
