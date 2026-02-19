@@ -1,65 +1,74 @@
 import abc
 import logging
 import os
-from datetime import datetime
-from typing import Tuple, Optional, Literal, List
+from typing import Tuple, Optional, Literal, List, TYPE_CHECKING
 
-from flask_github import GitHub
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import Query
-
-from .common import ReleaseCanceledException, fetch_assert_release, local_name, set_release_info, update_release, next_release_step, \
-    set_release_result, add_artifact, get_artifacts
-from ..database.Release import Release, ReleaseArtifact
+from .ReleaseContext import ReleaseContext
 from ..model.ExcelOntology import ExcelOntology
 from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
 from ..model.RepositoryConfiguration import RepositoryConfiguration
 from ..model.Result import Result
-from ..services.ConfigurationService import ConfigurationService
-from ..utils import download_file, github
+
+if TYPE_CHECKING:
+    from ..database.Release import ReleaseArtifact
 
 
 class ReleaseStep(abc.ABC):
+    """
+    Abstract base class for release steps.
+    
+    Release steps perform specific operations as part of the release process.
+    They use a ReleaseContext to interact with their execution environment
+    (CLI or Web), allowing the same step implementation to be used in both.
+    """
     
     _logger = logging.getLogger(__name__)
 
     @classmethod
     @abc.abstractmethod
     def name(cls) -> str:
+        """Return the unique name of this release step."""
         ...
 
-    _config: ConfigurationService
-    _working_dir: str
-    _release_id: int
-    _release_script: ReleaseScript
-    _gh: GitHub
-    _db: SQLAlchemy
-    _q: Query[Release]
-
+    _context: ReleaseContext
     _total_items: Optional[int] = None
     _current_item: int = 1
 
-    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
-                 config: ConfigurationService) -> None:
-        self._config = config
-        self._db = db
-        self._gh = gh
-        self._release_script = release_script
-        self._release_id = release_id
-        self._q = db.session.query(Release)
-        self._a = db.session.query(ReleaseArtifact)
-        self._working_dir = tmp
+    def __init__(self, context: ReleaseContext) -> None:
+        """
+        Initialize a release step with a context.
+
+        :param context: The release context providing access to files, artifacts, and progress tracking.
+        """
+        self._context = context
+
+    @classmethod
+    def accepts_context(cls, context: ReleaseContext) -> bool:
+        """
+        Check whether this step can run in the given context.
+
+        Steps that require specific context capabilities (e.g. GitHub access)
+        should override this to return False when those capabilities are missing.
+
+        :param context: The release context to check.
+        :return: True if this step can run in the given context.
+        """
+        return True
+
+    @property
+    def _release_script(self) -> ReleaseScript:
+        """Get the release script from the context."""
+        return self._context.release_script
+
+    @property
+    def _working_dir(self) -> str:
+        """Get the working directory from the context."""
+        return self._context.working_dir
 
     @property
     def _repo_config(self) -> RepositoryConfiguration:
-        """
-        Return the repository configuration for the current release script.
-    
-        :rtype: RepositoryConfiguration
-        """
-        config = self._config.get(self._release_script.full_repository_name)
-        assert config is not None, f"Repository configuration for '{self._release_script.full_repository_name}' not found."
-        return config   
+        """Return the repository configuration for the current release script."""
+        return self._context.repo_config
 
     def _update_progress(self,
                          *,
@@ -71,30 +80,23 @@ class ReleaseStep(abc.ABC):
         Update the progress of the release step.
         
         :param position: A tuple indicating the current progress (current step, total steps).
-        :type position: Optional[Tuple[int, int]]
         :param progress: A float indicating the progress percentage (0.0 to 1.0). Calculated from position if None.
-        :type progress: Optional[float]
         :param current_item: Name or description of the current item being processed.
-        :type current_item: Optional[str]
         :param message: Message to provide additional context about the progress.
-        :type message: Optional[str]
         """
-        self._set_release_info(dict(__progress=dict(
+        self._context.update_progress(
             position=position,
-            progress=progress if progress is not None else (
-                (position[0] / position[1]) if position is not None else None),
+            progress=progress,
             current_item=current_item,
-            message=message
-        )))
+            message=message,
+        )
 
     def _next_item(self, *, item: Optional[str] = None, message: Optional[str] = None):
         """
         Update the progress to the next item. Requires `self._total_items` to be set.
         
         :param item: Name or description of the current item being processed.
-        :type item: Optional[str]
         :param message: Message to provide additional context about the progress.
-        :type message: Optional[str]
         """
         position = (self._current_item, self._total_items) if self._total_items is not None else None
 
@@ -124,11 +126,10 @@ class ReleaseStep(abc.ABC):
 
     def _raise_if_canceled(self):
         """
-        Check if the release has been canceled and raise an exception if so. Should be called periodically during long-running operations.
+        Check if the release has been canceled and raise an exception if so. 
+        Should be called periodically during long-running operations.
         """
-        r: Release = fetch_assert_release(self._q, self._release_id)
-        if r.state == "canceled":
-            raise ReleaseCanceledException("Release has been canceled!")
+        self._context.raise_if_canceled()
 
     def _local_name(self, remote_name, file_ending=None) -> str:
         """
@@ -137,47 +138,53 @@ class ReleaseStep(abc.ABC):
         :param remote_name: The remote file name or path.
         :param file_ending: Optional file ending to replace.
         :return: The local file path corresponding to the remote file.
-        :rtype: str
         """
-        return local_name(self._working_dir, remote_name, file_ending)
+        return self._context.local_name(remote_name, file_ending)
 
     def _set_release_info(self, details) -> None:
-        set_release_info(self._q, self._release_id, details)
-
-    def _update_release(self, patch: dict) -> None:
-        update_release(self._q, self._release_id, patch)
+        """Update release information/metadata."""
+        self._context.set_release_info(details)
 
     def _next_release_step(self) -> None:
-        next_release_step(self._q, self._release_id)
+        """Advance to the next release step."""
+        self._context.next_release_step()
+
+    def _update_release(self, patch: dict) -> None:
+        """Update release database fields directly (web contexts only)."""
+        self._context.update_release(patch)
 
     def _set_release_result(self, result):
-        set_release_result(self._q, self._release_id, result)
+        """Set the result of the release step."""
+        self._context.set_release_result(result)
 
     def _download(self, file: str, local_name: Optional[str] = None):
-        if local_name is None:
-            local_name = self._local_name(file)
-
-        return download_file(self._gh, self._release_script.full_repository_name, file, local_name)
+        """
+        Download a file from the repository.
+        
+        :param file: The file path in the repository.
+        :param local_name: Optional local file path.
+        :return: The local file path.
+        """
+        return self._context.download(file, local_name)
 
     def _store_artifact(self, local_path: str, target_path: Optional[str] = None,
                        kind: Optional[Literal["source", "intermediate", "final"]] = None,
                        downloadable: bool = True) -> None:
-        kind = kind if kind is not None else ("intermediate" if target_path is None else "final")
-
-        artifact = ReleaseArtifact(release_id=self._release_id, local_path=local_path, target_path=target_path,
-                                   kind=kind, downloadable=downloadable)
-
-        add_artifact(self._db, artifact)
+        """Store an artifact produced by the release step."""
+        self._context.store_artifact(local_path, target_path, kind, downloadable)
 
     def _store_target_artifact(self, file: ReleaseScriptFile,
                               kind: Literal["source", "intermediate", "final"] = "final",
                               downloadable: bool = True):
-        return self._store_artifact(self._local_name(file.target.file), file.target.file, kind, downloadable)
+        """Store a target artifact based on a release script file."""
+        self._context.store_target_artifact(file, kind, downloadable)
 
-    def _artifacts(self) -> List[ReleaseArtifact]:
-        return get_artifacts(self._a, self._release_id)
+    def _artifacts(self) -> List["ReleaseArtifact"]:
+        """Get all artifacts produced by the release so far."""
+        return self._context.get_artifacts()
 
     def _load_externals_ontology(self) -> Result[ExcelOntology]:
+        """Load the externals ontology from the OWL file."""
         result = Result()
         config = self._repo_config
 
@@ -190,16 +197,5 @@ class ReleaseStep(abc.ABC):
             return result
 
     def _calculate_release_name(self) -> str:
-        release_name = f"v{datetime.utcnow().strftime('%Y-%m-%d')}"
-        last_release = github.get_latest_release(self._gh, self._release_script.full_repository_name)
-        if last_release and last_release["name"].startswith(release_name):
-            self._logger.info(f"Release {release_name} already exists.")
-
-            # Release follows format vYYYY-MM-DD[.1,2,3...]
-            # Release exists, increment the number at the end if it exists
-            if "." in last_release["name"]:
-                last_number = int(last_release["name"].split(".")[-1])
-                release_name += f".{last_number + 1}"
-            else:
-                release_name += ".1"
-        return release_name
+        """Calculate a release name based on the current date."""
+        return self._context.calculate_release_name()

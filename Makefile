@@ -43,7 +43,7 @@ install-js:
 
 ## Install Python packages in editable mode with uv
 install-python:
-	uv sync --package ose-app --extra plugins
+	uv sync --all-packages --all-groups
 
 # ============================================================================
 # Build

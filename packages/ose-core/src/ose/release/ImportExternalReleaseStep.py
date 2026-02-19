@@ -1,14 +1,10 @@
 import csv
 from typing import Tuple, List, Literal, cast
 
-from flask_github import GitHub
-from flask_sqlalchemy import SQLAlchemy
-
+from .ReleaseContext import ReleaseContext
 from .ReleaseStep import ReleaseStep
 from ..model.ExcelOntology import ExcelOntology
-from ..model.ReleaseScript import ReleaseScript
 from ..model.Result import Result
-from ..services.ConfigurationService import ConfigurationService
 from ..services.RobotOntologyBuildService import RobotOntologyBuildService
 
 
@@ -19,9 +15,8 @@ class ImportExternalReleaseStep(ReleaseStep):
     def name(cls) -> str:
         return "IMPORT_EXTERNAL"
 
-    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
-                 config: ConfigurationService, *, use_existing_file: bool = False) -> None:
-        super().__init__(db, gh, release_script, release_id, tmp, config)
+    def __init__(self, context: ReleaseContext, *, use_existing_file: bool = False) -> None:
+        super().__init__(context)
 
         self._use_existing_file = use_existing_file
 

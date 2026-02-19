@@ -17,6 +17,7 @@ dev = [
     "ruff",
     "pytest",
     "mypy",
+    "types-jsonschema>=4.26.0.20260202",
 ]
 plugins = [
     "ose-plugin-addicto",

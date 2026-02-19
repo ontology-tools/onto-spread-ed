@@ -1,13 +1,9 @@
 from datetime import datetime
 from typing import List, Optional
 
-from flask_github import GitHub
-from flask_sqlalchemy import SQLAlchemy
-
+from .ReleaseContext import ReleaseContext
 from .ReleaseStep import ReleaseStep
-from ..model.ReleaseScript import ReleaseScript
 from ..model.Result import Result
-from ..services.ConfigurationService import ConfigurationService
 from ..services.RobotOntologyBuildService import RobotOntologyBuildService
 
 
@@ -16,9 +12,8 @@ class MergeReleaseStep(ReleaseStep):
     def name(cls) -> str:
         return "MERGE"
 
-    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
-                 config: ConfigurationService, *, files: Optional[List[str]] = None) -> None:
-        super().__init__(db, gh, release_script, release_id, tmp, config)
+    def __init__(self, context: ReleaseContext, *, files: Optional[List[str]] = None) -> None:
+        super().__init__(context)
 
         if files is None:
             files = []

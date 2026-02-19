@@ -927,6 +927,7 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "types-jsonschema" },
 ]
 plugins = [
     { name = "ose-plugin-addicto" },
@@ -942,6 +943,7 @@ dev = [
     { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "types-jsonschema", specifier = ">=4.26.0.20260202" },
 ]
 plugins = [
     { name = "ose-plugin-addicto", editable = "plugins/ose-plugin-addicto" },
@@ -974,7 +976,7 @@ wheels = [
 
 [[package]]
 name = "ose-app"
-version = "0.3.1"
+version = "1.3.2"
 source = { editable = "packages/ose-app" }
 dependencies = [
     { name = "flask" },
@@ -1016,13 +1018,13 @@ dev = [{ name = "ruff", specifier = ">=0.14.13" }]
 
 [[package]]
 name = "ose-cli"
-version = "0.3.1"
+version = "1.3.2"
 source = { editable = "packages/ose-cli" }
 dependencies = [
     { name = "click" },
-    { name = "flask" },
-    { name = "flask-injector" },
+    { name = "dacite" },
     { name = "ose-core" },
+    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
@@ -1034,17 +1036,17 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.0" },
-    { name = "flask", specifier = "==2.3.3" },
-    { name = "flask-injector" },
+    { name = "dacite" },
     { name = "ose-core", editable = "packages/ose-core" },
     { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pyyaml" },
     { name = "ruff", marker = "extra == 'dev'" },
 ]
 provides-extras = ["dev"]
 
 [[package]]
 name = "ose-core"
-version = "0.3.1"
+version = "1.3.2"
 source = { editable = "packages/ose-core" }
 dependencies = [
     { name = "aiohttp" },
@@ -1100,7 +1102,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "ose-plugin-addicto"
-version = "0.3.1"
+version = "1.3.2"
 source = { editable = "plugins/ose-plugin-addicto" }
 dependencies = [
     { name = "ose-core" },
@@ -1115,7 +1117,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-bcio"
-version = "0.3.1"
+version = "1.3.2"
 source = { editable = "plugins/ose-plugin-bcio" }
 dependencies = [
     { name = "flask-sqlalchemy" },
@@ -1134,7 +1136,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-hbcp"
-version = "0.3.1"
+version = "1.3.2"
 source = { editable = "plugins/ose-plugin-hbcp" }
 dependencies = [
     { name = "ose-core" },
@@ -1145,7 +1147,7 @@ requires-dist = [{ name = "ose-core", editable = "packages/ose-core" }]
 
 [[package]]
 name = "ose-plugin-hierarchical-spreadsheets"
-version = "0.3.1"
+version = "1.3.2"
 source = { editable = "plugins/ose-plugin-hierarchical-spreadsheets" }
 dependencies = [
     { name = "networkx" },
@@ -1691,6 +1693,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/42/39/f05f0ed54d451156bbed0e23eb0516bcad7cbb9f18b3bf219c786371b3f0/sqlalchemy-2.0.45-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:cd337d3526ec5298f67d6a30bbbe4ed7e5e68862f0bf6dd21d289f8d37b7d60b", size = 3522029, upload-time = "2025-12-09T22:13:32.09Z" },
     { url = "https://files.pythonhosted.org/packages/54/0f/d15398b98b65c2bce288d5ee3f7d0a81f77ab89d9456994d5c7cc8b2a9db/sqlalchemy-2.0.45-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:9a62b446b7d86a3909abbcd1cd3cc550a832f99c2bc37c5b22e1925438b9367b", size = 3475142, upload-time = "2025-12-09T22:13:33.739Z" },
     { url = "https://files.pythonhosted.org/packages/bf/e1/3ccb13c643399d22289c6a9786c1a91e3dcbb68bce4beb44926ac2c557bf/sqlalchemy-2.0.45-py3-none-any.whl", hash = "sha256:5225a288e4c8cc2308dbdd874edad6e7d0fd38eac1e9e5f23503425c8eee20d0", size = 1936672, upload-time = "2025-12-09T21:54:52.608Z" },
+]
+
+[[package]]
+name = "types-jsonschema"
+version = "4.26.0.20260202"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "referencing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a1/07/68f63e715eb327ed2f5292e29e8be99785db0f72c7664d2c63bd4dbdc29d/types_jsonschema-4.26.0.20260202.tar.gz", hash = "sha256:29831baa4308865a9aec547a61797a06fc152b0dac8dddd531e002f32265cb07", size = 16168, upload-time = "2026-02-02T04:11:22.585Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/06/962d4f364f779d7389cd31a1bb581907b057f52f0ace2c119a8dd8409db6/types_jsonschema-4.26.0.20260202-py3-none-any.whl", hash = "sha256:41c95343abc4de9264e333a55e95dfb4d401e463856d0164eec9cb182e8746da", size = 15914, upload-time = "2026-02-02T04:11:21.61Z" },
 ]
 
 [[package]]
