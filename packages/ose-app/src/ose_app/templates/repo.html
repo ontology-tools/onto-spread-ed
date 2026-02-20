@@ -51,8 +51,9 @@
 
 {% set folder_parts = folder_path.split('/') | select | list %}
 <ul class="list-unstyled">
+    {% set branch_param = '?branch=' + active_branch if active_branch is defined and active_branch else '' %}
     <li class="p-1">
-        <a href="{{ url_for('main.repo', repo_key=repo_name) }}">
+        <a href="{{ url_for('main.repo', repo_key=repo_name) }}{{ branch_param }}">
             {%if not folder_path %}<strong>{% endif %}
             <i class="fa-solid fa-folder-open me-2" style="color: orange"></i>{{ repo_name }}
             {%if not folder_path %}</strong>{% endif %}
@@ -62,7 +63,7 @@
     {% for part in folder_parts %}
     <li style="margin-left: {{ loop.index * 20 }}px" class="p-1">
         <a
-            href="{{ url_for('main.repo', repo_key=repo_name, folder_path=(folder_parts[:loop.index0 + 1] | join('/')) ) }}"
+            href="{{ url_for('main.repo', repo_key=repo_name, folder_path=(folder_parts[:loop.index0 + 1] | join('/')) ) }}{{ branch_param }}"
             >
             {%if loop.last %}<strong>{% endif %}
             <i class="fa-solid fa-folder-open me-2" style="color: orange"></i>{{ part }}
@@ -72,7 +73,7 @@
 
     {% for dir in directories if not dir.startswith('.') and dir != 'scripts' %}
     <li style="margin-left: {{ (folder_parts | length + 1) * 20 }}px" class="p-1">
-        <a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}">
+        <a href="{{url_for('main.repo', repo_key=repo_name, folder_path= folder_path+'/'+dir)}}{{ branch_param }}">
             <i class="fa-solid fa-folder me-2" style="color: orange"></i>
             {{ dir }}
         </a>
@@ -81,7 +82,7 @@
     {% for spr in spreadsheets if not spr.startswith('.') %}
     <li style="margin-left: {{ (folder_parts | length + 1) * 20 }}px" class="p-1">
         <a
-            href="{{ url_for('edit.edit', repo_key=repo_name, path=([folder_path, spr] | reject('==', '') | join('/'))) }}">
+            href="{{ url_for('edit.edit', repo_key=repo_name, path=([folder_path, spr] | reject('==', '') | join('/'))) }}{{ branch_param }}">
             <i class="fa-regular fa-file-excel me-2" style="color: green"></i>
             {{spr }}
         </a>

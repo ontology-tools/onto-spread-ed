@@ -49,7 +49,10 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
     term_label = data["term"].get("label", None)
     term_parent = data["term"].get("parent", None)
 
-    spreadsheet_file = gh.get(f'repos/{repository.full_name}/contents/{path}')
+    branch = data.get("branch", repository.main_branch)
+
+    params = {"ref": branch} if branch != repository.main_branch else {}
+    spreadsheet_file = gh.get(f'repos/{repository.full_name}/contents/{path}', params=params)
     base64_bytes = spreadsheet_file['content'].encode('utf-8')
     decoded_data = base64.decodebytes(base64_bytes)
     wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
@@ -88,8 +91,6 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
         return jsonify({"msg": f"No such term with id '{id}'"}), 404
 
     if len(changed) > 0:
-        branch = repository.main_branch
-
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
         msg = f"Updating {path.split('/')[-1]}\n\n" + "\n".join([f"Set {f} to '{v}' for {id}" for f, v in changed])
@@ -112,8 +113,9 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
     folder = next(path_parts, "")
 
     repository = config.get(repo)
+    branch = request.args.get("branch", None)
     try:
-        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_name, path)
+        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_name, path, branch=branch)
 
         suggestions = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
 

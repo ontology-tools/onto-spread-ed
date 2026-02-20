@@ -1,8 +1,33 @@
 @use "sass:color";
 
+$primary: #123456;
+
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap/scss/variables";
+
+@import "./excel-bootstrap-table-filter-style";
+
+.navbar {
+  background-color: fuchsia;
+
+  &.env-production {
+    background-color: #123456;
+  }
+
+  &.env-development {
+    background-color: #48ff00;
+  }
+
+  &.env-test {
+    background-color: #ff4800;
+  }
+}
+
 :root {
   --bs-callout-link: 10, 88, 202;
   --bs-callout-code-color: #ab296a;
+
+  --bs-primary: #123456;
 }
 
 .callout-success {
@@ -75,6 +100,32 @@
 
 .breadcrumb-item.active {
   font-weight: bold;
+}
+
+.branch-item {
+  display: grid !important;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 4px;
+}
+
+.branch-icon {
+  color: goldenrod;
+  text-align: center;
+  grid-column: 1;
+}
+
+.branch-name {
+  grid-column: 2;
+}
+
+nav {
+  display: flex;
+  align-items: baseline;
+
+  .breadcrumb {
+    flex-grow: 1;
+  }
 }
 
 /* HTML: <div class="loader"></div> */

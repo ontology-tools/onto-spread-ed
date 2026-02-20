@@ -16,6 +16,7 @@ from ..SpreadsheetSearcher import SpreadsheetSearcher
 from ..guards.with_permission import requires_permissions
 from ose.services.ConfigurationService import ConfigurationService
 from ose.utils.github import get_spreadsheet, get_csv, create_branch
+import ose.utils.github as gh
 
 bp = Blueprint("edit", __name__, template_folder="../templates")
 
@@ -39,7 +40,9 @@ def edit(repo_key: str, path: str, github: GitHub, config: ConfigurationService)
         type = session.get('type')
         session.pop('type', None)
     repository = config.get(repo_key)
-    (file_sha, rows, header) = get_spreadsheet(github, repository.full_name, path)
+    active_branch = request.args.get('branch', repository.main_branch)
+    branches = gh.get_branches(github, repository.full_name)
+    (file_sha, rows, header) = get_spreadsheet(github, repository.full_name, path, branch=active_branch)
     if g.user.github_login in config.app_config['USERS']:
         user_initials = config.app_config['USERS'][g.user.github_login]["initials"]
     else:
@@ -58,6 +61,9 @@ def edit(repo_key: str, path: str, github: GitHub, config: ConfigurationService)
                            repository_config=repository,
                            folder=folder,
                            spreadsheet_name=spreadsheet,
+                           branches=branches,
+                           active_branch=active_branch,
+                           main_branch=repository.main_branch,
                            breadcrumb=[{"name": s, "path": "repo/" + "/".join(breadcrumb_segments[:i + 1])} for i, s in
                                        enumerate(breadcrumb_segments)],
 
@@ -75,8 +81,10 @@ def download_spreadsheet(github: GitHub, config: ConfigurationService):
     repo_key = request.form.get("repo_key")
     folder = request.form.get("folder")
     spreadsheet = request.form.get("spreadsheet")
+    branch = request.form.get("branch", None)
     repository = config.get(repo_key)
-    url = github.get(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}")
+    params = {"ref": branch} if branch else {}
+    url = github.get(f"repos/{repository.full_name}/contents/{folder}/{spreadsheet}", params=params)
     download_url = url['download_url']
     current_app.logger.debug(f"Downloading spreadsheet from {download_url}")
     return (json.dumps({"message": "Success",
@@ -96,6 +104,7 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
     commit_msg_extra = saveData.get("commit_msg_extra")
     header = saveData.get("header")
     merge_strategy = saveData.get("merge_strategy", None)
+    target_branch = saveData.get("branch", None)
 
     initial_data_parsed = json.loads(initial_data) if initial_data else []
     row_data = json.loads(row_data)
@@ -104,19 +113,19 @@ def save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSer
     initial_data = sorted(initial_data_parsed, key=lambda k: k.get('Label', None) or "")
 
     return _save(searcher, github, config, repo_key, path, row_data, initial_data, file_sha_original,
-                 commit_msg, commit_msg_extra, header, merge_strategy)
+                 commit_msg, commit_msg_extra, header, merge_strategy, target_branch=target_branch)
 
 
 def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService, repo_key: str, path: str,
           row_data_parsed, initial_data_parsed, file_sha_original: str, commit_msg: str,
           commit_msg_extra: str,
-          header, merge_strategy: str):
+          header, merge_strategy: str, target_branch: str = None):
     overwrite = merge_strategy is not None
 
     id_suffix = ""
 
     repository = config.get(repo_key)
-    default_branch = repository.main_branch
+    default_branch = target_branch or repository.main_branch
 
     if path in repository.readonly_files:
         return jsonify({
@@ -126,7 +135,7 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
 
     try:
         if merge_strategy == "theirs":
-            (sha, rows, header) = get_spreadsheet(github, repository.full_name, path)
+            (sha, rows, header) = get_spreadsheet(github, repository.full_name, path, branch=default_branch)
             return jsonify({
                 "success": True,
                 "new_rows": rows,
@@ -230,7 +239,7 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
         current_app.logger.debug("About to get latest version of the spreadsheet file %s",
                                  f"repos/{repository.full_name}/contents/{path}")
         # Get the sha for the file
-        (file_sha_theirs, new_rows, new_header) = get_spreadsheet(github, repository.full_name, path)
+        (file_sha_theirs, new_rows, new_header) = get_spreadsheet(github, repository.full_name, path, branch=default_branch)
 
         # Commit changes to branch (replace code with sheet)
         data = {"message": commit_msg, "content": base64_string, "branch": branch, "sha": file_sha_theirs}
@@ -292,7 +301,8 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
                 })
             else:
                 return _save(searcher, github, config, repo_key, path, merged_data, initial_data_parsed,
-                             file_sha_original, commit_msg, commit_msg_extra, header, "automatic")
+                             file_sha_original, commit_msg, commit_msg_extra, header, "automatic",
+                             target_branch=target_branch)
 
             # return (
             #     json.dumps({
@@ -333,7 +343,7 @@ def _save(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationSe
         thread.start()  # Start the execution
 
         # Get the sha AGAIN for the file
-        (saved_sha, saved_rows, saved_header) = get_spreadsheet(github, repository.full_name, path)
+        (saved_sha, saved_rows, saved_header) = get_spreadsheet(github, repository.full_name, path, branch=default_branch)
         github.get(f"repos/{repository.full_name}/contents/{path}")
         return jsonify({
             "success": True,
@@ -361,9 +371,12 @@ def checkForUpdates(github: GitHub, config: ConfigurationService):
         folder = request.form.get("folder")
         spreadsheet = request.form.get("spreadsheet")
         old_sha = request.form.get("file_sha")
+        branch = request.form.get("branch", None)
         repository = config.get(repo_key)
+        params = {"ref": branch} if branch else {}
         spreadsheet_file = github.get(
-            f'repos/{repository.full_name}/contents/{folder}/{spreadsheet}'
+            f'repos/{repository.full_name}/contents/{folder}/{spreadsheet}',
+            params=params
         )
         file_sha = spreadsheet_file['sha']
         if old_sha == file_sha:

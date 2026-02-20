@@ -16,9 +16,12 @@ _logger = logging.getLogger(__name__)
 def get_csv(github: GitHub,
             repository_name: str,
             folder: str,
-            spreadsheet_name: str) -> Tuple[str, List[List[str]], List[str]]:
+            spreadsheet_name: str,
+            branch: Optional[str] = None) -> Tuple[str, List[List[str]], List[str]]:
+    params = {"ref": branch} if branch else {}
     csv_file = github.get(
-        f'repos/{repository_name}/contents/{folder}/{spreadsheet_name}'
+        f'repos/{repository_name}/contents/{folder}/{spreadsheet_name}',
+        params=params
     )
     file_sha = csv_file['sha']
     csv_content = csv_file['content']
@@ -33,19 +36,21 @@ def get_csv(github: GitHub,
     return file_sha, rows, header
 
 
-def download_file(github: GitHub, repository_name: str, spreadsheet: str, outpath: str):
-    content = get_file(github, repository_name, spreadsheet)
+def download_file(github: GitHub, repository_name: str, spreadsheet: str, outpath: str, branch: Optional[str] = None):
+    content = get_file(github, repository_name, spreadsheet, branch=branch)
 
     with open(outpath, "wb") as f:
         f.write(content)
 
 
-def get_file(github: GitHub, repository_name: str, spreadsheet: str) -> bytes:
+def get_file(github: GitHub, repository_name: str, spreadsheet: str, branch: Optional[str] = None) -> bytes:
+    params = {"ref": branch} if branch else {}
     response = github.get(
         f'repos/{repository_name}/contents/{spreadsheet}',
         headers={
             "Accept": "application/vnd.github.raw+json"
-        }
+        },
+        params=params
     )
     return response.content
 
@@ -70,9 +75,12 @@ def parse_spreadsheet(data: bytes) -> Tuple[List[Dict[str, str]], List[str]]:
 
 def get_spreadsheet(github: GitHub,
                     repository_name: str,
-                    path: str) -> Tuple[str, List[Dict[str, str]], List[str]]:
+                    path: str,
+                    branch: Optional[str] = None) -> Tuple[str, List[Dict[str, str]], List[str]]:
+    params = {"ref": branch} if branch else {}
     spreadsheet_file = github.get(
-        f'repos/{repository_name}/contents/{path}'
+        f'repos/{repository_name}/contents/{path}',
+        params=params
     )
     file_sha = spreadsheet_file['sha']
     base64_bytes = spreadsheet_file['content'].encode('utf-8')
@@ -174,3 +182,7 @@ def create_release(gh: GitHub, full_repository_name: str, tag_name: str, branch:
     )
 
     gh.post(f"repos/{full_repository_name}/releases", data=data)
+
+def get_branches(gh: GitHub, full_repository_name: str) -> list[str]:
+    branches = gh.get(f"repos/{full_repository_name}/branches")
+    return [b["name"] for b in branches]

@@ -12,7 +12,7 @@
     "build:js-core": "npm -w @ontospreaded/js-core run build",
     "build:shims": "node scripts/generate-shims.mjs",
     "build:js-app": "npm -w @ontospreaded/js-app run build",
-    "build:css": "npx sass -s compressed --no-source-map packages/ose-app/src/ose_app/static/main.scss:packages/ose-app/src/ose_app/static/main.css",
+    "build:css": "npx sass -s compressed --no-source-map --load-path=node_modules packages/ose-app/src/ose_app/static/main.scss:packages/ose-app/src/ose_app/static/main.css",
     "dev": "npm -w @ontospreaded/js-app run dev",
     "clean": "npm -w @ontospreaded/js-core run clean && npm -w @ontospreaded/js-app run clean"
   },

@@ -41,9 +41,10 @@ const repo = path.substring(0, path.indexOf("/"));
 const filePath = decodeURIComponent(path.substring(path.indexOf("/") + 1));
 const fileName = decodeURIComponent(filePath.split('/').at(-1)!)
 const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
-const downloadPath = computed(() => `https://raw.githubusercontent.com/${REPOSITORY_CONFIG?.full_name}/${REPOSITORY_CONFIG?.main_branch}/${filePath}`)
-
 const urlParams = new URLSearchParams(window.location.search);
+const activeBranch = urlParams.get("branch") ?? REPOSITORY_CONFIG?.main_branch;
+const downloadPath = computed(() => `https://raw.githubusercontent.com/${REPOSITORY_CONFIG?.full_name}/${activeBranch}/${filePath}`)
+
 const navigateToRow = urlParams.has("row") ? Number.parseInt(urlParams.get("row") ?? "0") - 2 : null;
 const urlFilter = JSON.parse(urlParams.get("filter") ?? "null") as Record<string, string> | null
 
@@ -524,7 +525,8 @@ const onError = (message: string) => alertDialog({
 
 async function loadData() {
   try {
-    const response = await (await fetch(`${URL_PREFIX}/api/edit/get/${repo}/${filePath}`)).json()
+    const branchParam = activeBranch ? `?branch=${encodeURIComponent(activeBranch)}` : '';
+    const response = await (await fetch(`${URL_PREFIX}/api/edit/get/${repo}/${filePath}${branchParam}`)).json()
 
     if (!response.success) {
       await onError(response.error)
@@ -576,7 +578,7 @@ async function checkForUpdates(state: any) {
       "Content-TYpe": "application/x-www-form-urlencoded",
       "Accept": "application/json",
     },
-    body: `repo_key=${repo}&folder=${fileFolder}&spreadsheet=${fileName}&file_sha=${spreadsheetData.value?.file_sha}`,
+    body: `repo_key=${repo}&folder=${fileFolder}&spreadsheet=${fileName}&file_sha=${spreadsheetData.value?.file_sha}&branch=${encodeURIComponent(activeBranch)}`,
   });
 
   const result = await response.json();
@@ -797,6 +799,7 @@ async function submitChanges(commitMessage: string, details: string, merge_strat
       header: tabulator.value?.getColumns()?.map(c => c.getField())?.slice(1),
       commit_msg: commitMessage,
       commit_msg_extra: details,
+      branch: activeBranch,
     }
 
     if (merge_strategy === undefined) {

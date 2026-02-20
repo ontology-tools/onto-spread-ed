@@ -133,7 +133,8 @@ def import_term(repo: str, gh: GitHub, config: ConfigurationService):
         prefixes=[tuple(x.split(":")) for x in import_prefix] if import_prefix is not None else []
     )
 
-    if update_imports(repo, repository.full_name, gh, [ontology_import], repository.main_branch):
+    target_branch = data.get("branch", repository.main_branch)
+    if update_imports(repo, repository.full_name, gh, [ontology_import], target_branch):
         return Response(status=201)
     else:
         return Response(status=200)
