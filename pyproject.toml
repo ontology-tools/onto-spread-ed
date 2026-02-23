@@ -20,6 +20,7 @@ dev = [
 ]
 plugins = [
     "ose-plugin-addicto",
+    "ose-plugin-annotation-sheets",
     "ose-plugin-bcio",
     "ose-plugin-hierarchical-spreadsheets",
     "ose-plugin-hbcp",
@@ -44,6 +45,7 @@ packages = []
 [tool.uv.sources]
 ose-core = { workspace = true }
 ose-plugin-addicto = { workspace = true }
+ose-plugin-annotation-sheets = { workspace = true }
 ose-plugin-bcio = { workspace = true }
 ose-plugin-hierarchical-spreadsheets = { workspace = true }
 ose-plugin-hbcp = { workspace = true }

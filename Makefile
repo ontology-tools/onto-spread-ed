@@ -18,7 +18,7 @@ PYTHON_PACKAGES := $(shell find packages -maxdepth 2 -name "pyproject.toml" -exe
 PYTHON_PLUGINS := $(shell find plugins -maxdepth 2 -name "pyproject.toml" -exec dirname {} \;)
 
 RELEASE_PYTHON_PACKAGES := $(PYTHON_PACKAGES)
-RELEASE_PYTHON_PLUGINS := ose-plugin-hierarchical-spreadsheets
+RELEASE_PYTHON_PLUGINS := ose-plugin-hierarchical-spreadsheets ose-plugin-annotation-sheets
 
 # Find all JS packages (directories with package.json, excluding node_modules)
 JS_PACKAGES := $(shell find packages -maxdepth 2 -name "package.json" ! -path "*/node_modules/*" -exec dirname {} \;)
@@ -182,6 +182,7 @@ build-prod: clean build
 		-o -name "ose_cli*" \
 		-o -name "ose_core*" \
 		-o -name "ose_plugin_hierarchical_spreadsheets*" \
+		-o -name "ose_plugin_annotation_sheets*" \
 	\) -exec rm -rf {} + 
 
 # ============================================================================

@@ -2,19 +2,7 @@
   "$schema": "http://json-schema.org/draft-06/schema#",
   "definitions": {
     "release-step-name": {
-      "type": "string",
-      "enum": [
-        "GITHUB_PUBLISH",
-        "HUMAN_VERIFICATION",
-        "IMPORT_EXTERNAL",
-        "BUILD",
-        "MERGE",
-        "PREPARATION",
-        "VALIDATION",
-        "BCIO_SEARCH",
-        "ADDICTO_VOCAB",
-        "HIERARCHICAL_SPREADSHEETS"
-      ]
+      "type": "string"
     },
     "file": {
       "type": "object",

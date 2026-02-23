@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ose-plugin-annotation-sheets"
+version = "1.3.2"
+description = "OntoSpreadEd plugin for generating annotation sheet templates"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "networkx>=3.6.1",
+    "ose-core==1.3.2",
+    "scipy>=1.17.0",
+]
+
+[project.entry-points.'ose.plugins']
+annotation_sheets = "ose_plugin_annotation_sheets:AnnotationSheetsPlugin"
+
+[tool.uv.sources]
+ose-core = { workspace = true }
+
+[tool.setuptools.packages.find]
+where = ["src"]
