@@ -1,6 +1,6 @@
 from typing import Optional
 
-from flask import Blueprint, render_template, g, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, g, request, jsonify, redirect, url_for, current_app
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import NotFound
 
@@ -106,3 +106,28 @@ def settings(config: ConfigurationService):
                            config=config.app_config,
                            config_service=config,
                            breadcrumb=[{"name": "Admin", "path": "/admin/settings"}])
+
+
+@bp.route("/test-release")
+@requires_permissions("release")
+def test_release():
+    if not current_app.debug:
+        raise NotFound()
+
+    from .api.test_release import SCENARIOS
+    scenarios = {
+        k: {
+            "title": v["title"],
+            "description": v["description"],
+            "state_badge": v["builder"]()["state"],
+        }
+        for k, v in SCENARIOS.items()
+    }
+
+    return render_template("test_release.html",
+                           login=g.user.github_login,
+                           scenarios=scenarios,
+                           breadcrumb=[
+                               dict(name="Admin", path="admin/dashboard"),
+                               dict(name="Test Release States", path="admin/test-release"),
+                           ])

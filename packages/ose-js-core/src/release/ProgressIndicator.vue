@@ -14,7 +14,7 @@ const props = defineProps<{
       message?: string
     }
   }
-  state?: "running" | "completed" | "canceled" | "errored" | "waiting-for-user" | "pending"
+  state?: "running" | "starting" | "completed" | "canceled" | "errored" | "waiting-for-user" | "pending"
 }>()
 
 const percent = computed(() => Math.round((props.details?.__progress?.progress ?? 0) * 100))
@@ -33,12 +33,12 @@ const percent = computed(() => Math.round((props.details?.__progress?.progress ?
     </p>
     <div class="progress" role="progressbar">
       <div class="progress-bar"
-        :class="{ 'progress-bar-animated': state == 'running', 'progress-bar-striped': state == 'running', 'bg-success': state == 'completed', 'bg-danger': state == 'canceled' || state == 'errored', }"
+        :class="{ 'progress-bar-animated': state == 'running' || state == 'starting', 'progress-bar-striped': state == 'running' || state == 'starting', 'bg-success': state == 'completed', 'bg-danger': state == 'canceled' || state == 'errored', }"
         :style="{ width: `${percent}%` }">{{ percent }}%
       </div>
     </div>
   </template>
-  <div v-else-if="state == 'running'" class="d-flex justify-content-center mt-5">
+  <div v-else-if="state == 'running' || state == 'starting'" class="d-flex justify-content-center mt-5">
     <div class="spinner-border text-primary" role="status" style="width: 5rem; height: 5rem">
       <span class="visually-hidden">Waiting...</span>
     </div>

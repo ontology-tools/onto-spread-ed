@@ -31,7 +31,7 @@ export interface ReleaseScript {
 
 export interface Release<D = Date> {
     id: number
-    state: "running" | "completed" | "canceled" | "errored" | "waiting-for-user"
+    state: "starting" | "running" | "completed" | "canceled" | "errored" | "waiting-for-user"
     running: boolean
     step: number
     details: { [k: string]: any }

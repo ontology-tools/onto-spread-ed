@@ -12,6 +12,7 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/ose-plugin-bcio-js/index.ts'),
       name: 'ose_plugin_bcio',
       fileName: 'ose-plugin-bcio',
+      formats: ['es'],
     },
     rollupOptions: {
       external: ['vue', '@ontospreaded/js-core'],

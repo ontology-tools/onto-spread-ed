@@ -12,6 +12,7 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/ose-plugin-addicto-js/index.ts'),
       name: 'ose_plugin_addicto',
       fileName: 'ose-plugin-addicto',
+      formats: ['es'],
     },
     rollupOptions: {
       external: ['vue', '@ontospreaded/js-core'],

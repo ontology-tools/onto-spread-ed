@@ -170,7 +170,7 @@ class APIService[T: APIClient](abc.ABC):
                 try:
                     await self._api_client.update_term(term, revision_message)
                 except HttpError as e:
-                    result.error(type="http-error", details=e.message, response=e.response)
+                    result.error(type="http-error", term=f"{term.label} ({term.id})", status_code=e.status_code, details=e.message, response=e.response)
 
         tasks = [work_queue(term) for term in queue]
         await asyncio.gather(*tasks)
