@@ -12,7 +12,7 @@ from .GenerateAnnotationSheetsReleaseStep import GenerateAnnotationSheetsRelease
 AnnotationSheetsPlugin = Plugin(
     id="org.bssofoundry.annotationsheets",
     name="Annotation Sheets Plugin",
-    version="0.1.0",
+    version=__version__,
     description="Plugin to generate annotation sheet templates during release.",
     contents=[
         GenerateAnnotationSheetsReleaseStep,

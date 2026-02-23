@@ -52,8 +52,10 @@ def build_hierarchy(
     ]
     child_parent: list[tuple[tuple[str, Optional[str], Optional[str]], Optional[str]]] = []
     for c in classes:
-        for p in ontology.get_superclasses(c[0]):
-            child_parent.append((c, p))
+        superclasses = list(ontology.get_superclasses(c[0]))
+        if superclasses:
+            for p in superclasses:
+                child_parent.append((c, p))
         else:
             child_parent.append((c, None))
 

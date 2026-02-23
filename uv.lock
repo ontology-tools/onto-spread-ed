@@ -1142,15 +1142,15 @@ version = "1.3.2"
 source = { editable = "plugins/ose-plugin-annotation-sheets" }
 dependencies = [
     { name = "networkx" },
+    { name = "openpyxl" },
     { name = "ose-core" },
-    { name = "scipy" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "networkx", specifier = ">=3.6.1" },
+    { name = "openpyxl", specifier = ">=3.1.0" },
     { name = "ose-core", editable = "packages/ose-core" },
-    { name = "scipy", specifier = ">=1.17.0" },
 ]
 
 [[package]]
