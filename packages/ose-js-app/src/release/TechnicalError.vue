@@ -6,11 +6,7 @@ const props = defineProps<{
   details: {
     [key: string]: any,
     errors: {
-      command: string,
-      code: number,
-      out: string,
-      err: string
-
+      [key: string]: any,
     }[]
   }
 }>()
@@ -34,6 +30,16 @@ const props = defineProps<{
         <pre>{{ error.out }}</pre>
         <h6>Standard error</h6>
         <pre>{{ error.err }}</pre>
+      </template>
+      <template v-else-if="error.type === 'http-error'">
+        <h6 v-if="error.term">Term: {{ error.term }}</h6>
+        <p class="mb-1"><strong>HTTP {{ error.status_code }}:</strong> {{ error.response?.['hydra:title'] ?? 'Request failed' }}</p>
+        <p v-if="error.response?.['hydra:description']" class="mb-1">{{ error.response['hydra:description'] }}</p>
+        <ul v-if="error.response?.violations?.length" class="mb-0">
+          <li v-for="v in error.response.violations">
+            <strong>{{ v.propertyPath }}</strong>: {{ v.message }}
+          </li>
+        </ul>
       </template>
       <template v-else>
         <pre>{{ JSON.stringify(error, undefined, 2) }}</pre>

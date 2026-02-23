@@ -148,6 +148,13 @@ async function poll(withLoading: boolean = false) {
   } finally {
     loading.value = false;
   }
+
+  if (release.value && ['completed', 'canceled'].includes(release.value.state)) {
+    if (pollInterval !== null) {
+      clearInterval(pollInterval)
+      pollInterval = null
+    }
+  }
 }
 
 onMounted(async () => {
@@ -172,8 +179,8 @@ function startPolling() {
   }
 }
 
-const stopWaitingForReleaseStart = watch(release, (value, oldValue) => {
-  if (oldValue === null && value !== null && pollInterval === null && value.state === "running") {
+const stopWaitingForReleaseStart = watch(release, (value) => {
+  if (value !== null && pollInterval === null && !['completed', 'canceled'].includes(value.state)) {
     stopWaitingForReleaseStart()
     startPolling()
   }

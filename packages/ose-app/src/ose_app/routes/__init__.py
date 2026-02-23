@@ -22,3 +22,7 @@ def init_app(app: Flask):
 
     for bp in api_blueprints:
         app.register_blueprint(bp)
+
+    if app.debug:
+        from .api.test_release import bp as test_release
+        app.register_blueprint(test_release)

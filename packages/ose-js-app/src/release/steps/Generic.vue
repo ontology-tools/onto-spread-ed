@@ -69,7 +69,7 @@ const stepNumber = computed(() => props.release.release_script.steps.findIndex(s
       <i class="fa fa-check-double"></i>
     </div>
     </p>
-    <p v-else-if="release.state === 'running'">
+    <p v-else-if="release.state === 'running' || release.state === 'starting'">
       {{ running_text }}
     </p>
     <p v-else>

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ config['APP_TITLE'] }} - Test Release States{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        .scenario-card {
+            cursor: pointer;
+            transition: box-shadow 0.15s;
+            border-width: 2px 2px 4px 2px;
+            height: 100%;
+            text-decoration: none;
+        }
+        .scenario-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        }
+        .scenario-card .badge {
+            font-size: 0.7rem;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+    <div style="max-width: 1080px; margin: 0 auto">
+        <div class="d-flex align-items-center mb-4">
+            <h2 class="mb-0">Test Release States</h2>
+            <span class="badge bg-warning text-dark ms-2">Debug only</span>
+            <span class="flex-fill"></span>
+            <button class="btn btn-outline-danger" id="btn-cleanup" onclick="cleanup()">
+                <i class="fa fa-trash"></i> Clean up test releases
+            </button>
+        </div>
+        <p class="text-muted">
+            Click a scenario to create a test release in that state and view it.
+        </p>
+
+        <div class="row g-3">
+            {% for id, scenario in scenarios.items() %}
+            <div class="col-sm-6 col-md-4">
+                <div class="card bg-light scenario-card" onclick="createScenario('{{ id }}')">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            {% if scenario.state_badge == 'starting' %}
+                                <span class="badge bg-secondary">starting</span>
+                            {% elif scenario.state_badge == 'running' %}
+                                <span class="badge bg-primary">running</span>
+                            {% elif scenario.state_badge == 'waiting-for-user' %}
+                                <span class="badge bg-warning text-dark">waiting</span>
+                            {% elif scenario.state_badge == 'errored' %}
+                                <span class="badge bg-danger">errored</span>
+                            {% elif scenario.state_badge == 'completed' %}
+                                <span class="badge bg-success">completed</span>
+                            {% elif scenario.state_badge == 'canceled' %}
+                                <span class="badge bg-dark">canceled</span>
+                            {% endif %}
+                            {{ scenario.title }}
+                        </h5>
+                        <p class="card-text text-muted mb-0">{{ scenario.description }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="status-message" class="mt-3" style="display:none"></div>
+    </div>
+
+    <script>
+        async function createScenario(id) {
+            const msg = document.getElementById('status-message');
+            msg.style.display = 'block';
+            msg.className = 'mt-3 alert alert-info';
+            msg.textContent = 'Creating test release...';
+
+            try {
+                const response = await fetch('{{ url_for("api_test_release.create_scenario", scenario="__PLACEHOLDER__") }}'.replace('__PLACEHOLDER__', id), {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (response.ok && data.id) {
+                    window.location.href = '{{ url_for("admin.release") }}' + '/' + data.id;
+                } else {
+                    msg.className = 'mt-3 alert alert-danger';
+                    msg.textContent = 'Error: ' + (data.error || 'Unknown error');
+                }
+            } catch (e) {
+                msg.className = 'mt-3 alert alert-danger';
+                msg.textContent = 'Request failed: ' + e.message;
+            }
+        }
+
+        async function cleanup() {
+            const msg = document.getElementById('status-message');
+            msg.style.display = 'block';
+            msg.className = 'mt-3 alert alert-info';
+            msg.textContent = 'Cleaning up...';
+
+            try {
+                const response = await fetch('{{ url_for("api_test_release.cleanup") }}', {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    msg.className = 'mt-3 alert alert-success';
+                    msg.textContent = 'Deleted ' + data.deleted + ' test release(s).';
+                } else {
+                    msg.className = 'mt-3 alert alert-danger';
+                    msg.textContent = 'Error: ' + (data.error || 'Unknown error');
+                }
+            } catch (e) {
+                msg.className = 'mt-3 alert alert-danger';
+                msg.textContent = 'Request failed: ' + e.message;
+            }
+        }
+    </script>
+{% endblock %}
