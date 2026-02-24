@@ -16,7 +16,7 @@ interface RowAccumulator {
     deletedFields?: Record<string, string>;
 }
 
-function truncate(value: string, maxLen: number = 30): string {
+function truncate(value: string | null | undefined, maxLen: number = 30): string {
     const clean = (value ?? "").replace(/\n/g, " ").trim();
     if (clean.length <= maxLen) return clean;
     return clean.substring(0, maxLen) + "...";
@@ -28,8 +28,8 @@ function rowLabel(
     rowLookup: (rowId: number) => Record<string, any> | undefined
 ): string {
     const data = rowLookup(rowId) ?? fields ?? {};
-    const label = data[COLUMN_NAMES.LABEL] || data["Label"] || null;
-    const id = data[COLUMN_NAMES.ID] || data["ID"] || null;
+    const label = data[COLUMN_NAMES.LABEL] || null;
+    const id = data[COLUMN_NAMES.ID] || null;
     if (label && id) return `${label} (${id})`;
     if (label) return label;
     if (id) return id;
@@ -42,8 +42,8 @@ function rowLabelShort(
     rowLookup: (rowId: number) => Record<string, any> | undefined
 ): string {
     const data = rowLookup(rowId) ?? fields ?? {};
-    return data[COLUMN_NAMES.LABEL] || data["Label"]
-        || data[COLUMN_NAMES.ID] || data["ID"]
+    return data[COLUMN_NAMES.LABEL]
+        || data[COLUMN_NAMES.ID]
         || `Row ${rowId}`;
 }
 
@@ -95,23 +95,25 @@ export function squashChanges(history: ChangeRecord[]): ChangeRecord[] {
                 });
             }
         } else if (record.type === "change") {
+            const oldFiltered = filterInternalFields(record.oldFields);
+            const newFiltered = filterInternalFields(record.newFields);
             if (existing) {
-                for (const [k, v] of Object.entries(record.oldFields)) {
+                for (const [k, v] of Object.entries(oldFiltered)) {
                     if (!(k in existing.originalFields) && existing.firstAction !== "add") {
                         existing.originalFields[k] = v ?? "";
                     }
                 }
-                for (const [k, v] of Object.entries(record.newFields)) {
+                for (const [k, v] of Object.entries(newFiltered)) {
                     existing.currentFields[k] = v ?? "";
                 }
                 existing.lastAction = "change";
             } else {
                 const origFields: Record<string, string> = {};
-                for (const [k, v] of Object.entries(record.oldFields)) {
+                for (const [k, v] of Object.entries(oldFiltered)) {
                     origFields[k] = v ?? "";
                 }
                 const currFields: Record<string, string> = {};
-                for (const [k, v] of Object.entries(record.newFields)) {
+                for (const [k, v] of Object.entries(newFiltered)) {
                     currFields[k] = v ?? "";
                 }
 
@@ -183,7 +185,7 @@ export function generateCommitMessage(
     const changes = squashChanges(history);
 
     if (changes.length === 0) {
-        return {title: `Updating ${fileName}`, description: ""};
+        return {title: `Update ${fileName}`, description: ""};
     }
 
     const updates = changes.filter((c): c is UpdateChangeRecord => c.type === "change");

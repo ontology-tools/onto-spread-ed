@@ -781,10 +781,9 @@ async function saveChanges() {
 }
 
 function prepareSaveDialog() {
-  const lookup = (rowId: number): Record<string, any> | undefined => {
-    const allData = tabulator.value?.getData() as Record<string, any>[] | undefined;
-    return allData?.find(r => r.id === rowId);
-  };
+  const allData = tabulator.value?.getData() as Record<string, any>[] | undefined;
+  const dataMap = new Map(allData?.map(r => [r.id as number, r]) ?? []);
+  const lookup = (rowId: number): Record<string, any> | undefined => dataMap.get(rowId);
 
   const result = generateCommitMessage(fileName, historyService.history, lookup);
   submitCommitMessage.value = result.title;
