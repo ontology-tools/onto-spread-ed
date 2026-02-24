@@ -17,6 +17,7 @@ export * from './constants';
 export * from './debounce';
 export * from './filter';
 export * from './messages';
+export * from './commit-message';
 
 // Components
 export { ProgressIndicator };

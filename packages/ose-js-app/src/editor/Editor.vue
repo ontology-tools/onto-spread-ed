@@ -11,7 +11,7 @@ import { Diagnostic as DiagnosticM, MergeConflict, RepositoryConfig } from "@ont
 import Diagnostic from "../common/Diagnostic.vue"
 import { BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController } from "bootstrap-vue-next"
 import { DIAGNOSTIC_DATA } from "@ontospreaded/js-core";
-import { debounce, SpreadsheetData } from "@ontospreaded/js-core";
+import { debounce, SpreadsheetData, generateCommitMessage } from "@ontospreaded/js-core";
 import Merger from "./Merger.vue";
 import { HistoryService } from "./HistoryService"
 import { getCell } from "../common/tabulator-extensions";
@@ -759,7 +759,7 @@ async function saveChanges() {
           label: 'Submit anyway',
           className: 'btn-danger',
           callback: function () {
-            saveDialogOpen.value = true;
+            prepareSaveDialog();
           }
         },
         fix: {
@@ -776,8 +776,19 @@ async function saveChanges() {
       }
     });
   } else {
-    saveDialogOpen.value = true;
+    prepareSaveDialog();
   }
+}
+
+function prepareSaveDialog() {
+  const allData = tabulator.value?.getData() as Record<string, any>[] | undefined;
+  const dataMap = new Map(allData?.map(r => [r.id as number, r]) ?? []);
+  const lookup = (rowId: number): Record<string, any> | undefined => dataMap.get(rowId);
+
+  const result = generateCommitMessage(fileName, historyService.history, lookup);
+  submitCommitMessage.value = result.title;
+  submitDetailedMessage.value = result.description;
+  saveDialogOpen.value = true;
 }
 
 function resetSaveDialog() {
@@ -1312,7 +1323,7 @@ function defColumnSize(field: string): number {
     <Merger v-model="mergedData" :conflicts="mergeConflicts" @save="MERGE_COMMANDS.save"></Merger>
   </div>
 
-  <BModal v-model="saveDialogOpen" title="Submit changes">
+  <BModal v-model="saveDialogOpen" title="Submit changes" size="lg">
     <p>
       You are about to submit changes. Please describe the changes you have made to {{ fileName }}
     </p>
@@ -1324,7 +1335,7 @@ function defColumnSize(field: string): number {
       </div>
       <div class="form-group">
         <label for="descr">Detailed description</label>
-        <textarea id="descr" v-model="submitDetailedMessage" class="form-control" name="descr">
+        <textarea id="descr" v-model="submitDetailedMessage" class="form-control" name="descr" rows="10">
       </textarea>
       </div>
     </form>
