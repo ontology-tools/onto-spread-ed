@@ -1,0 +1,120 @@
+version: "1"
+
+ignored_columns:
+  - "Curator"
+  - "To be reviewed by"
+  - "Reviewer query"
+  - "BFO entity"
+  - "Structure"
+
+columns:
+  # Explicitly ignored
+  - excel_names: ["REL 'aggregate of'", "Aggregate", "Type"]
+    ignore: true
+
+  # Entity identity
+  - excel_names: ["ID", "BCIO_ID"]
+    owl: id
+
+  - excel_names: ["Name", "Label", "Label (synonym)", "Relationship"]
+    owl: label
+
+  # Class/property hierarchy
+  - excel_names: ["Parent", "Parent class/ BFO class"]
+    owl: subClassOf
+
+  - excel_names: ["Parent relationship"]
+    owl: subPropertyOf
+
+  - excel_names: ["Logical definition", "Logical Definition"]
+    owl: equivalentClass
+    value_format: manchester_syntax
+
+  - excel_names: ["Equivalent to relationship"]
+    owl: equivalentProperty
+
+  - excel_names: ["Inverse of"]
+    owl: inverseOf
+
+  - excel_names: ["Disjoint classes"]
+    owl: disjointWith
+    separator: ";"
+
+  # Property constraints
+  - excel_names: ["Domain"]
+    owl: domain
+
+  - excel_names: ["Range"]
+    owl: range
+
+  # Entity type
+  - excel_names: ["Relationship type"]
+    owl: entityType
+    choices: ["IDProperty", "AnnotationProperty", "DataProperty", "ObjectProperty", "Internal"]
+
+  # Annotation properties (named columns with fixed OWL property IRI)
+  - excel_names: ["Definition"]
+    owl: {construct: annotation, property_id: "IAO:0000115", property_label: "definition"}
+
+  - excel_names: ["Definition_ID"]
+    owl: {construct: annotation, property_id: "rdfs:isDefinedBy", property_label: "rdfs:isDefinedBy"}
+
+  - excel_names: ["Definition_Source", "Definition source", "Definition Source"]
+    owl: {construct: annotation, property_id: "IAO:0000119", property_label: "definition source"}
+
+  - excel_names: ["Examples", "Examples of usage", "Elaboration"]
+    owl: {construct: annotation, property_id: "IAO:0000112", property_label: "example of usage"}
+
+  - excel_names: ["Curator note"]
+    owl: {construct: annotation, property_id: "IAO:0000232", property_label: "curator note"}
+
+  - excel_names: ["Synonyms"]
+    owl: {construct: annotation, property_id: "IAO:0000118", property_label: "alternative label"}
+    separator: ";"
+
+  - excel_names: ["Comment"]
+    owl: {construct: annotation, property_id: "rdfs:comment", property_label: "rdfs:comment"}
+
+  - excel_names: ["Curation status"]
+    owl: {construct: annotation, property_id: "IAO:0000114", property_label: "has curation status"}
+
+  - excel_names: ["LSR no."]
+    owl: {construct: annotation, property_id: "GMHOR:0000001", property_label: "LSR no"}
+    separator: ";"
+
+  - excel_names: ["Informal label for repository"]
+    owl: {construct: annotation, property_id: "GMHOR:0000002", property_label: "informal label"}
+    separator: ";"
+
+  # Pattern-based relation columns (dynamic column names)
+  - excel_pattern: "REL '([^']+)'"
+    owl: {construct: object_property}
+    separator: ";"
+
+  - excel_pattern: "ANN '([^']+)'"
+    owl: {construct: annotation}
+
+  # Internal-only fields (no OWL mapping)
+  - excel_names: ["Informal definition", "Informal Definition", "informal definition"]
+    internal: informalDefinition
+
+  - excel_names: ["Sub-ontology", "Subontology"]
+    internal: lowerLevelOntology
+
+  - excel_names: ["Fuzzy set"]
+    internal: fuzzySet
+
+  - excel_names: ["Why fuzzy"]
+    internal: fuzzyExplanation
+
+  - excel_names: ["Cross reference", "Cross-reference"]
+    internal: crossReference
+
+  - excel_names: ["Ontology section"]
+    internal: ontologySection
+
+  - excel_names: ["E-CigO"]
+    internal: eCigO
+
+  - excel_names: ["AO sub-ontology"]
+    internal: addictoSubOntology

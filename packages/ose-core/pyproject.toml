@@ -41,3 +41,4 @@ include = ["ose", "ose.*"]
 
 [tool.setuptools.package-data]
 "ose.database.migrations" = ["alembic.ini", "script.py.mako", "README"]
+"ose.schemas" = ["*.yaml"]

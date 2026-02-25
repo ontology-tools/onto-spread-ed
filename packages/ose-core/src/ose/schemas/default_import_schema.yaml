@@ -1,0 +1,41 @@
+version: "1"
+
+columns:
+  - excel_names: ["Ontology ID"]
+    owl: ontologyId
+
+  - excel_names: ["PURL", "IRI"]
+    owl: ontologyIri
+    value_format: iri
+
+  - excel_names: ["Exclude", "Excluding", "Excluded", "Remove"]
+    owl: excludedImportId
+    value_format: term_reference
+    separator: ";"
+    require_id: true
+    require_label: true
+
+  - excel_names: ["ROOT_ID"]
+    owl: rootId
+    value_format: term_reference
+    require_id: true
+    require_label: true
+
+  - excel_names: ["VERSION"]
+    owl: versionIri
+    value_format: iri
+
+  - excel_names: ["IDs"]
+    owl: importedId
+    value_format: term_reference
+    require_id: true
+    require_label: true
+    separator: ";"
+
+  - excel_names: ["Intermediates"]
+    owl: intermediates
+
+  - excel_names: ["Prefix"]
+    owl: prefix
+    value_format: prefix
+    separator: ";"
