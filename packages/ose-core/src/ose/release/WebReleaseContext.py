@@ -6,7 +6,7 @@ with Flask, SQLAlchemy database, and GitHub API support.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Tuple, Literal, List
 
 from flask_github import GitHub
@@ -78,6 +78,10 @@ class WebReleaseContext(ReleaseContext):
         self._q = db.session.query(Release)
         self._a = db.session.query(ReleaseArtifact)
         self._working_dir = tmp
+        
+    @property
+    def is_interactive(self) -> bool:
+        return True
 
     @property
     def release_script(self) -> ReleaseScript:
@@ -229,7 +233,7 @@ class WebReleaseContext(ReleaseContext):
         
         :return: A release name in the format vYYYY-MM-DD[.n].
         """
-        release_name = f"v{datetime.utcnow().strftime('%Y-%m-%d')}"
+        release_name = f"v{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
         last_release = github.get_latest_release(
             self._gh,
             self._release_script.full_repository_name,

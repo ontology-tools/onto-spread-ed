@@ -12,34 +12,17 @@ try:
 except PackageNotFoundError:
     __version__ = "unknown"
 
-import functools
-
 from flask import Flask
 from flask.cli import AppGroup
-from injector import Injector, inject
 
 
-def init_app(app: Flask, injector: Injector):
+def init_app(app: Flask):
     ose_group = AppGroup("ose", help="Commands for OntoSpreadEd")
 
-    cli_groups = []
+    from .release import register_commands as release
+    from .externals import register_commands as externals
 
-    from .release import init_commands as release
-
-    cli_groups.append(release)
-
-    from .externals import init_commands as externals
-
-    cli_groups.append(externals)
-
-    def with_injector(fn):
-        @functools.wraps(fn)
-        def wrapper(*args, **kwargs):
-            return injector.call_with_injection(callable=inject(fn), args=args, kwargs=kwargs)
-
-        return wrapper
-
-    for init_group in cli_groups:
-        init_group(ose_group, with_injector)
+    release(ose_group)
+    externals(ose_group)
 
     app.cli.add_command(ose_group)

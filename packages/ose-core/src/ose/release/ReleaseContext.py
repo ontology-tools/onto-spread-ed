@@ -7,39 +7,73 @@ to be reused across different contexts while maintaining the same logic.
 """
 
 import abc
-from typing import Optional, Tuple, Literal, List, TYPE_CHECKING
+from datetime import datetime, timezone
+from typing import Optional, Tuple, Literal, List
 
-from ..commands.CommandContext import CommandContext
+from flask_github import GitHub
 
-if TYPE_CHECKING:
-    from flask_github import GitHub
-    from ..database.Release import ReleaseArtifact
-    from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
-    from ..model.RepositoryConfiguration import RepositoryConfiguration
-    from ..model.Result import Result
-    from ..services.ConfigurationService import ConfigurationService
+from ..database.Release import ReleaseArtifact
+from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
+from ..model.RepositoryConfiguration import RepositoryConfiguration
+from ..model.Result import Result
+from ..services.ConfigurationService import ConfigurationService
 
 
-class ReleaseContext(CommandContext, abc.ABC):
+class ReleaseContext(abc.ABC):
     """
     Abstract context for release step execution.
-    
-    Extends CommandContext with release-specific operations like progress tracking,
-    artifact storage, and file downloading.
+
+    Provides file management, progress tracking, artifact storage,
+    and file downloading across CLI and Web contexts.
     """
-    
+
+    # -- Common context interface (formerly CommandContext) --
+
+    @abc.abstractmethod
+    def canceled(self) -> bool:
+        """Whether the release has been canceled."""
+        ...
+
+    @abc.abstractmethod
+    def local_name(self, remote_name, file_ending=None) -> str:
+        """Get the local path for a remote file name."""
+        ...
+
+    @abc.abstractmethod
+    def save_file(self, file: str, temporary: Optional[bool] = None, **kwargs):
+        """Save/persist a file produced during the release."""
+        ...
+
+    def cleanup(self) -> None:
+        """Clean up temporary resources."""
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+
+    # -- Release-specific interface --
+
     @property
     @abc.abstractmethod
-    def release_script(self) -> "ReleaseScript":
+    def is_interactive(self) -> bool:
+        """Whether this context supports interactive operations (e.g. user input)."""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def release_script(self) -> ReleaseScript:
         """Get the release script configuration."""
         ...
-    
+
     @property
     @abc.abstractmethod
-    def repo_config(self) -> "RepositoryConfiguration":
+    def repo_config(self) -> RepositoryConfiguration:
         """Get the repository configuration."""
         ...
-    
+
     @property
     @abc.abstractmethod
     def working_dir(self) -> str:
@@ -47,7 +81,7 @@ class ReleaseContext(CommandContext, abc.ABC):
         ...
 
     @property
-    def gh(self) -> Optional["GitHub"]:
+    def gh(self) -> Optional[GitHub]:
         """
         Get the GitHub API client, if available.
 
@@ -60,7 +94,7 @@ class ReleaseContext(CommandContext, abc.ABC):
         return None
 
     @property
-    def config_service(self) -> Optional["ConfigurationService"]:
+    def config_service(self) -> Optional[ConfigurationService]:
         """
         Get the configuration service, if available.
 
@@ -83,7 +117,7 @@ class ReleaseContext(CommandContext, abc.ABC):
     ) -> None:
         """
         Update the progress of the release step.
-        
+
         :param position: A tuple indicating the current progress (current step, total steps).
         :param progress: A float indicating the progress percentage (0.0 to 1.0).
         :param current_item: Name or description of the current item being processed.
@@ -95,9 +129,9 @@ class ReleaseContext(CommandContext, abc.ABC):
     def set_release_info(self, details: dict) -> None:
         """Update release information/metadata."""
         ...
-    
+
     @abc.abstractmethod
-    def set_release_result(self, result: "Result") -> None:
+    def set_release_result(self, result: Result) -> None:
         """Set the result of the release step."""
         ...
 
@@ -110,7 +144,7 @@ class ReleaseContext(CommandContext, abc.ABC):
     def download(self, file: str, local_name: Optional[str] = None) -> str:
         """
         Download a file from the repository.
-        
+
         :param file: The file path in the repository.
         :param local_name: Optional local file path. If None, uses local_name(file).
         :return: The local file path.
@@ -127,7 +161,7 @@ class ReleaseContext(CommandContext, abc.ABC):
     ) -> None:
         """
         Store an artifact produced by the release step.
-        
+
         :param local_path: The local file path of the artifact.
         :param target_path: Optional target path for the artifact.
         :param kind: The type of artifact (source, intermediate, or final).
@@ -137,13 +171,13 @@ class ReleaseContext(CommandContext, abc.ABC):
 
     def store_target_artifact(
         self,
-        file: "ReleaseScriptFile",
+        file: ReleaseScriptFile,
         kind: Literal["source", "intermediate", "final"] = "final",
         downloadable: bool = True,
     ) -> None:
         """
         Store a target artifact based on a release script file.
-        
+
         :param file: The release script file configuration.
         :param kind: The type of artifact (source, intermediate, or final).
         :param downloadable: Whether the artifact should be downloadable.
@@ -156,10 +190,10 @@ class ReleaseContext(CommandContext, abc.ABC):
         )
 
     @abc.abstractmethod
-    def get_artifacts(self) -> List["ReleaseArtifact"]:
+    def get_artifacts(self) -> List[ReleaseArtifact]:
         """
         Get all artifacts produced by the release so far.
-        
+
         :return: List of release artifacts.
         """
         ...
@@ -167,10 +201,10 @@ class ReleaseContext(CommandContext, abc.ABC):
     def update_release(self, patch: dict) -> None:
         """
         Update release database fields directly.
-        
+
         This is a low-level operation only available in web contexts.
         CLI contexts will ignore this call.
-        
+
         :param patch: A dictionary of release fields to update.
         """
         pass  # No-op by default, web context overrides
@@ -178,13 +212,13 @@ class ReleaseContext(CommandContext, abc.ABC):
     def raise_if_canceled(self) -> None:
         """
         Check if the release has been canceled and raise an exception if so.
-        
+
         Should be called periodically during long-running operations.
-        
+
         :raises ReleaseCanceledException: If the release has been canceled.
         """
         from .common import ReleaseCanceledException
-        
+
         if self.canceled():
             raise ReleaseCanceledException("Release has been canceled!")
 
@@ -196,6 +230,4 @@ class ReleaseContext(CommandContext, abc.ABC):
 
         :return: A release name in the format vYYYY-MM-DD[.n].
         """
-        from datetime import datetime
-        return f"v{datetime.utcnow().strftime('%Y-%m-%d')}"
-
+        return f"v{datetime.now(timezone.utc).strftime('%Y-%m-%d')}"

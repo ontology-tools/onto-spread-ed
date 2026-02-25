@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from time import sleep
 
 from .ReleaseContext import ReleaseContext
@@ -23,7 +23,7 @@ class GithubPublishReleaseStep(ReleaseStep):
         assert gh is not None  # Guaranteed by accepts_context
 
         config = self._repo_config
-        branch = f"release/{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}"
+        branch = f"release/{datetime.now(timezone.utc).strftime('%Y-%m-%d_%H-%M-%S')}"
         github.create_branch(gh, self._release_script.full_repository_name, branch,
                              config.main_branch)
         self._raise_if_canceled()

@@ -8,7 +8,7 @@ application or database.
 import json
 import logging
 import os
-from typing import Callable, Any, Dict, Tuple, Optional
+from typing import Optional
 
 import click
 import yaml
@@ -18,7 +18,8 @@ from ose.model.ReleaseScript import ReleaseScript
 from ose.model.RepositoryConfiguration import RepositoryConfiguration
 from ose.release.CLIReleaseContext import CLIReleaseContext
 from ose.release.do_release import BUILT_IN_RELEASE_STEPS_DICT
-from ose.release.plugins import discover_plugin_release_steps
+from ose.release.ReleaseStep import ReleaseStep
+from ose.services.PluginService import discover_plugins
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,14 @@ logger = logging.getLogger(__name__)
 def _build_step_registry() -> dict:
     """Build the combined registry of built-in + plugin release steps."""
     registry = BUILT_IN_RELEASE_STEPS_DICT.copy()
-    registry.update(discover_plugin_release_steps())
+    for plugin, _ in discover_plugins():
+        for content_type in plugin.contents:
+            if isinstance(content_type, type) and issubclass(content_type, ReleaseStep):
+                registry[content_type.name()] = content_type
     return registry
 
 
-def _load_repo_config(local_path: str) -> RepositoryConfiguration:
+def load_repo_config(local_path: str) -> RepositoryConfiguration:
     """Load RepositoryConfiguration from <local_path>/.onto-ed/config.yaml."""
     config_path = os.path.join(local_path, ".onto-ed", "config.yaml")
     if not os.path.exists(config_path):
@@ -91,7 +95,7 @@ def register_commands(cli):
 
         # Load repository configuration
         try:
-            repo_config = _load_repo_config(local_path)
+            repo_config = load_repo_config(local_path)
         except FileNotFoundError as e:
             logger.error(str(e))
             raise SystemExit(1)
@@ -146,8 +150,8 @@ def register_commands(cli):
             for step_name, step in release_steps:
                 logger.info(f"\n{'='*60}\nRunning step: {step_name}\n{'='*60}")
 
-                continu = step.run()
-                if not continu:
+                should_continue = step.run()
+                if not should_continue:
                     logger.info(f"Step {step_name} signaled stop.")
                     break
             else:
@@ -176,9 +180,3 @@ def register_commands(cli):
                 click.echo(f"    {name:25} {doc.strip().split(chr(10))[0]}")
 
 
-def init_commands(cli, _: Callable[[Any], Callable[[Tuple[Any, ...], Dict[str, Any]], Any]]):
-    """Initialize commands for Flask CLI (backward compatibility)"""
-
-    @cli.group("release")
-    def group():
-        pass

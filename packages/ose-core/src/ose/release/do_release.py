@@ -3,7 +3,7 @@ import os
 import tempfile
 import threading
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Type
 
 from flask_github import GitHub, GitHubError
@@ -83,8 +83,8 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
 
         for i, step in enumerate(release_steps):
             if last_step <= i:
-                continu = step.run()
-                if not continu:
+                should_continue = step.run()
+                if not should_continue:
                     return
 
                 current_step = fetch_assert_release(q, release_id).step
@@ -97,7 +97,7 @@ def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, releas
 
         update_release(q, release_id, {
             Release.state: "completed",
-            Release.end: datetime.utcnow(),
+            Release.end: datetime.now(timezone.utc),
             Release.running: False
         })
 

@@ -1,16 +1,14 @@
 import abc
 import logging
 import os
-from typing import Tuple, Optional, Literal, List, TYPE_CHECKING
+from typing import Tuple, Optional, Literal, List
 
 from .ReleaseContext import ReleaseContext
+from ..database.Release import ReleaseArtifact
 from ..model.ExcelOntology import ExcelOntology
 from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
 from ..model.RepositoryConfiguration import RepositoryConfiguration
 from ..model.Result import Result
-
-if TYPE_CHECKING:
-    from ..database.Release import ReleaseArtifact
 
 
 class ReleaseStep(abc.ABC):
@@ -179,7 +177,7 @@ class ReleaseStep(abc.ABC):
         """Store a target artifact based on a release script file."""
         self._context.store_target_artifact(file, kind, downloadable)
 
-    def _artifacts(self) -> List["ReleaseArtifact"]:
+    def _artifacts(self) -> List[ReleaseArtifact]:
         """Get all artifacts produced by the release so far."""
         return self._context.get_artifacts()
 

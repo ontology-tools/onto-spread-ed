@@ -12,6 +12,38 @@ from ose.model.Plugin import Plugin, PluginComponent
 
 PLUGIN_ENTRY_POINT_GROUP = "ose.plugins"
 
+logger = logging.getLogger(__name__)
+
+
+def discover_plugins() -> list[tuple[Plugin, str]]:
+    """Discover plugins via entry points. No Injector/Flask required.
+
+    :return: List of (plugin, package_name) tuples.
+    """
+    result: list[tuple[Plugin, str]] = []
+
+    eps = entry_points(group=PLUGIN_ENTRY_POINT_GROUP)
+    logger.debug(f"Found {len(eps)} plugin entry points")
+
+    for ep in eps:
+        try:
+            plugin = ep.load()
+
+            if not isinstance(plugin, Plugin):
+                logger.debug(
+                    f"Entry point '{ep.name}' did not return a Plugin instance, skipping"
+                )
+                continue
+
+            package_name = ep.value.split(":")[0]
+            result.append((plugin, package_name))
+            logger.debug(f"Discovered plugin: {plugin.name} (version: {plugin.version})")
+
+        except Exception as e:
+            logger.warning(f"Failed to load plugin from entry point '{ep.name}': {e}")
+
+    return result
+
 
 class PluginService:
     _logger = logging.getLogger(__name__)
@@ -42,7 +74,7 @@ class PluginService:
 
     def get_plugin_static_path(self, plugin_id: str) -> Path | None:
         """Get the path to a plugin's static folder.
-        
+
         Returns None if the plugin doesn't exist or has no static folder.
         """
         plugin = next((p for p in self._plugins if p.id == plugin_id), None)
@@ -86,33 +118,15 @@ class PluginService:
 
     def load_plugins(self):
         """Load plugins using Python's entry points system.
-        
+
         Plugins should define entry points in the 'ose.plugins' group.
         Each entry point should point to a Plugin instance.
-        
+
         Example in pyproject.toml:
             [project.entry-points.'ose.plugins']
             my_plugin = "my_package:MY_PLUGIN"
         """
-        eps = entry_points(group=PLUGIN_ENTRY_POINT_GROUP)
-
-        self._logger.debug(f"Found {len(eps)} plugin entry points")
-
-        for ep in eps:
-            try:
-                plugin = ep.load()
-
-                if not isinstance(plugin, Plugin):
-                    self._logger.warning(
-                        f"Entry point '{ep.name}' did not return a Plugin instance, got {type(plugin).__name__}"
-                    )
-                    continue
-
-                self._plugins.append(plugin)
-                # Store the package name for later use
-                self._plugin_packages[plugin.id] = ep.value.split(":")[0]
-                self._logger.info(f"Loaded plugin: {plugin.name} (version: {plugin.version})")
-
-            except Exception as e:
-                self._logger.error(f"Failed to load plugin from entry point '{ep.name}': {e}")
-
+        for plugin, package_name in discover_plugins():
+            self._plugins.append(plugin)
+            self._plugin_packages[plugin.id] = package_name
+            self._logger.info(f"Loaded plugin: {plugin.name} (version: {plugin.version})")

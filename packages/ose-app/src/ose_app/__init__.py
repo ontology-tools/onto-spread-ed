@@ -134,7 +134,7 @@ def create_app(config_filename=None):
     try:
         import ose_cli
 
-        ose_cli.init_app(app, injector.injector)
+        ose_cli.init_app(app)
     except ImportError:
         app.logger.debug("ose-cli not installed, CLI commands not available")
 
