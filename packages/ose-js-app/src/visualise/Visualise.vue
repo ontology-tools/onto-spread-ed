@@ -280,8 +280,8 @@ function renderGraph() {
 
   const svg = d3.select(svgContainer.value)
     .append('svg')
-    .attr('width', '100%')
-    .attr('height', '100%')
+    .attr('width', width)
+    .attr('height', height)
     .attr('viewBox', `0 0 ${width} ${height}`);
 
   const g_main = svg.append('g').attr('class', 'graph-container');

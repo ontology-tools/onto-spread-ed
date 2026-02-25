@@ -686,24 +686,35 @@ function sendVisualisationRequest(sendType: "sheet" | "select") {
 
   console.log("Sent data to visualisation window:", visualisationWindow.ose.visualise);
 
-  if (visualisationWindow.oseDataChanged === undefined) {
+  if (typeof visualisationWindow.oseDataChanged === 'function') {
+    visualisationWindow.oseDataChanged();
+  } else {
     console.log("Opening new visualisation window");
     visualisationWindow.location.href = URL_PREFIX + "/openVisualise";
-  } else {
-    visualisationWindow.oseDataChanged();
-  }
 
-  // Add hook for when the window reloads to resend the data
-  visualisationWindow.onload = () => {
-    console.log("Visualisation window reloading, will resend data on load");
-    visualisationWindow.ose = {
-      ...visualisationWindow.ose ?? {},
-      visualise: {
-        selection: rows.map((r, i) => (selectedRows.value.includes(r) || sendType === 'sheet') ? i : null).filter(i => i !== null),
-        sheetData: sheetDataToSend,
+    // Poll until the visualisation window's Vue app has mounted and defined oseDataChanged.
+    // Chrome clears window.onload handlers on navigation, so polling is more reliable.
+    const sendData = () => {
+      visualisationWindow.ose = {
+        ...visualisationWindow.ose ?? {},
+        visualise: {
+          selection: sendType === 'select' ? rows.map((r, i) => selectedRows.value.includes(r) ? i : null).filter(i => i !== null) : null,
+          sheetData: sheetDataToSend,
+        }
+      };
+      visualisationWindow.oseDataChanged?.();
+    };
+
+    const interval = setInterval(() => {
+      try {
+        if (typeof visualisationWindow.oseDataChanged === 'function') {
+          clearInterval(interval);
+          sendData();
+        }
+      } catch (_e) {
+        clearInterval(interval);
       }
-    }
-    visualisationWindow.oseDataChanged?.();
+    }, 100);
   }
 
   // const form = document.createElement("form");
