@@ -36,7 +36,7 @@ defineEmits<{
     </div>
   </template>
 
-  <ProgressIndicator v-else :details="data" :release="release" :state="release.state">
+  <ProgressIndicator v-else :details="data" :release="release" step-name="ADDICTO_VOCAB">
     <p>
       The ontologies are being published to AddictOVocab. This will take a while.<br>
     </p>

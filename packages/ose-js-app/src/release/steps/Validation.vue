@@ -127,7 +127,7 @@ async function autofix(error: DiagnosticM) {
   <h3>Validation</h3>
 
   <template v-if="!data || Object.keys(data).length === 1 && '__progress' in data">
-    <ProgressIndicator :release="release" :details="data || {}">
+    <ProgressIndicator :release="release" :details="data || {}" step-name="VALIDATION">
       All excel files are now being validated. The results will be presented here soon.
     </ProgressIndicator>
   </template>

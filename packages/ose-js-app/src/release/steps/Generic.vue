@@ -59,7 +59,7 @@ const stepNumber = computed(() => props.release.release_script.steps.findIndex(s
   <TechnicalError v-if="release.state == 'waiting-for-user' && data && (data.errors?.length ?? 0) > 0"
     :release="release" :details="data"></TechnicalError>
 
-  <ProgressIndicator v-else :details="data" :release="release" :state="release.state === 'running' && release.step > stepNumber ? 'completed' : release.state">
+  <ProgressIndicator v-else :details="data" :release="release" :step-number="stepNumber">
     <p
       v-if="release.state === 'completed' || release.step > stepNumber">
 

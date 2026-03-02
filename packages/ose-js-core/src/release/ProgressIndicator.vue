@@ -14,10 +14,14 @@ const props = defineProps<{
       message?: string
     }
   }
-  state?: "running" | "starting" | "completed" | "canceled" | "errored" | "waiting-for-user" | "pending"
+  stepName?: string
+  stepNumber?: number
 }>()
 
 const percent = computed(() => Math.round((props.details?.__progress?.progress ?? 0) * 100))
+
+const stepNumber = computed(() => props.stepNumber ?? props.release?.release_script.steps.findIndex(s => s.name === props.stepName) ?? -1)
+const state = computed(() => props.release?.state === 'running' && props.release?.step > stepNumber.value ? 'completed' : props.release?.state)
 
 </script>
 
