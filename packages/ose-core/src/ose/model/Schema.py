@@ -30,4 +30,5 @@ class Schema:
 _SCHEMA_DIR = os.path.join(os.path.dirname(__file__), "..", "schemas")
 
 DEFAULT_SCHEMA = SchemaLoader.load(os.path.join(_SCHEMA_DIR, "default_entity_schema.yaml"))
+DEFAULT_SCHEMA_DEFINITION = SchemaLoader.load_definition(os.path.join(_SCHEMA_DIR, "default_entity_schema.yaml"))
 DEFAULT_IMPORT_SCHEMA = SchemaLoader.load(os.path.join(_SCHEMA_DIR, "default_import_schema.yaml"))

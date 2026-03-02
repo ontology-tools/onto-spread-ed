@@ -5,12 +5,14 @@ import logging
 import os.path
 from dataclasses import dataclass, field
 from io import BytesIO
-from typing import Optional, Union, Iterator, List, Tuple, FrozenSet, Set, Literal, Dict
+from typing import TYPE_CHECKING, Optional, Union, Iterator, List, Tuple, FrozenSet, Set, Literal, Dict
 
 import openpyxl
+
+if TYPE_CHECKING:
+    import pyhornedowl as ho
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
-import pyhornedowl as ho
 from typing_extensions import Self
 
 from .ColumnMapping import ColumnMapping, ColumnMappingKind, LabelMapping, RelationColumnMapping, \
@@ -20,7 +22,6 @@ from .Result import Result
 from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
 from .Term import Term, UnresolvedTerm
 from .TermIdentifier import TermIdentifier
-from .. import constants
 from ..utils import str_empty, lower, str_space_eq
 
 # Same as js/common/model.ts
@@ -50,7 +51,7 @@ DIAGNOSTIC_KIND = Literal[
     "duplicate"
 ]
 
-def get_id(ontology: ho.PyIndexedOntology, iri: str):
+def get_id(ontology: "ho.PyIndexedOntology", iri: str):
     id = ontology.get_id_for_iri(iri)
 
     # Check if it uses a PURL IRI
@@ -938,93 +939,21 @@ class ExcelOntology:
         return ontology
 
     @classmethod
-    def from_owl(cls, externals_owl: str, prefixes: Dict[str, str], origin: str = "<external>") -> Result[Self]:
-        result = Result()
-        ontology = ho.open_ontology(externals_owl)
+    def from_owl(cls, externals_owl: str, prefixes: Dict[str, str],
+                 origin: str = "<external>", definition=None) -> Result[Self]:
+        from .Schema import DEFAULT_SCHEMA_DEFINITION
+        from .SchemaReader import OwlReader
 
-        # Add default prefixes
-        ontology.prefix_mapping.add_default_prefix_names()
+        if definition is None:
+            definition = DEFAULT_SCHEMA_DEFINITION
+        reader = OwlReader(definition)
+        return reader.read(externals_owl, prefixes, origin)
 
-        self = ExcelOntology(str(ontology.get_iri()))
-        for (p, d) in prefixes.items():
-            ontology.prefix_mapping.add_prefix(p, d)
+    def to_excel(self, include_origin: bool = False, definition=None) -> Workbook:
+        from .Schema import DEFAULT_SCHEMA_DEFINITION
+        from .SchemaWriter import ExcelWriter
 
-        for c in ontology.get_classes():
-            id = get_id(ontology, c)
-
-            labels = ontology.get_annotations(c, constants.RDFS_LABEL)
-
-            if id is None:
-                result.warning(type='unknown-id', msg=f'Unable to determine id of external term "{c}"')
-            if len(labels) == 0:
-                result.warning(type='unknown-label', msg=f'Unable to determine label of external term "{c}"')
-
-            superclasses = ontology.get_superclasses(c)
-            superclass_terms = [TermIdentifier(get_id(ontology, s), ontology.get_annotation(s, constants.RDFS_LABEL)) for s in superclasses]
-            superclass_terms = [s for s in superclass_terms if s.id is not None]
-
-            if id is not None:
-                for label in labels:
-                    self.add_term(Term(
-                        id=id,
-                        label=label,
-                        origin=(origin, -1),
-                        relations=[],
-                        sub_class_of=superclass_terms,
-                        equivalent_to=[],
-                        disjoint_with=[]
-                    ))
-                    
-            
-        for r in ontology.get_object_properties():
-            id = ontology.get_id_for_iri(r)
-            label = ontology.get_annotation(r, constants.RDFS_LABEL)
-
-            if id is None:
-                result.warning(type='unknown-id', msg=f'Unable to determine id of {origin} relation "{r}"')
-            if label is None:
-                result.warning(type='unknown-label', msg=f'Unable to determine label of {origin} relation "{r}"')
-
-            if id is not None and label is not None:
-                self.add_relation(Relation(
-                    id=id,
-                    label=label,
-                    origin=(origin, -1),
-                    equivalent_relations=[],
-                    inverse_of=[],
-                    relations=[],
-                    owl_property_type=OWLPropertyType.ObjectProperty,
-                    sub_property_of=[],
-                    domain=None,
-                    range=None
-                ))
-
-        result.value = self
-        return result
-
-    def to_excel(self, include_origin: bool = False) -> Workbook:
-        relations = self.used_relations()
-
-        wb = Workbook()
-        ws: Worksheet = wb.active
-
-        header = ["ID", "Label", "Parent", "Disjoint classes", "Logical definition"] + [
-            (r.label if r.id is None else f"REL '{r.label}'") for r in relations]
-        if include_origin:
-            header += ["origin"]
-
-        ws.append(header)
-
-        for term in self._terms:
-            row = [term.id, term.label,
-                   "; ".join(f"{s.label} [{s.id}]" if s.id else s.label for s in term.sub_class_of),
-                   "; ".join(f"{s.label} [{s.id}]" if s.id else s.label for s in term.disjoint_with),
-                   "; ".join(term.equivalent_to),
-                   ] + [term.get_relation_value(r.identifier()) for r in relations]
-
-            if include_origin:
-                row += [":".join(term.origin)]
-
-            ws.append(row)
-
-        return wb
+        if definition is None:
+            definition = DEFAULT_SCHEMA_DEFINITION
+        writer = ExcelWriter(definition)
+        return writer.write(self._terms, self.used_relations(), include_origin)

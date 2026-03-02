@@ -9,9 +9,7 @@ from typing import Optional, Any, Dict, List, Union, Tuple, Literal
 
 from .OntoloyBuildService import OntologyBuildService
 from ..model.ExcelOntology import ExcelOntology, OntologyImport
-from ..model.Relation import OWLPropertyType
 from ..model.Result import Result
-from ..model.TermIdentifier import TermIdentifier
 
 ROBOT = os.environ.get("ROBOT", "robot")
 
@@ -205,75 +203,11 @@ class RobotOntologyBuildService(OntologyBuildService):
             iri_prefix = iri_prefix[:-1]
 
         with open(os.path.join(tmp_dir, os.path.basename(outfile)) + ".csv", "w") as csv_file:
-            internal_relations = [r.id for r in ontology.used_relations() if
-                                  r.owl_property_type == OWLPropertyType.Internal]
+            from ..model.Schema import DEFAULT_SCHEMA_DEFINITION
+            from ..model.SchemaWriter import RobotCsvWriter
 
-            header = [
-                ("type", "TYPE"),
-                ("id", "ID"),
-                ("label", "LABEL"),
-                ("parent class", "SC % SPLIT=;"),
-                ("parent relation", "SP % SPLIT=;"),
-                ("logical definition", "EC %"),
-                ("domain", "DOMAIN"),
-                ("range", "RANGE"),
-                ("equivalent relationship", "EP % SPLIT=;")
-            ]
-
-            for relation in ontology.used_relations():
-                if relation.owl_property_type == OWLPropertyType.AnnotationProperty:
-                    header.append((f"REL '{relation.label}'", f"A {relation.id} SPLIT=;"))
-                elif relation.owl_property_type in [OWLPropertyType.DataProperty, OWLPropertyType.ObjectProperty]:
-                    header.append((f"REL '{relation.label}'", f"SC '{relation.label}' some % SPLIT=;"))
-                else:
-                    pass
-
-            fieldnames = [k for k, _ in header]
-            writer = csv.DictWriter(csv_file, fieldnames, delimiter=',', quotechar='\"', quoting=csv.QUOTE_MINIMAL)
-
-            writer.writeheader()
-            writer.writerow(dict(header))
-
-            for term in ontology.terms():
-                row = {
-                    "type": "class",
-                    "id": term.id,
-                    "label": term.label,
-                    "parent class": ";".join(t.id for t in term.sub_class_of),
-                    "logical definition": ";".join(t for t in term.equivalent_to)
-                }
-
-                for relation, value in term.relations:
-                    if relation.id in internal_relations:
-                        continue
-
-                    row[f"REL '{relation.label}'"] = value.id if isinstance(value, TermIdentifier) else value
-
-                writer.writerow(row)
-
-            for relation in ontology.relations():
-                if relation.owl_property_type == OWLPropertyType.Internal:
-                    continue
-
-                typ = {
-                    OWLPropertyType.AnnotationProperty: "annotation property",
-                    OWLPropertyType.ObjectProperty: "object property",
-                    OWLPropertyType.DataProperty: "data property"
-                }[relation.owl_property_type]
-                row = {
-                    "type": typ,
-                    "id": relation.id,
-                    "label": relation.label,
-                    "parent relation": ";".join(r.id for r in relation.sub_property_of),
-                    "domain": relation.domain.id if relation.domain is not None else None,
-                    "range": relation.range.id if relation.range is not None else None,
-                    "equivalent relationship": ";".join(p.id for p in relation.equivalent_relations)
-                }
-
-                for r, value in relation.relations:
-                    row[f"REL '{r.label}'"] = value
-
-                writer.writerow(row)
+            writer = RobotCsvWriter(DEFAULT_SCHEMA_DEFINITION)
+            writer.write_csv(csv_file, ontology)
 
             # A bit of hacking to deal appropriately with external dependency files:
             command: List[str] = [ROBOT]

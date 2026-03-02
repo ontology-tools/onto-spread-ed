@@ -201,15 +201,20 @@ _OWL_TO_KIND = {
 class SchemaLoader:
     @staticmethod
     def load(yaml_path: str) -> Schema:
+        definition = SchemaLoader.load_definition(yaml_path)
+        return SchemaLoader.from_definition(definition)
+
+    @staticmethod
+    def load_definition(yaml_path: str) -> SchemaDefinition:
+        """Load a YAML schema file and return the raw :class:`SchemaDefinition`."""
         with open(yaml_path, "r") as f:
             raw = yaml.safe_load(f)
 
-        definition = dacite.from_dict(
+        return dacite.from_dict(
             data_class=SchemaDefinition,
             data=raw,
             config=dacite.Config(strict=True),
         )
-        return SchemaLoader.from_definition(definition)
 
     @staticmethod
     def from_definition(definition: SchemaDefinition) -> "Schema":
