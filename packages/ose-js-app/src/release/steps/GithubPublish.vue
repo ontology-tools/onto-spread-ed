@@ -29,7 +29,7 @@ defineEmits<{
       <i class="fa fa-check-double"></i>
     </div>
   </template>
-  <ProgressIndicator v-else :details="data" :release="release">
+  <ProgressIndicator v-else :details="data" :release="release" step-name="GITHUB_PUBLISH" >
     The ontologies are being published to github.
   </ProgressIndicator>
 </template>
