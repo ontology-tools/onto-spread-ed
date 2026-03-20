@@ -1,6 +1,6 @@
 {
   "name": "@ontospreaded/js-app",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Vue.js web application components for OntoSpreadEd",
   "type": "module",
   "scripts": {
