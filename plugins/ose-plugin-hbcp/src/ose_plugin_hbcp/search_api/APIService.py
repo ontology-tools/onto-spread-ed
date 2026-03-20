@@ -12,7 +12,7 @@ from ose.model.ExcelOntology import ExcelOntology
 from ose.model.Result import Result
 from ose.model.Term import Term
 from ose.model.TermIdentifier import TermIdentifier
-from ose.utils import lower
+from ose.utils import lower, str_empty
 
 
 class APIService[T: APIClient](abc.ABC):
@@ -36,7 +36,7 @@ class APIService[T: APIClient](abc.ABC):
         update_fn: Optional[Callable[[int, int, str], None]] = None,
     ) -> Result[Tuple]:
         self._logger.info("Starting update")
-        result = Result()
+        result = Result(())
 
         config = self._config.get(self.repository_name)
 
@@ -80,31 +80,40 @@ class APIService[T: APIClient](abc.ABC):
                     return
 
                 term = ontology.term_by_id(term_id)
-                if term is None:
+
+                ext_label = term.label if term is not None else None
+                ext_definition = term.definition() if term is not None else None
+                ext_parents = term.sub_class_of if term is not None else []
+
+                if str_empty(ext_label):
                     ext_label = o.get_annotation(term_iri, "http://www.w3.org/2000/01/rdf-schema#label")
+
+                if str_empty(ext_label):
+                    result.warning(
+                        type="external-no-label", msg=f'The external term "{term_id}" has no label. Skipping it'
+                    )
+                    return
+                assert ext_label is not None
+
+                if str_empty(ext_definition):
                     ext_definition = o.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000115")
-                    if ext_definition is None:
-                        ext_definition = o.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000600")
-                    if ext_definition is None:
-                        ext_definition = "no definition provided for external entity"
-                        result.warning(
-                            type="external-no-definition",
-                            msg="No definition was provided for the external "
-                            + f"entity '{ext_label}' ({term_id}). Using default instead.",
-                        )
+                if str_empty(ext_definition):
+                    ext_definition = o.get_annotation(term_iri, "http://purl.obolibrary.org/obo/IAO_0000600")
+                if str_empty(ext_definition):
+                    ext_definition = "no definition provided for external entity"
+                    result.warning(
+                        type="external-no-definition",
+                        msg="No definition was provided for the external "
+                        + f"entity '{ext_label}' ({term_id}). Using default instead.",
+                    )
 
-                    if ext_label is None:
-                        result.warning(
-                            type="external-no-label", msg=f'The external term "{term_id}" has no label. Skipping it'
-                        )
-                        return
-
-                    ext_parents = o.get_superclasses(term_iri)
+                if ext_parents is None or len(ext_parents) == 0:
+                    ext_superclasses = o.get_superclasses(term_iri)
                     # If multiple parents check if they are (immediate) subclasses of each other and only take the most
                     # specific parent.
-                    ext_parents -= set().union(*[o.get_ancestors(i) for i in ext_parents])
-                    ext_parents = [TermIdentifier(id=o.get_id_for_iri(cls)) for cls in ext_parents]
-                    ext_parents = [p for p in ext_parents if p.id is not None]
+                    ext_superclasses -= set().union(*[o.get_ancestors(i) for i in ext_superclasses])
+                    ext_parent_ids = [o.get_id_for_iri(cls) for cls in ext_superclasses]
+                    ext_parents = [TermIdentifier(id=p) for p in ext_parent_ids if p is not None]
 
                     if len(ext_parents) == 0:
                         self._logger.warning(f"External term has no parents: {term_id}")
@@ -116,23 +125,22 @@ class APIService[T: APIClient](abc.ABC):
                         )
                         ext_parents = [sorted(ext_parents)[0]]
 
+                if term is None:
                     ext_relations = [
                         (TermIdentifier("IAO:0000115", "definition"), ext_definition),
                         (TermIdentifier("IAO:0000114", "has curation status"), "External"),
                     ]
-                    ext_term = Term(term_id, ext_label, ("<external>", -1), ext_relations, ext_parents, [], [])
-
-                    await self._api_client.declare_term(ext_term)
-
-                    async with lock:
-                        queue.append(ext_term)
-                        total += 1
+                    term = Term(term_id, ext_label, ("<external>", -1), ext_relations, ext_parents, [], [])
                 else:
-                    await self._api_client.declare_term(term)
+                    term.label = ext_label
+                    term.definition(ext_definition)
+                    term.sub_class_of = ext_parents
 
-                    async with lock:
-                        queue.append(term)
-                        total += 1
+                await self._api_client.declare_term(term)
+
+                async with lock:
+                    queue.append(term)
+                    total += 1
 
         tasks = [handle_external(o, term_iri) for o, classes in external_classes for term_iri in classes]
         await asyncio.gather(*tasks)
@@ -170,7 +178,13 @@ class APIService[T: APIClient](abc.ABC):
                 try:
                     await self._api_client.update_term(term, revision_message)
                 except HttpError as e:
-                    result.error(type="http-error", term=f"{term.label} ({term.id})", status_code=e.status_code, details=e.message, response=e.response)
+                    result.error(
+                        type="http-error",
+                        term=f"{term.label} ({term.id})",
+                        status_code=e.status_code,
+                        details=e.message,
+                        response=e.response,
+                    )
 
         tasks = [work_queue(term) for term in queue]
         await asyncio.gather(*tasks)
