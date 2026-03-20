@@ -36,7 +36,7 @@ defineEmits<{
     </div>
   </template>
 
-  <ProgressIndicator v-else :details="data" :release="release" step-name="BCIO_SEARCH">
+  <ProgressIndicator v-else :details="data" :release="release" stepName="BCIO_SEARCH" >
     <p>
       The ontologies are being published to BCIOSearch. This will take a while.<br>
     </p>

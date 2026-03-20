@@ -3,6 +3,10 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "types": ["vite/client"],
+    "paths": {
+      "@ontospreaded/js-core": ["../../packages/ose-js-core/src"],
+      "@ontospreaded/js-core/*": ["../../packages/ose-js-core/src/*"]
+    },
 
     /* Linting */
     "strict": true,

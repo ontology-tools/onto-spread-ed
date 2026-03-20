@@ -9,6 +9,11 @@ from .TermIdentifier import TermIdentifier
 
 
 class _TermBase(abc.ABC):
+    relations: List[Tuple[TermIdentifier, Any]]
+    sub_class_of: List[TermIdentifier]
+    equivalent_to: List[str]
+    disjoint_with: List[TermIdentifier]
+    
     def identifier(self) -> TermIdentifier:
         return TermIdentifier(self.id, self.label)
 
@@ -20,13 +25,27 @@ class _TermBase(abc.ABC):
         """
         return next((v.strip() for r, v in self.relations if r.id == "IAO:0000114"), None)
 
-    def definition(self) -> typing.Optional[str]:
+    def definition(self, value: Optional[str] = None) -> typing.Optional[str]:
         """
-        Convenience function to retrieve the value of the annotation property 'has curation status' (IAO:0000114)
+        Convenience function to retrieve or set the value of the annotation property 'has curation status' (IAO:0000114)
 
         :return: The curation status if defined.
         """
-        return next((v.strip() for r, v in self.relations if r.id == "IAO:0000115"), None)
+        i, v = next(
+            ((i, v.strip()) for i, (r, v) in enumerate(self.relations) if r.id == "IAO:0000115"),
+            (None, None),
+        )
+
+        if value is None or v == value:
+            return v
+
+        r = TermIdentifier("IAO:0000115", "definition")
+        if i is not None:
+            self.relations[i] = (r, value)
+        else:
+            self.relations.append((r, value))
+
+        return value
 
     def synonyms(self) -> List[str]:
         """
@@ -47,32 +66,40 @@ class _TermBase(abc.ABC):
         return next(iter(self.get_relation_values(id)), None)
 
     def get_relation_values(self, id: TermIdentifier) -> List[Any]:
-        return [v for r, v in self.relations if ((id.id is None or id.id == r.id) and
-                                                 id.label is None or id.label == r.label)]
+        return [
+            v
+            for r, v in self.relations
+            if ((id.id is None or id.id == r.id) and id.label is None or id.label == r.label)
+        ]
 
     def __eq__(self, other):
         if other is None or not isinstance(other, Term):
             return False
 
-        return all([
-            self.id == other.id,
-            self.label == other.label,
-            sorted(self.sub_class_of) == sorted(other.sub_class_of),
-            sorted(self.equivalent_to) == sorted(other.equivalent_to),
-            sorted(self.disjoint_with) == sorted(other.disjoint_with),
-            sorted(self.relations) == sorted(other.relations),
-        ])
+        return all(
+            [
+                self.id == other.id,
+                self.label == other.label,
+                sorted(self.sub_class_of) == sorted(other.sub_class_of),
+                sorted(self.equivalent_to) == sorted(other.equivalent_to),
+                sorted(self.disjoint_with) == sorted(other.disjoint_with),
+                sorted(self.relations) == sorted(other.relations),
+            ]
+        )
 
     def __hash__(self):
-        return sum(hash(x) for x in [
-            self.id,
-            self.label,
-            self.origin,
-            sum(hash(y) for y in self.sub_class_of),
-            sum(hash(y) for y in self.equivalent_to),
-            sum(hash(y) for y in self.disjoint_with),
-            sum(hash(y) for y in self.relations)
-        ])
+        return sum(
+            hash(x)
+            for x in [
+                self.id,
+                self.label,
+                self.origin,
+                sum(hash(y) for y in self.sub_class_of),
+                sum(hash(y) for y in self.equivalent_to),
+                sum(hash(y) for y in self.disjoint_with),
+                sum(hash(y) for y in self.relations),
+            ]
+        )
 
 
 @dataclass
@@ -98,9 +125,11 @@ class UnresolvedTerm(_TermBase):
 
     def is_unresolved(self) -> bool:
         relation_values = [x for r, x in self.relations if isinstance(x, TermIdentifier)]
-        return any(v is None for v in [self.id, self.label, self.origin]) or \
-            len(self.disjoint_with) + len(self.sub_class_of) + len(relation_values) > 0 and \
-            any(t.is_unresolved() for t in [*self.sub_class_of, *self.disjoint_with, *relation_values])
+        return (
+            any(v is None for v in [self.id, self.label, self.origin])
+            or len(self.disjoint_with) + len(self.sub_class_of) + len(relation_values) > 0
+            and any(t.is_unresolved() for t in [*self.sub_class_of, *self.disjoint_with, *relation_values])
+        )
 
     def is_resolved(self) -> bool:
         return not self.is_unresolved()
