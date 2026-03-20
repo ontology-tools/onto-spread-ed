@@ -109,30 +109,36 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Install JS dependencies
-        run: npm ci
+        run: make install-js
+
+      - name: Install Python dependencies
+        run: make install-python
 
       - name: Build JavaScript packages
-        run: npm run build
+#        run: npm run build
+        run: make build-js
 
       - name: Build CSS
-        run: npm run build:css
+#        run: npm run build:css
+        run: make build-css
 
       - name: Build Python packages
-        run: |
-          # Build all Python packages
-          for pkg in packages/ose-*; do
-            if [ -f "$pkg/pyproject.toml" ]; then
-              echo "Building $pkg..."
-              uv build --package $(basename $pkg)
-            fi
-          done
-          # Build all plugins
-          for plugin in plugins/ose-plugin-*; do
-            if [ -f "$plugin/pyproject.toml" ]; then
-              echo "Building $plugin..."
-              uv build --package $(basename $plugin)
-            fi
-          done
+        run: make build-python
+#        run: |
+#          # Build all Python packages
+#          for pkg in packages/ose-*; do
+#            if [ -f "$pkg/pyproject.toml" ]; then
+#              echo "Building $pkg..."
+#              uv build --package $(basename $pkg)
+#            fi
+#          done
+#          # Build all plugins
+#          for plugin in plugins/ose-plugin-*; do
+#            if [ -f "$plugin/pyproject.toml" ]; then
+#              echo "Building $plugin..."
+#              uv build --package $(basename $plugin)
+#            fi
+#          done
 
       - name: Upload Python dist artifacts
         uses: actions/upload-artifact@v4
@@ -262,7 +268,7 @@ jobs:
         run: npm run build
 
       - name: Publish @ontospreaded/js-core to npm
-        run: npm -w @ontospreaded/js-core publish --provenance --access public
+        run: npm publish --provenance --access public --workspaces
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
