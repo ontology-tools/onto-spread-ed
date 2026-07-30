@@ -69,7 +69,8 @@ DEFAULT_MAPPINGS = [
     internal(["Sub-ontology", "Subontology"], "lowerLevelOntology"),
     internal(["Fuzzy set"], "fuzzySet"),
     internal(["Why fuzzy"], "fuzzyExplanation"),
-    internal(["Cross reference", "Cross-reference"], "crossReference"),
+    relation(["Cross reference", "Cross-reference"],
+             TermIdentifier(id="oboInOwl:hasDbXref", label="database_cross_reference"), separator=";"),
     internal(["Ontology section"], "ontologySection"),
     internal(["E-CigO"], "eCigO"),
     internal(["AO sub-ontology"], "addictoSubOntology")

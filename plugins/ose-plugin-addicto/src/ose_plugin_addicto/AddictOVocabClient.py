@@ -22,7 +22,7 @@ class AddictOVocabClient(APIClient):
         "examples": (TermIdentifier(id="IAO:0000112", label="example of usage"), "multiple-per-line"),
         "fuzzySet": (TermIdentifier(label="fuzzySet"), "single"),
         "fuzzyExplanation": (TermIdentifier(label="fuzzyExplanation"), "single"),
-        "crossReferences": (TermIdentifier(label="crossReference"), "multiple"),
+        "crossReferences": (TermIdentifier(id="oboInOwl:hasDbXref", label="database_cross_reference"), "multiple"),
     }
 
     def convert_to_api_term(self, term: Term, with_references=True) -> Dict:
@@ -51,7 +51,7 @@ class AddictOVocabClient(APIClient):
             "addictoSubOntology",
             "fuzzySet",
             "fuzzyExplanation",
-            "crossReference",
+            "database_cross_reference",
             "eCigO"
         ]
 

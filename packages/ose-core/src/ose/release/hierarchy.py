@@ -80,7 +80,7 @@ def build_hierarchy(
             "subontology": term.get_relation_value(TermIdentifier(label="lowerLevelOntology")),
             "examples": "; ".join(term.get_relation_values(TermIdentifier(id="IAO:0000112"))),
             "synonyms": "; ".join(term.get_relation_values(TermIdentifier(id="IAO:0000118"))),
-            "crossreference": "; ".join(term.get_relation_values(TermIdentifier(label="crossReference"))),
+            "crossreference": "; ".join(term.get_relation_values(TermIdentifier(id="oboInOwl:hasDbXref"))),
             "informaldefinition": term.get_relation_value(TermIdentifier(label="informalDefinition")),
         }
 
