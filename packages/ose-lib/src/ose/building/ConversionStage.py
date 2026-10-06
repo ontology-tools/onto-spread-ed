@@ -70,7 +70,7 @@ class ConversionStage(BuildStage):
                         [self.project.files[n].target.iri for n in file.needs] +
                         [self.project.external.target.iri])]
 
-                log += builder.build_ontology(ontology, self._local_name(file.target.file),
+                log += await builder.build_ontology(ontology, self._local_name(file.target.file),
                                                     self.project.prefixes, dependencies, self.context.project_dir,
                                                     self.project.iri_prefix)
 

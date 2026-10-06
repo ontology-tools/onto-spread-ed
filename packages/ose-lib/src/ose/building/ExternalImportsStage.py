@@ -93,7 +93,7 @@ class ExternalImportsStage(BuildStage):
 
                         renamings.append((id, new_label, typ))
 
-            log += builder.merge_imports(
+            log += await builder.merge_imports(
                 ontology.imports(),
                 self._local_name(file.target.file),
                 file.target.iri,

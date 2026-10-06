@@ -60,7 +60,7 @@ class MergeStage(BuildStage):
                     file.target.iri + "/" + datetime.utcnow().strftime("%Y-%m-%d")
                 )
                 
-                log += builder.merge_ontologies(
+                log += await builder.merge_ontologies(
                     ontologies,
                     self._local_name(file.target.file),
                     file.target.iri,
@@ -83,7 +83,7 @@ class MergeStage(BuildStage):
                 version_iri = (
                     file.target.iri + "/" + datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%d")
                 )
-                log += builder.merge_ontologies(
+                log += await builder.merge_ontologies(
                     ontologies,
                     out_file,
                     file.target.iri,
