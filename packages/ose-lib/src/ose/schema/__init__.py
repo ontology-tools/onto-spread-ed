@@ -23,8 +23,6 @@ from .TermIdentifier import (
     UnresolvedTermIdentifier,
     TermIdentifierBase,
     termid,
-    TermIdentifierWithId,
-    TermIdentifierWithLabel,
 )
 
 from .Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA, BUILTIN_SCHEMAS, resolve_schema
@@ -53,8 +51,6 @@ __all__ = [
     "UnresolvedTermIdentifier",
     "TermIdentifierBase",
     "termid",
-    "TermIdentifierWithId",
-    "TermIdentifierWithLabel",
     "Schema",
     "DEFAULT_SCHEMA",
     "DEFAULT_IMPORT_SCHEMA",

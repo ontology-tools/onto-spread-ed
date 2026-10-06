@@ -20,8 +20,6 @@ from ose.schema.Schema import BUILTIN_SCHEMAS, DEFAULT_IMPORT_SCHEMA, DEFAULT_SC
 from ose.schema.Term import UnresolvedTerm
 from ose.schema.TermIdentifier import (
     TermIdentifier,
-    TermIdentifierWithId,
-    TermIdentifierWithLabel,
     UnresolvedTermIdentifier,
     termid,
 )
@@ -36,8 +34,8 @@ SYNONYM = TermIdentifier(id="IAO:0000118", label="alternative label")
 
 def test_termid_picks_most_specific_type():
     assert type(termid(id="A:1", label="a")) is TermIdentifier
-    assert type(termid(id="A:1")) is TermIdentifierWithId
-    assert type(termid(label="a")) is TermIdentifierWithLabel
+    assert type(termid(id="A:1")) is UnresolvedTermIdentifier
+    assert type(termid(label="a")) is UnresolvedTermIdentifier
     assert type(termid()) is UnresolvedTermIdentifier
 
 
@@ -48,8 +46,6 @@ def test_termid_resolution_state():
 
 
 def test_casts_return_none_when_field_missing():
-    assert termid(label="a").as_with_id() is None
-    assert termid(id="A:1").as_with_label() is None
     assert termid(id="A:1").as_resolved_identifier() is None
     assert termid(id="A:1", label="a").as_resolved_identifier() == TermIdentifier("A:1", "a")
 
@@ -59,7 +55,7 @@ def test_assert_casts_raise_when_field_missing():
     with pytest.raises(ValueError):
         termid(id="A:1").assert_resolved_identifier()
     with pytest.raises(ValueError):
-        termid(label="a").assert_id()
+        termid(label="a").assert_resolved_identifier()
 
 
 def test_complement_fills_missing_fields_only():

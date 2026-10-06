@@ -1381,7 +1381,7 @@ class ExcelOntology:
                 )
 
             superclasses = ontology.get_superclasses(c)
-            superclass_terms = [
+            superclass_ids = [
                 termid(
                     id=get_id(ontology, s),
                     label=ontology.get_annotation(s, constants.RDFS_LABEL),
@@ -1390,7 +1390,7 @@ class ExcelOntology:
             ]
             superclass_terms = [
                 s.assert_resolved_identifier()
-                for s in superclass_terms
+                for s in superclass_ids
                 if s.is_resolved()
             ]
 

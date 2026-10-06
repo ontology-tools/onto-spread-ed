@@ -24,21 +24,9 @@ class TermIdentifierBase:
         
     def as_resolved_identifier(self) -> Optional['TermIdentifier']:
         return self._cast(TermIdentifier) if self.id is not None and self.label is not None else None
-        
-    def as_with_id(self) -> Optional['TermIdentifierWithId']:
-        return self._cast(TermIdentifierWithId) if self.id is not None else None
-    
-    def as_with_label(self) -> Optional['TermIdentifierWithLabel']:
-        return self._cast(TermIdentifierWithLabel) if self.label is not None else None
-    
+
     def assert_resolved_identifier(self) -> 'TermIdentifier':
         return self._assert_cast(TermIdentifier)
-    
-    def assert_id(self) -> 'TermIdentifierWithId':
-        return self._assert_cast(TermIdentifierWithId)
-    
-    def assert_label(self) -> 'TermIdentifierWithLabel':
-        return self._assert_cast(TermIdentifierWithLabel)
 
     def complement(self, other: 'TermIdentifierBase') -> None:
         selfd = asdict(self)
@@ -80,18 +68,9 @@ class TermIdentifierBase:
 
 
 @dataclass(eq=False)
-class TermIdentifierWithId(TermIdentifierBase):
+class TermIdentifier(TermIdentifierBase):
     id: str
-
-
-@dataclass(eq=False)
-class TermIdentifierWithLabel(TermIdentifierBase):
     label: str
-
-
-@dataclass(eq=False)
-class TermIdentifier(TermIdentifierWithId, TermIdentifierWithLabel):
-    pass
 
 
 @dataclass(eq=False)
@@ -102,17 +81,9 @@ class UnresolvedTermIdentifier(TermIdentifierBase):
 @overload
 def termid(*, id: str, label: str) -> TermIdentifier: ...
 @overload
-def termid(*, id: str, label: None = None) -> TermIdentifierWithId: ...
-@overload
-def termid(*, id: None = None, label: str) -> TermIdentifierWithLabel: ...
-@overload
-def termid(*, id: None = None, label: None = None) -> UnresolvedTermIdentifier: ...
+def termid(*, id: Optional[str] = None, label: Optional[str] = None) -> UnresolvedTermIdentifier | TermIdentifier: ...
 def termid(*, id: Optional[str] = None, label: Optional[str] = None) -> TermIdentifierBase:
     if id is not None and label is not None:
         return TermIdentifier(id=id, label=label)
-    elif id is not None:
-        return TermIdentifierWithId(id=id, label=None)
-    elif label is not None:
-        return TermIdentifierWithLabel(id=None, label=label)
-    
-    return UnresolvedTermIdentifier(id=None, label=None)
+
+    return UnresolvedTermIdentifier(id=id, label=label)
