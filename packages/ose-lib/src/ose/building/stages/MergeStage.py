@@ -56,7 +56,7 @@ class MergeStage(BuildStage):
                 if n.file.endswith(".owl")
             ]
             version_iri = (
-                file.target.iri + "/" + datetime.utcnow().strftime("%Y-%m-%d")
+                file.target.iri + "/" + datetime.now().astimezone().strftime("%Y-%m-%d")
             )
                 
             ctx.unwrap(await build_service.merge_ontologies(
@@ -80,7 +80,7 @@ class MergeStage(BuildStage):
 
             ontologies = [self._local_name(file.target.file)]
             version_iri = (
-                file.target.iri + "/" + datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%d")
+                file.target.iri + "/" + datetime.now().astimezone().strftime("%Y-%m-%d")
             )
             ctx.unwrap(await build_service.merge_ontologies(
                 ontologies,
