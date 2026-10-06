@@ -1,6 +1,5 @@
 import asyncio
 import csv
-from functools import reduce
 import hashlib
 import logging
 import os
@@ -13,7 +12,7 @@ from ose.utils.asyncio import max_concurrency
 from ose.building.OntoloyBuildService import OntologyBuildService
 from ose.ontology import ExcelOntology, OntologyImport
 from ose.schema import OWLPropertyType, TermIdentifier
-from ose.result import Log, Result, ResultContext, Success, is_successful
+from ose.result import ResultContext, Result, with_result_context_method, is_successful
 
 ROBOT = os.environ.get("ROBOT", "robot")
 
@@ -44,8 +43,10 @@ class RobotOntologyBuildService(OntologyBuildService):
         with open(os.path.join(tmp_dir, "catalog-v001.xml"), "w") as f:
             f.write(content)
 
+    @with_result_context_method
     async def merge_imports(
         self,
+        ctx: ResultContext,
         imports: List[OntologyImport],
         outfile: str,
         iri: str,
@@ -57,54 +58,54 @@ class RobotOntologyBuildService(OntologyBuildService):
         new_parents: List[
             Tuple[str, str, Literal["class", "object property", "data_property"]]
         ],
-    ) -> Result[tuple[()]]:
-        with ResultContext() as log:
-            download_path = os.path.join(
-                "/", "tmp", "onto-ed-release", "robot-download-cache"
-            )
-            # download_path = os.path.join(tmp_dir, "robot-download-cache")
-            os.makedirs(download_path, exist_ok=True)
-            async with asyncio.TaskGroup() as tg:
-                tasks = [
-                    tg.create_task(
-                        self._download_ontology(
-                            imp.version_iri if imp.version_iri is not None else imp.iri,
-                            _import_id(imp),
-                            download_path,
-                        )
+    ) -> tuple[()]:
+        download_path = os.path.join(
+            "/", "tmp", "onto-ed-release", "robot-download-cache"
+        )
+        # download_path = os.path.join(tmp_dir, "robot-download-cache")
+        os.makedirs(download_path, exist_ok=True)
+        async with asyncio.TaskGroup() as tg:
+            tasks = [
+                tg.create_task(
+                    self._download_ontology(
+                        imp.version_iri if imp.version_iri is not None else imp.iri,
+                        _import_id(imp),
+                        download_path,
                     )
-                    for imp in imports
-                ]
+                )
+                for imp in imports
+            ]
 
-            log += reduce(lambda a, b: a + b, [t.result() for t in tasks], Log())
+        for t in tasks:
+            ctx.attempt(t.result())
 
-            if log.has_errors():
-                return log.fail()
+        if ctx.log.has_errors():
+            ctx.fail()
 
-            for imp in imports:
-                src = os.path.join(download_path, _import_id(imp) + ".owl")
-                dst = os.path.join(download_path, imp.id + ".owl")
-                if os.path.exists(dst):
-                    os.unlink(dst)
+        for imp in imports:
+            src = os.path.join(download_path, _import_id(imp) + ".owl")
+            dst = os.path.join(download_path, imp.id + ".owl")
+            if os.path.exists(dst):
+                os.unlink(dst)
 
-                os.link(src, dst)
+            os.link(src, dst)
 
-            async with asyncio.TaskGroup() as tg:
-                tasks = [
-                    tg.create_task(
-                        self._extract_slim_ontology(
-                            main_ontology_name, imp, download_path
-                        )
-                    )
-                    for imp in imports
-                ]
+        async with asyncio.TaskGroup() as tg:
+            tasks = [
+                tg.create_task(
+                    self._extract_slim_ontology(main_ontology_name, imp, download_path)
+                )
+                for imp in imports
+            ]
 
-            log += reduce(lambda a, b: a + b, [t.result() for t in tasks], Log())
+        for t in tasks:
+            ctx.attempt(t.result())
 
-            if log.has_errors():
-                return log.fail()
+        if ctx.log.has_errors():
+            ctx.fail()
 
-            log += await self._merge_imported_ontologies(
+        ctx.unwrap(
+            await self._merge_imported_ontologies(
                 iri,
                 outfile,
                 main_ontology_name,
@@ -113,13 +114,15 @@ class RobotOntologyBuildService(OntologyBuildService):
                 renamings,
                 new_parents,
             )
+        )
 
-        return log.to_result()
+        return ()
 
     @max_concurrency(2)
+    @with_result_context_method
     async def _download_ontology(
-        self, iri: str, name: str, download_path: str
-    ) -> Result[tuple[()]]:
+        self, ctx: ResultContext, iri: str, name: str, download_path: str
+    ) -> tuple[()]:
         out = os.path.join(download_path, name + ".owl")
         if not os.path.exists(out):
             result = await self._execute_command(["curl", "-L", "-o", out, iri])
@@ -127,79 +130,83 @@ class RobotOntologyBuildService(OntologyBuildService):
             if not is_successful(result):
                 self._logger.error(f"Failed to download '{name}' from '{iri}'")
 
-            return result.void()
+            ctx.unwrap(result)
 
-        return Success(())
+        return ()
 
     @max_concurrency(2)
+    @with_result_context_method
     async def _extract_slim_ontology(
-        self, main_ontology_name: str, imp: OntologyImport, download_path: str
-    ) -> Result[tuple[()]]:
-        with ResultContext() as log:
-            root_id = None
-            if (
-                imp.root_id is None
-                or (root_id := imp.root_id.as_resolved_identifier()) is None
-            ):
-                log.warning(
-                    type="missing-root-id",
-                    msg=f"Missing root ID for import '{imp.id}'. Assuming owl:Thing",
-                )
-
-            filename = os.path.join(
-                download_path, f"{imp.id}.{main_ontology_name}.slim.owl"
+        self,
+        ctx: ResultContext,
+        main_ontology_name: str,
+        imp: OntologyImport,
+        download_path: str,
+    ) -> tuple[()]:
+        root_id = None
+        if (
+            imp.root_id is None
+            or (root_id := imp.root_id.as_resolved_identifier()) is None
+        ):
+            ctx.log.warning(
+                type="missing-root-id",
+                msg=f"Missing root ID for import '{imp.id}'. Assuming owl:Thing",
             )
-            slim_cmd: list[str] = [
-                ROBOT,
-                "merge",
-                "--input",
-                os.path.join(download_path, imp.id + ".owl"),
-                "extract",
-                "--method",
-                "MIREOT",
-                "--annotate-with-source",
-                "true",
+
+        filename = os.path.join(
+            download_path, f"{imp.id}.{main_ontology_name}.slim.owl"
+        )
+        slim_cmd: list[str] = [
+            ROBOT,
+            "merge",
+            "--input",
+            os.path.join(download_path, imp.id + ".owl"),
+            "extract",
+            "--method",
+            "MIREOT",
+            "--annotate-with-source",
+            "true",
+        ]
+
+        if root_id is not None:
+            slim_cmd += ["--upper-term", root_id.id]
+
+        if imp.intermediates is not None:
+            slim_cmd += ["--intermediates", imp.intermediates]
+
+        for prefix, definition in imp.prefixes:
+            slim_cmd += ["--prefix", f"{prefix}: {definition}"]
+
+        for term in imp.imported_terms:
+            slim_cmd += ["--lower-term", term.id]
+
+        if len(imp.excluding) > 0:
+            slim_cmd += [
+                "remove",
+                "--preserve-structure",
+                "false",
+                *[a for x in imp.excluding for a in ["--term", x.id]],
             ]
 
-            if root_id is not None:
-                slim_cmd += ["--upper-term", root_id.id]
+        slim_cmd += ["--output", filename]
+        cmd = shlex.join(slim_cmd)
 
-            if imp.intermediates is not None:
-                slim_cmd += ["--intermediates", imp.intermediates]
+        if os.path.exists(filename) and os.path.exists(filename + ".cache"):
+            with open(filename + ".cache", "r") as f:
+                c = f.readlines()
+                if c is not None and len(c) >= 1:
+                    cache = c[0]
+                    if cache.strip() == cmd.strip():
+                        return ()
 
-            for prefix, definition in imp.prefixes:
-                slim_cmd += ["--prefix", f"{prefix}: {definition}"]
+        result = await self._execute_command(slim_cmd)
+        if result.successful:
+            with open(filename + ".cache", "w") as f:
+                f.writelines([cmd])
 
-            for term in imp.imported_terms:
-                slim_cmd += ["--lower-term", term.id]
+        ctx.unwrap(result)
 
-            if len(imp.excluding) > 0:
-                slim_cmd += [
-                    "remove",
-                    "--preserve-structure",
-                    "false",
-                    *[a for x in imp.excluding for a in ["--term", x.id]],
-                ]
-
-            slim_cmd += ["--output", filename]
-            cmd = shlex.join(slim_cmd)
-
-            if os.path.exists(filename) and os.path.exists(filename + ".cache"):
-                with open(filename + ".cache", "r") as f:
-                    c = f.readlines()
-                    if c is not None and len(c) >= 1:
-                        cache = c[0]
-                        if cache.strip() == cmd.strip():
-                            return Success(())
-
-            result = await self._execute_command(slim_cmd)
-            if result.successful:
-                with open(filename + ".cache", "w") as f:
-                    f.writelines([cmd])
-
-            log += result.void()
-
-        return log.to_result()
+        return ()
 
     async def _merge_imported_ontologies(
         self,
@@ -291,15 +298,17 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return (await self._execute_command(build_cmd)).void()
 
+    @with_result_context_method
     async def build_ontology(
         self,
+        ctx: ResultContext,
         ontology: ExcelOntology,
         outfile: str,
         prefixes: Optional[Dict[str, str]],
         dependency_iris: Optional[List[str]],
         tmp_dir: str,
         iri_prefix: str,
-    ) -> Result[tuple[()]]:
+    ) -> tuple[()]:
         # Remove trailing slashes
         while iri_prefix.endswith("/"):
             iri_prefix = iri_prefix[:-1]
@@ -430,8 +439,10 @@ class RobotOntologyBuildService(OntologyBuildService):
     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
     <owl:Ontology rdf:about="{iri_prefix}/imports.owl">\n""")
 
-                    for d in dependency_iris:
-                        dependency_f.write(f'<owl:imports rdf:resource="{d}"/> \n')
+                    for dependency_iri in dependency_iris:
+                        dependency_f.write(
+                            f'<owl:imports rdf:resource="{dependency_iri}"/> \n'
+                        )
                     dependency_f.write(" </owl:Ontology> \n</rdf:RDF> ")
 
                     self._create_catalog_file(tmp_dir, dependency_iris)
@@ -439,7 +450,11 @@ class RobotOntologyBuildService(OntologyBuildService):
                     cmd.extend(
                         [
                             "merge",
-                            *[x for d in dependency_file_names for x in ["--input", d]],
+                            *[
+                                x
+                                for name in dependency_file_names
+                                for x in ["--input", name]
+                            ],
                         ]
                     )
 
@@ -468,14 +483,10 @@ class RobotOntologyBuildService(OntologyBuildService):
             outfile,
         ]
 
-        result = await self._execute_command(cmd, cwd=tmp_dir)
+        ctx.unwrap(await self._execute_command(cmd, cwd=tmp_dir))
 
         # Merge the import file to readd the OWL imports
-        if (
-            result.successful
-            and dependency_iris is not None
-            and len(dependency_iris) > 0
-        ):
+        if dependency_iris is not None and len(dependency_iris) > 0:
             cmd = [
                 ROBOT,
                 "merge",
@@ -501,9 +512,9 @@ class RobotOntologyBuildService(OntologyBuildService):
                 outfile,
             ]
 
-            result &= await self._execute_command(cmd, cwd=tmp_dir)
+            ctx.unwrap(await self._execute_command(cmd, cwd=tmp_dir))
 
-        return result.void()
+        return ()
 
     async def merge_ontologies(
         self,
@@ -540,35 +551,39 @@ class RobotOntologyBuildService(OntologyBuildService):
 
         return result
 
-    # def fix_iri(self, file: str, temp_dir: str, iri_prefix: str):
-    #     with fileinput.FileInput(file, inplace=True, backup='.bak') as file:
-    #         for line in file:
-    #             print(line
-    #                   .replace(temp_dir, iri_prefix)
-    #                   .replace("http://www.semanticweb.org/ontologies/temporary", iri_prefix), end='')
-
-    async def _execute_command(self, command: list[str], cwd=None) -> Result[str]:
+    @with_result_context_method
+    async def _execute_command(
+        self, ctx: ResultContext, command: list[str], cwd=None
+    ) -> str:
         command_str = shlex.join(command)
-        stdout = b""
-        with ResultContext() as log:
-            self._logger.debug(f"Executing command: {command_str}")
+        self._logger.debug(f"Executing command: {command_str}")
+        try:
             proc = await asyncio.create_subprocess_exec(
                 *command,
                 cwd=cwd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
             )
-            stdout, stderr = await proc.communicate()
+        except OSError as e:
+            ctx.fail(type="command-failed", command=command_str, msg=str(e))
 
-            if proc.returncode != 0:
-                sout = stdout.decode() if stdout is not None else None
-                serr = stderr.decode() if stderr is not None else None
-                log.error(command=command_str, out=sout, err=serr, code=proc.returncode)
-                self._logger.error(
-                    f"Command exited with code {proc.returncode}: {command_str}\nSTDOUT: {sout}\nSTDERR: {serr}"
-                )
+        stdout, stderr = await proc.communicate()
 
-        return log.to_result(stdout.decode())
+        if proc.returncode != 0:
+            sout = stdout.decode() if stdout is not None else None
+            serr = stderr.decode() if stderr is not None else None
+            ctx.log.error(
+                type="command-failed",
+                command=command_str,
+                out=sout,
+                err=serr,
+                code=proc.returncode,
+            )
+            self._logger.error(
+                f"Command exited with code {proc.returncode}: {command_str}\nSTDOUT: {sout}\nSTDERR: {serr}"
+            )
+
+        return stdout.decode()
 
     async def collapse_imports(self, file: str) -> Result[tuple[()]]:
         return (

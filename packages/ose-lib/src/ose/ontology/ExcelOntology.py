@@ -4,6 +4,7 @@ import dataclasses
 import itertools
 import logging
 import os.path
+import zipfile
 from io import BytesIO
 from typing import (
     DefaultDict,
@@ -19,6 +20,7 @@ from typing import (
 )
 
 import openpyxl
+from openpyxl.utils.exceptions import InvalidFileException
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 import pyhornedowl as ho
@@ -45,7 +47,7 @@ from ose.schema import (
     UnresolvedRelation,
     OWLPropertyType,
 )
-from ose.result import Log, Result, is_successful
+from ose.result import ResultContext, with_result_context_method, is_successful
 from ose import constants
 from ose.utils import str_empty, lower, str_space_eq
 
@@ -232,10 +234,14 @@ class ExcelOntology:
     def relations(self) -> List[Relation]:
         return [r.as_resolved() for r in self._relations if not r.is_unresolved()]
 
+    @with_result_context_method
     def _parse_term(
-        self, row: list[tuple[ColumnMapping, str]], err_default: dict
-    ) -> Result[UnresolvedTerm]:
-        log: Log = Log(template=err_default)
+        self,
+        ctx: ResultContext,
+        row: list[tuple[ColumnMapping, str]],
+        err_default: dict,
+    ) -> UnresolvedTerm:
+        ctx.log.template = err_default
         term = UnresolvedTerm()
         unprocessable_columns = []
         for col, val in row:
@@ -243,7 +249,7 @@ class ExcelOntology:
                 continue
 
             if not col.valid(val):
-                log.error(
+                ctx.log.error(
                     column=col.get_name(),
                     type="invalid-value",
                     msg=f"Invalid value '{val}'",
@@ -267,7 +273,7 @@ class ExcelOntology:
             elif isinstance(col, ParentMapping):
                 term.sub_class_of.append(col.get_value(val))
             elif col not in unprocessable_columns:
-                log.warning(
+                ctx.log.warning(
                     column=col.get_name(),
                     type="unprocessable-column",
                     msg=f"The column '{col.get_name()}' could not be processed",
@@ -284,16 +290,20 @@ class ExcelOntology:
         elif (
             str_empty(term.id) and str_empty(term.label) and not any(term.sub_class_of)
         ):
-            log.warning(type="incomplete-term", msg="Empty or incomplete term")
+            ctx.log.warning(type="incomplete-term", msg="Empty or incomplete term")
         else:
-            return log.to_result(term)
+            return term
 
-        return log.fail()
+        ctx.fail()
 
+    @with_result_context_method
     def _parse_import(
-        self, row: list[tuple[ColumnMapping, str]], err_default: dict
-    ) -> Result[OntologyImport]:
-        log: Log = Log(template=err_default)
+        self,
+        ctx: ResultContext,
+        row: list[tuple[ColumnMapping, str]],
+        err_default: dict,
+    ) -> OntologyImport:
+        ctx.log.template = err_default
         ontology = OntologyImport.model_construct()
         unprocessable_columns = []
         for col, val in row:
@@ -301,7 +311,7 @@ class ExcelOntology:
                 continue
 
             if not col.valid(val):
-                log.error(
+                ctx.log.error(
                     column=col.get_name(),
                     type="invalid-value",
                     msg=f"Invalid value '{val}'",
@@ -338,7 +348,7 @@ class ExcelOntology:
             elif isinstance(col, PrefixColumnMapping):
                 ontology.prefixes = col.get_value(val)
             elif col not in unprocessable_columns:
-                log.warning(
+                ctx.log.warning(
                     column=col.get_name(),
                     type="unprocessable-column",
                     msg=f"The column '{col.get_name()}' could not be processed",
@@ -347,12 +357,16 @@ class ExcelOntology:
 
         OntologyImport.model_validate(ontology)
 
-        return log.to_result(ontology)
+        return ontology
 
+    @with_result_context_method
     def _parse_relation(
-        self, row: list[tuple[ColumnMapping, str]], err_default: dict
-    ) -> Result[UnresolvedRelation]:
-        log = Log(template=err_default)
+        self,
+        ctx: ResultContext,
+        row: list[tuple[ColumnMapping, str]],
+        err_default: dict,
+    ) -> UnresolvedRelation:
+        ctx.log.template = err_default
         relation = UnresolvedRelation(owl_property_type=OWLPropertyType.ObjectProperty)
         unprocessable_columns = []
         for col, val in row:
@@ -360,7 +374,7 @@ class ExcelOntology:
                 continue
 
             if not col.valid(val):
-                log.error(
+                ctx.log.error(
                     column=col.get_name(),
                     type="invalid-value",
                     msg=f"Invalid value '{val}'",
@@ -388,14 +402,14 @@ class ExcelOntology:
                 relation.owl_property_type = OWLPropertyType[col.get_value(val)]
 
             elif col not in unprocessable_columns:
-                log.warning(
+                ctx.log.warning(
                     column=col.get_name(),
                     type="unprocessable-column",
                     msg=f"The column '{col.get_name()}' could not be processed",
                 )
                 unprocessable_columns.append(col)
 
-        return log.to_result(relation)
+        return relation
 
     def add_term(self, term: Term):
         self._used_relations = set.union(
@@ -404,23 +418,20 @@ class ExcelOntology:
         )
         self._terms.append(UnresolvedTerm(**term.__dict__))
 
+    @with_result_context_method
     def add_imported_terms(
         self,
+        ctx: ResultContext,
         name: str,
         file: Union[bytes, str, BytesIO],
         schema: Optional[Schema] = None,
-    ) -> Result[tuple]:
+    ) -> tuple[()]:
         if schema is None:
             schema = DEFAULT_IMPORT_SCHEMA
 
-        result = self._open_excel(name, file, schema)
+        data, mapped = ctx.unwrap(self._open_excel(name, file, schema))
 
-        if not is_successful(result):
-            return result
-
-        data, mapped = result.value
-
-        log = Log(template=dict(file=name))
+        ctx.log.template = dict(file=name)
 
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
@@ -429,17 +440,18 @@ class ExcelOntology:
                 [(m, c) for m, c in zip(mapped, row) if m is not None],
                 dict(row=row_idx, origin=origin),
             )
-            log += parse_result.log
+            ctx.attempt(parse_result)
 
             if is_successful(parse_result):
                 ontology: OntologyImport = parse_result.value
                 # ontology.origin = (name, row_idx)
                 self._imports.append(ontology)
 
-        return log.to_result()
+        return ()
 
-    def import_other_excel_ontology(self, other: Self) -> Result[tuple[()]]:
-        log = Log(template=dict(file=other._iri))
+    @with_result_context_method
+    def import_other_excel_ontology(self, ctx: ResultContext, other: Self) -> tuple[()]:
+        ctx.log.template = dict(file=other._iri)
         imported_terms = []
         for term in other._terms + other._relations:
             if (resolved_term := term.as_resolved_identifier()) is not None:
@@ -455,24 +467,19 @@ class ExcelOntology:
         )
         self._imports.append(ontology)
 
-        return log.to_result()
+        return ()
 
+    @with_result_context_method
     def import_excel_ontology_from_file(
         self,
+        ctx: ResultContext,
         name: str,
         file: Union[bytes, str, BytesIO],
         schema: Optional[Schema] = None,
-    ) -> Result[tuple[()]]:
+    ) -> tuple[()]:
         imported_terms = []
-        result = self._open_excel(name, file, schema)
-
-        if not is_successful(result):
-            return result.map(lambda _: ())
-
-        data, mapped = result.value
-
-        log = result.log + Log(template=dict(file=name))
-        # result += Result((), template=dict(file=name))
+        data, mapped = ctx.unwrap(self._open_excel(name, file, schema))
+        ctx.log.template = dict(file=name)
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
@@ -481,7 +488,7 @@ class ExcelOntology:
                 dict(row=row_idx, origin=origin),
             )
 
-            log += parse_result.log
+            ctx.attempt(parse_result)
 
             if is_successful(parse_result):
                 term = parse_result.value.identifier()
@@ -489,7 +496,7 @@ class ExcelOntology:
                 if (resolved := term.as_resolved_identifier()) is not None:
                     imported_terms.append(resolved)
                 else:
-                    log.warning(
+                    ctx.log.warning(
                         type="incomplete-term",
                         msg=f"Unresolved term '{term}' in import '{name}'",
                     )
@@ -499,7 +506,7 @@ class ExcelOntology:
         )
         self._imports.append(ontology)
 
-        return log.to_result()
+        return ()
 
     def merge_with(self, other: Self) -> None:
         self._terms += other._terms
@@ -507,20 +514,22 @@ class ExcelOntology:
         self._imports += other._imports
         self._relations += other._relations
 
+    @with_result_context_method
     def add_terms_from_list(
         self,
+        ctx: ResultContext,
         data: list[list[str]],
         header: list[str],
         schema: Optional[Schema] = None,
         origin: Optional[str] = None,
-    ) -> Result[tuple[()]]:
+    ) -> tuple[()]:
         if schema is None:
             schema = DEFAULT_SCHEMA
 
         if origin is None:
             origin = "<from_list>"
 
-        log = Log(template=dict(file=origin))
+        ctx.log.template = dict(file=origin)
 
         mapped: List[Optional[ColumnMapping]] = []
         for h in header:
@@ -530,7 +539,7 @@ class ExcelOntology:
             mapped.append(mapping)
 
             if mapping is None and not schema.is_ignored(header_name):
-                log.warning(type="unknown-column", column=header_name, sheet=origin)
+                ctx.log.warning(type="unknown-column", column=header_name, sheet=origin)
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
@@ -543,33 +552,29 @@ class ExcelOntology:
                 dict(row=row_idx, origin=(origin, row_idx)),
             )
 
-            log += result.log
+            ctx.attempt(result)
 
             if is_successful(result):
                 term = result.value
                 term.origin = (origin, row_idx)
                 self._terms.append(term)
 
-        return log.to_result()
+        return ()
 
+    @with_result_context_method
     def add_terms_from_excel(
         self,
+        ctx: ResultContext,
         name: str,
         file: Union[bytes, str, BytesIO],
         schema: Optional[Schema] = None,
-    ) -> Result[tuple[()]]:
-        result = self._open_excel(name, file, schema)
-
-        if not is_successful(result):
-            return result.map(lambda _: ())
-
-        data, mapped = result.value
+    ) -> tuple[()]:
+        data, mapped = ctx.unwrap(self._open_excel(name, file, schema))
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
                 self._used_relations.add(c.as_unresolved_relation())
-
-        log = result.log + Log(template=dict(file=name))
+        ctx.log.template = dict(file=name)
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
@@ -578,33 +583,29 @@ class ExcelOntology:
                 dict(row=row_idx, origin=origin),
             )
 
-            log += parse_result.log
+            ctx.attempt(parse_result)
 
             if is_successful(parse_result):
                 term = parse_result.value
                 term.origin = origin
                 self._terms.append(term)
 
-        return log.to_result()
+        return ()
 
+    @with_result_context_method
     def add_relations_from_excel(
         self,
+        ctx: ResultContext,
         name: str,
         file: Union[bytes, str, BytesIO],
         schema: Optional[Schema] = None,
-    ) -> Result[tuple[()]]:
-        result = self._open_excel(name, file, schema)
-
-        if not is_successful(result):
-            return result.map(lambda _: ())
-
-        data, mapped = result.value
+    ) -> tuple[()]:
+        data, mapped = ctx.unwrap(self._open_excel(name, file, schema))
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
                 self._used_relations.add(c.as_unresolved_relation())
-
-        log = result.log + Log(template=dict(file=name))
+        ctx.log.template = dict(file=name)
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
             origin = (name, row_idx)
@@ -613,7 +614,7 @@ class ExcelOntology:
                 dict(row=row_idx, origin=origin),
             )
 
-            log += parse_result.log
+            ctx.attempt(parse_result)
 
             if is_successful(parse_result):
                 relation = parse_result.value
@@ -621,7 +622,7 @@ class ExcelOntology:
 
                 self._relations.append(relation)
 
-        return log.to_result()
+        return ()
 
     def apply_new_parents(self, file: str) -> None:
         with open(file, "r") as f:
@@ -677,18 +678,22 @@ class ExcelOntology:
                     if term is not None:
                         term.label = label
 
+    @with_result_context_method
     def _open_excel(
         self,
+        ctx: ResultContext,
         origin: str,
         file: Union[bytes, str, BytesIO],
         schema: Optional[Schema] = None,
-    ) -> Result[Tuple[Iterator[Iterator[str]], List[ColumnMapping | None]]]:
-        log = Log(template=dict(file=origin))
+    ) -> Tuple[Iterator[Iterator[str]], List[ColumnMapping | None]]:
+        ctx.log.template = dict(file=origin)
         if schema is None:
             schema = DEFAULT_SCHEMA
         if isinstance(file, bytes):
             file = BytesIO(file)
+
         wb = openpyxl.load_workbook(file)
+
         sheet: Worksheet | None = wb.active
         assert sheet is not None
         data = sheet.rows
@@ -701,7 +706,7 @@ class ExcelOntology:
             header_name = str(h.value).strip()
             mapping = schema.get_mapping(origin, header_name)
             if mapping is None and not schema.is_ignored(header_name):
-                log.warning(
+                ctx.log.warning(
                     type="unknown-column",
                     column=header_name,
                     sheet=(
@@ -712,10 +717,10 @@ class ExcelOntology:
             mapped.append(mapping)
 
         rows = (("" if c.value is None else str(c.value) for c in row) for row in data)
-        return log.to_result((rows, mapped))
+        return (rows, mapped)
 
-    def resolve(self) -> Result[tuple[()]]:
-        log = Log()
+    @with_result_context_method
+    def resolve(self, ctx: ResultContext) -> tuple[()]:
         imported = self.imported_terms()
 
         # Resolve terms
@@ -945,13 +950,15 @@ class ExcelOntology:
                     for r in used_relations:
                         relation_term.complement(r.identifier())
 
-        return log.to_result()
+        return ()
 
+    @with_result_context_method
     def validate(
         self,
+        ctx: ResultContext,
         only: Optional[List[DIAGNOSTIC_KIND]] = None,
         exclude: Optional[List[DIAGNOSTIC_KIND]] = None,
-    ) -> Result[tuple[()]]:
+    ) -> tuple[()]:
         """
         Validate the loaded ontology. Checks for various errors such as unknown parents, related terms, duplicates, etc.
 
@@ -959,7 +966,6 @@ class ExcelOntology:
                      (if not excluded by `exclude`)
         :param exclude: List of errors to exclude. If ``None``, no errors are explicitly excluded.
         """
-        log = Log()
 
         def c(arg1: DIAGNOSTIC_KIND, arg2: Optional[DIAGNOSTIC_KIND] = None) -> bool:
             """
@@ -981,7 +987,7 @@ class ExcelOntology:
         )
 
         for term in self._terms:
-            log.template = (
+            ctx.log.template = (
                 {"row": term.origin[1], "origin": term.origin[0]}
                 if term.origin is not None
                 else {}
@@ -996,10 +1002,10 @@ class ExcelOntology:
                 continue
 
             if c("missing-label") and term.label is None:
-                log.error(type="missing-label", term=term.__dict__)
+                ctx.log.error(type="missing-label", term=term.__dict__)
 
             if c("missing-id") and term.id is None:
-                log.error(type="missing-id", term=term.__dict__)
+                ctx.log.error(type="missing-id", term=term.__dict__)
 
             term_id = term.identifier().assert_resolved_identifier()
 
@@ -1021,20 +1027,20 @@ class ExcelOntology:
                 )
                 if imported_term is not None:
                     if c("inconsistent-import"):
-                        log.warning(
+                        ctx.log.warning(
                             type="inconsistent-import",
                             imported_term=imported_term,
                             term=term.__dict__,
                         )
                 elif c("missing-import"):
-                    log.warning(type="missing-import", term=term.__dict__)
+                    ctx.log.warning(type="missing-import", term=term.__dict__)
 
             if c("no-parent") and len(term.sub_class_of) < 1:
-                log.error(type="no-parent", term=term.__dict__)
+                ctx.log.error(type="no-parent", term=term.__dict__)
 
             for p in term.sub_class_of:
                 if c("unknown-parent") and p.is_unresolved():
-                    log.error(
+                    ctx.log.error(
                         type="unknown-parent", term=term.__dict__, parent=p.__dict__
                     )
                 elif (
@@ -1043,7 +1049,7 @@ class ExcelOntology:
                 ):
                     t = self._raw_term_by_id(parent.id)
                     if c("missing-parent") and t is None:
-                        log.error(
+                        ctx.log.error(
                             type="missing-parent", term=term.__dict__, parent=p.__dict__
                         )
                     elif (
@@ -1051,7 +1057,7 @@ class ExcelOntology:
                         and isinstance(t, UnresolvedTerm)
                         and lower(t.curation_status()) in self._ignore_status
                     ):
-                        log.error(
+                        ctx.log.error(
                             type="ignored-parent",
                             status=t.curation_status(),
                             term=term.__dict__,
@@ -1060,7 +1066,7 @@ class ExcelOntology:
 
             for p in term.disjoint_with:
                 if c("unknown-disjoint") and p.is_unresolved():
-                    log.error(
+                    ctx.log.error(
                         type="unknown-disjoint",
                         term=term.__dict__,
                         disjoint_class=p.__dict__,
@@ -1071,7 +1077,7 @@ class ExcelOntology:
                 ):
                     t = self._raw_term_by_id(disjoint.id)
                     if c("missing-disjoint") and t is None:
-                        log.error(
+                        ctx.log.error(
                             type="missing-disjoint",
                             term=term.__dict__,
                             disjoint_class=p.__dict__,
@@ -1081,7 +1087,7 @@ class ExcelOntology:
                         and isinstance(t, UnresolvedTerm)
                         and lower(t.curation_status()) in self._ignore_status
                     ):
-                        log.error(
+                        ctx.log.error(
                             type="ignored-disjoint",
                             status=t.curation_status(),
                             term=term.__dict__,
@@ -1091,7 +1097,7 @@ class ExcelOntology:
             for relation, value in term.relations:
                 if isinstance(value, TermIdentifier):
                     if c("unknown-relation-value") and value.is_unresolved():
-                        log.error(
+                        ctx.log.error(
                             type="unknown-relation-value",
                             relation=relation,
                             value=value,
@@ -1100,7 +1106,7 @@ class ExcelOntology:
                     else:
                         t = self._raw_term_by_id(value.id)
                         if c("missing-relation-value") and t is None:
-                            log.error(
+                            ctx.log.error(
                                 type="missing-relation-value",
                                 term=term.__dict__,
                                 relation=relation,
@@ -1111,7 +1117,7 @@ class ExcelOntology:
                             and isinstance(t, UnresolvedTerm)
                             and lower(t.curation_status()) in self._ignore_status
                         ):
-                            log.error(
+                            ctx.log.error(
                                 type="ignored-relation-value",
                                 status=t.curation_status(),
                                 term=term.__dict__,
@@ -1120,14 +1126,14 @@ class ExcelOntology:
                             )
 
         for relation in self._relations:
-            log.template = (
+            ctx.log.template = (
                 {"row": relation.origin[1]} if relation.origin is not None else {}
             )
             if c("missing-label") and relation.label is None:
-                log.error(type="missing-label", relation=relation.__dict__)
+                ctx.log.error(type="missing-label", relation=relation.__dict__)
 
             if c("missing-id") and relation.id is None:
-                log.error(type="missing-id", relation=relation.__dict__)
+                ctx.log.error(type="missing-id", relation=relation.__dict__)
 
             relation_id = relation.identifier().assert_resolved_identifier()
 
@@ -1136,11 +1142,11 @@ class ExcelOntology:
 
             if relation.domain:
                 if c("unknown-domain") and relation.domain.is_unresolved():
-                    log.error(type="unknown-domain", relation=relation.__dict__)
+                    ctx.log.error(type="unknown-domain", relation=relation.__dict__)
                 elif (domain := relation.domain.as_resolved_identifier()) is not None:
                     t = self._raw_term_by_id(domain.id)
                     if c("missing-domain") and t is None:
-                        log.error(
+                        ctx.log.error(
                             type="missing-domain",
                             relation=relation.__dict__,
                             domain=domain.__dict__,
@@ -1150,7 +1156,7 @@ class ExcelOntology:
                         and isinstance(t, UnresolvedTerm)
                         and lower(t.curation_status()) in self._ignore_status
                     ):
-                        log.error(
+                        ctx.log.error(
                             type="ignored-domain",
                             status=t.curation_status(),
                             relation=relation.__dict__,
@@ -1159,11 +1165,11 @@ class ExcelOntology:
 
             if relation.range:
                 if c("unknown-range") and relation.range.is_unresolved():
-                    log.error(type="unknown-range", relation=relation.__dict__)
+                    ctx.log.error(type="unknown-range", relation=relation.__dict__)
                 elif (range := relation.range.as_resolved_identifier()) is not None:
                     t = self._raw_term_by_id(range.id)
                     if c("missing-range") and t is None:
-                        log.error(
+                        ctx.log.error(
                             type="missing-range",
                             relation=relation.__dict__,
                             range=range.__dict__,
@@ -1173,7 +1179,7 @@ class ExcelOntology:
                         and isinstance(t, UnresolvedTerm)
                         and lower(t.curation_status()) in self._ignore_status
                     ):
-                        log.error(
+                        ctx.log.error(
                             type="ignored-range",
                             status=t.curation_status(),
                             relation=relation.__dict__,
@@ -1182,13 +1188,13 @@ class ExcelOntology:
 
             for p in relation.sub_property_of:
                 if c("unknown-parent") and p.is_unresolved():
-                    log.error(
+                    ctx.log.error(
                         type="unknown-parent", term=relation.__dict__, parent=p.__dict__
                     )
                 elif (parent := p.as_resolved_identifier()) is not None:
                     rt = self._raw_relation_by_id(parent.id)
                     if c("missing-parent") and rt is None:
-                        log.error(
+                        ctx.log.error(
                             type="missing-parent",
                             term=relation.__dict__,
                             parent=p.__dict__,
@@ -1197,7 +1203,7 @@ class ExcelOntology:
             for r, value in relation.relations:
                 if isinstance(value, TermIdentifier):
                     if c("unknown-relation-value") and value.is_unresolved():
-                        log.error(
+                        ctx.log.error(
                             type="unknown-relation-value",
                             relation=r,
                             value=value,
@@ -1206,7 +1212,7 @@ class ExcelOntology:
                     else:
                         t = self._raw_term_by_id(value.id)
                         if c("missing-relation-value") and t is None:
-                            log.error(
+                            ctx.log.error(
                                 type="missing-relation-value",
                                 term=relation.__dict__,
                                 relation=r,
@@ -1217,7 +1223,7 @@ class ExcelOntology:
                             and isinstance(t, UnresolvedTerm)
                             and lower(t.curation_status()) in self._ignore_status
                         ):
-                            log.error(
+                            ctx.log.error(
                                 type="ignored-relation-value",
                                 status=t.curation_status(),
                                 term=relation.__dict__,
@@ -1230,20 +1236,20 @@ class ExcelOntology:
             if relation.owl_property_type == OWLPropertyType.Internal:
                 continue
 
-            log.template = (
+            ctx.log.template = (
                 {"row": relation.origin[1]} if relation.origin is not None else {}
             )
             if relation.is_unresolved():
-                log.error(type="unknown-relation", relation=relation.__dict__)
+                ctx.log.error(type="unknown-relation", relation=relation.__dict__)
 
         # Check for duplicates
         if c("duplicate"):
             for k, items in itertools.chain(by_id.items(), by_label.items()):
                 duplicates = [
-                    d
-                    for d in items
-                    if not isinstance(d, UnresolvedTerm)
-                    or d.curation_status() not in self._ignore_status
+                    item
+                    for item in items
+                    if not isinstance(item, UnresolvedTerm)
+                    or item.curation_status() not in self._ignore_status
                 ]
                 if len(duplicates) > 1:
                     mismatches = []
@@ -1287,7 +1293,7 @@ class ExcelOntology:
                         else:
                             mismatches.append(("type", a, b))
                     if len(mismatches) > 0:
-                        log.error(
+                        ctx.log.error(
                             type="duplicate",
                             duplicate_field="id" if k in by_id else "label",
                             duplicate_value=k,
@@ -1299,7 +1305,7 @@ class ExcelOntology:
                             ],
                         )
 
-        return log.to_result()
+        return ()
 
     def remove_duplicates(self) -> int:
         to_remove: List[UnresolvedTerm] = []
@@ -1339,18 +1345,24 @@ class ExcelOntology:
         return ontology
 
     @classmethod
+    @with_result_context_method
     def from_owl(
-        cls, externals_owl: str, prefixes: Dict[str, str], origin: str = "<external>"
-    ) -> Result[Self]:
-        log = Log(template=dict(file=externals_owl, origin=origin))
+        cls,
+        ctx: ResultContext,
+        externals_owl: str,
+        prefixes: Dict[str, str],
+        origin: str = "<external>",
+    ) -> Self:
+        ctx.log.template = dict(file=externals_owl, origin=origin)
+        
         ontology = ho.open_ontology(externals_owl)
 
         # Add default prefixes
         ontology.prefix_mapping.add_default_prefix_names()
 
         self = cls(str(ontology.get_iri()))
-        for p, d in prefixes.items():
-            ontology.prefix_mapping.add_prefix(p, d)
+        for p, prefix_iri in prefixes.items():
+            ontology.prefix_mapping.add_prefix(p, prefix_iri)
 
         for c in ontology.get_classes():
             id = get_id(ontology, c)
@@ -1358,12 +1370,12 @@ class ExcelOntology:
             labels = ontology.get_annotations(c, constants.RDFS_LABEL)
 
             if id is None:
-                log.warning(
+                ctx.log.warning(
                     type="unknown-id",
                     msg=f'Unable to determine id of external term "{c}"',
                 )
             if len(labels) == 0:
-                log.warning(
+                ctx.log.warning(
                     type="unknown-label",
                     msg=f'Unable to determine label of external term "{c}"',
                 )
@@ -1401,12 +1413,12 @@ class ExcelOntology:
             op_label = ontology.get_annotation(r, constants.RDFS_LABEL)
 
             if id is None:
-                log.warning(
+                ctx.log.warning(
                     type="unknown-id",
                     msg=f'Unable to determine id of {origin} relation "{r}"',
                 )
             if op_label is None:
-                log.warning(
+                ctx.log.warning(
                     type="unknown-label",
                     msg=f'Unable to determine label of {origin} relation "{r}"',
                 )
@@ -1427,14 +1439,16 @@ class ExcelOntology:
                     )
                 )
 
-        return log.to_result(self)
+        return self
 
-    def to_owl(self, prefixes: Dict[str, str]) -> Result[ho.PyIndexedOntology]:
-        log = Log()
+    @with_result_context_method
+    def to_owl(
+        self, ctx: ResultContext, prefixes: Dict[str, str]
+    ) -> ho.PyIndexedOntology:
         o = ho.PyIndexedOntology()
         o.prefix_mapping.add_default_prefix_names()
-        for p, d in prefixes.items():
-            o.prefix_mapping.add_prefix(p, d)
+        for p, prefix_iri in prefixes.items():
+            o.prefix_mapping.add_prefix(p, prefix_iri)
 
         used_relations = [
             u.as_resolved() for u in self._used_relations if u.is_resolved()
@@ -1482,7 +1496,7 @@ class ExcelOntology:
                                 ho.model.SubClassOf(c, op.some(o.class_(value.id)))
                             )
                         else:
-                            log.warning(
+                            ctx.log.warning(
                                 type="wrong-relation-value-type",
                                 term=term.__dict__,
                                 relation=term_relation.__dict__,
@@ -1502,7 +1516,7 @@ class ExcelOntology:
                                 )
                             )
                         else:
-                            log.warning(
+                            ctx.log.warning(
                                 type="wrong-relation-value-type",
                                 term=term.__dict__,
                                 relation=term_relation.__dict__,
@@ -1522,7 +1536,7 @@ class ExcelOntology:
                                 )
                             )
                         else:
-                            log.warning(
+                            ctx.log.warning(
                                 type="wrong-relation-value-type",
                                 term=term.__dict__,
                                 relation=term_relation.__dict__,
@@ -1532,7 +1546,7 @@ class ExcelOntology:
                     case OWLPropertyType.Internal:
                         pass
                     case _:
-                        log.warning(
+                        ctx.log.warning(
                             type="unknown-relation-type",
                             term=term.__dict__,
                             relation=term_relation.__dict__,
@@ -1627,7 +1641,7 @@ class ExcelOntology:
 
                 match propery_kinds.get(r):
                     case OWLPropertyType.ObjectProperty | OWLPropertyType.DataProperty:
-                        log.error(
+                        ctx.log.error(
                             type="relation-on-relation",
                             relation=relation.__dict__,
                             sub_relation=r.__dict__,
@@ -1647,7 +1661,7 @@ class ExcelOntology:
                                 )
                             )
                         else:
-                            log.warning(
+                            ctx.log.warning(
                                 type="wrong-relation-value-type",
                                 term=term.__dict__,
                                 relation=relation.__dict__,
@@ -1657,7 +1671,7 @@ class ExcelOntology:
                     case OWLPropertyType.Internal:
                         pass
                     case _:
-                        log.warning(
+                        ctx.log.warning(
                             type="unknown-relation-type",
                             term=term.__dict__,
                             relation=relation.__dict__,
@@ -1665,7 +1679,7 @@ class ExcelOntology:
                             message=f"Unknown relation type {propery_kinds.get(r)}",
                         )
 
-        return log.to_result(o)
+        return o
 
     def to_excel(self, include_origin: bool = False) -> Workbook:
         relations = self.used_relations()

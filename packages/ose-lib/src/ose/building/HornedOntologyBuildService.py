@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Literal, Tuple
 
 from ose.ontology import ExcelOntology, OntologyImport
-from ose.result import Result, Success, is_successful
+from ose.result import ResultContext, Result, with_result_context_method, is_successful
 
 from ose.building.OntoloyBuildService import OntologyBuildService
 
@@ -44,19 +44,24 @@ class HornedOntologyBuildService(OntologyBuildService):
 
         return result
 
+    @with_result_context_method
     async def merge_ontologies(
         self,
+        ctx: ResultContext,
         ontologies: List[str],
         outfile: str,
         iri: str,
         version_iri: str,
         annotations: Dict[str, str],
-    ) -> Result[Any]:
+    ) -> ho.PyIndexedOntology:
         o = ho.PyIndexedOntology()
         o.add_component(hom.OntologyID(o.iri(iri), o.iri(version_iri) if version_iri else None))
         
         for path in ontologies:
-            ontology = ho.open_ontology_from_file(path)
+            try:
+                ontology = ho.open_ontology_from_file(path)
+            except ValueError as e:
+                ctx.fail(type="unreadable-ontology", file=path, msg=str(e))
             for c in ontology.get_components():
                 if isinstance(c.component, hom.OntologyID):
                     continue  # keep the merged ontology's own ID
@@ -64,7 +69,7 @@ class HornedOntologyBuildService(OntologyBuildService):
 
         o.save_to_file(outfile)
 
-        return Success(o)
+        return o
 
     async def collapse_imports(self, file: str) -> Result[Any]:
         raise NotImplementedError

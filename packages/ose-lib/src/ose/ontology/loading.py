@@ -1,15 +1,17 @@
 from os import path
 
 from ose.project import ProjectFile, Project
-from ose.result import Result, Log, is_successful
+from ose.result import ResultContext, with_result_context
 from ose.ontology.ExcelOntology import ExcelOntology
 
 
+@with_result_context
 def from_project_file(
+    ctx: ResultContext,
     project_file: ProjectFile,
     project: Project,
     working_dir: str | None = None,
-) -> Result[ExcelOntology]:
+) -> ExcelOntology:
     """
     Create an ExcelOntology from a ProjectFile.
 
@@ -18,8 +20,6 @@ def from_project_file(
     :param working_dir: The working directory.
     :return: An ExcelOntology instance.
     """
-    log = Log()
-
     working_dir = working_dir if working_dir is not None else path.curdir
 
     ontology = ExcelOntology(project_file.target.iri)
@@ -27,34 +27,38 @@ def from_project_file(
     for source in project_file.sources:
         schema = project.spreadsheet_schema(source.spreadsheet_schema)
         if schema is None:
-            log.error(
+            ctx.log.error(
                 type="schema-not-found",
                 msg=f"Spreadsheet schema '{source.spreadsheet_schema}' not found.",
             )
-            return log.fail()
+            ctx.fail()
 
         if source.type == "classes":
-            ontology.add_terms_from_excel(
-                source.file, path.join(working_dir, source.file), schema
+            ctx.attempt(
+                ontology.add_terms_from_excel(
+                    source.file, path.join(working_dir, source.file), schema
+                )
             )
         elif source.type == "relations":
-            ontology.add_relations_from_excel(
-                source.file, path.join(working_dir, source.file), schema
+            ctx.attempt(
+                ontology.add_relations_from_excel(
+                    source.file, path.join(working_dir, source.file), schema
+                )
             )
         elif source.type == "individuals":
-            log.error(
+            ctx.log.error(
                 type="not-implemented",
                 msg=f"Source type '{source.type}' is not implemented yet.",
             )
         elif source.type == "owl":
-            owl_ontology_result = ExcelOntology.from_owl(
-                path.join(working_dir, source.file), project.prefixes
+            owl_ontology = ctx.attempt(
+                ExcelOntology.from_owl(
+                    path.join(working_dir, source.file), project.prefixes
+                )
             )
 
-            log += owl_ontology_result.log
-
-            if is_successful(owl_ontology_result):
-                ontology.merge_with(owl_ontology_result.value)
+            if owl_ontology is not None:
+                ontology.merge_with(owl_ontology)
 
     if project_file.renameTermFile is not None:
         ontology.apply_renamings(project_file.renameTermFile)
@@ -62,4 +66,4 @@ def from_project_file(
     if project_file.addParentsFile is not None:
         ontology.apply_new_parents(project_file.addParentsFile)
 
-    return log.to_result(ontology)
+    return ontology

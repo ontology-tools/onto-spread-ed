@@ -2,8 +2,9 @@ import inspect
 import logging
 from os import path
 import tempfile
+import traceback
 
-from ose.result import is_successful
+from ose.result import Err, Log, is_successful
 from ose.building.BuildContext import BuildContext
 from ose.project import BuildConfiguration, Project
 from ose import plugins
@@ -82,7 +83,13 @@ async def start_build(
             f"[{build_context.build_id}] Starting build stage {i+1}/{len(stages)}: {stage.name()}"
         )
         build_context.current_stage = i
-        result = await stage.run()
+        try:
+            result = await stage.run()
+        except Exception as e:
+            logger.exception(f"[{build_context.build_id}] Build stage {stage.name()} raised an exception")
+            log = Log()
+            log.error(type="exception", msg=str(e), traceback="".join(traceback.format_exception(e)))
+            result = Err(log)
 
         build_context.set_stage_result(result=result)
 

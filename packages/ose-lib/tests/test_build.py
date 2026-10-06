@@ -19,7 +19,7 @@ from ose.building import (
 from ose.building.Progress import ProgressManager
 from ose.building.BuildContext import BuildContext
 from ose.project import BuildConfiguration, BuildStep, Project
-from ose.result import Log, Success, is_err, is_successful
+from ose.result import Err, Log, Success, is_err, is_successful
 
 EX = "http://example.org/EX_"
 BFO_ENTITY = "http://purl.obolibrary.org/obo/BFO_0000001"
@@ -125,13 +125,22 @@ class FailingStage(BuildStage):
     async def run(self, on_progress_update=None):
         log = Log()
         log.error(type="broken")
-        return log.fail()
+        return Err(log)
+
+
+class RaisingStage(BuildStage):
+    @classmethod
+    def name(cls) -> str:
+        return "RAISE"
+
+    async def run(self, on_progress_update=None):
+        raise RuntimeError("boom")
 
 
 @pytest.fixture
 def test_stages(monkeypatch):
     RecordingStage.calls = []
-    monkeypatch.setattr(plugins, "for_type", lambda typ: {"test": [RecordingStage, FailingStage]})
+    monkeypatch.setattr(plugins, "for_type", lambda typ: {"test": [RecordingStage, FailingStage, RaisingStage]})
 
 
 def project_with_stages(*stages: dict) -> Project:
@@ -160,6 +169,17 @@ def test_start_build_stops_at_failing_stage(tmp_path, test_stages):
     assert ctx.stage_results[0] is not None and ctx.stage_results[0].result == "failed"
     assert ctx.stage_results[0].log.errors == [{"type": "broken"}]
     assert ctx.stage_results[1] is None
+
+
+def test_start_build_records_exception_as_failed_stage(tmp_path, test_stages):
+    project = project_with_stages({"name": "RAISE"}, {"name": "RECORD"})
+
+    ctx = asyncio.run(start_build(project, "default", str(tmp_path), str(tmp_path / "build")))
+
+    assert RecordingStage.calls == []
+    assert ctx.state == "errored"
+    [error] = ctx.stage_results[0].log.errors  # type: ignore[union-attr]
+    assert error["type"] == "exception" and error["msg"] == "boom" and "RuntimeError" in error["traceback"]
 
 
 def test_start_build_accepts_configuration_object_and_creates_build_dir(tmp_path, test_stages):
