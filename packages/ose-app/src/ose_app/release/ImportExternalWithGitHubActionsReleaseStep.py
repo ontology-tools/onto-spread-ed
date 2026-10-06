@@ -1,5 +1,5 @@
 from .ReleaseStep import ReleaseStep
-from ..model.Result import Result
+from ose.result import Result
 
 
 class ImportExternalWithGitHubActionsReleaseStep(ReleaseStep):

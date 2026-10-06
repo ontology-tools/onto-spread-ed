@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Type
 
-from ose.model.Script import Script
-from ose.release.ReleaseStep import ReleaseStep
+from ose_app.model.Script import Script
+from ose_app.release.ReleaseStep import ReleaseStep
 
 PLUGIN_CONTENT = Script | ReleaseStep
 

@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ose-app"
 description = "Flask web application for OntoSpreadEd - Ontology spreadsheet editor"
-requires-python = ">= 3.12"
+requires-python = ">= 3.13"
 version = "1.4.2"
 
 dependencies = [
-    "ose-core==1.4.2",
+    "ose-lib",
     "Flask==2.3.3",
     "Flask-SQLAlchemy==3.1.1",
     "Flask-Injector",
@@ -17,6 +17,11 @@ dependencies = [
     "flask-cors==3.0.10",
     "flask-executor",
     "Flask-Migrate",
+    "networkx",
+    "openpyxl",
+    "pyyaml",
+    "requests",
+    "whoosh",
 ]
 
 [project.optional-dependencies]
@@ -26,7 +31,7 @@ cli = [
 
 [tool.uv.sources]
 ose-cli = { workspace = true }
-ose-core = { workspace = true }
+ose-lib = { workspace = true }
 ose-plugin-addicto = { workspace = true }
 ose-plugin-bcio = { workspace = true }
 ose-plugin-hierarchical-spreadsheets = { workspace = true }
@@ -38,6 +43,9 @@ where = ["src"]
 ose_app = [
     "templates/**/*",
     "static/**/*",
+    "database/migrations/alembic.ini",
+    "database/migrations/script.py.mako",
+    "database/migrations/README",
 ]
 
 [dependency-groups]

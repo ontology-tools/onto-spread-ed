@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import inspect
 import logging
 from typing import Callable, Coroutine
-from ose.model.ScriptArgument import ScriptArgument
+from ose_app.model.ScriptArgument import ScriptArgument
 
 def _not_implemented(*args, **kwargs):
     raise NotImplementedError()

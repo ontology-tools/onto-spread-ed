@@ -5,11 +5,10 @@ from typing import Optional, Dict, Any, List
 
 import requests
 import yaml
-from dacite import from_dict
 from flask_github import GitHub, GitHubError
 
-from ose.model.RepositoryConfiguration import RepositoryConfiguration
-from ose.services.ConfigurationService import ConfigurationService
+from ose.project import Project
+from ose_app.services.ConfigurationService import ConfigurationService
 
 REPOSITORY_CONFIG_PATH_PROP = "REPOSITORIES_REPOSITORY_CONFIG_PATH"
 REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_STARTUP_REPOSITORIES_FILE"
@@ -21,7 +20,7 @@ ALLOW_SAVE_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_ALLOW_SAVE"
 
 class RepositoryConfigurationService(ConfigurationService):
     _logger = logging.getLogger(__name__)
-    _loaded_repositories: Dict[str, RepositoryConfiguration]
+    _loaded_repositories: Dict[str, Project]
 
     def __init__(self, app_config: Dict[str, Any], gh: GitHub, *_args, **_kwargs):
         super().__init__(app_config)
@@ -106,15 +105,15 @@ class RepositoryConfigurationService(ConfigurationService):
     def changing_startup_allowed(self) -> bool:
         return self.app_config.get(ALLOW_SAVE_REPOSITORIES_PROP)
 
-    def loaded_repositories(self) -> List[RepositoryConfiguration]:
+    def loaded_repositories(self) -> List[Project]:
         return list(self._loaded_repositories.values())
 
-    def get_by_short_name(self, short_name: str) -> Optional[RepositoryConfiguration]:
+    def get_by_short_name(self, short_name: str) -> Optional[Project]:
         config = next((c for c in self._loaded_repositories.values() if c.short_name.lower() == short_name.lower()),
                       None)
         return config
 
-    def get_by_full_name(self, full_name: str) -> Optional[RepositoryConfiguration]:
+    def get_by_full_name(self, full_name: str) -> Optional[Project]:
         url = self._base_url.format(full_name=full_name, path=self._config_path)
         config = self.get_by_url(url)
         if config is not None:
@@ -122,7 +121,7 @@ class RepositoryConfigurationService(ConfigurationService):
 
         return config
 
-    def get_by_url(self, url: str) -> Optional[RepositoryConfiguration]:
+    def get_by_url(self, url: str) -> Optional[Project]:
         loaded = self._loaded_repositories.get(url, None)
         if loaded is not None:
             return loaded
@@ -148,7 +147,7 @@ class RepositoryConfigurationService(ConfigurationService):
             return None
 
         try:
-            configuration = from_dict(RepositoryConfiguration, data)
+            configuration = Project.model_validate(data)
         except Exception as e:
             self._logger.warning(f"Could not parse repository configuration from '{url}': {e}")
             return None
@@ -157,7 +156,7 @@ class RepositoryConfigurationService(ConfigurationService):
 
         return configuration
 
-    def get_file_raw(self, config: RepositoryConfiguration, path: str) -> Optional[bytes]:
+    def get_file_raw(self, config: Project, path: str) -> Optional[bytes]:
         url = self._base_url.format(full_name=config.full_name, path=path)
 
         try:

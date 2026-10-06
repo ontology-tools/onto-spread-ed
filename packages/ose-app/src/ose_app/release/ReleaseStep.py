@@ -11,10 +11,9 @@ from sqlalchemy.orm import Query
 from .common import ReleaseCanceledException, fetch_assert_release, local_name, set_release_info, update_release, next_release_step, \
     set_release_result, add_artifact, get_artifacts
 from ..database.Release import Release, ReleaseArtifact
-from ..model.ExcelOntology import ExcelOntology
-from ..model.ReleaseScript import ReleaseScript, ReleaseScriptFile
-from ..model.RepositoryConfiguration import RepositoryConfiguration
-from ..model.Result import Result
+from ose.ontology import ExcelOntology
+from ose.project import Project, ProjectFile
+from ose.result import Result
 from ..services.ConfigurationService import ConfigurationService
 from ..utils import download_file, github
 
@@ -31,7 +30,7 @@ class ReleaseStep(abc.ABC):
     _config: ConfigurationService
     _working_dir: str
     _release_id: int
-    _release_script: ReleaseScript
+    _release_script: Project
     _gh: GitHub
     _db: SQLAlchemy
     _q: Query[Release]
@@ -39,7 +38,7 @@ class ReleaseStep(abc.ABC):
     _total_items: Optional[int] = None
     _current_item: int = 1
 
-    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int, tmp: str,
+    def __init__(self, db: SQLAlchemy, gh: GitHub, release_script: Project, release_id: int, tmp: str,
                  config: ConfigurationService) -> None:
         self._config = config
         self._db = db
@@ -51,11 +50,11 @@ class ReleaseStep(abc.ABC):
         self._working_dir = tmp
 
     @property
-    def _repo_config(self) -> RepositoryConfiguration:
+    def _repo_config(self) -> Project:
         """
         Return the repository configuration for the current release script.
     
-        :rtype: RepositoryConfiguration
+        :rtype: Project
         """
         config = self._config.get(self._release_script.full_repository_name)
         assert config is not None, f"Repository configuration for '{self._release_script.full_repository_name}' not found."
@@ -169,7 +168,7 @@ class ReleaseStep(abc.ABC):
 
         add_artifact(self._db, artifact)
 
-    def _store_target_artifact(self, file: ReleaseScriptFile,
+    def _store_target_artifact(self, file: ProjectFile,
                               kind: Literal["source", "intermediate", "final"] = "final",
                               downloadable: bool = True):
         return self._store_artifact(self._local_name(file.target.file), file.target.file, kind, downloadable)

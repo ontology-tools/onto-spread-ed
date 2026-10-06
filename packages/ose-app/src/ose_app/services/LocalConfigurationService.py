@@ -3,8 +3,8 @@ from typing import Optional, List
 
 from flask import current_app
 
-from ose.model.RepositoryConfiguration import RepositoryConfiguration, SubOntologyConfiguration
-from ose.services.ConfigurationService import ConfigurationService
+from ose.project import Project, SubOntologyConfiguration
+from ose_app.services.ConfigurationService import ConfigurationService
 
 RELEASE_FILES = {
     "AddictO": "addicto.owl",
@@ -131,7 +131,7 @@ ACTIVE_SPREADSHEETS = {
 }
 
 REPOS = dict((k,
-              RepositoryConfiguration(
+              Project(
                   short_name=k,
                   full_name=full,
                   main_branch=DEFAULT_BRANCH[k],
@@ -154,21 +154,21 @@ class LocalConfigurationService(ConfigurationService):
     def __init__(self, app_config, *_args, **_kwargs):
         super().__init__(app_config)
 
-    def get_by_short_name(self, short_name: str) -> Optional[RepositoryConfiguration]:
+    def get_by_short_name(self, short_name: str) -> Optional[Project]:
         return REPOS.get(short_name, None)
 
-    def get_by_full_name(self, full_name: str) -> Optional[RepositoryConfiguration]:
+    def get_by_full_name(self, full_name: str) -> Optional[Project]:
         short = next((s for s, f in REPOS.items() if f.full_name == full_name), None)
         return self.get_by_short_name(short)
 
-    def get_by_url(self, url: str) -> Optional[RepositoryConfiguration]:
+    def get_by_url(self, url: str) -> Optional[Project]:
         short = next((s for s, f in REPOS.items() if url.endswith(f.full_name)), None)
         return self.get_by_short_name(short)
 
-    def loaded_repositories(self) -> List[RepositoryConfiguration]:
+    def loaded_repositories(self) -> List[Project]:
         return list(REPOS.values())
 
-    def get_file_raw(self, config: RepositoryConfiguration, path: str) -> Optional[bytes]:
+    def get_file_raw(self, config: Project, path: str) -> Optional[bytes]:
         path = os.path.join(current_app.static_folder, path)
         if os.path.exists(path):
             with open(path, 'rb') as f:

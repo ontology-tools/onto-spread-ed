@@ -8,7 +8,7 @@ from typing import Optional, Dict
 import requests
 from flask_github import GitHub
 
-from ose.utils import get_file
+from ose_app.utils import get_file
 
 DEFAULT_LIFE_TIME = 60 * 60 * 24
 

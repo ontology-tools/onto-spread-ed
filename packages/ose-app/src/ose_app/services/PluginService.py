@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Type
 
 from injector import Injector
-from ose.model.Script import Script
-from ose.release.ReleaseStep import ReleaseStep
-from ose.services.ConfigurationService import ConfigurationService
-from ose.model.Plugin import Plugin, PluginComponent
+from ose_app.model.Script import Script
+from ose_app.release.ReleaseStep import ReleaseStep
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.model.Plugin import Plugin, PluginComponent
 
 PLUGIN_ENTRY_POINT_GROUP = "ose.plugins"
 

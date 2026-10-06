@@ -1,7 +1,7 @@
 import abc
 from typing import Dict, Optional, Any, List
 
-from ose.model.RepositoryConfiguration import RepositoryConfiguration
+from ose.project import Project
 
 
 class ConfigurationService(abc.ABC):
@@ -23,26 +23,26 @@ class ConfigurationService(abc.ABC):
         return False
 
     @abc.abstractmethod
-    def loaded_repositories(self) -> List[RepositoryConfiguration]:
+    def loaded_repositories(self) -> List[Project]:
         ...
 
     @abc.abstractmethod
-    def get_by_short_name(self, short_name: str) -> Optional[RepositoryConfiguration]:
+    def get_by_short_name(self, short_name: str) -> Optional[Project]:
         ...
 
     @abc.abstractmethod
-    def get_by_full_name(self, full_name: str) -> Optional[RepositoryConfiguration]:
+    def get_by_full_name(self, full_name: str) -> Optional[Project]:
         ...
 
     @abc.abstractmethod
-    def get_by_url(self, url: str) -> Optional[RepositoryConfiguration]:
+    def get_by_url(self, url: str) -> Optional[Project]:
         ...
 
     @abc.abstractmethod
     def unload(self, name: str) -> bool:
         ...
 
-    def get_file(self, config: RepositoryConfiguration, path: str) -> Optional[str]:
+    def get_file(self, config: Project, path: str) -> Optional[str]:
         file = self.get_file_raw(config, path)
         if file is not None:
             return file.decode()
@@ -50,10 +50,10 @@ class ConfigurationService(abc.ABC):
         return None
 
     @abc.abstractmethod
-    def get_file_raw(self, config: RepositoryConfiguration, path: str) -> Optional[bytes]:
+    def get_file_raw(self, config: Project, path: str) -> Optional[bytes]:
         ...
 
-    def get(self, name: str) -> Optional[RepositoryConfiguration]:
+    def get(self, name: str) -> Optional[Project]:
         parts = name.split("/")
         if len(parts) == 1:
             return self.get_by_short_name(name)

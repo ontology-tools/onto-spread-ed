@@ -4,13 +4,13 @@ import networkx as nx
 import pyhornedowl
 
 from ..database.Release import ReleaseArtifact
-from ..model.ExcelOntology import ExcelOntology
-from ..model.ReleaseScript import ReleaseScriptFile
-from ..model.TermIdentifier import TermIdentifier
+from ose.ontology import ExcelOntology
+from ose.project import ProjectFile
+from ose.schema import TermIdentifier
 
 
 def build_hierarchy(
-    file: ReleaseScriptFile,
+    file: ProjectFile,
     artifacts: list[ReleaseArtifact],
     local_name_fn: Callable[[str], str],
     prefixes: dict[str, str],

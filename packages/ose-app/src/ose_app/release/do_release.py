@@ -10,28 +10,20 @@ from flask_github import GitHub, GitHubError
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Query
 
-from ose.release.common import fetch_assert_release
-from ose.services.PluginService import PluginService
+from ose_app.release.common import fetch_assert_release
+from ose_app.services.PluginService import PluginService
 
-from .BuildReleaseStep import BuildReleaseStep
 from .GithubPublishReleaseStep import GithubPublishReleaseStep
 from .HumanVerificationReleaseStep import HumanVerificationReleaseStep
-from .ImportExternalReleaseStep import ImportExternalReleaseStep
-from .MergeReleaseStep import MergeReleaseStep
 from .PreparationReleaseStep import PreparationReleaseStep
 from .ReleaseStep import ReleaseStep
-from .ValidationReleaseStep import ValidationReleaseStep
 from .common import update_release, ReleaseCanceledException, set_release_info
 from ..database.Release import Release
-from ..model.ReleaseScript import ReleaseScript
+from ose.project import Project
 from ..services.ConfigurationService import ConfigurationService
 
 BUILT_IN_RELEASE_STEPS: List[Type[ReleaseStep]] = [
     PreparationReleaseStep,
-    ValidationReleaseStep,
-    ImportExternalReleaseStep,
-    BuildReleaseStep,
-    MergeReleaseStep,
     HumanVerificationReleaseStep,
     GithubPublishReleaseStep,
 ]
@@ -40,7 +32,7 @@ BUILT_IN_RELEASE_STEPS_DICT: Dict[str, Type[ReleaseStep]] = dict(
     [(r.name(), r) for r in BUILT_IN_RELEASE_STEPS]
 )
 
-def do_release(db: SQLAlchemy, gh: GitHub, release_script: ReleaseScript, release_id: int,
+def do_release(db: SQLAlchemy, gh: GitHub, release_script: Project, release_id: int,
                config: ConfigurationService, plugin_service: PluginService) -> None:
     logger = logging.getLogger(__name__)
     

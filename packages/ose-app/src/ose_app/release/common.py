@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import Query
 
 from ..database.Release import Release, ReleaseArtifact
-from ose.model.ReleaseScript import ReleaseScriptFile
+from ose.project import ProjectFile
 
 
 def local_name(tmp: str, remote_name: str, file_ending=None) -> str:
@@ -46,9 +46,9 @@ def set_release_result(q, release_id, result):
         update_release(q, release_id, dict(state="waiting-for-user"))
 
 
-def order_sources(sources: Dict[str, ReleaseScriptFile]) -> List[Tuple[str, ReleaseScriptFile]]:
-    queue: List[Tuple[str, ReleaseScriptFile]] = []
-    files: List[Tuple[str, ReleaseScriptFile]] = list(sources.items())
+def order_sources(sources: Dict[str, ProjectFile]) -> List[Tuple[str, ProjectFile]]:
+    queue: List[Tuple[str, ProjectFile]] = []
+    files: List[Tuple[str, ProjectFile]] = list(sources.items())
 
     for k, file in files:
         unknown_dependencies = [n for n in file.needs if n not in (x for x, _ in files)]
