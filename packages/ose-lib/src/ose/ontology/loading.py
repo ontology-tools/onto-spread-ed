@@ -1,8 +1,8 @@
 from os import path
 
-from ..model.Project import ProjectFile, Project
-from ..model.Result import Result, Log, is_successful
-from .ExcelOntology import ExcelOntology, OntologyImport, Schema
+from ose.project import ProjectFile, Project
+from ose.result import Result, Log, is_successful
+from ose.ontology.ExcelOntology import ExcelOntology
 
 
 def from_project_file(
@@ -25,7 +25,7 @@ def from_project_file(
     ontology = ExcelOntology(project_file.target.iri)
 
     for source in project_file.sources:
-        schema = project.spreadsheet_schemas.get(source.spreadsheet_schema)
+        schema = project.spreadsheet_schema(source.spreadsheet_schema)
         if schema is None:
             log.error(
                 type="schema-not-found",

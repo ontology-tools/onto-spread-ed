@@ -1,9 +1,9 @@
 from typing import Any, Dict, List, Literal, Tuple
 
-from ..excel_ontology.ExcelOntology import ExcelOntology, OntologyImport
-from ..model.Result import Result, Success, is_successful
+from ose.ontology import ExcelOntology, OntologyImport
+from ose.result import Result, Success, is_successful
 
-from .OntoloyBuildService import OntologyBuildService
+from ose.building.OntoloyBuildService import OntologyBuildService
 
 import pyhornedowl as ho
 import pyhornedowl.model as hom

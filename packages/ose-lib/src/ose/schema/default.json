@@ -1,0 +1,117 @@
+{
+  "ignored": [
+    "REL 'aggregate of'",
+    "Aggregate",
+    "Type",
+    "Curator",
+    "To be reviewed by",
+    "Reviewer query",
+    "BFO entity",
+    "Structure"
+  ],
+  "mappings": [
+    {"type": "plain", "kind": "ID", "columns": ["ID", "BCIO_ID"]},
+    {"type": "term", "kind": "DOMAIN", "columns": ["Domain"]},
+    {"type": "term", "kind": "RANGE", "columns": ["Range"]},
+    {"type": "label", "columns": ["Name", "Label", "Label (synonym)", "Relationship"]},
+    {"type": "parent", "kind": "SUB_CLASS_OF", "columns": ["Parent", "Parent class/ BFO class"]},
+    {"type": "parent", "kind": "SUB_PROPERTY_OF", "columns": ["Parent relationship"]},
+    {"type": "manchester", "columns": ["Logical definition", "Logical Definition"]},
+    {"type": "term", "kind": "EQUIVALENT_TO", "columns": ["Equivalent to relationship"]},
+    {"type": "term", "kind": "INVERSE_OF", "columns": ["Inverse of"]},
+    {"type": "term", "kind": "DISJOINT_WITH", "columns": ["Disjoint classes"], "separator": ";"},
+    {
+      "type": "choice",
+      "kind": "RELATION_TYPE",
+      "columns": ["Relationship type"],
+      "choices": ["IDProperty", "AnnotationProperty", "DataProperty", "ObjectProperty", "Internal"]
+    },
+    {
+      "type": "relation",
+      "columns": ["LSR no."],
+      "relation": {"id": "GMHOR:0000001", "label": "LSR no"},
+      "separator": ";"
+    },
+    {
+      "type": "relation",
+      "columns": ["Informal label for repository"],
+      "relation": {"id": "GMHOR:0000002", "label": "informal label"},
+      "separator": ";"
+    },
+    {"type": "relation", "columns": ["Definition"], "relation": {"id": "IAO:0000115", "label": "definition"}},
+    {
+      "type": "relation",
+      "columns": ["Definition_ID"],
+      "relation": {"id": "rdfs:isDefinedBy", "label": "rdfs:isDefinedBy"}
+    },
+    {
+      "type": "relation",
+      "columns": ["Definition_Source", "Definition source", "Definition Source"],
+      "relation": {"id": "IAO:0000119", "label": "definition source"}
+    },
+    {
+      "type": "relation",
+      "columns": ["Examples", "Examples of usage", "Elaboration"],
+      "relation": {"id": "IAO:0000112", "label": "example of usage"}
+    },
+    {"type": "relation", "columns": ["Curator note"], "relation": {"id": "IAO:0000232", "label": "curator note"}},
+    {
+      "type": "relation",
+      "columns": ["Synonyms"],
+      "relation": {"id": "IAO:0000118", "label": "alternative label"},
+      "separator": ";"
+    },
+    {"type": "relation", "columns": ["Comment"], "relation": {"id": "rdfs:comment", "label": "rdfs:comment"}},
+    {
+      "type": "relation",
+      "columns": ["Curation status"],
+      "relation": {"id": "IAO:0000114", "label": "has curation status"}
+    },
+    {
+      "type": "relation",
+      "pattern": "REL '([^']+)'",
+      "relation": {"label": "{1}"},
+      "property_type": "ObjectProperty",
+      "separator": ";"
+    },
+    {"type": "relation", "pattern": "ANN '([^']+)'", "relation": {"label": "{1}"}},
+    {
+      "type": "relation",
+      "columns": ["Informal definition", "Informal Definition", "informal definition"],
+      "relation": {"label": "informalDefinition"},
+      "property_type": "Internal"
+    },
+    {
+      "type": "relation",
+      "columns": ["Sub-ontology", "Subontology"],
+      "relation": {"label": "lowerLevelOntology"},
+      "property_type": "Internal"
+    },
+    {"type": "relation", "columns": ["Fuzzy set"], "relation": {"label": "fuzzySet"}, "property_type": "Internal"},
+    {
+      "type": "relation",
+      "columns": ["Why fuzzy"],
+      "relation": {"label": "fuzzyExplanation"},
+      "property_type": "Internal"
+    },
+    {
+      "type": "relation",
+      "columns": ["Cross reference", "Cross-reference"],
+      "relation": {"id": "oboInOwl:hasDbXref", "label": "database_cross_reference"},
+      "separator": ";"
+    },
+    {
+      "type": "relation",
+      "columns": ["Ontology section"],
+      "relation": {"label": "ontologySection"},
+      "property_type": "Internal"
+    },
+    {"type": "relation", "columns": ["E-CigO"], "relation": {"label": "eCigO"}, "property_type": "Internal"},
+    {
+      "type": "relation",
+      "columns": ["AO sub-ontology"],
+      "relation": {"label": "addictoSubOntology"},
+      "property_type": "Internal"
+    }
+  ]
+}

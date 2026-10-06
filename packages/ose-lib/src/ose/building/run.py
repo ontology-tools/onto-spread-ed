@@ -3,16 +3,12 @@ import logging
 from os import path
 import sys
 import tempfile
-from typing import Literal
 
-from ose.model.Result import is_successful
-
-from ..model.Build import BuildContext
-from ..model.Project import BuildConfiguration, Project
-
-from .. import plugins
-
-from .BuildStage import BuildStage
+from ose.result import is_successful
+from ose.building.BuildContext import BuildContext
+from ose.project import BuildConfiguration, Project
+from ose import plugins
+from ose.building.stages import BuildStage
 
 
 async def start_build(
@@ -70,36 +66,34 @@ async def start_build(
         project=project,
         build_dir=build_dir,
         state="starting",
-        build_configuration=build_configuration
+        build_configuration=build_configuration,
     )
-    
+
     stages = [
-        available_stages[s.name](s, build_context, **s.args) for s in build_configuration.stages
+        available_stages[s.name](s, build_context, **s.args)
+        for s in build_configuration.stages
     ]
 
     logger.info(
         f"[{build_context.build_id}] Build context: {build_context.model_dump_json(indent=2)}"
     )
-    
+
     for i, stage in enumerate(stages):
-        logger.debug(f"[{build_context.build_id}] Starting build stage {i+1}/{len(stages)}: {stage.name()}")
+        logger.debug(
+            f"[{build_context.build_id}] Starting build stage {i+1}/{len(stages)}: {stage.name()}"
+        )
         build_context.current_stage = i
         result = await stage.run()
-        
+
         build_context.set_stage_result(result=result)
-        
+
         if not is_successful(result):
-            logger.error(f"[{build_context.build_id}] Build stage {stage.name()} failed: {result.log.errors[-1] if len(result.log.errors) > 0 else ''}")
+            logger.error(
+                f"[{build_context.build_id}] Build stage {stage.name()} failed: {result.log.errors[-1] if len(result.log.errors) > 0 else ''}"
+            )
             build_context.state = "errored"
             break
-                
+
         build_context.set_stage_result(result=result)
-                
-                
-            
-        
-        
-        
-        
 
     return build_context

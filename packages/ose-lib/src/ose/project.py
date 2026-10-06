@@ -3,7 +3,7 @@ import os
 from pydantic import BaseModel, model_validator
 from typing import Any, Literal, Optional
 
-from .Schema import Schema
+from .schema.Schema import BUILTIN_SCHEMAS, Schema, resolve_schema
 
 
 class BuildStep(BaseModel):
@@ -76,6 +76,17 @@ class Project(BaseModel):
     build_configurations: list[BuildConfiguration]
     
     spreadsheet_schemas: dict[str, Schema] = {}
+    """
+    Spreadsheet schemas of this project in addition to the builtin ones ("default" and "import"). A schema with
+    the name of a builtin one replaces it.
+    """
+
+    def spreadsheet_schema(self, name: str) -> Optional[Schema]:
+        """Returns the spreadsheet schema `name` including everything it inherits, or `None` if it is unknown"""
+        try:
+            return resolve_schema(name, BUILTIN_SCHEMAS | self.spreadsheet_schemas)
+        except ValueError:
+            return None
 
     @model_validator(mode="before")
     @classmethod
@@ -107,11 +118,16 @@ class Project(BaseModel):
             for n in f.needs
             if n not in self.files
         ] + [
-            f"'{name}' uses the unknown spreadsheet schema '{s}'"
+            f"'{name}' uses the unknown spreadsheet schema '{s.spreadsheet_schema}'"
             for name, f in named_files.items()
             for s in f.sources
-            if s.spreadsheet_schema not in self.spreadsheet_schemas
+            if s.spreadsheet_schema not in BUILTIN_SCHEMAS | self.spreadsheet_schemas
         ]
+        for name in self.spreadsheet_schemas:
+            try:
+                resolve_schema(name, BUILTIN_SCHEMAS | self.spreadsheet_schemas)
+            except ValueError as e:
+                errors.append(str(e))
         if errors:
             raise ValueError("; ".join(errors))
 

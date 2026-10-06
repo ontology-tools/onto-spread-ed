@@ -1,8 +1,8 @@
 from abc import abstractmethod, ABC
 from typing import Optional, Any, Dict, List, Tuple, Literal
 
-from ..excel_ontology.ExcelOntology import OntologyImport, ExcelOntology
-from ..model.Result import Result
+from ose.ontology import OntologyImport, ExcelOntology
+from ose.result import Result
 
 
 class OntologyBuildService(ABC):

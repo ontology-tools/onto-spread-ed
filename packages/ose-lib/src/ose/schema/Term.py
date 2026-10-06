@@ -1,9 +1,9 @@
 import abc
 import typing
-from dataclasses import asdict, dataclass, field
-from typing import Any, Optional, Sequence, Union, List, Tuple, Self, overload
+from dataclasses import dataclass, field
+from typing import Any, Optional, Sequence, List, Tuple, overload
 
-from .TermIdentifier import (
+from ose.schema.TermIdentifier import (
     TermIdentifierBase,
     TermIdentifier,
     UnresolvedTermIdentifier,
@@ -139,7 +139,9 @@ class UnresolvedTerm(TermBase):
     id: Optional[str] = None
     label: Optional[str] = None
     origin: Optional[Tuple[str, int]] = None
-    relations: List[Tuple[TermIdentifierBase, TermIdentifierBase | str]] = field(default_factory=list)
+    relations: List[Tuple[TermIdentifierBase, TermIdentifierBase | str]] = field(
+        default_factory=list
+    )
     sub_class_of: List[TermIdentifierBase] = field(default_factory=list)
     equivalent_to: List[str] = field(default_factory=list)
     disjoint_with: List[TermIdentifierBase] = field(default_factory=list)

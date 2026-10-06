@@ -1,15 +1,15 @@
 import csv
 from typing import Callable, Tuple, List, Literal, cast
 
-from ..utils.asyncio import check_cancelled
+from ose.utils.asyncio import check_cancelled
 
-from .BuildStage import Progress
+from ose.building.Progress import Progress
 
 
-from ..excel_ontology.ExcelOntology import ExcelOntology
-from ..model.Result import Result, ResultContext
-from ..services.RobotOntologyBuildService import RobotOntologyBuildService
-from .BuildStage import BuildStage
+from ose.ontology.ExcelOntology import ExcelOntology
+from ose.result import Result, ResultContext
+from ose.building.RobotOntologyBuildService import RobotOntologyBuildService
+from ose.building.stages.BuildStage import BuildStage
 
 EntityType = Literal["class", "object property", "data_property"]
 

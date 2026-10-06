@@ -2,7 +2,7 @@ import enum
 from dataclasses import dataclass, field
 from typing import Optional, Any, Tuple, List
 
-from .TermIdentifier import TermIdentifierBase, TermIdentifier, UnresolvedTermIdentifier
+from ose.schema.TermIdentifier import TermIdentifierBase, TermIdentifier, UnresolvedTermIdentifier
 
 
 class OWLPropertyType(enum.Enum):

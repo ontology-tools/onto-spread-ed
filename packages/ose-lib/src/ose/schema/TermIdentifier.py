@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from typing import Optional, Self, overload
+from typing import Optional, overload
 
 @dataclass
 class TermIdentifierBase:

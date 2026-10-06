@@ -7,13 +7,12 @@ import subprocess
 from functools import reduce
 from typing import Optional, Any, Dict, List, Tuple, Literal
 
-from ..utils.asyncio import max_concurrency
+from ose.utils.asyncio import max_concurrency
 
-from .OntoloyBuildService import OntologyBuildService
-from ..excel_ontology.ExcelOntology import ExcelOntology, OntologyImport
-from ..model.Relation import OWLPropertyType
-from ..model.Result import Result, ResultContext, Success, is_successful
-from ..model.TermIdentifier import TermIdentifier
+from ose.building.OntoloyBuildService import OntologyBuildService
+from ose.ontology import ExcelOntology, OntologyImport
+from ose.schema import OWLPropertyType, TermIdentifier 
+from ose.result import Result, ResultContext, Success, is_successful
 
 ROBOT = os.environ.get("ROBOT", "robot")
 

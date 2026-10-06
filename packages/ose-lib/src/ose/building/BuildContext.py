@@ -1,13 +1,14 @@
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TYPE_CHECKING
 
 from pydantic import BaseModel, Field, model_validator
 from uuid import UUID, uuid4
 
-from ..building.BuildStage import StageResult
+from ose.project import BuildConfiguration, Project, ProjectFile
+from ose.result import Log, Result, is_successful
 
-from .Project import BuildConfiguration, Project, ProjectFile
-from .Result import Log, Result, is_successful
+if TYPE_CHECKING:
+    from ose.building.stages import StageResult
 
 type BuildArtifactFile = str | ProjectFile
 
@@ -22,8 +23,6 @@ def _to_local_path(file: BuildArtifactFile) -> str:
 
 
 class BuildArtifact(BaseModel):
-    __tablename__ = "release_artifacts"
-
     # id = mapped_column(Integer(), primary_key=True)
     # release_id = mapped_column(Integer(), ForeignKey('releases.id'))
 

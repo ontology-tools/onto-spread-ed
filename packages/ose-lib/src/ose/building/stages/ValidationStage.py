@@ -1,11 +1,12 @@
 import graphlib
 from typing import Callable
 
-from ..utils.asyncio import check_cancelled
+from ose.utils.asyncio import check_cancelled
 
-from .BuildStage import BuildStage, Progress, ProgressManager, StageResult
-from ..model.Result import Result, ResultContext, is_successful
-from ..excel_ontology.ExcelOntology import ExcelOntology
+from ose.building.stages.BuildStage import BuildStage, StageResult
+from ose.building.Progress import Progress, ProgressManager
+from ose.result import Result, ResultContext, is_successful
+from ose.ontology import ExcelOntology
 
 
 

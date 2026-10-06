@@ -1,11 +1,9 @@
-import asyncio
 from collections import defaultdict
 import csv
 import dataclasses
 import itertools
 import logging
 import os.path
-from dataclasses import dataclass, field
 from io import BytesIO
 from typing import (
     DefaultDict,
@@ -26,7 +24,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 import pyhornedowl as ho
 from typing_extensions import Self
 
-from ..model.ColumnMapping import (
+from ose.schema import (
     ColumnMapping,
     ColumnMappingKind,
     LabelMapping,
@@ -34,14 +32,22 @@ from ..model.ColumnMapping import (
     ParentMapping,
     TermMapping,
     PrefixColumnMapping,
+    Schema,
+    DEFAULT_SCHEMA,
+    DEFAULT_IMPORT_SCHEMA,
+    TermBase,
+    Term,
+    UnresolvedTerm,
+    TermIdentifierBase,
+    TermIdentifier,
+    termid,
+    Relation,
+    UnresolvedRelation,
+    OWLPropertyType,
 )
-from ..model.Relation import Relation, UnresolvedRelation, OWLPropertyType
-from ..model.Result import Log, Result, is_successful
-from ..model.Schema import Schema, DEFAULT_SCHEMA, DEFAULT_IMPORT_SCHEMA
-from ..model.Term import TermBase, Term, UnresolvedTerm
-from ..model.TermIdentifier import TermIdentifierBase, TermIdentifier, termid
-from .. import constants
-from ..utils import str_empty, lower, str_space_eq
+from ose.result import Log, Result, is_successful
+from ose import constants
+from ose.utils import str_empty, lower, str_space_eq
 
 from pydantic import BaseModel
 
@@ -254,7 +260,7 @@ class ExcelOntology:
             elif kind == ColumnMappingKind.EQUIVALENT_TO:
                 term.equivalent_to.append(col.get_value(val))
             elif isinstance(col, LabelMapping):
-                term.label = col.get_label(val)
+                term.label = col.get_value(val)
             elif isinstance(col, RelationColumnMapping):
                 term.relations += col.get_value(val)
             # TODO: SYNONYMS field
@@ -524,7 +530,7 @@ class ExcelOntology:
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
-                self._used_relations.add(UnresolvedRelation(**c.relation.__dict__))
+                self._used_relations.add(c.as_unresolved_relation())
 
         for i, row in enumerate(data):
             row_idx = i + 2  # +1 for zerobased +1 for header
@@ -557,7 +563,7 @@ class ExcelOntology:
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
-                self._used_relations.add(UnresolvedRelation(**c.relation.__dict__))
+                self._used_relations.add(c.as_unresolved_relation())
 
         log = result.log + Log(template=dict(file=name))
         for i, row in enumerate(data):
@@ -592,7 +598,7 @@ class ExcelOntology:
 
         for c in mapped:
             if isinstance(c, RelationColumnMapping):
-                self._used_relations.add(UnresolvedRelation(**c.relation.__dict__))
+                self._used_relations.add(c.as_unresolved_relation())
 
         log = result.log + Log(template=dict(file=name))
         for i, row in enumerate(data):

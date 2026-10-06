@@ -1,16 +1,15 @@
-import csv
 from datetime import datetime, timezone
-from typing import Callable, Tuple, List, Literal, cast
+from typing import Callable, Literal
 
-from ..utils.asyncio import check_cancelled
+from ose.utils.asyncio import check_cancelled
 
-from .BuildStage import ProgressManager, Progress
+from ose.building.Progress import Progress
 
 
-from ..excel_ontology.ExcelOntology import ExcelOntology
-from ..model.Result import Result, ResultContext
-from ..services.HornedOntologyBuildService import HornedOntologyBuildService
-from .BuildStage import BuildStage
+from ose.result import Result, ResultContext
+from ose.building.HornedOntologyBuildService import HornedOntologyBuildService
+from ose.building.stages.BuildStage import BuildStage
+from ose.building.Progress import ProgressManager
 
 EntityType = Literal["class", "object property", "data_property"]
 
