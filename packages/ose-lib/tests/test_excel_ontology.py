@@ -400,3 +400,12 @@ def test_from_project_file_with_custom_schema(tmp_path):
 
     assert is_successful(result), result.log
     assert result.value.find_term_id("thing") == "EX:0000001"
+
+
+def test_blank_and_empty_cells_are_skipped():
+    o = ExcelOntology(IRI)
+    rows = [["EX:1", "thing", None, "  "], ["EX:2", "other", "", ""]]
+    assert is_successful(o.add_terms_from_list(rows, ["ID", "Label", "Parent", "Definition"]))
+    o.resolve()
+
+    assert [(t.id, t.sub_class_of, t.relations) for t in o.terms()] == [("EX:1", [], []), ("EX:2", [], [])]

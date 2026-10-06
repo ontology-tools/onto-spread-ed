@@ -14,7 +14,7 @@ class ValidationStage(BuildStage):
 
     @classmethod
     def name(cls) -> str:
-        return "EXCEL2OWL"
+        return "VALIDATION"
 
     async def run(
         self, on_progress_update: Callable[[Progress], None] | None = None
@@ -29,7 +29,7 @@ class ValidationStage(BuildStage):
             sources = [(name, self.project.files[name]) for name in ts.static_order()]
 
             external_ontology_result = ExcelOntology.from_owl(
-                self.project.external.target.file, self.project.prefixes
+                self._local_name(self.project.external.target.file), self.project.prefixes
             )
 
             log += external_ontology_result.log

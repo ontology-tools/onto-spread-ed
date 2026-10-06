@@ -363,3 +363,14 @@ def test_resolve_schema_errors():
         resolve_schema("orphan", schemas)
     with pytest.raises(ValueError, match="Unknown spreadsheet schema 'nope'"):
         resolve_schema("nope", schemas)
+
+
+def test_casts_between_terms_and_identifiers():
+    from ose.schema.Term import Term
+
+    term = make_term(sub_class_of=[termid(id="EX:0", label="parent")])
+    assert term.assert_resolved_identifier() == TermIdentifier("EX:1", "thing")
+    resolved = term._assert_cast(Term)
+    assert type(resolved) is Term and resolved.sub_class_of == [TermIdentifier("EX:0", "parent")]
+    with pytest.raises(ValueError, match="origin"):
+        make_term(origin=None)._assert_cast(Term)

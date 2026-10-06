@@ -115,6 +115,9 @@ class BuildContext(BaseModel):
                 case ((), d):
                     result_type = "completed"
                     data = d
+                case dict() as d:
+                    result_type = "completed"
+                    data = d
                 case (t, d):
                     result_type = t
                     data = d

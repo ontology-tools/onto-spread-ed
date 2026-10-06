@@ -58,7 +58,11 @@ class HornedOntologyBuildService(OntologyBuildService):
         for path in ontologies:
             ontology = ho.open_ontology_from_file(path)
             for c in ontology.get_components():
+                if isinstance(c.component, hom.OntologyID):
+                    continue  # keep the merged ontology's own ID
                 o.add_component(c.component, c.ann)
+
+        o.save_to_file(outfile)
 
         return Success(o)
 

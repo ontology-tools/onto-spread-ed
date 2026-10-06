@@ -1,18 +1,19 @@
 import asyncio
 import csv
+from functools import reduce
 import hashlib
 import logging
 import os
+import shlex
 import subprocess
-from functools import reduce
 from typing import Optional, Any, Dict, List, Tuple, Literal
 
 from ose.utils.asyncio import max_concurrency
 
 from ose.building.OntoloyBuildService import OntologyBuildService
 from ose.ontology import ExcelOntology, OntologyImport
-from ose.schema import OWLPropertyType, TermIdentifier 
-from ose.result import Result, ResultContext, Success, is_successful
+from ose.schema import OWLPropertyType, TermIdentifier
+from ose.result import Log, Result, ResultContext, Success, is_successful
 
 ROBOT = os.environ.get("ROBOT", "robot")
 
@@ -74,13 +75,12 @@ class RobotOntologyBuildService(OntologyBuildService):
                     )
                     for imp in imports
                 ]
-                
-            results = [t.result() for t in tasks]
-            log += reduce(lambda a, b: a + b, results, log)
+
+            log += reduce(lambda a, b: a + b, [t.result() for t in tasks], Log())
 
             if log.has_errors():
                 return log.fail()
-            
+
             for imp in imports:
                 src = os.path.join(download_path, _import_id(imp) + ".owl")
                 dst = os.path.join(download_path, imp.id + ".owl")
@@ -88,21 +88,22 @@ class RobotOntologyBuildService(OntologyBuildService):
                     os.unlink(dst)
 
                 os.link(src, dst)
-                
+
             async with asyncio.TaskGroup() as tg:
                 tasks = [
                     tg.create_task(
-                        self._extract_slim_ontology(main_ontology_name, imp, download_path)
+                        self._extract_slim_ontology(
+                            main_ontology_name, imp, download_path
+                        )
                     )
                     for imp in imports
                 ]
-                
-            results = [t.result() for t in tasks]
-            log += reduce(lambda a, b: a + b, results, log)
-            
+
+            log += reduce(lambda a, b: a + b, [t.result() for t in tasks], Log())
+
             if log.has_errors():
                 return log.fail()
-            
+
             log += await self._merge_imported_ontologies(
                 iri,
                 outfile,
@@ -121,8 +122,7 @@ class RobotOntologyBuildService(OntologyBuildService):
     ) -> Result[tuple[()]]:
         out = os.path.join(download_path, name + ".owl")
         if not os.path.exists(out):
-            get_ontology_cmd = f'curl -L "{iri}" > {out}'
-            result = await self._execute_command(get_ontology_cmd, shell_flag=True)
+            result = await self._execute_command(["curl", "-L", "-o", out, iri])
 
             if not is_successful(result):
                 self._logger.error(f"Failed to download '{name}' from '{iri}'")
@@ -153,7 +153,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                 ROBOT,
                 "merge",
                 "--input",
-                f'"{os.path.join(download_path, imp.id + ".owl")}"',
+                os.path.join(download_path, imp.id + ".owl"),
                 "extract",
                 "--method",
                 "MIREOT",
@@ -168,7 +168,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                 slim_cmd += ["--intermediates", imp.intermediates]
 
             for prefix, definition in imp.prefixes:
-                slim_cmd += ["--prefix", f'"{prefix}: {definition}"']
+                slim_cmd += ["--prefix", f"{prefix}: {definition}"]
 
             for term in imp.imported_terms:
                 slim_cmd += ["--lower-term", term.id]
@@ -181,8 +181,8 @@ class RobotOntologyBuildService(OntologyBuildService):
                     *[a for x in imp.excluding for a in ["--term", x.id]],
                 ]
 
-            slim_cmd += ["--output", f'"{filename}"']
-            cmd = " ".join(slim_cmd)
+            slim_cmd += ["--output", filename]
+            cmd = shlex.join(slim_cmd)
 
             if os.path.exists(filename) and os.path.exists(filename + ".cache"):
                 with open(filename + ".cache", "r") as f:
@@ -192,11 +192,11 @@ class RobotOntologyBuildService(OntologyBuildService):
                         if cache.strip() == cmd.strip():
                             return Success(())
 
-            result = await self._execute_command(cmd, shell_flag=True)
+            result = await self._execute_command(slim_cmd)
             if result.successful:
                 with open(filename + ".cache", "w") as f:
                     f.writelines([cmd])
-                    
+
             log += result.void()
 
         return log.to_result()
@@ -250,7 +250,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     *[
                         x
                         for (prefix, definition) in imp.prefixes
-                        for x in ["--prefix", f'"{prefix}: {definition}"']
+                        for x in ["--prefix", f"{prefix}: {definition}"]
                     ],
                 ]
 
@@ -280,17 +280,16 @@ class RobotOntologyBuildService(OntologyBuildService):
             merged_iri,
             "--version-iri",
             merged_iri,
-            "--annotation rdfs:comment ",
-            '"This file contains externally imported content for the '
+            "--annotation",
+            "rdfs:comment",
+            "This file contains externally imported content for the "
             + main_ontology_name
-            + '. It was prepared using ROBOT and a custom script from a spreadsheet of imported terms."',
+            + ". It was prepared using ROBOT and a custom script from a spreadsheet of imported terms.",
             "--output",
-            f'"{merged_file}"',
+            merged_file,
         ]
 
-        cmd = " ".join(build_cmd)
-
-        return (await self._execute_command(cmd, shell_flag=True)).void()
+        return (await self._execute_command(build_cmd)).void()
 
     async def build_ontology(
         self,
@@ -440,11 +439,7 @@ class RobotOntologyBuildService(OntologyBuildService):
                     cmd.extend(
                         [
                             "merge",
-                            *[
-                                x
-                                for d in dependency_file_names
-                                for x in ["--input", f'"{d}"']
-                            ],
+                            *[x for d in dependency_file_names for x in ["--input", d]],
                         ]
                     )
 
@@ -462,18 +457,18 @@ class RobotOntologyBuildService(OntologyBuildService):
             cmd += [
                 a
                 for prefix, definition in prefixes.items()
-                for a in ["--prefix", f'"{prefix}: {definition}"']
+                for a in ["--prefix", f"{prefix}: {definition}"]
             ]
 
         cmd += [
             "annotate",
             "--ontology-iri",
-            f'"{ontology.iri()}"',
+            str(ontology.iri()),
             "--output",
-            f'"{outfile}"',
+            outfile,
         ]
 
-        result = await self._execute_command(" ".join(cmd), cwd=tmp_dir)
+        result = await self._execute_command(cmd, cwd=tmp_dir)
 
         # Merge the import file to readd the OWL imports
         if (
@@ -487,12 +482,12 @@ class RobotOntologyBuildService(OntologyBuildService):
                 "--input",
                 dependency_f.name,
                 "--input",
-                f'"{outfile}"',
+                outfile,
                 "--collapse-import-closure",
                 "false",
                 "annotate",
                 "--ontology-iri",
-                f'"{ontology.iri()}"',
+                str(ontology.iri()),
                 "reason",
                 "--reasoner",
                 "elk",
@@ -503,10 +498,10 @@ class RobotOntologyBuildService(OntologyBuildService):
                 "--axioms",
                 "structural-tautologies",
                 "--output",
-                f'"{outfile}"',
+                outfile,
             ]
 
-            result &= await self._execute_command(" ".join(cmd), cwd=tmp_dir)
+            result &= await self._execute_command(cmd, cwd=tmp_dir)
 
         return result.void()
 
@@ -519,13 +514,11 @@ class RobotOntologyBuildService(OntologyBuildService):
         annotations: Dict[str, str],
     ) -> Result[Any]:
         command = [ROBOT, "merge"]
-        command += [f'"{s}"' for o in ontologies for s in ["--input", o]]
+        command += [s for o in ontologies for s in ["--input", o]]
         command += ["annotate"]
-        command += [
-            f'"{s}"' for k, v in annotations.items() for s in ["--annotation", k, v]
-        ]
-        command += ["--ontology-iri", f'"{iri}"']
-        command += ["--version-iri", f'"{version_iri}"']
+        command += [s for k, v in annotations.items() for s in ["--annotation", k, v]]
+        command += ["--ontology-iri", iri]
+        command += ["--version-iri", version_iri]
 
         command.extend(
             [
@@ -541,9 +534,9 @@ class RobotOntologyBuildService(OntologyBuildService):
             ]
         )
 
-        command += ["--output", f'"{outfile}"']
+        command += ["--output", outfile]
 
-        result = await self._execute_command(" ".join(command))
+        result = await self._execute_command(command)
 
         return result
 
@@ -554,17 +547,13 @@ class RobotOntologyBuildService(OntologyBuildService):
     #                   .replace(temp_dir, iri_prefix)
     #                   .replace("http://www.semanticweb.org/ontologies/temporary", iri_prefix), end='')
 
-    async def _execute_command(
-        self, command_str: str, shell_flag=False, cwd=None
-    ) -> Result[str]:
+    async def _execute_command(self, command: list[str], cwd=None) -> Result[str]:
+        command_str = shlex.join(command)
+        stdout = b""
         with ResultContext() as log:
             self._logger.debug(f"Executing command: {command_str}")
-            proc = await (
-                asyncio.create_subprocess_shell
-                if shell_flag
-                else asyncio.create_subprocess_exec
-            )(
-                command_str,
+            proc = await asyncio.create_subprocess_exec(
+                *command,
                 cwd=cwd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -584,6 +573,6 @@ class RobotOntologyBuildService(OntologyBuildService):
     async def collapse_imports(self, file: str) -> Result[tuple[()]]:
         return (
             await self._execute_command(
-                f'{ROBOT} merge --input "{file}" --output "{file}" -c true'
+                [ROBOT, "merge", "--input", file, "--output", file, "-c", "true"]
             )
         ).void()

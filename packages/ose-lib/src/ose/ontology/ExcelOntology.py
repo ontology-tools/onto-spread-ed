@@ -93,7 +93,7 @@ def get_id(ontology: ho.PyIndexedOntology, iri: str):
 
 class OntologyImport(BaseModel):
     id: str
-    iri: str
+    iri: str | None
     root_id: TermIdentifier | None = None
     intermediates: Literal["all", "minimal"] | None = None
     version_iri: Optional[str] = None
@@ -233,13 +233,13 @@ class ExcelOntology:
         return [r.as_resolved() for r in self._relations if not r.is_unresolved()]
 
     def _parse_term(
-        self, row: List[Tuple[ColumnMapping, Optional[str]]], err_default: dict
+        self, row: list[tuple[ColumnMapping, str]], err_default: dict
     ) -> Result[UnresolvedTerm]:
         log: Log = Log(template=err_default)
         term = UnresolvedTerm()
         unprocessable_columns = []
         for col, val in row:
-            if val is None:
+            if str_empty(val):
                 continue
 
             if not col.valid(val):
@@ -291,13 +291,13 @@ class ExcelOntology:
         return log.fail()
 
     def _parse_import(
-        self, row: List[Tuple[ColumnMapping, Optional[str]]], err_default: dict
+        self, row: list[tuple[ColumnMapping, str]], err_default: dict
     ) -> Result[OntologyImport]:
         log: Log = Log(template=err_default)
         ontology = OntologyImport.model_construct()
         unprocessable_columns = []
         for col, val in row:
-            if val is None:
+            if str_empty(val):
                 continue
 
             if not col.valid(val):
@@ -350,13 +350,13 @@ class ExcelOntology:
         return log.to_result(ontology)
 
     def _parse_relation(
-        self, row: List[Tuple[ColumnMapping, Optional[str]]], err_default: dict
+        self, row: list[tuple[ColumnMapping, str]], err_default: dict
     ) -> Result[UnresolvedRelation]:
         log = Log(template=err_default)
         relation = UnresolvedRelation(owl_property_type=OWLPropertyType.ObjectProperty)
         unprocessable_columns = []
         for col, val in row:
-            if val is None:
+            if str_empty(val):
                 continue
 
             if not col.valid(val):
@@ -450,7 +450,9 @@ class ExcelOntology:
             if other._iri is not None
             else f"excel-import-{len(self._imports) + 1}"
         )
-        ontology = OntologyImport(id=new_id, imported_terms=[t for t in imported_terms])
+        ontology = OntologyImport(
+            id=new_id, iri=f"ose://{new_id}", imported_terms=[t for t in imported_terms]
+        )
         self._imports.append(ontology)
 
         return log.to_result()
@@ -492,7 +494,9 @@ class ExcelOntology:
                         msg=f"Unresolved term '{term}' in import '{name}'",
                     )
 
-        ontology = OntologyImport(id=name, imported_terms=[t for t in imported_terms])
+        ontology = OntologyImport(
+            id=name, iri=f"ose://{name}", imported_terms=[t for t in imported_terms]
+        )
         self._imports.append(ontology)
 
         return log.to_result()
@@ -707,7 +711,7 @@ class ExcelOntology:
 
             mapped.append(mapping)
 
-        rows = ((str(c.value) for c in row) for row in data)
+        rows = (("" if c.value is None else str(c.value) for c in row) for row in data)
         return log.to_result((rows, mapped))
 
     def resolve(self) -> Result[tuple[()]]:
@@ -1432,7 +1436,13 @@ class ExcelOntology:
         for p, d in prefixes.items():
             o.prefix_mapping.add_prefix(p, d)
 
-        propery_kinds = {r.identifier(): r.owl_property_type for r in self.relations()}
+        used_relations = [
+            u.as_resolved() for u in self._used_relations if u.is_resolved()
+        ]
+        propery_kinds = {
+            r.identifier(): r.owl_property_type
+            for r in used_relations + self.relations()
+        }
 
         for term in self.terms():
             if term.id is None or term.label is None:
@@ -1460,13 +1470,14 @@ class ExcelOntology:
             for eq in term.equivalent_to:
                 raise NotImplementedError("TODO: Require later pho which parses MS")
 
-            for relation, value in term.relations:
-                riri = o.iri(relation.id)
+            for term_relation, value in term.relations:
+                riri = o.iri(term_relation.id)
 
-                match propery_kinds.get(relation):
+                match propery_kinds.get(term_relation):
                     case OWLPropertyType.ObjectProperty:
                         if isinstance(value, TermIdentifier):
                             op = o.object_property(riri)
+                            o.declare_object_property(riri)
                             o.add_component(
                                 ho.model.SubClassOf(c, op.some(o.class_(value.id)))
                             )
@@ -1474,13 +1485,14 @@ class ExcelOntology:
                             log.warning(
                                 type="wrong-relation-value-type",
                                 term=term.__dict__,
-                                relation=relation.__dict__,
+                                relation=term_relation.__dict__,
                                 value=value,
                                 message=f"Expected another entity for ObjectProperty relation, got {type(value)}",
                             )
                     case OWLPropertyType.DataProperty:
                         if isinstance(value, TermIdentifier):
                             dp = o.data_property(riri)
+                            o.declare_data_property(riri)
                             o.add_component(
                                 ho.model.SubClassOf(
                                     c,
@@ -1493,13 +1505,14 @@ class ExcelOntology:
                             log.warning(
                                 type="wrong-relation-value-type",
                                 term=term.__dict__,
-                                relation=relation.__dict__,
+                                relation=term_relation.__dict__,
                                 value=value,
                                 message=f"Expected a datatype for DataProperty relation, got {type(value)}",
                             )
                     case OWLPropertyType.AnnotationProperty:
                         if isinstance(value, str):
                             ap = o.annotation_property(riri)
+                            o.declare_annotation_property(riri)
                             o.add_component(
                                 ho.model.AnnotationAssertion(
                                     ciri,
@@ -1512,7 +1525,7 @@ class ExcelOntology:
                             log.warning(
                                 type="wrong-relation-value-type",
                                 term=term.__dict__,
-                                relation=relation.__dict__,
+                                relation=term_relation.__dict__,
                                 value=value,
                                 message=f"Expected a string for AnnotationProperty relation, got {type(value)}",
                             )
@@ -1522,9 +1535,9 @@ class ExcelOntology:
                         log.warning(
                             type="unknown-relation-type",
                             term=term.__dict__,
-                            relation=relation.__dict__,
+                            relation=term_relation.__dict__,
                             value=value,
-                            message=f"Unknown relation type {propery_kinds.get(relation)}",
+                            message=f"Unknown relation type {propery_kinds.get(term_relation)}",
                         )
 
         for relation in self.relations():
@@ -1533,6 +1546,7 @@ class ExcelOntology:
             match relation.owl_property_type:
                 case OWLPropertyType.ObjectProperty:
                     op = o.object_property(riri)
+                    o.declare_object_property(riri)
 
                     if relation.domain and relation.domain.is_resolved():
                         o.add_component(
@@ -1568,6 +1582,7 @@ class ExcelOntology:
 
                 case OWLPropertyType.DataProperty:
                     dp = o.data_property(riri)
+                    o.declare_data_property(riri)
 
                     if relation.domain and relation.domain.is_resolved():
                         o.add_component(
@@ -1595,6 +1610,7 @@ class ExcelOntology:
                         )
                 case OWLPropertyType.AnnotationProperty:
                     ap = o.annotation_property(riri)
+                    o.declare_annotation_property(riri)
 
             o.add_component(
                 ho.model.AnnotationAssertion(
@@ -1621,6 +1637,7 @@ class ExcelOntology:
                     case OWLPropertyType.AnnotationProperty:
                         if isinstance(value, str):
                             ap = o.annotation_property(riri)
+                            o.declare_annotation_property(riri)
                             o.add_component(
                                 ho.model.AnnotationAssertion(
                                     ciri,

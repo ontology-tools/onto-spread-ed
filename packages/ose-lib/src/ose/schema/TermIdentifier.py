@@ -1,5 +1,5 @@
-from dataclasses import asdict, dataclass
-from typing import Optional, overload
+from dataclasses import asdict, dataclass, fields
+from typing import Optional, get_args, overload
 
 @dataclass
 class TermIdentifierBase:
@@ -13,12 +13,13 @@ class TermIdentifierBase:
         return not self.is_unresolved()
         
     def _cast[T: 'TermIdentifierBase'](self, cls: type[T]) -> T:
-        return cls(**asdict(self))
+        return cls(**{f.name: getattr(self, f.name) for f in fields(cls) if f.init})
     
     def _assert_cast[T: 'TermIdentifierBase'](self, cls: type[T]) -> T:
         v = self._cast(cls)
-        if v is None:
-            raise ValueError(f"TermIdentifier cannot be cast to {cls.__name__}: {self}")
+        missing = [f.name for f in fields(cls) if getattr(v, f.name) is None and type(None) not in get_args(f.type)]
+        if missing:
+            raise ValueError(f"{type(self).__name__} cannot be cast to {cls.__name__}, missing {missing}: {self}")
         return v
         
     def as_resolved_identifier(self) -> Optional['TermIdentifier']:
@@ -78,22 +79,22 @@ class TermIdentifierBase:
         return self.id < other.id
 
 
-@dataclass
+@dataclass(eq=False)
 class TermIdentifierWithId(TermIdentifierBase):
     id: str
 
 
-@dataclass
+@dataclass(eq=False)
 class TermIdentifierWithLabel(TermIdentifierBase):
     label: str
 
 
-@dataclass
+@dataclass(eq=False)
 class TermIdentifier(TermIdentifierWithId, TermIdentifierWithLabel):
     pass
 
 
-@dataclass
+@dataclass(eq=False)
 class UnresolvedTermIdentifier(TermIdentifierBase):
     id: Optional[str] = None
     label: Optional[str] = None

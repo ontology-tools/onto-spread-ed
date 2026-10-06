@@ -143,3 +143,11 @@ def test_result_context_uses_given_log():
         log.warning(type="w")
 
     assert log is existing and existing.warnings == [{"type": "w"}]
+
+
+def test_log_plus_result_with_value_requires_void():
+    with pytest.raises(TypeError, match="void"):
+        _ = Log() + Success(1)
+
+    assert Log() + Success(1).void() == Log()
+    assert Log().to_result().value == ()  # type: ignore[attr-defined]

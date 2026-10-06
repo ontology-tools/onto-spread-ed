@@ -1,13 +1,13 @@
 import inspect
 import logging
 from os import path
-import sys
 import tempfile
 
 from ose.result import is_successful
 from ose.building.BuildContext import BuildContext
 from ose.project import BuildConfiguration, Project
 from ose import plugins
+from ose.building import stages as builtin_stage_module
 from ose.building.stages import BuildStage
 
 
@@ -23,12 +23,10 @@ async def start_build(
         f"Starting build for project {project.short_name} in directory {project_dir}"
     )
 
-    current_module = sys.modules[__name__]
-
     builtin_stages = {
         cls.name(): cls
-        for _, cls in inspect.getmembers(current_module, inspect.isclass)
-        if cls.__module__ == __name__ and issubclass(cls, BuildStage)
+        for _, cls in inspect.getmembers(builtin_stage_module, inspect.isclass)
+        if issubclass(cls, BuildStage) and not inspect.isabstract(cls)
     }
 
     plugin_stages = {cls.name(): cls for classes in plugins.for_type(BuildStage).values() for cls in classes}  # type: ignore[type-abstract]
@@ -70,7 +68,7 @@ async def start_build(
     )
 
     stages = [
-        available_stages[s.name](s, build_context, **s.args)
+        available_stages[s.name](s, build_context)
         for s in build_configuration.stages
     ]
 
@@ -78,6 +76,7 @@ async def start_build(
         f"[{build_context.build_id}] Build context: {build_context.model_dump_json(indent=2)}"
     )
 
+    build_context.state = "running"
     for i, stage in enumerate(stages):
         logger.debug(
             f"[{build_context.build_id}] Starting build stage {i+1}/{len(stages)}: {stage.name()}"
@@ -93,7 +92,7 @@ async def start_build(
             )
             build_context.state = "errored"
             break
-
-        build_context.set_stage_result(result=result)
+    else:
+        build_context.state = "completed"
 
     return build_context

@@ -33,7 +33,7 @@ class ConversionStage(BuildStage):
             progress.total_items = len(sources)
 
             external_ontology_result = ExcelOntology.from_owl(
-                self.project.external.target.file, self.project.prefixes
+                self._local_name(self.project.external.target.file), self.project.prefixes
             )
 
             log += external_ontology_result.log
@@ -88,14 +88,14 @@ class ConversionStage(BuildStage):
                     )
                 ]
 
-                log += await builder.build_ontology(
+                log += (await builder.build_ontology(
                     ontology,
                     self._local_name(file.target.file),
                     self.project.prefixes,
                     dependencies,
                     self.context.project_dir,
                     self.project.iri_prefix,
-                )
+                )).void()
 
                 self.context._add_intermediate_artifact(file, type(self).__name__)
 

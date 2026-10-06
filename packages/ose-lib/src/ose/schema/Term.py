@@ -114,7 +114,6 @@ class TermBase(abc.ABC, TermIdentifierBase):
             for x in [
                 self.id,
                 self.label,
-                self.origin,
                 sum(hash(y) for y in self.sub_class_of),
                 sum(hash(y) for y in self.equivalent_to),
                 sum(hash(y) for y in self.disjoint_with),
@@ -123,7 +122,7 @@ class TermBase(abc.ABC, TermIdentifierBase):
         )
 
 
-@dataclass
+@dataclass(eq=False)
 class Term(TermBase):
     id: str
     label: str
