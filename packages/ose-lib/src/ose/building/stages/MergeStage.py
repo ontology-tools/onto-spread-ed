@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Callable, Literal
 
 from ose.utils.asyncio import check_cancelled
@@ -21,7 +21,7 @@ class MergeStage(BuildStage):
 
     @property
     def included_files(self) -> list[str]:
-        return self.step_config.args.get("files", [])
+        return self.config.args.get("files", [])
 
     @with_result_context_method
     async def run(
@@ -47,9 +47,6 @@ class MergeStage(BuildStage):
         for k, file in merge_files:
             progress.next_item(item=file.target.file, message="Collecting")
 
-            [name, ext] = self._local_name(file.target.file).rsplit(".", 1)
-            out_file = f"{name}.with-imports.{ext}"
-                
             ontologies = [
                 self._local_name(n.file)
                 for n in file.sources
@@ -67,7 +64,7 @@ class MergeStage(BuildStage):
                 file.target.ontology_annotations,
             ))
 
-            self.context._add_intermediate_artifact(out_file, type(self).__name__)
+            self.context.add_final_artifact(file, self.name())
 
             await check_cancelled()
 
@@ -90,7 +87,7 @@ class MergeStage(BuildStage):
                 file.target.ontology_annotations,
             ))
 
-            self.context._add_final_artifact(file, type(self).__name__)
+            self.context.add_final_artifact(file, self.name())
 
             await check_cancelled()
         return ()

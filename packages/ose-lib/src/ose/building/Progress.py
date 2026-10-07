@@ -1,5 +1,3 @@
-
-
 from typing import Callable
 
 from pydantic import BaseModel
@@ -39,6 +37,16 @@ class ProgressManager:
                 current_item=self.current_item,
                 total_items=self.total_items,
                 item=item,
+                message=message,
+            )
+            self.on_progress_update(progress)
+
+    def update(self, message: str):
+        if self.on_progress_update:
+            progress = Progress(
+                current_item=-1,
+                total_items=None,
+                item=None,
                 message=message,
             )
             self.on_progress_update(progress)

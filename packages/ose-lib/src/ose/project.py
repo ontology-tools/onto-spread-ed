@@ -74,12 +74,15 @@ class Project(BaseModel):
     files: dict[str, ProjectFile]
 
     build_configurations: list[BuildConfiguration]
-    
+
     spreadsheet_schemas: dict[str, Schema] = {}
-    """
-    Spreadsheet schemas of this project in addition to the builtin ones ("default" and "import"). A schema with
-    the name of a builtin one replaces it.
-    """
+
+    def build_configuration(self, name: str) -> BuildConfiguration:
+        """Returns the build configuration `name`. Raises a `KeyError` if the project has none of that name."""
+        try:
+            return next(bc for bc in self.build_configurations if bc.name == name)
+        except StopIteration:
+            raise KeyError(f"Build configuration '{name}' not found") from None
 
     def spreadsheet_schema(self, name: str) -> Optional[Schema]:
         """Returns the spreadsheet schema `name` including everything it inherits, or `None` if it is unknown"""
@@ -132,8 +135,12 @@ class Project(BaseModel):
             raise ValueError("; ".join(errors))
 
         try:
-            graphlib.TopologicalSorter({name: f.needs for name, f in self.files.items()}).prepare()
+            graphlib.TopologicalSorter(
+                {name: f.needs for name, f in self.files.items()}
+            ).prepare()
         except graphlib.CycleError as e:
-            raise ValueError(f"Cyclic dependency between files: {' -> '.join(reversed(e.args[1]))}")
-        
+            raise ValueError(
+                f"Cyclic dependency between files: {' -> '.join(reversed(e.args[1]))}"
+            )
+
         return self

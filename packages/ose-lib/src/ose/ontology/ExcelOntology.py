@@ -1694,8 +1694,10 @@ class ExcelOntology:
             header += ["origin"]
 
         ws.append(header)
+        
+        terms = sorted(self._terms, key=lambda t: (t.origin[0], t.origin[1]) if t.origin is not None else ("", -1))
 
-        for term in self._terms:
+        for term in terms:
             row = [
                 term.id,
                 term.label,

@@ -79,10 +79,10 @@ class TermBase(abc.ABC, TermIdentifierBase):
 
         return curation_status in ["External"]
 
-    def get_relation_value(self, id: TermIdentifier) -> Optional[Any]:
+    def get_relation_value(self, id: TermIdentifierBase) -> Optional[Any]:
         return next(iter(self.get_relation_values(id)), None)
 
-    def get_relation_values(self, id: TermIdentifier) -> List[Any]:
+    def get_relation_values(self, id: TermIdentifierBase) -> List[Any]:
         return [
             v
             for r, v in self.relations

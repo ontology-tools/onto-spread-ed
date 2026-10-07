@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Literal, Tuple
 from ose.ontology import ExcelOntology, OntologyImport
 from ose.result import ResultContext, Result, with_result_context_method, is_successful
 
-from ose.building.OntoloyBuildService import OntologyBuildService
+from ose.building.OntologyBuildService import OntologyBuildService
 
 import pyhornedowl as ho
 import pyhornedowl.model as hom

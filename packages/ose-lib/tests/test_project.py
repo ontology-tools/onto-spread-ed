@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from pydantic import ValidationError
 
@@ -180,15 +182,34 @@ def test_set_stage_result_requires_running_stage():
 def test_artifacts():
     ctx = make_context()
 
-    ctx._add_intermediate_artifact(ctx.project.files["upper"], "Stage")
-    ctx._add_final_artifact("out/merged.owl", "Other", final_path="merged.owl")
-    ctx._add_source_artifact("upper.xlsx", "Source")
+    ctx.add_intermediate_artifact(ctx.project.files["upper"], "Stage")
+    ctx.add_final_artifact("out/merged.owl", "Other", final_path="merged.owl")
+    ctx.add_source_artifact("upper.xlsx", "Source")
 
     assert [(a.local_path, a.final_path, a.kind, a.origin) for a in ctx.artifacts] == [
         ("upper.owl", "upper.owl", "intermediate", "Stage"),
         ("out/merged.owl", "merged.owl", "final", "Other"),
         ("upper.xlsx", None, "source", "Source"),
     ]
+
+
+def test_artifact_paths_are_relative_to_build_dir():
+    ctx = make_context()
+
+    artifact = ctx.add_final_artifact(os.path.abspath("build/out/a.owl"), "Stage", final_path="a.owl")
+
+    assert artifact.local_path == os.path.join("out", "a.owl")
+    assert ctx.artifact(str(artifact.id)) is artifact
+
+
+def test_final_artifacts_keep_latest_per_final_path():
+    ctx = make_context()
+    ctx.add_final_artifact("first.owl", "A", final_path="merged.owl")
+    ctx.add_intermediate_artifact("tmp.owl", "A", final_path="tmp.owl")
+    latest = ctx.add_final_artifact("second.owl", "B", final_path="merged.owl")
+    other = ctx.add_final_artifact("upper.owl", "B", final_path="upper.owl")
+
+    assert ctx.final_artifacts() == [latest, other]
 
 
 def test_build_context_is_immutable_where_frozen():

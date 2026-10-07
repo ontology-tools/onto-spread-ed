@@ -114,6 +114,6 @@ class ExternalImportsStage(BuildStage):
 
         await check_cancelled()
 
-        self.context._add_final_artifact(file, type(self).__name__)
+        self.context.add_final_artifact(file, self.name())
 
         return ()

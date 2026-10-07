@@ -1,3 +1,5 @@
+import os
+import tempfile
 from datetime import datetime
 from typing import Any, Literal, Optional, TYPE_CHECKING
 
@@ -12,52 +14,54 @@ if TYPE_CHECKING:
 
 type BuildArtifactFile = str | ProjectFile
 
-
-def _to_local_path(file: BuildArtifactFile) -> str:
-    if isinstance(file, str):
-        return file
-    elif isinstance(file, ProjectFile):
-        return file.target.file
-    else:
-        raise ValueError(f"Invalid BuildArtifactFile type: {type(file)}")
+ArtifactKind = Literal["source", "intermediate", "final"]
 
 
 class BuildArtifact(BaseModel):
-    # id = mapped_column(Integer(), primary_key=True)
-    # release_id = mapped_column(Integer(), ForeignKey('releases.id'))
-
+    id: UUID = Field(default_factory=uuid4, frozen=True)
     local_path: str
+    """Path of the file relative to the build directory"""
     final_path: Optional[str] = None
-    # downloadable: bool = True
-    kind: Literal["source", "intermediate", "final"]
+    """Path of the file in the project, if it is published"""
+    kind: ArtifactKind
     origin: str
     creation_time: datetime
 
 
-BuildState = Literal[
-    "starting", "running", "completed", "cancelled", "errored", "paused"
-]
+BuildState = Literal["starting", "running", "completed", "cancelled", "errored", "paused"]
+
+StageResultKind = Literal["skipped", "cancelled", "paused", "failed", "completed"]
 
 
 class _BuildContextStageResult(BaseModel):
     log: Log
     data: dict[str, Any]
-    result: Literal["skipped", "cancelled", "paused", "failed", "completed"]
+    result: StageResultKind
 
 
 class BuildContext(BaseModel):
+    project: Project = Field(frozen=True)
+    """
+    The project being built.
+    """
+
     project_dir: str = Field(frozen=True)
     """
     The directory where the project is located.
     """
-    build_dir: str = Field(frozen=True)
+
+    build_dir: str = Field(
+        frozen=True,
+        default_factory=lambda data: tempfile.mkdtemp(prefix=f"ose-build-{data['project'].short_name}-"),
+    )
     """
-    A directory where build artifacts and temporary files can be stored during the build process.
+    A directory where build artifacts and temporary files can be stored during the build process. Defaults to a new
+    temporary directory.
     """
 
-    project: Project = Field(frozen=True)
+    build_configuration: BuildConfiguration = Field(frozen=True)
     """
-    The project being built.
+    The build configuration used for this build.
     """
 
     artifacts: list[BuildArtifact] = []
@@ -70,17 +74,12 @@ class BuildContext(BaseModel):
     A unique identifier for this build context.
     """
 
-    build_configuration: BuildConfiguration = Field(frozen=True)
-    """
-    The build configuration used for this build.
-    """
-
     current_stage: Optional[int] = None
     """
     The current stage of the build as index for build_configuration.stages.
     """
 
-    state: BuildState
+    state: BuildState = "starting"
     """
     The current state of the build.
     """
@@ -96,11 +95,35 @@ class BuildContext(BaseModel):
 
     @model_validator(mode="after")
     def _validate_stage_results(self) -> "BuildContext":
-        self.stage_results = [None for _ in self.build_configuration.stages]
+        if len(self.stage_results) != len(self.build_configuration.stages):
+            self.stage_results = [None for _ in self.build_configuration.stages]
         return self
 
-    def set_stage_result(self, result: Result[StageResult]):
-        result_type: Literal["skipped", "cancelled", "paused", "failed", "completed"]
+    def next_stage(self) -> int | None:
+        if self.current_stage is None:
+            index = 0
+        else:
+            result = self.stage_results[self.current_stage]
+            should_rerun = result is None or result.result in ("failed", "cancelled")
+            index = self.current_stage + should_rerun
+
+        return index if index < len(self.build_configuration.stages) else None
+
+    def skip_current_stage(self) -> _BuildContextStageResult:
+        if self.current_stage is None:
+            raise ValueError("No active stage")
+
+        result = self.stage_results[self.current_stage]
+        r = _BuildContextStageResult(
+            log=result.log if result is not None else Log(),
+            data=result.data if result is not None else {},
+            result="skipped",
+        )
+        self.stage_results[self.current_stage] = r
+        return r
+
+    def set_stage_result(self, result: "Result[StageResult]") -> _BuildContextStageResult:
+        result_type: StageResultKind
         data: dict[str, Any] = dict()
 
         if self.current_stage is None:
@@ -124,24 +147,23 @@ class BuildContext(BaseModel):
                 case str():
                     result_type = result.value
 
-        self.stage_results[self.current_stage] = _BuildContextStageResult(
-            log=result.log, data=data, result=result_type
-        )
+        r = _BuildContextStageResult(log=result.log, data=data, result=result_type)
+        self.stage_results[self.current_stage] = r
+        return r
 
-    def _add_artifact(
+    def add_artifact(
         self,
         file: BuildArtifactFile,
-        kind: Literal["source", "intermediate", "final"],
+        kind: ArtifactKind,
         origin: str,
         final_path: Optional[str] = None,
-    ):
-        local_path = _to_local_path(file)
-        origin = origin if origin is not None else type(self).__name__
-        final_path = (
-            final_path
-            if final_path is not None
-            else (file.target.file if isinstance(file, ProjectFile) else None)
-        )
+    ) -> BuildArtifact:
+        if isinstance(file, ProjectFile):
+            local_path = file.target.file
+            final_path = final_path if final_path is not None else file.target.file
+        else:
+            local_path = os.path.relpath(file, self.build_dir) if os.path.isabs(file) else file
+
         artifact = BuildArtifact(
             local_path=local_path,
             final_path=final_path,
@@ -150,29 +172,22 @@ class BuildContext(BaseModel):
             creation_time=datetime.now().astimezone(),
         )
         self.artifacts.append(artifact)
+        return artifact
 
-    def _add_source_artifact(
-        self,
-        file: BuildArtifactFile,
-        origin: str,
-        final_path: Optional[str] = None,
-    ):
-        self._add_artifact(file, kind="source", origin=origin, final_path=final_path)
+    def add_source_artifact(self, file: BuildArtifactFile, origin: str, final_path: Optional[str] = None):
+        return self.add_artifact(file, kind="source", origin=origin, final_path=final_path)
 
-    def _add_intermediate_artifact(
-        self,
-        file: BuildArtifactFile,
-        origin: str,
-        final_path: Optional[str] = None,
-    ):
-        self._add_artifact(
+    def add_intermediate_artifact(self, file: BuildArtifactFile, origin: str, final_path: Optional[str] = None):
+        return self.add_artifact(
             file, kind="intermediate", origin=origin, final_path=final_path
         )
 
-    def _add_final_artifact(
-        self,
-        file: BuildArtifactFile,
-        origin: str,
-        final_path: Optional[str] = None,
-    ):
-        self._add_artifact(file, kind="final", origin=origin, final_path=final_path)
+    def add_final_artifact(self, file: BuildArtifactFile, origin: str, final_path: Optional[str] = None):
+        return self.add_artifact(file, kind="final", origin=origin, final_path=final_path)
+
+    def final_artifacts(self) -> list[BuildArtifact]:
+        latest = {a.final_path: a for a in self.artifacts if a.kind == "final" and a.final_path is not None}
+        return list(latest.values())
+
+    def artifact(self, id: UUID | str) -> BuildArtifact | None:
+        return next((a for a in self.artifacts if str(a.id) == str(id)), None)

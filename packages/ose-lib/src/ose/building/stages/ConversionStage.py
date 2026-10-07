@@ -100,7 +100,7 @@ class ConversionStage(BuildStage):
                 )
             )
 
-            self.context._add_intermediate_artifact(file, type(self).__name__)
+            self.context.add_intermediate_artifact(file, self.name())
 
             await check_cancelled()
 

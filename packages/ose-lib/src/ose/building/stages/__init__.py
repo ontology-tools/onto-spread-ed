@@ -1,4 +1,4 @@
-from .BuildStage import BuildStage, StageResult, BuildContext, BuildStep
+from .BuildStage import BuildStage, StageResult, BuildContext, BuildStep, StageResultType
 from .ConversionStage import ConversionStage
 from .ExternalImportsStage import ExternalImportsStage
 from .MergeStage import MergeStage
@@ -13,4 +13,5 @@ __all__ = [
     "ValidationStage",
     "BuildContext",
     "BuildStep",
+    "StageResultType",
 ]

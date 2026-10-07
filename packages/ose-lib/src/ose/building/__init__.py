@@ -7,11 +7,13 @@ from .stages import (
     ExternalImportsStage,
     MergeStage,
 )
+from .BuildContext import BuildArtifact
 from .Progress import Progress, ProgressManager
-from .run import start_build
+from .run import STAGE_ENTRY_POINT_GROUP, available_stages, run_build
 
 __all__ = [
     "BuildStage",
+    "BuildArtifact",
     "BuildContext",
     "StageResult",
     "Progress",
@@ -20,5 +22,7 @@ __all__ = [
     "ExternalImportsStage",
     "MergeStage",
     "ValidationStage",
-    "start_build",
+    "STAGE_ENTRY_POINT_GROUP",
+    "available_stages",
+    "run_build",
 ]

@@ -2,21 +2,24 @@ import asyncio
 import importlib
 import os
 import shutil
+import types
 
 import pyhornedowl as ho
 import pytest
 
 from helpers import RDFS_LABEL, TERM_HEADER, project_data, write_csv, write_owl, write_xlsx
-from ose import plugins
 from ose.building import (
+    STAGE_ENTRY_POINT_GROUP,
     BuildStage,
     ConversionStage,
     ExternalImportsStage,
     MergeStage,
     ValidationStage,
-    start_build,
+    available_stages,
+    run_build,
 )
-from ose.building.Progress import ProgressManager
+from ose.building import run as run_module
+from ose.building.Progress import Progress, ProgressManager
 from ose.building.BuildContext import BuildContext
 from ose.project import BuildConfiguration, BuildStep, Project
 from ose.result import Err, Log, Success, is_err, is_successful
@@ -102,7 +105,7 @@ def test_progress_manager_reports_progress():
     ProgressManager(None).next_item()  # no callback is fine
 
 
-# --- start_build --------------------------------------------------------------
+# --- run_build ----------------------------------------------------------------
 
 
 class RecordingStage(BuildStage):
@@ -113,8 +116,8 @@ class RecordingStage(BuildStage):
         return "RECORD"
 
     async def run(self, on_progress_update=None):
-        RecordingStage.calls.append(self.step_config)
-        return Success(((), {"n": self.step_config.args.get("n")}))
+        RecordingStage.calls.append(self.config)
+        return Success(((), {"n": self.config.args.get("n")}))
 
 
 class FailingStage(BuildStage):
@@ -137,32 +140,89 @@ class RaisingStage(BuildStage):
         raise RuntimeError("boom")
 
 
+class PausingStage(BuildStage):
+    @classmethod
+    def name(cls) -> str:
+        return "PAUSE"
+
+    async def run(self, on_progress_update=None):
+        if on_progress_update:
+            on_progress_update(Progress(current_item=0, total_items=1, item="x", message="Waiting"))
+        return Success(("paused", {"files": ["a.owl"]}))
+
+
+class HangingStage(BuildStage):
+    @classmethod
+    def name(cls) -> str:
+        return "HANG"
+
+    async def run(self, on_progress_update=None):
+        await asyncio.sleep(10)
+
+
+class FakeEntryPoint:
+    def __init__(self, module):
+        self.module = module
+
+    def load(self):
+        return self.module
+
+
+def register_stage_modules(monkeypatch, *modules):
+    """Makes `modules` look like modules registered as `ose.build_stages` entry points"""
+    monkeypatch.setattr(
+        run_module,
+        "entry_points",
+        lambda group: [FakeEntryPoint(m) for m in modules] if group == STAGE_ENTRY_POINT_GROUP else [],
+    )
+
+
 @pytest.fixture
 def test_stages(monkeypatch):
     RecordingStage.calls = []
-    monkeypatch.setattr(plugins, "for_type", lambda typ: {"test": [RecordingStage, FailingStage, RaisingStage]})
+    module = types.ModuleType("test_stages")
+    for cls in [BuildStage, RecordingStage, FailingStage, RaisingStage, PausingStage, HangingStage]:
+        setattr(module, cls.__name__, cls)
+    register_stage_modules(monkeypatch, module)
 
 
 def project_with_stages(*stages: dict) -> Project:
     return Project.model_validate(project_data(build_configurations=[{"name": "default", "stages": list(stages)}]))
 
 
-def test_start_build_runs_stages_in_order(tmp_path, test_stages):
+def new_context(project: Project, tmp_path) -> BuildContext:
+    return BuildContext(
+        project=project,
+        build_configuration=project.build_configuration("default"),
+        project_dir=str(tmp_path),
+        build_dir=str(tmp_path / "build"),
+    )
+
+
+def test_available_stages_finds_stages_of_entry_point_modules(test_stages):
+    stages = available_stages()
+
+    assert {"RECORD", "FAIL", "RAISE", "PAUSE", "HANG"} <= set(stages)
+    assert {"VALIDATION", "EXCEL2OWL", "EXTERNAL_IMPORTS", "MERGE"} <= set(stages)
+    assert stages["RECORD"] is RecordingStage
+    assert BuildStage not in stages.values()  # abstract
+
+
+def test_run_build_runs_stages_in_order(tmp_path, test_stages):
     project = project_with_stages({"name": "RECORD", "args": {"n": 1}}, {"name": "RECORD", "args": {"n": 2}})
 
-    ctx = asyncio.run(start_build(project, "default", str(tmp_path), str(tmp_path / "build")))
+    ctx = asyncio.run(run_build(new_context(project, tmp_path)))
 
     assert [c.args["n"] for c in RecordingStage.calls] == [1, 2]
     assert ctx.state == "completed"
     assert not ctx.is_active
     assert ctx.build_dir == str(tmp_path / "build")
     assert [(r.result, r.data) for r in ctx.stage_results] == [("completed", {"n": 1}), ("completed", {"n": 2})]  # type: ignore[union-attr]
+    assert ctx.next_stage() is None
 
 
-def test_start_build_stops_at_failing_stage(tmp_path, test_stages):
-    project = project_with_stages({"name": "FAIL"}, {"name": "RECORD"})
-
-    ctx = asyncio.run(start_build(project, "default", str(tmp_path), str(tmp_path / "build")))
+def test_run_build_stops_at_failing_stage(tmp_path, test_stages):
+    ctx = asyncio.run(run_build(new_context(project_with_stages({"name": "FAIL"}, {"name": "RECORD"}), tmp_path)))
 
     assert RecordingStage.calls == []
     assert ctx.state == "errored"
@@ -171,10 +231,8 @@ def test_start_build_stops_at_failing_stage(tmp_path, test_stages):
     assert ctx.stage_results[1] is None
 
 
-def test_start_build_records_exception_as_failed_stage(tmp_path, test_stages):
-    project = project_with_stages({"name": "RAISE"}, {"name": "RECORD"})
-
-    ctx = asyncio.run(start_build(project, "default", str(tmp_path), str(tmp_path / "build")))
+def test_run_build_records_exception_as_failed_stage(tmp_path, test_stages):
+    ctx = asyncio.run(run_build(new_context(project_with_stages({"name": "RAISE"}, {"name": "RECORD"}), tmp_path)))
 
     assert RecordingStage.calls == []
     assert ctx.state == "errored"
@@ -182,30 +240,113 @@ def test_start_build_records_exception_as_failed_stage(tmp_path, test_stages):
     assert error["type"] == "exception" and error["msg"] == "boom" and "RuntimeError" in error["traceback"]
 
 
-def test_start_build_accepts_configuration_object_and_creates_build_dir(tmp_path, test_stages):
-    project = project_with_stages()
-    config = BuildConfiguration(name="adhoc", stages=[BuildStep(name="RECORD")])
+def test_context_defaults_to_new_build_dir(tmp_path, test_stages):
+    project = project_with_stages({"name": "RECORD"})
 
-    ctx = asyncio.run(start_build(project, config, str(tmp_path)))
+    ctx = BuildContext(project=project, build_configuration=project.build_configuration("default"), project_dir=".")
 
-    assert ctx.build_configuration == config
+    assert ctx.state == "starting"
     assert os.path.isdir(ctx.build_dir)
-    assert len(RecordingStage.calls) == 1
     shutil.rmtree(ctx.build_dir)
 
 
-def test_start_build_rejects_unknown_configuration(tmp_path, test_stages):
-    with pytest.raises(ValueError, match="'nope' not found"):
-        asyncio.run(start_build(project_with_stages(), "nope", str(tmp_path)))
+def test_project_rejects_unknown_configuration():
+    with pytest.raises(KeyError, match="'nope' not found"):
+        project_with_stages().build_configuration("nope")
 
 
-def test_start_build_rejects_unknown_stages(tmp_path, test_stages):
+def test_run_build_rejects_unknown_stages(tmp_path, test_stages):
     project = project_with_stages({"name": "RECORD"}, {"name": "NOPE"})
 
     with pytest.raises(ValueError, match="Unknown build stages: NOPE"):
-        asyncio.run(start_build(project, "default", str(tmp_path)))
+        asyncio.run(run_build(new_context(project, tmp_path)))
 
     assert RecordingStage.calls == []
+
+
+class CustomContext(BuildContext):
+    release_id: int
+
+
+def test_build_pauses_and_continues(tmp_path, test_stages):
+    project = project_with_stages({"name": "RECORD", "args": {"n": 1}}, {"name": "PAUSE"}, {"name": "RECORD", "args": {"n": 2}})
+    progress, done = [], []
+    ctx = CustomContext(
+        project=project,
+        build_configuration=project.build_configuration("default"),
+        project_dir=str(tmp_path),
+        build_dir=str(tmp_path),
+        release_id=7,
+    )
+
+    ctx = asyncio.run(run_build(
+        ctx,
+        on_progress=lambda c, p: progress.append((c.current_stage, p.message)),
+        on_stage_done=lambda c: done.append((c.current_stage, c.state)),
+    ))
+
+    assert isinstance(ctx, CustomContext) and ctx.release_id == 7
+    assert ctx.state == "paused" and ctx.is_active
+    assert [c.args["n"] for c in RecordingStage.calls] == [1]
+    assert progress == [(1, "Waiting")]
+    assert done == [(0, "running"), (1, "paused")]
+    assert ctx.stage_results[1].data == {"files": ["a.owl"]}  # type: ignore[union-attr]
+    assert ctx.next_stage() == 2
+
+    # A persisted context continues after the paused stage
+    restored = CustomContext.model_validate_json(ctx.model_dump_json())
+    assert restored.stage_results == ctx.stage_results
+
+    restored = asyncio.run(run_build(restored))
+
+    assert restored.state == "completed"
+    assert [c.args["n"] for c in RecordingStage.calls] == [1, 2]
+
+
+def test_run_build_reruns_failed_stage_until_skipped(tmp_path, test_stages):
+    ctx = asyncio.run(run_build(new_context(project_with_stages({"name": "FAIL"}, {"name": "RECORD"}), tmp_path)))
+    assert ctx.state == "errored" and ctx.next_stage() == 0
+
+    ctx = asyncio.run(run_build(ctx))
+    assert ctx.state == "errored" and RecordingStage.calls == []
+
+    ctx.skip_current_stage()
+    assert ctx.stage_results[0].result == "skipped" and ctx.next_stage() == 1  # type: ignore[union-attr]
+
+    ctx = asyncio.run(run_build(ctx))
+    assert ctx.state == "completed" and len(RecordingStage.calls) == 1
+
+
+def test_skipping_last_stage_completes_build(tmp_path, test_stages):
+    ctx = asyncio.run(run_build(new_context(project_with_stages({"name": "FAIL"}), tmp_path)))
+
+    ctx.skip_current_stage()
+    ctx = asyncio.run(run_build(ctx))
+
+    assert ctx.state == "completed"
+
+
+def test_skip_requires_a_stage_that_ran(tmp_path, test_stages):
+    with pytest.raises(ValueError):
+        new_context(project_with_stages({"name": "FAIL"}), tmp_path).skip_current_stage()
+
+
+def test_cancelled_build(tmp_path, test_stages):
+    ctx = new_context(project_with_stages({"name": "HANG"}), tmp_path)
+    done = []
+
+    async def cancel_soon():
+        task = asyncio.create_task(run_build(ctx, on_stage_done=lambda c: done.append(c.state)))
+        await asyncio.sleep(0.01)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(cancel_soon())
+
+    assert ctx.state == "cancelled" and done == ["cancelled"]
+    assert ctx.stage_results[0].result == "cancelled"  # type: ignore[union-attr]
+    assert ctx.next_stage() == 0  # a cancelled stage runs again
 
 
 BUILTIN_STAGES = [ConversionStage, ExternalImportsStage, MergeStage, ValidationStage]
@@ -216,8 +357,8 @@ def test_builtin_stage_names_are_unique():
 
 
 @pytest.mark.parametrize("stage", BUILTIN_STAGES, ids=lambda s: s.__name__)
-def test_start_build_finds_builtin_stages(tmp_path, monkeypatch, stage):
-    monkeypatch.setattr(plugins, "for_type", lambda typ: {})
+def test_run_build_finds_builtin_stages(tmp_path, monkeypatch, stage):
+    register_stage_modules(monkeypatch)
     ran = []
 
     async def run(self, on_progress_update=None):
@@ -226,11 +367,10 @@ def test_start_build_finds_builtin_stages(tmp_path, monkeypatch, stage):
 
     monkeypatch.setattr(stage, "run", run)
 
-    ctx = asyncio.run(start_build(project_with_stages({"name": stage.name()}), "default", str(tmp_path)))
+    ctx = asyncio.run(run_build(new_context(project_with_stages({"name": stage.name()}), tmp_path)))
 
     assert ran == [stage]
     assert ctx.state == "completed"
-    shutil.rmtree(ctx.build_dir)
 
 
 # --- ValidationStage ----------------------------------------------------------
@@ -324,9 +464,11 @@ def test_merge_stage_merges_owl_sources(build_dir):
     write_owl(build_dir / "b.owl", {EX + "0000002": "object"}, {EX + "0000002": EX + "0000001"})
     data = project_data(files={"merged": {"sources": ["a.owl", "b.owl"], "target": "merged.owl"}})
 
-    result = run_stage(MergeStage, make_context(build_dir, data, "MERGE"))
+    ctx = make_context(build_dir, data, "MERGE")
+    result = run_stage(MergeStage, ctx)
 
     assert is_successful(result), result.log.errors
+    assert [(a.local_path, a.final_path, a.kind) for a in ctx.artifacts] == [("merged.owl", "merged.owl", "final")]
     merged = ho.open_ontology(str(build_dir / "merged.owl"))
     assert merged.get_classes() >= {EX + "0000001", EX + "0000002"}
     assert merged.get_superclasses(EX + "0000002") == {EX + "0000001"}

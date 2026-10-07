@@ -9,7 +9,7 @@ from typing import Optional, Any, Dict, List, Tuple, Literal
 
 from ose.utils.asyncio import max_concurrency
 
-from ose.building.OntoloyBuildService import OntologyBuildService
+from ose.building.OntologyBuildService import OntologyBuildService
 from ose.ontology import ExcelOntology, OntologyImport
 from ose.schema import OWLPropertyType, TermIdentifier
 from ose.result import ResultContext, Result, with_result_context_method, is_successful

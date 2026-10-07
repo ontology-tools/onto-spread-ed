@@ -1,7 +1,7 @@
 import abc
 from os import path
 from pathlib import Path
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Generic, Literal, TypeVar
 
 
 from ose.building.Progress import Progress
@@ -13,16 +13,16 @@ from ose.result import Result
 
 StageResultType = Literal["skipped", "cancelled", "paused"] | tuple[()]
 
-# class DetailedStageResult(BaseModel):
-#     result: StageResultType = ()
-#     data: dict = Field(default_factory=dict)
-
 StageResult = StageResultType | tuple[StageResultType, dict[str, Any]] | dict[str, Any]
 
+T = TypeVar("T", bound=BuildContext)
 
-class BuildStage(abc.ABC):
-    def __init__(self, step_config: BuildStep, context: BuildContext):
-        self.step_config = step_config
+class BuildStage(abc.ABC, Generic[T]):
+    config: BuildStep
+    context: T
+    
+    def __init__(self, step_config: BuildStep, context: T):
+        self.config = step_config
         self.context = context
 
     @classmethod
