@@ -1,41 +1,25 @@
-import io
 import logging
-from typing import List, Union, Dict
 
-import openpyxl
 from whoosh.index import FileIndex
-from whoosh.qparser import MultifieldParser
+from whoosh.qparser import MultifieldParser # pyright: ignore[reportPrivateImportUsage]
 from whoosh.writing import SegmentWriter
+
+from ose.project import Project
 
 _logger = logging.getLogger(__name__)
 
-EntityData = Dict[str, str]
+EntityData = dict[str, str]
 
 
-def parse_input_sheet(file: Union[str, bytes, io.BytesIO]) -> List[EntityData]:
-    """
-    Parses a given Excel file to pairs of headers and data
-
-    The first line of the Excel file is interpreted as header. All following lines are combined with this header and
-    returned.
-
-    :param file: The Excel file. Either a filename or bytes of the Excel file
-    :return: Pairs of headers and data
-    """
-    if isinstance(file, bytes):
-        file = io.BytesIO(file)
-
-    wb = openpyxl.load_workbook(file)
-
-    sheet = wb.active
-    data = sheet.rows
-
-    header = [i.value for i in next(data)]
-
-    return [{header[i]: cell.value for i, cell in enumerate(row)} for row in data]
+def indexed_files(project: Project) -> list[str]:
+    """The spreadsheets whose terms are indexed, i.e. every spreadsheet source of the project"""
+    return list(dict.fromkeys(
+        s.file for f in [project.external, *project.files.values()] for s in f.sources if s.type != "owl"
+    ))
 
 
-def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, entity_data: List[EntityData]):
+
+def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, entity_data: list[EntityData]):
     writer = index.writer(timeout=60)  # Wait 60s for the writer lock
     mparser = MultifieldParser(["repo", "spreadsheet"],
                                schema=index.schema)

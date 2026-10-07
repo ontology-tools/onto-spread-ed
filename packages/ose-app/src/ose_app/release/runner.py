@@ -1,106 +1,70 @@
+import asyncio
 import logging
 import os
-import tempfile
 import threading
-import traceback
-from datetime import datetime
-from typing import List, Dict, Type
+from datetime import datetime, timezone
+from typing import Any, Coroutine
 
-from flask_github import GitHub, GitHubError
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import Query
 
-from ose_app.release.common import fetch_assert_release
-from ose_app.services.PluginService import PluginService
+from ose.building import Progress, run_build
 
-from .GithubPublishReleaseStep import GithubPublishReleaseStep
-from .HumanVerificationReleaseStep import HumanVerificationReleaseStep
-from .PreparationReleaseStep import PreparationReleaseStep
-from .ReleaseStep import ReleaseStep
-from .common import update_release, ReleaseCanceledException, set_release_info
-from ..database.Release import Release
-from ose.project import Project
-from ..services.ConfigurationService import ConfigurationService
+from ose_app.database.Release import OPEN_STATES, Release
+from ose_app.release.stages import ReleaseContext
 
-BUILT_IN_RELEASE_STEPS: List[Type[ReleaseStep]] = [
-    PreparationReleaseStep,
-    HumanVerificationReleaseStep,
-    GithubPublishReleaseStep,
-]
+_logger = logging.getLogger(__name__)
 
-BUILT_IN_RELEASE_STEPS_DICT: Dict[str, Type[ReleaseStep]] = dict(
-    [(r.name(), r) for r in BUILT_IN_RELEASE_STEPS]
-)
+CANCEL_POLL_INTERVAL = 2
+"""Seconds between checks whether a running release was cancelled"""
 
-def do_release(db: SQLAlchemy, gh: GitHub, release_script: Project, release_id: int,
-               config: ConfigurationService, plugin_service: PluginService) -> None:
-    logger = logging.getLogger(__name__)
-    
-    available_release_steps = BUILT_IN_RELEASE_STEPS_DICT.copy()
-    available_release_steps.update(
-        (step.name(), step) for step in plugin_service.get_release_steps()
-    )
 
-    q: Query[Release] = db.session.query(Release)
-    
+def load_context(release: Release, github_token: str) -> ReleaseContext:
+    return ReleaseContext.model_validate({**(release.context or {}), "github_token": github_token})
+
+
+def save_context(db: SQLAlchemy, release_id: int, context: ReleaseContext) -> None:
+    release = _fetch(db, release_id)
+    # A cancellation requested by a user must not be overwritten by the worker
+    state = "cancelled" if release.state == "cancelled" else context.state
+
+    release.context = {**context.model_dump(mode="json"), "state": state}
+    release.state = state
+    if state not in OPEN_STATES and release.end is None:
+        release.end = datetime.now(timezone.utc)
+    db.session.commit()
+
+
+async def run_release(db: SQLAlchemy, release_id: int, github_token: str) -> None:
+    release = _fetch(db, release_id)
+    context = load_context(release, github_token)
+
+    release.worker_id = f"{os.getpid()}-{threading.current_thread().ident}"
+    release.state = "running"
+    release.progress = None
+    db.session.commit()
+
+    def on_progress(c: ReleaseContext, progress: Progress) -> None:
+        r = _fetch(db, release_id)
+        r.progress = {"stage": c.current_stage, **progress.model_dump(mode="json")}
+        db.session.commit()
+
     try:
-        release = fetch_assert_release(q, release_id)
-
-        if release.local_dir:
-            tmp = release.local_dir
-        else:
-            # tmp_dir = os.path.abspath("./release-working-dir/")
-            # os.makedirs(tmp_dir, exist_ok=True)
-            tmp_dir = tempfile.mkdtemp(f"onto-spread-ed-release-{release_id}")
-            tmp = tmp_dir
-
-        last_step = fetch_assert_release(q, release_id).step
-        update_release(q, release_id, {
-            Release.state: "running",
-            Release.worker_id: f"{os.getpid()}-{threading.current_thread().ident}",
-            Release.local_dir: tmp
-        })
-
-        release_steps = []
-        for step in release_script.steps:
-            step_ctor = available_release_steps.get(step.name, None)
-            if step_ctor is None:
-                raise ValueError(f"Unknown release step '{step.name}")
-
-            release_steps.append(step_ctor(db, gh, release_script, release_id, tmp, config, **step.args))
-
-        for i, step in enumerate(release_steps):
-            if last_step <= i:
-                continu = step.run()
-                if not continu:
-                    return
-
-                current_step = fetch_assert_release(q, release_id).step
-                if current_step <= last_step and i != len(release_steps) - 1:
-                    logger.error("The step did not change after a release step was executed. "
-                                 "Did an error occur? Not running further release steps.")
-                    return
-
-                last_step = current_step
-
-        update_release(q, release_id, {
-            Release.state: "completed",
-            Release.end: datetime.utcnow(),
-            Release.running: False
-        })
-
-    except ReleaseCanceledException:
-        pass
-    except GitHubError as e:
-        set_release_info(q, release_id, {"error": {
-            "short": "GitHub " + str(e),
-            "long": f"While communicating with github ({e.response.url}) the error {str(e)} occurred.",
-            "url": e.response.url
-        }})
-        update_release(q, release_id, {Release.state: "errored"})
-    except Exception as e:
-        set_release_info(q, release_id, {"error": {"short": str(e), "long": traceback.format_exc()}})
-        update_release(q, release_id, {Release.state: "errored"})
-        logger.error(traceback.format_exc())
+        await run_build(context, on_progress, lambda c, _1, _2: save_context(db, release_id, c))
+    except (Exception, BaseException):
+        _logger.exception(f"Release {release_id} failed")
+        context.state = "errored"
+        save_context(db, release_id, context)
+        raise
     finally:
-        update_release(q, release_id, {Release.worker_id: None})
+        r = _fetch(db, release_id)
+        r.worker_id = None
+        db.session.commit()
+
+
+
+def _fetch(db: SQLAlchemy, release_id: int) -> Release:
+    db.session.expire_all()  # see changes of other requests and workers
+    release = db.session.get(Release, release_id)
+    if release is None:
+        raise ValueError(f"Release with id '{release_id}' not found.")
+    return release

@@ -31,6 +31,10 @@ REPOSITORIES_REPOSITORY_CONFIG_BASE_URL = 'repos/{full_name}/contents/{path}'
 REPOSITORIES_REPOSITORY_CONFIG_REQUEST_HEADERS = {
     "Accept": "application/vnd.github.raw+json",
 }
+REPOSITORIES_REPOSITORY_CONFIG_LOCAL_DIR = 'repositories'
+"""Directory of the local clones of the loaded repositories"""
+REPOSITORIES_REPOSITORY_CONFIG_GITHUB_TOKEN = None
+"""Token used to clone and fetch repositories. Only needed for private repositories."""
 
 BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"
 ADDICTO_VOCAB_API_PATH = "https://api.addictovocab.org/"

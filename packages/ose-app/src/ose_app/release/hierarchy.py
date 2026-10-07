@@ -3,19 +3,19 @@ from typing import Callable, Optional
 import networkx as nx
 import pyhornedowl
 
-from ..database.Release import ReleaseArtifact
+from ose.building.BuildContext import BuildArtifact
 from ose.ontology import ExcelOntology
 from ose.project import ProjectFile
-from ose.schema import TermIdentifier
+from ose.schema import termid
 
 
 def build_hierarchy(
     file: ProjectFile,
-    artifacts: list[ReleaseArtifact],
+    artifacts: list[BuildArtifact],
     local_name_fn: Callable[[str], str],
     prefixes: dict[str, str],
 ) -> tuple[nx.DiGraph, pyhornedowl.PyIndexedOntology]:
-    """Build a hierarchy graph and ontology from a release script file.
+    """Build a hierarchy graph and ontology from a project file.
 
     Loads the OWL ontology for the given file, extracts class hierarchy
     information, and returns a pruned directed graph containing only
@@ -23,9 +23,9 @@ def build_hierarchy(
     paths to those terms.
 
     Args:
-        file: The release script file definition (sources + target).
-        artifacts: Release artifacts from previous steps (used to find built OWL files).
-        local_name_fn: Function mapping remote file paths to local paths.
+        file: The project file definition (sources + target).
+        artifacts: Build artifacts from previous stages (used to find built OWL files).
+        local_name_fn: Function mapping project file paths to local paths.
         prefixes: IRI prefix mappings to register with the ontology.
 
     Returns:
@@ -33,7 +33,7 @@ def build_hierarchy(
         attributes ``label``, ``definition``, and optional annotation keys.
     """
     release_file: str = next(
-        (a.local_path for a in artifacts if a.target_path == file.target.file and a.kind == "final"),
+        (local_name_fn(a.local_path) for a in artifacts if a.final_path == file.target.file and a.kind == "final"),
         local_name_fn(file.target.file),
     )
 
@@ -62,26 +62,26 @@ def build_hierarchy(
     excel_ontology = ExcelOntology(file.target.iri)
     for s in file.sources:
         if s.type == "classes":
-            excel_ontology.add_terms_from_excel(s.file, local_name_fn(s.file)).ok_or_raise()
+            excel_ontology.add_terms_from_excel(s.file, local_name_fn(s.file)).value_or_raise()
         elif s.type == "relations":
-            excel_ontology.add_relations_from_excel(s.file, local_name_fn(s.file)).ok_or_raise()
+            excel_ontology.add_relations_from_excel(s.file, local_name_fn(s.file)).value_or_raise()
 
     def node_annotations(iri: str) -> dict[str, str | None]:
         id = ontology.get_id_for_iri(iri)
         if id is None:
             return dict()
 
-        term = excel_ontology._raw_term_by_id(id)
-        if term is None or isinstance(term, TermIdentifier):
+        term = excel_ontology.term_by_id(id)
+        if term is None:
             return dict()
 
         return {
-            "comment": term.get_relation_value(TermIdentifier(id="rdfs:comment")),
-            "subontology": term.get_relation_value(TermIdentifier(label="lowerLevelOntology")),
-            "examples": "; ".join(term.get_relation_values(TermIdentifier(id="IAO:0000112"))),
-            "synonyms": "; ".join(term.get_relation_values(TermIdentifier(id="IAO:0000118"))),
-            "crossreference": "; ".join(term.get_relation_values(TermIdentifier(id="oboInOwl:hasDbXref"))),
-            "informaldefinition": term.get_relation_value(TermIdentifier(label="informalDefinition")),
+            "comment": term.get_relation_value(termid(id="rdfs:comment")),
+            "subontology": term.get_relation_value(termid(label="lowerLevelOntology")),
+            "examples": "; ".join(term.get_relation_values(termid(id="IAO:0000112"))),
+            "synonyms": "; ".join(term.get_relation_values(termid(id="IAO:0000118"))),
+            "crossreference": "; ".join(term.get_relation_values(termid(id="oboInOwl:hasDbXref"))),
+            "informaldefinition": term.get_relation_value(termid(label="informalDefinition")),
         }
 
     G = nx.DiGraph()
