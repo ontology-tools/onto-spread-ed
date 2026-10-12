@@ -36,6 +36,9 @@ def save_context(db: SQLAlchemy, release_id: int, context: ReleaseContext) -> No
 
 async def run_release(db: SQLAlchemy, release_id: int, github_token: str) -> None:
     release = _fetch(db, release_id)
+    if release.state == "cancelled":
+        return
+
     context = load_context(release, github_token)
 
     release.worker_id = f"{os.getpid()}-{threading.current_thread().ident}"
@@ -48,17 +51,34 @@ async def run_release(db: SQLAlchemy, release_id: int, github_token: str) -> Non
         r.progress = {"stage": c.current_stage, **progress.model_dump(mode="json")}
         db.session.commit()
 
+    build = asyncio.create_task(run_build(context, on_progress, lambda c, _1, _2: save_context(db, release_id, c)))
+    watcher = asyncio.create_task(_cancel_when_requested(db, release_id, build))
+
     try:
-        await run_build(context, on_progress, lambda c, _1, _2: save_context(db, release_id, c))
+        await build
+    except asyncio.CancelledError:
+        current = asyncio.current_task()
+        if current is not None and current.cancelling():
+            raise
+        
+        _logger.info(f"Release {release_id} was cancelled")
     except (Exception, BaseException):
         _logger.exception(f"Release {release_id} failed")
         context.state = "errored"
         save_context(db, release_id, context)
         raise
     finally:
+        watcher.cancel()
         r = _fetch(db, release_id)
         r.worker_id = None
         db.session.commit()
+
+
+async def _cancel_when_requested(db: SQLAlchemy, release_id: int, build: asyncio.Task) -> None:
+    while not build.done():
+        await asyncio.sleep(CANCEL_POLL_INTERVAL)
+        if not build.done() and _fetch(db, release_id).state == "cancelled":
+            build.cancel()
 
 
 

@@ -567,7 +567,12 @@ class RobotOntologyBuildService(OntologyBuildService):
         except OSError as e:
             ctx.fail(type="command-failed", command=command_str, msg=str(e))
 
-        stdout, stderr = await proc.communicate()
+        try:
+            stdout, stderr = await proc.communicate()
+        except asyncio.CancelledError:
+            proc.kill()
+            await proc.wait()
+            raise
 
         if proc.returncode != 0:
             sout = stdout.decode() if stdout is not None else None

@@ -110,7 +110,6 @@ def release_cancel(repo: str, db: SQLAlchemy):
         return release_or_err
 
     release = release_or_err
-    # A running worker notices the state and stops the build
     release.state = "cancelled"
     release.context = {**(release.context or {}), "state": "cancelled"}
     release.end = datetime.datetime.now(datetime.timezone.utc)

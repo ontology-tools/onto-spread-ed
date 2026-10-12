@@ -1,13 +1,12 @@
 from .stages import (
     BuildStage,
-    BuildContext,
     StageResult,
     ValidationStage,
     ConversionStage,
     ExternalImportsStage,
     MergeStage,
 )
-from .BuildContext import BuildArtifact
+from .BuildContext import BuildArtifact, BuildContext
 from .Progress import Progress, ProgressManager
 from .run import STAGE_ENTRY_POINT_GROUP, available_stages, run_build
 
