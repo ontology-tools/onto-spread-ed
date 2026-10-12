@@ -3,15 +3,14 @@ import pickle
 import logging
 import re
 import traceback
-from flask import Blueprint, g, json, jsonify
+from flask import Blueprint, g, jsonify
 
 from ose_app.guards.with_permission import requires_permissions
-from ose.model.Term import Term, UnresolvedTerm
-from ose.model.ExcelOntology import ExcelOntology
-from ose.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
-from ose.model.TermIdentifier import TermIdentifier
-from ose.services.FileCache import FileCache
-from ose.services.ConfigurationService import ConfigurationService
+from ose.ontology import ExcelOntology
+from ose.project import ProjectFile
+from ose.schema import Term, UnresolvedTerm, TermIdentifier
+from ose_app.services.FileCache import FileCache
+from ose_app.services.ConfigurationService import ConfigurationService
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +41,8 @@ def get_dependencies(
         logger.info(f"Loading dependencies for {repo}/{path}")
 
         # Get file SHA for cache key
-        repository = config.get(repo)
-        if repository is None:
+        project = config.get(repo)
+        if project is None:
             logger.error(f"Repository configuration not found for: {repo}")
             return (
                 jsonify(
@@ -62,48 +61,42 @@ def get_dependencies(
 
         logger.debug(f"Cache miss for {cache_key}, loading from source")
 
-        # Load release script
-        logger.debug(f"Loading release script from {repository.release_script_path}")
-        release_script_json = json.loads(
-            config.get_file(repository, repository.release_script_path)
-        )
-        release_script = ReleaseScript.from_json(release_script_json)
-        logger.debug("Release script loaded successfully")
-
         # Load externals
-        logger.debug(f"Loading externals from {release_script.external.target.file}")
-        externals_owl = config.get_file(repository, release_script.external.target.file)
+        logger.debug(f"Loading externals from {project.external.target.file}")
+        externals_owl = config.get_file(project, project.external.target.file)
+        if externals_owl is None:
+            raise ValueError(f"External file '{project.external.target.file}' not found")
         externals_ontology = ExcelOntology.from_owl(
             externals_owl,
-            repository.prefixes,
-            "dependency:" + release_script.external.target.file,
-        ).value
+            project.prefixes,
+            "dependency:" + project.external.target.file,
+        ).value_or_raise()
         logger.debug(f"Externals loaded: {len(list(externals_ontology.terms()))} terms")
 
         # Load derived
-        def get_derived(file: ReleaseScriptFile) -> list[ReleaseScriptFile]:
-            name = next(n for n, f in release_script.files.items() if f == file)
-            derived: list[ReleaseScriptFile] = [
-                s for s in release_script.files.values() if name in s.needs
+        def get_derived(file: ProjectFile) -> list[ProjectFile]:
+            name = next(n for n, f in project.files.items() if f == file)
+            derived: list[ProjectFile] = [
+                s for s in project.files.values() if name in s.needs
             ]
             return derived + [item for s in derived for item in get_derived(s)]
 
-        logger.debug(f"Finding release script file for path: {path}")
+        logger.debug(f"Finding project file for path: {path}")
         try:
-            release_script_file = next(
+            project_file = next(
                 f
-                for f in release_script.files.values()
+                for f in project.files.values()
                 if path in [s.file for s in f.sources]
             )
         except StopIteration:
-            logger.error(f"No release script file found for path: {path}")
+            logger.error(f"No project file found for path: {path}")
             logger.debug(
-                f"Available paths: {[s.file for f in release_script.files.values() for s in f.sources]}"
+                f"Available paths: {[s.file for f in project.files.values() for s in f.sources]}"
             )
             return (
                 jsonify(
                     {
-                        "msg": f"Path not found in release script: {path}",
+                        "msg": f"Path not found in project: {path}",
                         "success": False,
                     }
                 ),
@@ -111,7 +104,7 @@ def get_dependencies(
             )
 
         logger.debug("Loading derived files")
-        derived = get_derived(release_script_file)
+        derived = get_derived(project_file)
         derived = [
             d for i, d in enumerate(derived) if d not in derived[:i]
         ]  # Remove duplicates
@@ -122,56 +115,61 @@ def get_dependencies(
         for der in derived:
             for source in der.sources:
                 if source.type == "classes":
-                    xlsx = config.get_file_raw(repository, source.file)
-                    excel_ontology = ExcelOntology.from_excel(
-                        source.file, [(source.file, xlsx, source.type)]
+                    xlsx = config.get_file_raw(project, source.file)
+                    if xlsx is None:
+                        raise ValueError(f"File '{source.file}' not found")
+                    derived_ontology.add_terms_from_excel(
+                        source.file, xlsx, project.spreadsheet_schema(source.spreadsheet_schema)
                     )
-                    derived_ontology.merge(excel_ontology)
                 elif source.type == "owl":
-                    owl_data = config.get_file(repository, source.file)
+                    owl_data = config.get_file(project, source.file)
+                    if owl_data is None:
+                        raise ValueError(f"File '{source.file}' not found")
                     owl_ontology = ExcelOntology.from_owl(
-                        owl_data, repository.prefixes
-                    ).value
-                    derived_ontology.merge(owl_ontology)
+                        owl_data, project.prefixes
+                    ).value_or_raise()
+                    derived_ontology.merge_with(owl_ontology)
 
         # Load dependencies
         def get_dependencies_recursive(
-            file: ReleaseScriptFile,
-        ) -> list[ReleaseScriptFile]:
-            dependencies: list[ReleaseScriptFile] = [
-                s for n, s in release_script.files.items() if n in file.needs
+            file: ProjectFile,
+        ) -> list[ProjectFile]:
+            dependencies: list[ProjectFile] = [
+                s for n, s in project.files.items() if n in file.needs
             ]
             return dependencies + [
                 item for s in dependencies for item in get_dependencies_recursive(s)
             ]
 
         logger.debug("Loading dependency files")
-        dependencies = get_dependencies_recursive(release_script_file)
+        dependencies = get_dependencies_recursive(project_file)
         dependencies = [
             d for i, d in enumerate(dependencies) if d not in dependencies[:i]
         ]  # Remove duplicates
         logger.debug(f"Found {len(dependencies)} dependency files")
 
         dependencies_ontology = ExcelOntology(terms_iri + "/dependencies")
-        dependencies_ontology.merge(externals_ontology)
+        dependencies_ontology.merge_with(externals_ontology)
         for dep in dependencies:
             for source in dep.sources:
                 if source.type == "classes":
-                    xlsx = config.get_file_raw(repository, source.file)
-                    excel_ontology = ExcelOntology.from_excel(
-                        source.file, [("dependency:" + source.file, xlsx, source.type)]
+                    xlsx = config.get_file_raw(project, source.file)
+                    if xlsx is None:
+                        raise ValueError(f"File '{source.file}' not found")
+                    dependencies_ontology.add_terms_from_excel(
+                        "dependency:" + source.file, xlsx, project.spreadsheet_schema(source.spreadsheet_schema)
                     )
-                    dependencies_ontology.merge(excel_ontology)
                 elif source.type == "owl":
-                    owl_data = config.get_file(repository, source.file)
+                    owl_data = config.get_file(project, source.file)
+                    if owl_data is None:
+                        raise ValueError(f"File '{source.file}' not found")
                     owl_ontology = ExcelOntology.from_owl(
                         owl_data,
-                        repository.prefixes,
+                        project.prefixes,
                         origin="dependency:" + source.file,
-                    ).value
-                    dependencies_ontology.merge(owl_ontology)
-                    
-                    
+                    ).value_or_raise()
+                    dependencies_ontology.merge_with(owl_ontology)
+
         derived_ontology.import_other_excel_ontology(dependencies_ontology)
         derived_ontology.resolve()
 

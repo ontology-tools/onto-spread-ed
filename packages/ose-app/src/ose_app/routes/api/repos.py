@@ -1,4 +1,3 @@
-import json
 import os.path
 from os.path import normpath
 
@@ -6,9 +5,8 @@ from flask import Blueprint, g, jsonify, current_app
 from flask_github import GitHub
 
 from ose_app.guards.with_permission import requires_permissions
-from ose.model.ReleaseScript import ReleaseScript
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils import save_file
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.utils import save_file
 
 bp = Blueprint("api_repo", __name__, url_prefix="/api/repo")
 
@@ -21,8 +19,7 @@ def get_repos(config: ConfigurationService):
                  .get(user_name, config.app_config['USERS'].get("*", {}))
                  .get("repositories", []))
 
-    repositories = config.loaded_repositories()
-    repos = [dict(short=k, full=repositories[k].full_name) for k in repo_keys]
+    repos = [dict(short=k, full=p.full_repository_name) for k in repo_keys if (p := config.get(k)) is not None]
 
     return jsonify(repos)
 
@@ -30,15 +27,9 @@ def get_repos(config: ConfigurationService):
 @bp.route("/<repo>/install_workflow/<name>", methods=["POST"])
 @requires_permissions("admin")
 def install_workflow(gh: GitHub, config: ConfigurationService, repo: str, name: str):
-    repo = config.get(repo)
-    if not repo:
+    project = config.get(repo)
+    if project is None:
         return jsonify({"msg": f"No such repository '{repo}'", "success": False}), 404
-
-    release_script_json = config.get_file(repo, repo.release_script_path)
-    if not release_script_json:
-        return jsonify({"msg": f"No release script found in '{repo}'", "success": False}), 404
-
-    release_script = ReleaseScript.from_json(json.loads(release_script_json))
 
     name = normpath(name).split("/")[-1]
     filepath = f"{current_app.static_folder}/workflows/{name}.yaml.jinja2"
@@ -47,9 +38,9 @@ def install_workflow(gh: GitHub, config: ConfigurationService, repo: str, name: 
 
     with open(filepath, "r") as f:
         template = f.read()
-        rendered = current_app.jinja_env.from_string(template).render(release_script=release_script)
+        rendered = current_app.jinja_env.from_string(template).render(release_script=project)
 
-        save_file(gh, repo.full_name, f".github/workflows/{name}.yaml", rendered.encode("utf-8"),
-                  f"Add {name} workflow", repo.main_branch)
+        save_file(gh, project.full_repository_name, f".github/workflows/{name}.yaml", rendered.encode("utf-8"),
+                  f"Add {name} workflow", project.main_branch)
 
     return jsonify({"msg": f"Workflow '{name}' installed", "success": True})

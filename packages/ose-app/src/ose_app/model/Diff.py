@@ -35,7 +35,7 @@ SDiff = Diff[str]
 PRIMITIVE_TYPES = (bool, str, int, float, type(None))
 
 
-def diff(a, b, __path="") -> List[Diff]:
+def diff(a, b, __path: str ="") -> List[Diff]:
     if not (dataclasses.is_dataclass(a) or isinstance(a, dict)) or not \
             (dataclasses.is_dataclass(b) or isinstance(b, dict)):
         raise ValueError(f"Values must be dataclasses or dictionaries. a: '{type(a)}', b: '{type(b)}'")

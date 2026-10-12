@@ -2,7 +2,7 @@ import logging
 
 from whoosh.index import FileIndex
 from whoosh.qparser import MultifieldParser # pyright: ignore[reportPrivateImportUsage]
-from whoosh.writing import SegmentWriter
+from whoosh.writing import IndexWriter, SegmentWriter
 
 from ose.project import Project
 
@@ -32,7 +32,7 @@ def re_write_entity_data_set(repo_name: str, index: FileIndex, sheet_name: str, 
     writer.commit(optimize=True)
 
 
-def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name: str, writer: SegmentWriter):
+def add_entity_data_to_index(entity_data: EntityData, repo_name: str, sheet_name: str, writer: IndexWriter):
     rowdata = entity_data
 
     if 'Curation status' in entity_data and str(entity_data["Curation status"]) == "Obsolete":

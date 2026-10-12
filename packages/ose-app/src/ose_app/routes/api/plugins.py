@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, send_from_directory, abort
 
-from ose.services.PluginService import PluginService
+from ose_app.services.PluginService import PluginService
 
 bp = Blueprint("api_plugins", __name__, url_prefix="/api/plugins")
 

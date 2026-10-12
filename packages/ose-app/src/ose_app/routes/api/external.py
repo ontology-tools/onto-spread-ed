@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import os
+import re
 from typing import List
 from urllib import parse
 
@@ -14,10 +15,11 @@ from flask_github import GitHub
 from openpyxl.worksheet.worksheet import Worksheet
 
 from ose_app.guards.with_permission import requires_permissions
-from ose.model.ExcelOntology import OntologyImport
-from ose.model.TermIdentifier import TermIdentifier
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils import github, str_empty
+from ose.ontology import OntologyImport
+from ose.schema import TermIdentifier, termid
+from ose.utils import str_empty
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.utils import save_file
 
 bp = Blueprint("api_external", __name__, url_prefix="/api/external")
 
@@ -25,8 +27,11 @@ bp = Blueprint("api_external", __name__, url_prefix="/api/external")
 @bp.route("/guess-parent", methods=["POST"])
 @requires_permissions("view")
 def guess_parent():
+    static_folder = current_app.static_folder
+    assert static_folder is not None
+
     schema: dict
-    with open(os.path.join(current_app.static_folder, "schema", "req_body_guess_parent.json"), "r") as f:
+    with open(os.path.join(static_folder, "schema", "req_body_guess_parent.json"), "r") as f:
         schema = json.load(f)
 
     data = request.json
@@ -37,7 +42,7 @@ def guess_parent():
 
     try:
         term = TermIdentifier(**data.get("term"))
-        parent = TermIdentifier(**data.get("parent"))
+        parent = termid(**data.get("parent"))
         [prefix, id] = term.id.split(":")
 
         # Try to get the term from OLS. Then get the parent from there.
@@ -105,8 +110,11 @@ def import_term(repo: str, gh: GitHub, config: ConfigurationService):
     if repo not in user_repos:
         return jsonify({"msg": f"No such repository '{repo}'"}), 404
 
+    static_folder = current_app.static_folder
+    assert static_folder is not None
+
     schema: dict
-    with open(os.path.join(current_app.static_folder, "schema", "req_body_import.json"), "r") as f:
+    with open(os.path.join(static_folder, "schema", "req_body_import.json"), "r") as f:
         schema = json.load(f)
 
     data = request.json
@@ -116,6 +124,8 @@ def import_term(repo: str, gh: GitHub, config: ConfigurationService):
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
     repository = config.get(repo)
+    if repository is None:
+        return jsonify({"msg": f"No such repository '{repo}'"}), 404
 
     import_ontology_id = data.get("ontologyId")
     import_purl = data.get("purl", f"http://purl.obolibrary.org/obo/{import_ontology_id.lower()}.owl")
@@ -127,20 +137,28 @@ def import_term(repo: str, gh: GitHub, config: ConfigurationService):
     ontology_import = OntologyImport(
         id=import_ontology_id,
         iri=import_purl,
-        root_id=import_root_id,
+        root_id=_parse_term_identifier(import_root_id),
         imported_terms=[TermIdentifier(**t) for t in import_terms],
         intermediates=import_intermediates,
-        prefixes=[tuple(x.split(":")) for x in import_prefix] if import_prefix is not None else []
+        prefixes=[(p, i) for p, i in (x.split(":", 1) for x in import_prefix)] if import_prefix is not None else []
     )
 
     target_branch = data.get("branch", repository.main_branch)
-    if update_imports(repo, repository.full_name, gh, [ontology_import], target_branch):
+    if update_imports(repo, repository.full_repository_name, gh, [ontology_import], target_branch):
         return Response(status=201)
     else:
         return Response(status=200)
 
 
-def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyImport], branch: str):
+def _parse_term_identifier(value: str) -> TermIdentifier:
+    match = re.fullmatch(r"\s*(.*?)\s*\[([^\]]+)\]\s*", value)
+    if match is None:
+        return TermIdentifier(id=value, label=value)
+
+    return TermIdentifier(id=match.group(2), label=match.group(1))
+
+
+def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyImport], branch: str) -> bool:
     external_file = None
     if repo == "BCIO":
         external_file = "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx"
@@ -154,7 +172,8 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
         base64_bytes = spreadsheet_file['content'].encode('utf-8')
         decoded_data = base64.decodebytes(base64_bytes)
         wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
-        sheet: Worksheet = wb.active
+        sheet = wb.active
+        assert isinstance(sheet, Worksheet)
 
         data = sheet.rows
         header = next(data)
@@ -163,14 +182,15 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
         id_c = next((i for i, h in enumerate(header) if h.value == "IDs"))
         found = []
         for row in data:
-            imp = by_id.get(row[0].value.lower(), None)
+            row_id = row[0].value
+            imp = by_id.get(row_id.lower(), None) if isinstance(row_id, str) else None
             if imp is not None:
                 found.append(imp.id.lower())
                 current = row[id_c].value
                 if current is None:
                     ids = set()
                 else:
-                    ids = {i.strip() for i in current.split(";")}
+                    ids = {i.strip() for i in str(current).split(";")}
 
                 old_ids = ids
                 ids = set().union(ids, {f"{i.label} [{i.id}]" for i in imp.imported_terms})
@@ -193,7 +213,8 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
 
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
-        github.save_file(gh, repository, external_file, spreadsheet_stream.getvalue(),
-                         "Imported IDs", branch)
+        save_file(gh, repository, external_file, spreadsheet_stream.getvalue(), "Imported IDs", branch)
 
         return True
+
+    return False

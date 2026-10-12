@@ -12,7 +12,7 @@ def search(repo: str, searcher: SpreadsheetSearcher):
     query = request.args.get("label", None)
     query = request.args.get("term", query)
     query = request.args.get("query", query)
-    limit = request.args.get("limit", None)
+    limit = request.args.get("limit", None, type=int)
 
     results = searcher.search_for(repo, query, fields=["label", "definition"], limit=limit)
 

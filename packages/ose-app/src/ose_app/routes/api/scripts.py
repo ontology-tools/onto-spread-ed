@@ -5,7 +5,7 @@ from typing import Coroutine
 from flask import Blueprint, current_app, jsonify, request
 
 from ose_app.guards.with_permission import requires_permissions
-from ose.services.PluginService import PluginService
+from ose_app.services.PluginService import PluginService
 
 bp = Blueprint("api_scripts", __name__, url_prefix="/api/scripts")
 

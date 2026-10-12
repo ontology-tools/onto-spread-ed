@@ -1,12 +1,13 @@
 import functools
 import re
+from typing import Callable
 
 from flask import Flask
 from injector import Injector, inject
 
 from ose_app.PermissionManager import PermissionManager
 
-__EXTENSIONS = {}
+__EXTENSIONS: dict[str, Callable] = {}
 
 
 def init_app(app: Flask, injector: Injector):
@@ -33,10 +34,10 @@ def jinja_fn(fn):
 
 
 @jinja_fn
-def has_permissions(*permissions: str, permission_manager: PermissionManager):
+def has_permissions(*permissions: str, permission_manager: PermissionManager) -> bool:
     return permission_manager.current_user_has_permissions(*permissions)
 
 
 @jinja_fn
-def has_any_permission(*permissions: str, permission_manager: PermissionManager):
+def has_any_permission(*permissions: str, permission_manager: PermissionManager) -> bool:
     return any(permission_manager.current_user_has_permissions(p) for p in permissions)

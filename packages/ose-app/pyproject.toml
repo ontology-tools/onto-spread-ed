@@ -18,11 +18,19 @@ dependencies = [
     "flask-executor",
     "Flask-Migrate",
     "networkx",
+    "daff",
+    "jsonschema",
     "openpyxl",
+    "pydot",
     "pyyaml",
     "requests",
-    "whoosh",
+    "whoosh3",
+    "gitpython>=3.2.0",
+    "pygithub>=2.10.0",
 ]
+
+[project.entry-points.'ose.build_stages']
+ose_app = "ose_app.release.stages"
 
 [project.optional-dependencies]
 cli = [
@@ -51,4 +59,6 @@ ose_app = [
 [dependency-groups]
 dev = [
     "ruff>=0.14.13",
+    "types-flask-cors>=6.0.3.20260712",
+    "types-flask-migrate",
 ]

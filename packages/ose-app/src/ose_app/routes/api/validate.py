@@ -1,4 +1,5 @@
 import json
+from graphlib import TopologicalSorter
 from io import BytesIO
 from typing import Any, Dict, List, Optional
 
@@ -9,12 +10,11 @@ from openpyxl.workbook import Workbook
 
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.guards.with_permission import requires_permissions
-from ose.model.ExcelOntology import ExcelOntology
-from ose.model.ReleaseScript import ReleaseScript, ReleaseScriptFile
-from ose.release.common import order_sources
-from ose.services.ConfigurationService import ConfigurationService
-from ose.services.FileCache import FileCache
-from ose.utils import get_file
+from ose.ontology import ExcelOntology
+from ose.project import ProjectFile
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.services.FileCache import FileCache
+from ose_app.utils import get_file
 
 bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
 
@@ -88,12 +88,12 @@ def validate_line(entity: Dict[str, Any],
                   repository: str,
                   file: str,
                   # all_files: list[str],
-                  searcher: SpreadsheetSearcher) -> (bool, [Dict[str, Any]]):
+                  searcher: SpreadsheetSearcher) -> tuple[bool, list[dict[str, Any]], list[dict[str, Any]]]:
     relations: Dict[str, str] = dict(
         (k[k.index("'") + 1:k.rindex("'")], v) for k, v in entity.items() if k.startswith("REL"))
 
-    errors = []
-    warnings = []
+    errors: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
     # relations_defined = {}
     # parent_defined = False
 
@@ -157,6 +157,11 @@ def validate_line(entity: Dict[str, Any],
     return not any(errors), errors, warnings
 
 
+def order_dependencies(files: Dict[str, ProjectFile]) -> List[tuple[str, ProjectFile]]:
+    order = TopologicalSorter({k: f.needs for k, f in files.items()}).static_order()
+    return [(k, files[k]) for k in order if not all(s.type == "owl" for s in files[k].sources)]
+
+
 @bp.route("/file", methods=("POST",))
 @requires_permissions("view")
 def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
@@ -182,6 +187,7 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
 
     wb = Workbook()
     ws = wb.active
+    assert ws is not None
 
     ws.append(header)
     for row in rows:
@@ -190,42 +196,39 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
     spreadsheet = BytesIO()
     wb.save(spreadsheet)
 
-    repo = config.get(repo)
+    project = config.get(repo)
+    if project is None:
+        return jsonify({"success": False, "error": f"No such repository '{repo}'."}), 404
 
     o = ExcelOntology(f"temp://{file}")
 
-    if "include-external" in repo.validation or "include-dependencies" in repo.validation:
-        release_script: ReleaseScript
-        try:
-            release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
-        except Exception as e:
-            current_app.logger.error(e)
-            return jsonify({"success": False, "error": f"Failed to load release script: {e}"}), 500
-
-        if "include-external" in repo.validation:
+    if "include-external" in project.validation or "include-dependencies" in project.validation:
+        if "include-external" in project.validation:
             try:
-                external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
+                external_raw = cache.get_from_github(
+                    gh, project.full_repository_name, project.external.target.file
+                ).decode()
 
-                external = ExcelOntology.from_owl(external_raw, repo.prefixes)
-                o.import_other_excel_ontology(external.value)
+                external = ExcelOntology.from_owl(external_raw, project.prefixes).value_or_raise()
+                o.import_other_excel_ontology(external)
             except Exception as e:
                 current_app.logger.error(e)
 
-        if "include-dependencies" in repo.validation:
+        if "include-dependencies" in project.validation:
             file_key: Optional[str]
-            file_release_file: Optional[ReleaseScriptFile]
+            file_release_file: Optional[ProjectFile]
             file_key, file_release_file = next(
-                ((k, f) for (k, f) in release_script.files.items() if any(s.file == file for s in f.sources)),
+                ((k, f) for (k, f) in project.files.items() if any(s.file == file for s in f.sources)),
                 (None, None))
             if file_key is not None and file_release_file is not None:
-                release_files: List[ReleaseScriptFile] = [file_release_file] if file_release_file is not None else []
-                needs = []
+                release_files: List[ProjectFile] = [file_release_file]
+                needs: List[str] = []
                 while len(release_files) > 0:
                     release_file = release_files.pop(0)
                     needs.extend(release_file.needs)
-                    release_files.extend([release_script.files[n] for n in release_file.needs])
+                    release_files.extend([project.files[n] for n in release_file.needs])
 
-                sources = order_sources(dict((k, release_script.files[k]) for k in needs))
+                dependencies = order_dependencies(dict((k, project.files[k]) for k in needs))
 
                 other_sources = ExcelOntology("tmp:///other_sources/")
 
@@ -233,21 +236,28 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
                     # Evaluate lazily to avoid loading unnecessary files in case type not in ["classes", "relations"]
                     def excel_source():
                         return spreadsheet if source.file == file else BytesIO(
-                            get_file(gh, repo.full_name, source.file))
+                            get_file(gh, project.full_repository_name, source.file))
 
                     ontology = o if source.file == file else other_sources
+                    schema = project.spreadsheet_schema(source.spreadsheet_schema)
                     if source.type == "classes":
-                        ontology.add_terms_from_excel(source.file, excel_source())
+                        ontology.add_terms_from_excel(source.file, excel_source(), schema)
                     elif source.type == "relations":
-                        ontology.add_relations_from_excel(source.file, excel_source())
+                        ontology.add_relations_from_excel(source.file, excel_source(), schema)
 
                 o.import_other_excel_ontology(other_sources)
 
-                for k, dependency in sources:
-                    sources = [(s.file, BytesIO(get_file(gh, repo.full_name, s.file)), s.type) for s in
-                               dependency.sources]
+                for k, dependency in dependencies:
+                    dependency_ontology = ExcelOntology(f"tmp:///{k}")
+                    for s in dependency.sources:
+                        dependency_file = BytesIO(get_file(gh, project.full_repository_name, s.file))
+                        dependency_schema = project.spreadsheet_schema(s.spreadsheet_schema)
+                        if s.type == "classes":
+                            dependency_ontology.add_terms_from_excel(s.file, dependency_file, dependency_schema)
+                        elif s.type == "relations":
+                            dependency_ontology.add_relations_from_excel(s.file, dependency_file, dependency_schema)
 
-                    o.import_other_excel_ontology(ExcelOntology.from_excel(f"tmp:///{k}", sources))
+                    o.import_other_excel_ontology(dependency_ontology)
     else:
         o.add_terms_from_excel(file, spreadsheet)
 
@@ -257,8 +267,8 @@ def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
 
     return jsonify({
         "success": True,
-        "valid": result.ok() and not result.has_errors(),
-        "errors": result.errors,
-        "warnings": result.warnings,
-        "infos": result.infos,
+        "valid": result.successful,
+        "errors": result.log.errors,
+        "warnings": result.log.warnings,
+        "infos": result.log.infos,
     })

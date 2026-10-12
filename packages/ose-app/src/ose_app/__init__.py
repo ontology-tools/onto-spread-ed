@@ -25,7 +25,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 
 from .custom_json import *  # noqa: F403, F401
-from ose.database.User import User
+from ose_app.database.User import User
 
 
 def load_config(app: Flask, config_filename):

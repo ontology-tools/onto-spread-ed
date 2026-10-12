@@ -2,9 +2,9 @@ from flask import Blueprint, request, jsonify
 from flask_github import GitHub
 
 from ose_app.guards.with_permission import requires_permissions
-from ose.services.ConfigurationService import ConfigurationService
-from ose.services.FileCache import FileCache
-from ose.services.RepositoryConfigurationService import RepositoryConfigurationService
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.services.FileCache import FileCache
+from ose_app.services.RepositoryConfigurationService import RepositoryConfigurationService
 
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
 
@@ -24,13 +24,13 @@ def possible_repositories(config: ConfigurationService, gh: GitHub):
 @bp.route("/repositories/startup", methods=["GET"])
 @requires_permissions("repository-config-view")
 def startup_repositories(config: ConfigurationService):
-    return jsonify(config.loaded_repositories())
+    return jsonify([p.model_dump(mode="json") for p in config.loaded_repositories()])
 
 
 @bp.route("/repositories/load", methods=["POST"])
 @requires_permissions("repository-config-manage-loaded")
 def load_repository(config: ConfigurationService):
-    data = request.json
+    data = request.json or {}
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -45,13 +45,13 @@ def load_repository(config: ConfigurationService):
                         "error": f"Repository configuration for '{data['full_name']}' not found."
                                  "Ensure the repository is accessible for you and it contains the configuration."}), 400
     else:
-        return jsonify({"success": True, "repo": repo})
+        return jsonify({"success": True, "repo": repo.model_dump(mode="json")})
 
 
 @bp.route("/repositories/unload", methods=["POST"])
 @requires_permissions("repository-config-manage-loaded")
 def unload_repository(config: ConfigurationService):
-    data = request.json
+    data = request.json or {}
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -67,7 +67,7 @@ def unload_repository(config: ConfigurationService):
 @bp.route("/repositories/add_startup", methods=["POST"])
 @requires_permissions("repository-config-manage-startup")
 def add_as_default(config: ConfigurationService):
-    data = request.json
+    data = request.json or {}
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -83,7 +83,7 @@ def add_as_default(config: ConfigurationService):
 @bp.route("/repositories/remove_startup", methods=["POST"])
 @requires_permissions("repository-config-manage-startup")
 def remove_startup(config: ConfigurationService):
-    data = request.json
+    data = request.json or {}
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -101,7 +101,8 @@ def remove_startup(config: ConfigurationService):
 def reload_config(config: ConfigurationService):
     config.reload()
 
-    return jsonify({"success": True, "repositories": config.loaded_repositories()})
+    return jsonify({"success": True,
+                    "repositories": [p.model_dump(mode="json") for p in config.loaded_repositories()]})
 
 
 @bp.route("/clear_caches", methods=["POST"])
