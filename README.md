@@ -36,7 +36,7 @@ A Python-based web platform for collaborative editing of OWL ontologies through 
 ## 🛠️ Technology Stack
 
 - **Backend**: Python 3.8+ with Flask framework
-- **Frontend**: Vue.3 with TypeScript and Bootstrap
+- **Frontend**: Single-page app in Vue 3 with TypeScript, vue-router and Bootstrap (served by Flask, which only provides a JSON API)
 - **Database**: SQLAlchemy with SQLite/PostgreSQL support
 - **Search**: Whoosh full-text search engine
 - **Ontology Processing**: py-horned-owl for OWL parsing and manipulation
@@ -131,15 +131,25 @@ flask run db upgrade
 npm run build
 ```
 
+This builds `ose-js-core`, generates the plugin shims and builds the Vue SPA into `packages/ose-app/src/ose_app/static/app`.
+Flask serves it as a catch-all, so there are no server-rendered pages; without the build, every non-API page answers with an error.
+Plugins with a frontend are built by `make build-js`.
+
 ### 9. Run the Application
 
 For development:
 
 ```bash
-flask run
+make dev
 ```
 
-The application will be available at `http://localhost:5000`.
+This starts the vite dev server (`npm run dev`, port 5173) and Flask on port 5000 (`make dev-python`); the two can also be run in separate terminals.
+Open the application at **`http://localhost:5173`** (use `localhost`, not `127.0.0.1`). Vite injects the runtime configuration (`OSE_CONFIG`, importmap)
+and proxies `/api`, `/login`, `/logout`, `/github-callback`, `/user`, `/status` and `/static` to Flask.
+For GitHub login the OAuth app's callback URL may stay pointed at Flask directly (e.g. `http://localhost:5000/github-callback`, or your `FLASK_PORT`): the session cookie is shared across ports on `localhost`
+and the login `next` URL points back to :5173.
+
+To run Flask only: `flask --app ose_app:create_app run --debug`.
 
 For production deployment, use a WSGI server like Gunicorn or uwsgi.
 
@@ -147,34 +157,51 @@ For production deployment, use a WSGI server like Gunicorn or uwsgi.
 
 Each ontology repository should contain:
 
-- `.onto-ed/config.yaml`: Repository-specific configuration [Example from BCIO](https://github.com/HumanBehaviourChangeProject/ontologies/blob/master/.onto-ed/config.yaml)
-- `.onto-ed/release_script.json`: A description of the ontology setup [Example from BCIO](https://github.com/HumanBehaviourChangeProject/ontologies/blob/master/.onto-ed/release_script.json)
+- `.onto-ed/config.yaml`: The project file describing the ontology setup and how it is built
 - .xlsx files with ontology data
 
-Example repository configuration:
+Example project file:
 
 ```yaml
-full_name: my_org/my_repository # Full name of the repository
+short_name: MRO # Short alias to show in the UI
+full_name: My Research Ontology
+short_repository_name: mro
+full_repository_name: my_org/my_repository # Full name of the GitHub repository
+iri_prefix: http://example.org/mro/
 id_digits: 6 # Number of digits to be used when generating IDs
-indexed_files: # List of files or regex expressions of files that should be included in the search index
-  - path/to/file1.xlsx # The exact file at /path/to/file
-  - sheets/.*.xlsx # All files under sheets
+main_branch: main # Name of the main branch of the repository
 readonly_files: # Mapping of files and explanation to files which should be readonly
     "path/to/file.xlsx": This file is generated automatically from other_file.xlsx
-main_branch: main # Name of the main branch of the repository
 prefixes: # Prefix mapping of used prefixes in the ontology
     BFO: http://purl.obolibrary.org/obo/BFO_
     IAO: http://purl.obolibrary.org/obo/IAO_
-release_file: ontology.owl # Path to the released ontology
-release_script_path: .onto-ed/release_script.json # Path to release configuration
-short_name: MRO # Short alias to show in the UI
 validation: # List of flags for validation
     - include-external # Load the externally imported files for validation
     - include-dependencies # Load dependencies for validation
-
+external: # The externally imported terms
+    sources: [imports/External_Imports.xlsx]
+    target: imports/external.owl
+files: # The ontology files to build. All their spreadsheets are included in the search index.
+    upper:
+        sources: [upper.xlsx]
+        target: upper.owl
+    lower:
+        sources: [lower.xlsx]
+        target: lower.owl
+        needs: [upper]
+build_configurations: # Stages of the builds, e.g. of a release
+    - name: release
+      stages:
+          - name: PREPARATION
+          - name: EXTERNAL_IMPORTS
+          - name: VALIDATION
+          - name: EXCEL2OWL
+          - name: MERGE
+          - name: HUMAN_VERIFICATION
+          - name: GITHUB_PUBLISH
 ```
 
-A release script controls the setup of the spreadsheet and should be placed in the repository under `.onto-ed/release_script.json`. It can be edited from the UI. See [the Python class](ose/model/ReleaseScript.py) for details.
+The project file can be edited from the release UI. See the `Project` class of `ose-lib` (`packages/ose-lib/src/ose/project.py`) for details.
 
 
 ## 🔧 Advanced Configuration

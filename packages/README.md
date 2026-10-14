@@ -6,23 +6,22 @@ This directory contains the monorepo packages for OntoSpreadEd.
 
 | Package | Type | Description | PyPI/npm Name |
 |---------|------|-------------|---------------|
-| `ose-core` | Python | Core business logic, models, services | `ose-core` |
-| `ose-cli` | Python | CLI commands (depends on ose-core) | `ose-cli` |
-| `ose-app` | Python | Flask web application (depends on ose-core) | `ose-app` |
-| `ose-js-core` | TypeScript | Shared types, models, utilities | `@ose/js-core` |
-| `ose-js-app` | TypeScript/Vue | Vue.js web app components | (internal) |
+| `ose-lib` | Python | Core library (project config, ontology building) | `ose-lib` |
+| `ose-cli` | Python | CLI commands (depends on ose-lib) | `ose-cli` |
+| `ose-app` | Python | Flask backend: JSON API, OAuth, serves the SPA (depends on ose-lib) | `ose-app` |
+| `ose-js-core` | TypeScript | Shared types, models, utilities | `@ontospreaded/js-core` |
+| `ose-js-app` | TypeScript/Vue | Vue single-page web app | (internal) |
 
 ## Directory Structure
 
 ```
 packages/
-├── ose-core/           # Python core library
-│   ├── src/ose_core/
-│   │   ├── model/      # Data models (Term, ExcelOntology, etc.)
-│   │   ├── services/   # Business services
-│   │   ├── release/    # Release logic
-│   │   ├── index/      # Search indexing
-│   │   ├── commands/   # Command implementations
+├── ose-lib/            # Python core library
+│   ├── src/ose/
+│   │   ├── project.py  # Project (repository) configuration
+│   │   ├── building/   # Ontology build stages
+│   │   ├── ontology/
+│   │   ├── schema/
 │   │   └── utils/      # Utility functions
 │   └── pyproject.toml
 │
@@ -35,12 +34,11 @@ packages/
 │
 ├── ose-app/            # Flask web application
 │   ├── src/ose_app/
-│   │   ├── routes/     # Flask blueprints
+│   │   ├── routes/     # api/ (JSON API), auth.py, status.py, spa.py (SPA catch-all)
 │   │   ├── database/   # SQLAlchemy models
 │   │   ├── guards/     # Auth decorators
-│   │   ├── templates/  # Jinja2 templates
-│   │   └── static/     # Static assets (compiled JS/CSS)
-│   ├── migrations/     # Alembic database migrations
+│   │   └── static/app/ # Built Vue SPA (output of the ose-js-app build)
+│   ├── API.md          # JSON API reference
 │   └── pyproject.toml
 │
 ├── ose-js-core/        # Shared TypeScript library
@@ -51,13 +49,17 @@ packages/
 │   ├── package.json
 │   └── tsconfig.json
 │
-└── ose-js-app/         # Vue.js application
+└── ose-js-app/         # Vue single-page app
+    ├── index.html      # SPA entry
+    ├── public/         # Generated plugin shims (vue-shim.js, ose-js-core-shim.js)
     ├── src/
-    │   ├── admin/      # Admin dashboard
+    │   ├── main.ts, App.vue, router.ts, api.ts, config.ts, state.ts
+    │   ├── pages/      # Home, Repo browser, Forbidden, LoggedOut, NotFound
+    │   ├── admin/      # Admin dashboard, index rebuild
     │   ├── editor/     # Spreadsheet editor
     │   ├── release/    # Release management UI
     │   ├── settings/   # Settings UI
-    │   ├── visualise/  # Graph visualization
+    │   ├── visualise/  # Graph visualization (popup)
     │   └── common/     # Shared Vue components
     ├── package.json
     ├── tsconfig.json
@@ -70,10 +72,10 @@ packages/
 
 ```bash
 # Install all packages in editable mode
-pip install -e packages/ose-core -e packages/ose-cli -e packages/ose-app
+pip install -e packages/ose-lib -e packages/ose-cli -e packages/ose-app
 
 # Or with uv
-uv pip install -e packages/ose-core -e packages/ose-cli -e packages/ose-app
+uv pip install -e packages/ose-lib -e packages/ose-cli -e packages/ose-app
 ```
 
 ### Python Packages (Production)
@@ -92,7 +94,7 @@ pip install ose-app
 # Using npm workspaces
 npm install
 
-# Build all JS packages
+# Build all JS packages: js-core -> shims -> js-app (-> ose-app/src/ose_app/static/app)
 npm run build
 
 # Or using pnpm
@@ -105,21 +107,29 @@ pnpm build
 ### Running the Flask App
 
 ```bash
-cd packages/ose-app
-flask run --debug
+make dev-python   # Flask on :5000
+make dev          # Flask on :5000 plus vite serve on :5173
 ```
+
+Open the app at `http://localhost:5173`; the vite dev server proxies the API and login routes to Flask on :5000.
 
 ### Building JavaScript
 
 ```bash
 # Build JS core library
-npm -w @ose/js-core run build
+npm run build:js-core
+
+# Generate the plugin shims (needs js-core built)
+npm run build:shims
 
 # Build Vue app
-npm -w @ose/js-app run build
+npm run build:js-app
 
-# Watch mode
-npm -w @ose/js-app run dev
+# Dev server on :5173 (generates shims, then vite serve; needs Flask running)
+npm run dev
+
+# Old flow: vite build --watch into Flask's static folder (open :5000)
+npm -w @ontospreaded/js-app run watch
 ```
 
 ### Using the CLI
@@ -132,8 +142,8 @@ ose --help
 ## Dependencies
 
 ```
-ose-cli ──depends──> ose-core
-ose-app ──depends──> ose-core
+ose-cli ──depends──> ose-lib
+ose-app ──depends──> ose-lib
 
-@ose/js-app ──depends──> @ose/js-core
+@ontospreaded/js-app ──depends──> @ontospreaded/js-core
 ```
