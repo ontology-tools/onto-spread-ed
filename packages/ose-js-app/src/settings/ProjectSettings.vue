@@ -7,6 +7,7 @@ import {layout} from "../state";
 import {confirmDialog} from "../common/bootbox";
 import GeneralTab from "./project/GeneralTab.vue";
 import FilesTab from "./project/FilesTab.vue";
+import DependencyGraphTab from "./project/DependencyGraphTab.vue";
 import BuildsTab from "./project/BuildsTab.vue";
 import SubontologiesTab from "./project/SubontologiesTab.vue";
 import WorkflowsTab from "./project/WorkflowsTab.vue";
@@ -15,6 +16,7 @@ import AdvancedTab from "./project/AdvancedTab.vue";
 const TABS = [
   {id: "general", name: "General", icon: "fa-sliders"},
   {id: "files", name: "Files", icon: "fa-file"},
+  {id: "dependencies", name: "Dependency graph", icon: "fa-diagram-project"},
   {id: "builds", name: "Build configurations", icon: "fa-gears"},
   {id: "subontologies", name: "Subontologies", icon: "fa-sitemap"},
   {id: "workflows", name: "Workflows", icon: "fa-play-circle", permission: "admin"},
@@ -174,6 +176,7 @@ onBeforeUnmount(() => {
       </ul>
 
       <WorkflowsTab v-if="tab === 'workflows'" :project="project"/>
+      <DependencyGraphTab v-else-if="tab === 'dependencies'" :project="project"/>
       <fieldset v-else :disabled="!canEdit">
         <GeneralTab v-if="tab === 'general'" :project="project"/>
         <FilesTab v-else-if="tab === 'files'" :project="project"/>
