@@ -11,14 +11,14 @@ requires-python = ">=3.12"
 dependencies = [
     "networkx>=3.6.1",
     "openpyxl>=3.1.0",
-    "ose-core==1.4.2",
+    "ose-lib==1.4.2",
 ]
 
 [project.entry-points.'ose.plugins']
 annotation_sheets = "ose_plugin_annotation_sheets:AnnotationSheetsPlugin"
 
 [tool.uv.sources]
-ose-core = { workspace = true }
+ose-lib = { workspace = true }
 
 [tool.setuptools.packages.find]
 where = ["src"]

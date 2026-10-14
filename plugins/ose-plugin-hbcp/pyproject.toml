@@ -3,9 +3,9 @@ name = "ose-plugin-hbcp"
 version = "1.4.2"
 description = "OntoSpreadEd plugin for HBCP common services"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "ose-core==1.4.2",
+    "ose-lib==1.4.2",
 ]
 
 [build-system]

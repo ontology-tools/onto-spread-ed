@@ -13,6 +13,10 @@
 			"path": "packages/ose-core"
 		},
 		{
+			"name": "ose-lib",
+			"path": "packages/ose-lib"
+		},
+		{
 			"name": "ose-js-core",
 			"path": "packages/ose-js-core"
 		},
@@ -39,13 +43,24 @@
 		{
 			"name": "ose-plugin-bcio",
 			"path": "plugins/ose-plugin-bcio"
+		},
+		{
+			"path": "plugins/ose-plugin-annotation-sheets"
 		}
 	],
 	"settings": {
 		"workbench.colorCustomizations": {
 			"activityBar.background": "#391A6A",
 			"titleBar.activeBackground": "#4F2594",
-			"titleBar.activeForeground": "#FDFCFE"
+			"titleBar.activeForeground": "#FDFCFE",
+			"titleBar.inactiveBackground": "#391A6A",
+			"titleBar.inactiveForeground": "#210F3D",
+			"statusBar.background": "#421E7A",
+			"statusBar.foreground": "#FDFCFE",
+			"statusBar.debuggingBackground": "#421E7A",
+			"statusBar.debuggingForeground": "#FDFCFE",
+			"statusBar.noFolderBackground": "#421E7A",
+			"statusBar.noFolderForeground": "#FDFCFE"
 		}
 	}
 }

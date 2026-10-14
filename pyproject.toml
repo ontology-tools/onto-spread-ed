@@ -43,7 +43,8 @@ py-modules = []
 packages = []
 
 [tool.uv.sources]
-ose-core = { workspace = true }
+ose-lib = { workspace = true }
+
 ose-plugin-addicto = { workspace = true }
 ose-plugin-annotation-sheets = { workspace = true }
 ose-plugin-bcio = { workspace = true }
