@@ -62,12 +62,12 @@ jobs:
         env:
           REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Type check ose-js-app
-      #   run: |
-      #     npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit 2>&1 | \
-      #       reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-app -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
-      #   env:
-      #     REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Type check ose-js-app
+        run: |
+          npx vue-tsc -p packages/ose-js-app/tsconfig.json --noEmit 2>&1 | \
+            reviewdog -efm="%f(%l,%c): error TS%n: %m" -name=tsc-app -reporter=github-pr-check -fail-level=error -filter-mode=nofilter
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Type check plugins (warnings only)
         run: |
@@ -115,12 +115,7 @@ jobs:
         run: make install-python
 
       - name: Build JavaScript packages
-#        run: npm run build
         run: make build-js
-
-      - name: Build CSS
-#        run: npm run build:css
-        run: make build-css
 
       - name: Build Python packages
         run: make build-python

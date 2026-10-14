@@ -1,19 +1,23 @@
 <script lang="ts" setup>
-import {h, onMounted, ref} from "vue";
+import {computed, h, onMounted, ref} from "vue";
 import {promptDialog} from "../common/bootbox";
 import {BToast, BToastOrchestrator, useToastController} from "bootstrap-vue-next";
+import {api, useMe} from "../api";
+import {layout} from "../state";
 
-declare var URLS: { [key: string]: any }
-const prefix_url = URLS.prefix
+const {me, ready} = useMe()
+
+const can = (p: string) => !!me.value?.permissions && (me.value.permissions.includes(p) || me.value.permissions.includes("admin"))
+const hasAny = computed(() => ["release", "index", "admin", "repository-config-view", "scripts"].some(can))
 
 const {show: showToast} = useToastController()
 
 async function runScript(scriptName: string) {
-  const script = scripts.value[scriptName]
-  const script_args = script.arguments;
+  const script = scripts.value?.[scriptName]
+  const script_args = script?.arguments;
 
   const args = []
-  if (script_args?.length > 0) {
+  if (script_args && script_args.length > 0) {
 
     for (const arg of script_args) {
       const value = await promptDialog({
@@ -39,13 +43,10 @@ async function runScript(scriptName: string) {
   });
   try {
 
-    const response = await (await fetch(`${prefix_url}/api/scripts/${scriptName}/run`, {
+    const response = await api(`/api/scripts/${scriptName}/run`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
       body: JSON.stringify({args})
-    })).json()
+    })
 
     await dialogShown$;
     dialog.modal("hide")
@@ -75,12 +76,7 @@ async function clearCaches() {
   });
   try {
 
-    await fetch(`${prefix_url}/api/settings/clear_caches`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
+    await api("/api/settings/clear_caches", {method: "POST"})
 
     await dialogShown$;
     dialog.modal("hide")
@@ -110,8 +106,6 @@ async function clearCaches() {
   }
 }
 
-const urls = ref(URLS)
-
 const scripts = ref<null | {
   [key: string]: {
     title: string,
@@ -125,7 +119,13 @@ const scripts = ref<null | {
 }>(null)
 
 onMounted(async () => {
-  scripts.value = (await (await fetch(`${prefix_url}/api/scripts`)).json()).result
+  layout.breadcrumb = [{name: "Admin"}]
+  try {
+    await ready
+    if (can("scripts")) scripts.value = (await api("/api/scripts/")).result
+  } catch (e) {
+    console.debug("Scripts not available", e)
+  }
 })
 
 </script>
@@ -133,9 +133,10 @@ onMounted(async () => {
 <template>
   <BToastOrchestrator />
 
+  <div v-if="me && !hasAny" class="alert alert-info">You do not have any admin permissions.</div>
   <div class="row align-stretch">
-    <div class="col-sm-6 col-md-4 col-lg-3 m-2">
-      <a :href="urls.release" class="card bg-light"
+    <div v-if="can('release')" class="col-sm-6 col-md-4 col-lg-3 m-2">
+      <RouterLink to="/admin/release" class="card bg-light"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fas fa-upload"></i>
@@ -147,11 +148,11 @@ onMounted(async () => {
             Start the release process and release a new version of ontologies
           </p>
         </div>
-      </a>
+      </RouterLink>
     </div>
-    <div class="col-sm-6 col-md-4 col-lg-3 m-2">
+    <div v-if="can('index')" class="col-sm-6 col-md-4 col-lg-3 m-2">
 
-      <a :href="urls.rebuildIndex" class="card bg-light"
+      <RouterLink to="/admin/rebuild-index" class="card bg-light"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fas fa-folder-open"></i>
@@ -163,12 +164,12 @@ onMounted(async () => {
             Force a complete rebuild of the index to ensure the search finds all entries.
           </p>
         </div>
-      </a>
+      </RouterLink>
     </div>
-    <div class="col-sm-6 col-md-4 col-lg-3 m-2">
+    <div v-if="can('admin')" class="col-sm-6 col-md-4 col-lg-3 m-2">
 
       <a class="card bg-light" href="#" style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px"
-         @click="clearCaches()">
+         @click.prevent="clearCaches()">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fas fa-gauge-high"></i>
         </div>
@@ -181,9 +182,9 @@ onMounted(async () => {
         </div>
       </a>
     </div>
-    <div v-if="'settings' in urls" class="col-sm-6 col-md-4 col-lg-3 m-2">
+    <div v-if="can('repository-config-view')" class="col-sm-6 col-md-4 col-lg-3 m-2">
 
-      <a :href="urls.settings" class="card bg-light"
+      <RouterLink to="/admin/settings" class="card bg-light"
          style="height: 100%; text-decoration: none; border-width: 2px 2px 4px 2px">
         <div class="section p-5 text-center fs-2 bg-light">
           <i class="fa-solid fa-gear"></i>
@@ -195,17 +196,17 @@ onMounted(async () => {
             Add, remove, or edit repositories available on the editor.
           </p>
         </div>
-      </a>
+      </RouterLink>
     </div>
   </div>
   <div class="row align-stretch">
-    <div class="dropdown m-2">
+    <div v-if="can('scripts')" class="dropdown m-2">
       <button aria-expanded="false" class="btn btn-danger dropdown-toggle" data-bs-toggle="dropdown"
               type="button">
         Run a script
       </button>
       <ul class="dropdown-menu">
-        <li v-for="(script, key) in scripts"><a class="dropdown-item" href="#" @click="runScript(key)">
+        <li v-for="(script, key) in scripts"><a class="dropdown-item" href="#" @click.prevent="runScript(key as string)">
           <i class="fa-regular fa-circle-play text-success"></i>
           {{ script.title }}
         </a></li>

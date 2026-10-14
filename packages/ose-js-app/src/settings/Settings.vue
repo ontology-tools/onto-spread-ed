@@ -1,20 +1,36 @@
 <script lang="ts" setup>
 
 import CollapsibleCard from "../common/CollapsibleCard.vue";
-import {computed, ref} from "vue";
+import {computed, onMounted, ref} from "vue";
+import {api, clearCache} from "../api";
+import {layout} from "../state";
 import {alertDialog, promptDialog} from "../common/bootbox";
-import {RepositoryConfig} from "@ontospreaded/js-core";
+import {Project} from "@ontospreaded/js-core";
 
-declare var SETTINGS: {
-  repositories: RepositoryConfig[],
+type Settings = {
+  repositories: Project[],
   startup_repositories: string[],
   changing_startup_allowed: boolean,
   loading_new_allowed: boolean
 }
-declare var URLS: { [key: string]: any }
+const settings = ref<Settings>({
+  repositories: [],
+  startup_repositories: [],
+  changing_startup_allowed: false,
+  loading_new_allowed: false
+})
 
-const prefix_url = URLS.prefix
-const settings = ref<typeof SETTINGS>(SETTINGS)
+onMounted(async () => {
+  layout.breadcrumb = [{name: "Admin", to: "/admin"}, {name: "Settings"}]
+  try {
+    settings.value = await api<Settings>("/api/settings")
+  } catch (e: any) {
+    await alertDialog({
+      title: "Loading settings failed",
+      message: e.message
+    })
+  }
+})
 
 let loading = ref<boolean>(false);
 let deleting = ref<string | null>(null);
@@ -26,72 +42,72 @@ let buttonStates = ref<{ reload: string | null }>({
   reload: null,
 })
 
-let runningTimeouts: { [key: string]: number } = {};
+const reloadButtonClass: Record<string, string> = {success: 'btn-success', null: 'btn-primary', error: 'btn-danger'}
+const reloadIconClass: Record<string, string[]> = {success: ['fa-check'], error: ['fa-cross'], loading: ['fa-spinner', 'fa-spin']}
 
-async function toggleStartup(repo: RepositoryConfig) {
-  startupChanging.value = repo.full_name;
+let runningTimeouts: { [key: string]: ReturnType<typeof setTimeout> } = {};
 
-  const currentlySet = settings.value.startup_repositories.indexOf(repo.full_name) >= 0;
+async function toggleStartup(repo: Project) {
+  startupChanging.value = repo.full_repository_name;
+
+  const currentlySet = settings.value.startup_repositories.indexOf(repo.full_repository_name) >= 0;
   const route = currentlySet ? 'remove' : 'add';
 
-  const resp = await (await fetch(`${prefix_url}/api/settings/repositories/${route}_startup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({"full_name": repo.full_name})
-  })).json()
-
-  if (resp.success) {
-    settings.value.startup_repositories = currentlySet ?
-        settings.value.startup_repositories.filter(x => x !== repo.full_name) :
-        [...settings.value.startup_repositories, repo.full_name];
-  } else {
-
-    await alertDialog({
-      title: currentlySet ? "Unsetting as startup failed" : "Unsetting as startup failed",
-      message: "The current configuration probably does not allow setting startup repositories."
+  try {
+    const resp = await api<{success: boolean}>(`/api/settings/repositories/${route}_startup`, {
+      method: "POST",
+      body: JSON.stringify({"full_name": repo.full_repository_name})
     })
+    if (!resp.success) {
+      throw new Error("The current configuration probably does not allow setting startup repositories.")
+    }
+    settings.value.startup_repositories = currentlySet ?
+        settings.value.startup_repositories.filter(x => x !== repo.full_repository_name) :
+        [...settings.value.startup_repositories, repo.full_repository_name];
+  } catch (e: any) {
+    await alertDialog({
+      title: currentlySet ? "Unsetting as startup failed" : "Setting as startup failed",
+      message: e.message
+    })
+  } finally {
+    startupChanging.value = null;
   }
-
-  startupChanging.value = null;
 }
 
-async function unloadRepository(repo: RepositoryConfig) {
-  deleting.value = repo.full_name;
+async function unloadRepository(repo: Project) {
+  deleting.value = repo.full_repository_name;
 
-  const resp = await (await fetch(`${prefix_url}/api/settings/repositories/unload`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({"full_name": repo.full_name})
-  })).json()
-
-  if (resp.success) {
+  try {
+    const resp = await api<{success: boolean}>("/api/settings/repositories/unload", {
+      method: "POST",
+      body: JSON.stringify({"full_name": repo.full_repository_name})
+    })
+    if (!resp.success) {
+      throw new Error("The repository was probably already unloaded. Try refreshing the page.")
+    }
+    clearCache();
     settings.value.repositories = settings.value.repositories.filter(x => x !== repo)
-  } else {
+  } catch (e: any) {
     await alertDialog({
       title: "Unloading failed",
-      message: "The repository was probably already unloaded. Try refreshing the page."
+      message: e.message
     })
+  } finally {
+    deleting.value = null;
   }
-
-  deleting.value = null;
 }
 
 async function loadRepository() {
   loading.value = true;
-  let resp = await (await fetch(`${prefix_url}/api/settings/repositories/possibilities`)).json()
-
-  if (resp.success) {
+  try {
+    const resp = await api("/api/settings/repositories/possibilities")
     const suggestions = resp.repositories;
     const index = await promptDialog({
       title: "Found possible external parents",
       message:
           `Chose one of your repositories to load.`,
       inputType: "select",
-      inputOptions: suggestions.map(({short_name, full_name}, i) => ({
+      inputOptions: suggestions.map(({short_name, full_name}: { short_name: string, full_name: string }, i: number) => ({
         value: i,
         text: `${short_name} (${full_name})`
       })),
@@ -108,55 +124,43 @@ async function loadRepository() {
     })
 
     if (index !== null) {
-      const result = await (await fetch(`${prefix_url}/api/settings/repositories/load`, {
+      const result = await api("/api/settings/repositories/load", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
         body: JSON.stringify(suggestions[index])
-      })).json()
-
-      if (result.success) {
-        settings.value.repositories = [...settings.value.repositories, result.repo]
-      } else {
-        await alertDialog({
-          title: "Loading failed",
-          message: result.error
-        })
-      }
+      })
+      clearCache();
+      settings.value.repositories = [...settings.value.repositories, result.repo]
     }
-  } else {
+  } catch (e: any) {
     await alertDialog({
-      title: "Unloading failed",
-      message: "The repository was probably already unloaded. Try refreshing the page."
+      title: "Loading failed",
+      message: e.message
     })
+  } finally {
+    loading.value = false;
   }
-  loading.value = false;
 }
 
 
-async function installWorkflow(name: string, repo: RepositoryConfig) {
+async function installWorkflow(name: string, repo: Project) {
   installingWorkflow.value = "busy";
   try {
-    const resp = await (await fetch(`${prefix_url}/api/repo/${repo.short_name}/install_workflow/${name}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })).json();
+    const resp = await api(`/api/repo/${repo.short_name}/install_workflow/${name}`, {method: "POST"});
 
     if (!resp.success) {
       await alertDialog({
         title: "Workflow installation failed",
         message: resp.msg
       });
+      installingWorkflow.value = "error"
+      return;
     }
 
     installingWorkflow.value = "success"
-  } catch (error) {
+  } catch (error: any) {
     await alertDialog({
       title: "Workflow installation failed",
-      message: "An error occurred while installing the workflow."
+      message: error?.message ?? "An error occurred while installing the workflow."
     });
 
     installingWorkflow.value = "error"
@@ -166,8 +170,9 @@ async function installWorkflow(name: string, repo: RepositoryConfig) {
 async function reload() {
   buttonStates.value.reload = "loading"
   try {
-    const resp = await (await fetch(`${prefix_url}/api/settings/repositories/reload`, {method: "post"})).json();
+    const resp = await api("/api/settings/repositories/reload", {method: "POST"});
     if (resp.success) {
+      clearCache();
       settings.value.repositories = resp.repositories;
       buttonStates.value.reload = "success";
     } else {
@@ -200,12 +205,12 @@ async function reload() {
     <h3>Repositories</h3>
     <CollapsibleCard v-for="repo in settings.repositories">
       <template #title>
-        {{ repo.short_name }} ({{ repo.full_name }})
+        {{ repo.short_name }} ({{ repo.full_repository_name }})
       </template>
       <template #buttons>
         <button :disabled="blocked || !settings.changing_startup_allowed" class="btn btn-primary btn-sm"
                 @click="toggleStartup(repo)">
-          <template v-if="settings.startup_repositories.indexOf(repo.full_name) >= 0">
+          <template v-if="settings.startup_repositories.indexOf(repo.full_repository_name) >= 0">
             <i class="fa fa-square-check"></i> Loaded on startup
           </template>
           <template v-else>
@@ -215,7 +220,7 @@ async function reload() {
 
         <button v-if="settings.loading_new_allowed" :disabled="blocked"
                 class="btn btn-danger btn-sm btn-circle" @click="$event.stopPropagation(); unloadRepository(repo)">
-          <i :class="deleting === repo.full_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']" class="fa"></i>
+          <i :class="deleting === repo.full_repository_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']" class="fa"></i>
         </button>
       </template>
       <template #body>
@@ -228,18 +233,6 @@ async function reload() {
         <div class="input-group input-group-sm mb-3">
           <span class="input-group-text">Main branch</span>
           <input v-model="repo.main_branch" class="form-control" type="text">
-        </div>
-
-        <h6>Release</h6>
-
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">Released OWL file</span>
-          <input v-model="repo.release_file" class="form-control" type="text">
-        </div>
-
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">Released script</span>
-          <input v-model="repo.release_script_path" class="form-control" type="text">
         </div>
 
         <h6>Subontologies</h6>
@@ -255,7 +248,7 @@ async function reload() {
             <input v-model="subontology.release_file" class="form-control" type="text">
 
             <button :disabled="blocked" class="btn btn-danger"
-                    @click="repo.subontology = repo.subontologies.filter(x => x != subontology)">
+                    @click="repo.subontologies = Object.fromEntries(Object.entries(repo.subontologies).filter(([, x]) => x != subontology))">
               <i class="fa fa-trash"></i>
             </button>
           </div>
@@ -285,10 +278,10 @@ async function reload() {
         <i :class="loading ? ['fa-spinner', 'fa-spin'] : ['fa-add']" class="fa"></i>
         Load repository
       </button>
-      <button :class="[{'success': 'btn-success', null: 'btn-primary', 'error': 'btn-danger'}[buttonStates.reload]]" :disabled="blocked || buttonStates.reload === 'loading'"
+      <button :class="[reloadButtonClass[buttonStates.reload ?? 'null']]" :disabled="blocked || buttonStates.reload === 'loading'"
               class="mb-3 btn btn-sm btn-primary add-file"
               @click="reload()">
-        <i :class="{'success': ['fa-check'], 'error': ['fa-cross'], 'loading': ['fa-spinner', 'fa-spin']}[buttonStates.reload] ?? ['fa-refresh']"
+        <i :class="(reloadIconClass[buttonStates.reload ?? 'null'] ?? ['fa-refresh'])"
            class="fa"></i>
         Reload settings
       </button>

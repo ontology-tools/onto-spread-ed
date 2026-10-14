@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, ref, watch, shallowRef, markRaw, type Component, h } from "vue";
-import { Diagnostic, Release, ReleaseScript } from "@ontospreaded/js-core";
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch, shallowRef, markRaw, type Component, h } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { BuildConfiguration, BuildStep, Diagnostic, Release, currentStage, releaseStages, stageDetails } from "@ontospreaded/js-core";
 import Setup from "./Setup.vue";
 import Validation from "./steps/Validation.vue";
 import HumanVerification from "./steps/HumanVerification.vue";
 import GithubPublish from "./steps/GithubPublish.vue";
 import Generic from "./steps/Generic.vue";
 import { BToast, useToastController } from "bootstrap-vue-next";
-
-declare var SERVER_DATA: { [key: string]: any }
-declare var URLS: { [key: string]: any }
+import RepositorySelector from "./RepositorySelector.vue";
+import { api, prefix } from "../api";
+import { layout } from "../state";
 
 interface PluginInfo {
   id: string;
@@ -21,8 +22,15 @@ interface PluginInfo {
   js_module: string | null;
 }
 
-const repo = SERVER_DATA.repo
-const prefix_url = URLS.prefix
+const route = useRoute()
+const router = useRouter()
+const prefix_url = prefix
+
+// The route is either /admin/release (chooser), /admin/release/:repo or /admin/release/:id
+const repo = ref<string | null>(null)
+const repos = ref<{ short: string, full: string }[] | null>(null)
+const chosenRepo = ref<string | null>(null)
+const notFound = ref<string | null>(null)
 const release = ref<Release | null>(null);
 
 const loading = ref<boolean>(false)
@@ -81,11 +89,9 @@ async function loadPlugins() {
   }
 }
 
-const currentStep = computed<{
-  args: any,
-  name: string
-} | null>(() => release.value?.release_script.steps[selected_step.value ?? release.value.step] ?? null)
-const stepComponent = computed(() => _steps.value[currentStep.value?.name] ?? Generic)
+const shownStep = computed(() => selected_step.value ?? currentStage(release.value))
+const currentStep = computed<BuildStep | null>(() => releaseStages(release.value)[shownStep.value] ?? null)
+const stepComponent = computed(() => (currentStep.value ? _steps.value[currentStep.value.name] : undefined) ?? Generic)
 
 const stepProps = computed(() => {
   const possibleProps = {
@@ -100,7 +106,7 @@ const stepProps = computed(() => {
   if (component) {
     // For async components, try to get the resolved component's props
     // AsyncComponentWrapper stores the resolved component in __asyncResolved
-    const resolvedComponent = component.__asyncResolved || component;
+    const resolvedComponent = (component as any).__asyncResolved || component;
     const componentProps = resolvedComponent.props;
 
     if (componentProps) {
@@ -115,7 +121,7 @@ const stepProps = computed(() => {
   return null;
 })
 
-const details = computed(() => release.value?.details[(selected_step.value ?? release.value.step).toString()])
+const details = computed(() => stageDetails(release.value, shownStep.value))
 
 type SubStepContent = { errors: Diagnostic[], warnings: Diagnostic[] };
 
@@ -135,43 +141,33 @@ function subSteps(data?: any): null | { [k: string]: SubStepContent } {
 }
 
 async function poll(withLoading: boolean = false) {
-  const id = release.value?.id ?? `${repo}/running`
+  const id = release.value?.id
+  if (id === undefined) return
   loading.value = withLoading;
   try {
     let response = await fetch(`${prefix_url}/api/release/${id}`);
     if (response.ok) {
-      release.value = await response.json()
-    } else {
-      release.value = null
+      const r = await response.json()
+      if (release.value?.id === id) release.value = r // ignore stale responses
     }
   } catch (e) {
   } finally {
     loading.value = false;
   }
 
-  if (release.value && ['completed', 'canceled'].includes(release.value.state)) {
-    if (pollInterval !== null) {
-      clearInterval(pollInterval)
-      pollInterval = null
-    }
+  if (release.value && ['completed', 'cancelled'].includes(release.value.state)) {
+    stopPolling()
   }
 }
 
-onMounted(async () => {
-  // Load plugins first
-  await loadPlugins();
-
-  const lastPathSegment = window.location.pathname.split("/").slice(-1)[0]
-  const releaseId = parseInt(lastPathSegment)
-
-  if (!isNaN(releaseId)) {
-    release.value = await _request<Release>(() => fetch(`${prefix_url}/api/release/${releaseId}`)) ?? null
-  } else {
-    await poll(true)
+function stopPolling() {
+  if (pollInterval !== null) {
+    clearInterval(pollInterval)
+    pollInterval = null
   }
-})
+}
 
-let pollInterval: number | null = null
+let pollInterval: ReturnType<typeof setInterval> | null = null
 
 function startPolling() {
   if (pollInterval === null) {
@@ -179,9 +175,88 @@ function startPolling() {
   }
 }
 
-const stopWaitingForReleaseStart = watch(release, (value) => {
-  if (value !== null && pollInterval === null && !['completed', 'canceled'].includes(value.state)) {
-    stopWaitingForReleaseStart()
+onBeforeUnmount(() => {
+  initToken++
+  stopPolling()
+})
+
+// Decide what to show for the current route (replaces the server-side logic of the old Jinja page)
+let initToken = 0
+async function init() {
+  if (!route.path.startsWith("/admin/release")) return // navigating away, the component is about to unmount
+  const token = ++initToken
+  stopPolling()
+  release.value = null
+  error.value = null
+  notFound.value = null
+  selected_step.value = null
+  selected_sub_step.value = null
+  chosenRepo.value = null
+
+  const idParam = route.params.id as string | undefined
+  const repoParam = route.params.repo as string | undefined
+  const idOrRepo = idParam ?? repoParam
+  const id = idOrRepo !== undefined && /^\d+$/.test(idOrRepo) ? parseInt(idOrRepo) : null
+  const stale = () => token !== initToken
+
+  layout.breadcrumb = [{ name: "Admin", to: "/admin/dashboard" }, { name: "Release", to: "/admin/release" }]
+  loading.value = true
+  try {
+    if (id !== null) {
+      let r: Release
+      try {
+        r = await api<Release>(`/api/release/${id}`)
+      } catch (e: any) {
+        if (stale()) return
+        repo.value = null
+        notFound.value = e.status === 404 ? `Cannot find release with id '${id}'.` : e.message
+        return
+      }
+      if (stale()) return
+      repo.value = r.repo
+      layout.breadcrumb.push({ name: r.repo.toUpperCase(), to: `/admin/release/${r.repo}` })
+      release.value = r
+    } else if (repoParam !== undefined) {
+      repo.value = repoParam
+      layout.breadcrumb.push({ name: repoParam.toUpperCase(), to: `/admin/release/${repoParam}` })
+      let running: Release | null = null
+      try {
+        running = await api<Release>(`/api/release/${repoParam}/running`)
+      } catch (e: any) {
+        if (e.status !== 404) error.value = e.message
+      }
+      if (stale()) return
+      if (running) {
+        await router.replace(`/admin/release/${running.id}`)
+      }
+    } else {
+      repo.value = null
+      const all = await api<{ short: string, full: string }[]>("/api/repo/")
+      if (stale()) return
+      if (all.length === 1) {
+        await router.replace(`/admin/release/${all[0].short}`)
+      } else {
+        repos.value = all
+      }
+    }
+  } catch (e: any) {
+    if (!stale()) error.value = e.message
+  } finally {
+    if (!stale()) loading.value = false
+  }
+}
+
+watch(() => [route.params.repo, route.params.id], init, { immediate: true })
+
+watch(chosenRepo, (value) => {
+  if (value) router.push(`/admin/release/${value}`)
+})
+
+// Plugins are loaded once, independently of the route
+loadPlugins()
+
+watch(release, (value) => {
+  if (value !== null && pollInterval === null && !['completed', 'cancelled'].includes(value.state)) {
     startPolling()
   }
 })
@@ -191,9 +266,9 @@ const icon_classes = computed(() => {
     case undefined:
     case null:
       return ["fa-regular", "fa-file", "text-black-50"]
-    case "canceled":
+    case "cancelled":
       return ["fa-regular", "fa-circle-xmark", "text-danger"]
-    case "waiting-for-user":
+    case "paused":
       return ["fa-solid", "fa-user-clock", "text-warning"]
     case "errored":
       return ["fa-solid", "fa-triangle-exclamation", "text-danger"]
@@ -252,72 +327,64 @@ async function rerunStep() {
     })
   })
 
-  await fetch(`${prefix_url}/api/release/${repo}/rerun-step?force=true`, {
+  await fetch(`${prefix_url}/api/release/${repo.value}/rerun-step?force=true`, {
     method: "POST"
   })
 
   startPolling()
 }
 
-async function startRelease(releaseScript: ReleaseScript) {
+async function startRelease(buildConfiguration: BuildConfiguration) {
   const r = await _request<Release>(() =>
     fetch(prefix_url + "/api/release/start", {
       method: "post",
-      body: JSON.stringify(releaseScript),
+      body: JSON.stringify({ repo: repo.value, build_configuration: buildConfiguration }),
       headers: {
         "Content-Type": "application/json"
       }
     }))
 
   if (r) {
-    release.value = r
-    window.location.pathname = `${prefix_url}/admin/release/${r.id}`
+    await router.push(`/admin/release/${r.id}`)
   }
 }
 
-async function cancelRelease() {
-  release.value = await _request<Release>(() => fetch(`${prefix_url}/api/release/${repo}/cancel`, {
+async function cancelRelease(): Promise<boolean> {
+  error.value = null
+  const cancelled = await _request<Release>(() => fetch(`${prefix_url}/api/release/${repo.value}/cancel`, {
     method: "post"
-  })) ?? null
+  }))
+  if (cancelled) release.value = cancelled
+  return cancelled !== undefined
 }
 
 async function restartRelease() {
-  const script = release.value?.release_script
-  if (script) {
-    await cancelRelease()
-    await startRelease(script)
+  const buildConfiguration = release.value?.context?.build_configuration
+  // The backend lets the new release wait until the cancelled one has fully stopped
+  if (buildConfiguration && await cancelRelease()) {
+    await startRelease(buildConfiguration)
   }
 }
 
-function errorsOfStep(step: number) {
-  const details = release.value?.details[step.toString()]
-  if (details?.hasOwnProperty("errors") && Array.isArray(details["errors"])) {
-    return details["errors"].length
-  } else if (Array.isArray(details)) {
-    return details.map(x => x["errors"]?.length).reduce((p, c) => c + p, 0)
-  }
+function errorsOfStep(step: number): number {
+  return release.value?.context?.stage_results[step]?.log.errors.length ?? 0
 }
 
-function warningsOfStep(step: number) {
-  const details = release.value?.details[step.toString()]
-  if (details?.hasOwnProperty("warnings") && Array.isArray(details["warnings"])) {
-    return details["warnings"].length
-  } else if (details) {
-    return Object.values(details).map((x: any) => x["warnings"]?.length).reduce((p, c) => c + p, 0)
-  }
+function warningsOfStep(step: number): number {
+  return release.value?.context?.stage_results[step]?.log.warnings.length ?? 0
 }
 
 function stepIconClasses(step: number): string[] {
-  if ((release.value?.step ?? 0) >= step) {
+  if (currentStage(release.value) >= step) {
     if (errorsOfStep(step) > 0) {
       return "fa fa-triangle-exclamation text-danger".split(" ")
     } else if (warningsOfStep(step) > 0) {
       return "fa fa-triangle-exclamation text-warning".split(" ")
-    } else if (release.value?.step === step) {
+    } else if (currentStage(release.value) === step) {
       switch (release.value?.state) {
-        case "canceled":
+        case "cancelled":
           return ["fa-regular", "fa-circle-xmark", "text-danger"]
-        case "waiting-for-user":
+        case "paused":
           return ["fa-solid", "fa-user-clock", "text-warning"]
         case "errored":
           return ["fa-solid", "fa-triangle-exclamation", "text-danger"]
@@ -337,7 +404,7 @@ function stepIconClasses(step: number): string[] {
 async function doReleaseControl(type: string) {
   switch (type) {
     case "continue":
-      await fetch(`${prefix_url}/api/release/${repo}/continue`)
+      await fetch(`${prefix_url}/api/release/${repo.value}/continue`)
       startPolling()
       break;
     default:
@@ -349,6 +416,17 @@ async function doReleaseControl(type: string) {
 <template>
   <BToastOrchestrator />
   <div class="release">
+    <div v-if="notFound" class="alert alert-danger">{{ notFound }}</div>
+
+    <template v-else-if="repo === null">
+      <div v-if="error !== null" class="alert alert-danger">{{ error }}</div>
+      <div v-else-if="repos" style="max-width: 1080px; margin: 0 auto">
+        <h4>Which repository should be released?</h4>
+        <RepositorySelector :repositories="repos" v-model="chosenRepo"></RepositorySelector>
+      </div>
+    </template>
+
+    <template v-else>
     <div class="d-flex gap-2 align-items-center">
       <h1 id="lbl-release-title">
         <i id="icon-release" class="fa" :class="icon_classes"></i>
@@ -359,7 +437,7 @@ async function doReleaseControl(type: string) {
       </span>
       <span class="flex-fill"></span>
 
-      <template v-if="release && (['running', 'waiting-for-user', 'errored'].indexOf(release.state) >= 0)">
+      <template v-if="release && (['starting', 'running', 'paused', 'errored'].indexOf(release.state) >= 0)">
         <button class="btn btn-warning" id="btn-release-restart" @click="restartRelease">
           <i class="fa fa-rotate-left"></i> Restart
         </button>
@@ -385,18 +463,18 @@ async function doReleaseControl(type: string) {
         id="release-core">
         <div class="sidebar border" style="grid-column: 1">
           <ul class="list-unstyled ps-2">
-            <li class="mb-1" v-for="(step, i) in release.release_script.steps">
+            <li class="mb-1" v-for="(step, i) in releaseStages(release)">
               <div class="d-flex align-items-center">
                 <i :class="stepIconClasses(i)"></i>
                 <a class="btn border-0" @click="selected_step = i; selected_sub_step = null">
-                  <strong v-if="selected_step !== null ? selected_step == i : release.step == i">
+                  <strong v-if="shownStep == i">
                     {{ $filters.formatText(step.name) }}
                   </strong>
                   <template v-else>{{ $filters.formatText(step.name) }}</template>
                 </a>
               </div>
               <ul class="list-unstyled ms-4" v-if="subSteps">
-                <li v-for="(val, key) in subSteps(release.details[i])" style="display: flex; align-items: center">
+                <li v-for="(val, key) in subSteps(stageDetails(release, i))" style="display: flex; align-items: center">
                   <i v-if="(val.errors?.length ?? 0) > 0" class="fa fa-circle-exclamation text-danger"></i>
                   <i v-else-if="(val.warnings?.length ?? 0) > 0" class="fa fa-triangle-exclamation text-warning"></i>
                   <i v-else class="fa fa-check-circle text-success"></i>
@@ -416,14 +494,19 @@ async function doReleaseControl(type: string) {
             {{ error }}
           </div>
 
-          <div class="alert alert-danger" v-if="details?.error">
-            <h4>An error occurred: {{ details.error.short }}</h4>
-            <pre>{{ details.error.long }}</pre>
+          <div class="alert alert-danger" v-for="exception in details?.errors?.filter(e => e.type === 'exception')">
+            <h4>An error occurred: {{ exception.msg }}</h4>
+            <pre>{{ exception.traceback }}</pre>
+          </div>
+
+          <div class="alert alert-info" v-if="release.state === 'starting' && release.progress?.message">
+            <i class="fa fa-spinner fa-spin"></i> {{ release.progress.message }}
           </div>
 
           <component :is="stepComponent" v-bind="stepProps" @release-control="doReleaseControl"></component>
         </div>
       </div>
+    </template>
     </template>
 
   </div>

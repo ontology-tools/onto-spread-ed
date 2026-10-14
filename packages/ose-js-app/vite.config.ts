@@ -3,22 +3,33 @@ import vue from '@vitejs/plugin-vue';
 import Components from 'unplugin-vue-components/vite';
 import { BootstrapVueNextResolver } from 'bootstrap-vue-next';
 import { resolve } from 'path';
-import { readdirSync, existsSync } from 'fs';
+import type { Plugin } from 'vite';
 
-// Dynamically discover entry points
-const srcDir = resolve(__dirname, 'src');
-const entries: Record<string, string> = {};
+// Dev server only: do what Flask's routes/spa.py does in production (prefix '').
+// Keep in sync with spa.py. Vite itself moves the importmap before the first module script (postImportMapHook);
+// OSE_CONFIG is a classic script, so it runs before the (deferred) modules.
+const oseHead = (): Plugin => ({
+  name: 'ose-head',
+  apply: 'serve',
+  transformIndexHtml: {
+    handler(html) {
+      const config = JSON.stringify({ prefix: '' });
+      const importmap = JSON.stringify({
+        imports: { 'vue': '/vue-shim.js', '@ontospreaded/js-core': '/ose-js-core-shim.js' },
+      });
+      return html.replace('<!--ose-head-->',
+        `<script>window.OSE_CONFIG = ${config}</script>\n<script type="importmap">${importmap}</script>`);
+    },
+  },
+});
 
-const dirs = readdirSync(srcDir);
-for (const dir of dirs) {
-  const entryPoint = resolve(srcDir, dir, 'main.ts');
-  if (existsSync(entryPoint)) {
-    entries[dir] = entryPoint;
-  }
-}
+const flask = `http://localhost:${process.env.FLASK_PORT ?? 5000}`;
+const proxiedPaths = ['/api', '/login', '/logout', '/github-callback', '/user', '/status', '/static'];
 
 export default defineConfig(({mode}) => ({
+  base: './',
   plugins: [
+    oseHead(),
     vue(),
     Components({
       resolvers: [BootstrapVueNextResolver()],
@@ -29,22 +40,18 @@ export default defineConfig(({mode}) => ({
       '@ontospreaded/js-core': resolve(__dirname, '../ose-js-core/src'),
     },
   },
+  server: {
+    port: 5173,
+    strictPort: true,
+    proxy: Object.fromEntries(proxiedPaths.map((p) => [p, { target: flask }])),
+  },
+  esbuild: {
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
   build: {
-    outDir: resolve(__dirname, '../../packages/ose-app/src/ose_app/static/js'),
-    emptyOutDir: false,
+    outDir: resolve(__dirname, '../ose-app/src/ose_app/static/app'),
+    emptyOutDir: true,
     sourcemap: mode === 'production' ? false : 'inline',
     minify: mode === 'production',
-    cssCodeSplit: true,
-    esbuild: {
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
-    },
-    rollupOptions: {
-      input: entries,
-      output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: 'chunks/[name]-[hash].js',
-        assetFileNames: 'assets/[name][extname]',
-      },
-    },
   },
 }));

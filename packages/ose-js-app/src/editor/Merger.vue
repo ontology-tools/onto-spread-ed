@@ -10,7 +10,7 @@ const props = defineProps<{
   conflicts: MergeConflict[],
 }>()
 
-const merged_data = defineModel<Record<string, string | number | boolean | null>[]>();
+const merged_data = defineModel<Record<string, string | number | boolean | null>[]>({required: true});
 
 const emits = defineEmits<{
   (e: 'save', strategy: "manual" | "theirs" | "ours"): void,
@@ -27,7 +27,7 @@ const conflicts_by_row = computed(() => {
   return result
 })
 
-const resolved = ref<{ [k: number]: { [k: string]: string | number | boolean | null } }>({})
+const resolved = ref<{ [k: number]: { [k: string]: string | null } }>({})
 
 watchEffect(() => {
   resolved.value = Object
@@ -38,7 +38,7 @@ watchEffect(() => {
 const allResolved = computed(() => Object.values(resolved.value).every(v => Object.values(v).every(v => v !== null)))
 
 watch(resolved, () => {
-  for (const row in resolved.value) {
+  for (const row of Object.keys(resolved.value).map(Number)) {
     for (const col in resolved.value[row]) {
       if (resolved.value[row][col] === null) {
         return
@@ -114,7 +114,7 @@ function highlight(row: number, col: string, selfValue: string): string[] {
       </button>
     </div>
 
-    <div v-for="row in Object.keys(conflicts_by_row)" class="card bg-danger-subtle">
+    <div v-for="row in Object.keys(conflicts_by_row).map(Number)" class="card bg-danger-subtle">
       <div class="card-body">
         <h5 class="card-title">{{ merged_data[row]["Label"] }} [{{ merged_data[row]["ID"] }}]</h5>
         <h6 class="card-subtitle mb-3">Row {{ row }}</h6>

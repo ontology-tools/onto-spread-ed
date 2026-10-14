@@ -1,18 +1,19 @@
 <script lang="ts" setup>
-import {ReleaseScript} from "@ontospreaded/js-core";
+import {BuildConfiguration, Project} from "@ontospreaded/js-core";
 import CollapsibleCard from "../common/CollapsibleCard.vue";
 
 const props = defineProps<{
-  releaseScript: ReleaseScript
+  project: Project
+  buildConfiguration: BuildConfiguration
 }>()
 
 function setAnnotations(name: string, annotations: string) {
-  props.releaseScript.files[name].target.ontology_annotations =
+  props.project.files[name].target.ontology_annotations =
       Object.fromEntries(annotations.split("\n").map(l => l.split(": ")))
 }
 
 function setArgs(step: number, args: string) {
-  props.releaseScript.steps[step].args = Object.fromEntries(args
+  props.buildConfiguration.stages[step].args = Object.fromEntries(args
       .split("\n")
       .map(l => l.split(": "))
       .map(([k, v]) => {
@@ -32,7 +33,7 @@ function addDependency(name: string) {
   bootbox.prompt({
     title: `Add dependency for ${name}`,
     inputType: "select",
-    inputOptions: Object.entries(props.releaseScript.files)
+    inputOptions: Object.entries(props.project.files)
         .filter(([k, _]) => k != name)
         .map(([k, v]) => ({
           text: v.target.file,
@@ -40,14 +41,14 @@ function addDependency(name: string) {
         })),
     callback(value: string) {
       if (value) {
-        props.releaseScript.files[name].needs.push(value)
+        props.project.files[name].needs.push(value)
       }
     }
   })
 }
 
 function deleteDependency(name: string, dependency: string) {
-  props.releaseScript.files[name].needs = props.releaseScript.files[name].needs.filter(x => x != dependency)
+  props.project.files[name].needs = props.project.files[name].needs.filter(x => x != dependency)
 }
 
 function addFile() {
@@ -57,14 +58,17 @@ function addFile() {
     callback(value: string) {
       if (value) {
         value = value.trim().replace(/[ ,./\-!?=]/, "_")
-        props.releaseScript.files[value] = {
+        props.project.files[value] = {
           target: {
             file: "",
             iri: "",
-            ontology_annotations: {}
+            ontology_annotations: {},
+            publish: true
           },
           sources: [],
-          needs: []
+          needs: [],
+          addParentsFile: null,
+          renameTermFile: null
         }
       }
     }
@@ -81,8 +85,8 @@ function renameFile(event: MouseEvent, name: string) {
     callback(value: string) {
       if (value) {
         value = value.trim().replace(/[ ,./\-!?=]/, "_")
-        props.releaseScript.files[value] = props.releaseScript.files[name]
-        delete props.releaseScript.files[name]
+        props.project.files[value] = props.project.files[name]
+        delete props.project.files[name]
       }
     }
   })
@@ -91,17 +95,17 @@ function renameFile(event: MouseEvent, name: string) {
 function addStep(event: MouseEvent, before: number) {
   event.preventDefault()
 
-  props.releaseScript.steps.splice(before, 0, {args: {}, name: "NEW_STEP"})
+  props.buildConfiguration.stages.splice(before, 0, {args: {}, name: "NEW_STEP"})
 }
 
 function deleteStep(event: MouseEvent, index: number) {
   event.preventDefault()
 
-  const step = props.releaseScript.steps[index]
+  const step = props.buildConfiguration.stages[index]
 
   bootbox.confirm({
     title: `Delete step '${step.name}'`,
-    message: `Do you want to remove the release step '${step.name}'?`,
+    message: `Do you want to remove the build stage '${step.name}'?`,
     buttons: {
       confirm: {
         label: `Delete ${step.name}`,
@@ -114,7 +118,7 @@ function deleteStep(event: MouseEvent, index: number) {
     },
     callback(result: boolean) {
       if (result) {
-        props.releaseScript.steps.splice(index, 1)
+        props.buildConfiguration.stages.splice(index, 1)
       }
     }
   })
@@ -125,7 +129,7 @@ function deleteFile(event: MouseEvent, name: string) {
   event.preventDefault();
   bootbox.confirm({
     title: `Delete '${name}'`,
-    message: `Do you want to delete the file '${name}'? It will remove the file ${props.releaseScript.files[name].target.file} from the release.`,
+    message: `Do you want to delete the file '${name}'? It will remove the file ${props.project.files[name].target.file} from the project.`,
     buttons: {
       confirm: {
         label: `Delete ${name}`,
@@ -138,7 +142,7 @@ function deleteFile(event: MouseEvent, name: string) {
     },
     callback(result: boolean) {
       if (result) {
-        delete props.releaseScript.files[name]
+        delete props.project.files[name]
       }
     }
   })
@@ -150,7 +154,7 @@ function deleteFile(event: MouseEvent, name: string) {
 
   <div class="files">
     <h3>Files</h3>
-    <CollapsibleCard v-for="(file, name) in releaseScript.files">
+    <CollapsibleCard v-for="(file, name) in project.files">
       <template #title>
         {{ name }} - {{ file.target.file }}
         <span class="badge text-bg-secondary">{{ file.sources.length }} sources</span>
@@ -187,7 +191,7 @@ function deleteFile(event: MouseEvent, name: string) {
             <span class="input-group-text">Annotations</span>
             <textarea :value="Object.entries(file.target.ontology_annotations).map(([k,v]) => `${k}: ${v}`).join('\n')"
                       class="form-control"
-                      @change="setAnnotations(name, $event.target?.value)">
+                      @change="setAnnotations(name, ($event.target as HTMLTextAreaElement).value)">
             </textarea>
           </div>
 
@@ -216,7 +220,7 @@ function deleteFile(event: MouseEvent, name: string) {
             </div>
           </template>
           <button class="mb-3 btn btn-sm btn-primary add-dependency"
-                  @click="file.sources.push({file: '', type: 'classes'})">
+                  @click="file.sources.push({file: '', type: 'classes', spreadsheet_schema: 'default'})">
             <i class="fa fa-add"></i>
             Add source
           </button>
@@ -231,7 +235,7 @@ function deleteFile(event: MouseEvent, name: string) {
 
             <div class="input-group input-group-sm mb-3">
               <span class="input-group-text">Dependency</span>
-              <input :value="releaseScript.files[need]?.target.file ?? need" class="form-control"
+              <input :value="project.files[need]?.target.file ?? need" class="form-control"
                      disabled type="text">
               <button class="btn btn-danger" @click="deleteDependency(name, need)">
                 <i class="fa fa-trash"></i>
@@ -254,11 +258,11 @@ function deleteFile(event: MouseEvent, name: string) {
   </div>
 
 
-  <h3>Steps</h3>
+  <h3>Stages of {{ buildConfiguration.name }}</h3>
   <button class="btn btn-outline-primary add-step mb-3" @click="addStep($event, 0)">
     <i class="fa fa-plus-square"></i> Add step here
   </button>
-  <template v-for="(step, index) in releaseScript.steps">
+  <template v-for="(step, index) in buildConfiguration.stages">
     <div class="header">
       <h6> {{ step.name }}</h6>
       <span></span>
@@ -267,7 +271,7 @@ function deleteFile(event: MouseEvent, name: string) {
       </button>
     </div>
     <div class="input-group input-group-sm mb-1">
-      <span class="input-group-text">Release step</span>
+      <span class="input-group-text">Build stage</span>
       <input v-model="step.name" class="form-control" type="text">
     </div>
 
@@ -275,7 +279,7 @@ function deleteFile(event: MouseEvent, name: string) {
       <span class="input-group-text">Arguments</span>
       <textarea :value="Object.entries(step.args).map(([k,v]) => `${k}: ${v}`).join('\n')"
                 class="form-control"
-                @change="setArgs(index, $event.target?.value)">
+                @change="setArgs(index, ($event.target as HTMLTextAreaElement).value)">
             </textarea>
     </div>
     <button class="btn btn-outline-primary add-step mb-3" @click="addStep($event, index + 1)">

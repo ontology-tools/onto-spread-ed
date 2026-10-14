@@ -11,7 +11,7 @@ import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const outputDir = resolve(__dirname, '../packages/ose-app/src/ose_app/static/js');
+const outputDir = resolve(__dirname, '../packages/ose-js-app/public');
 
 // Dynamically import Vue to get all its exports
 async function generateVueShim() {

@@ -29,8 +29,7 @@ import {
 import { buildGraphFromSpreadsheet, type DependencyData } from './graph-builder';
 import { NavigateToTermMessage } from "@ontospreaded/js-core";
 
-declare var URLS: { [key: string]: any };
-const URL_PREFIX = URLS['prefix'];
+import { prefix as URL_PREFIX } from '../api';
 
 
 const data = ref<VisualisationData | null>(window.ose?.visualise ?? null);
@@ -628,7 +627,7 @@ onMounted(async () => {
               <ul class="dropdown-menu dropdown-menu-end">
                 <li v-for="s in curationStatuses" :key="s">
                   <a class="dropdown-item" :class="'ose-curation-status-' + s.toLowerCase().replace(' ', '_')" href="#"
-                    @click="toggleCurationFilter(s)">
+                    @click.prevent="toggleCurationFilter(s)">
                     <i class="fa-solid" :class="curationFilter.indexOf(s) >= 0 ? 'fa-circle-check' : 'fa-circle'"></i>
                     {{ s }}
                   </a>

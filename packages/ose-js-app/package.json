@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build -m development --minify false --watch",
-    "clean": "rm -rf dist"
+    "dev": "vite",
+    "watch": "vite build -m development --minify false --watch",
+    "clean": "rm -rf ../ose-app/src/ose_app/static/app public/vue-shim.js public/ose-js-core-shim.js"
   },
   "dependencies": {
     "@hpcc-js/wasm": "^2.29.0",
@@ -19,7 +20,8 @@
     "svg-pan-zoom": "github:bumbu/svg-pan-zoom",
     "tabulator-tables": "^6.3.0",
     "ts-graphviz": "^3.0.6",
-    "vue": "^3.5.24"
+    "vue": "^3.5.24",
+    "vue-router": "^5.4.0"
   },
   "devDependencies": {
     "@types/bootbox": "^5.2.8",

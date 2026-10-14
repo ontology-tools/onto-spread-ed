@@ -35,14 +35,6 @@
             "detail": "Watch and rebuild JS app on changes"
         },
         {
-            "label": "OSE: Build CSS",
-            "type": "npm",
-            "script": "build:css",
-            "group": "build",
-            "problemMatcher": [],
-            "detail": "Build SCSS to CSS"
-        },
-        {
             "label": "OSE: Install Python Packages (dev)",
             "type": "shell",
             "command": "uv",

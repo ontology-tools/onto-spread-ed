@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import {Ref, ref} from "vue";
-
-const body: Ref<HTMLDivElement | null> = ref(null)
 let id: number | null = Math.round(Math.random() * 10000);
 
 </script>
@@ -16,7 +13,7 @@ let id: number | null = Math.round(Math.random() * 10000);
       <slot name="buttons"></slot>
       <i class="fa fa-chevron-up"></i>
     </div>
-    <div class="body collapse" :id="'body-' + id" ref="body">
+    <div class="body collapse" :id="'body-' + id">
       <slot name="body"></slot>
     </div>
   </div>

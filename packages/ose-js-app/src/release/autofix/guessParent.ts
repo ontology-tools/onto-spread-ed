@@ -7,8 +7,7 @@ export interface ParentGuess {
     kind: "internal" | "external"
 }
 
-declare var URLS: { [key: string]: any }
-const prefix_url = URLS.prefix
+import { prefix as prefix_url } from "../../config";
 
 // async function guessInternal(_: Term, repo: string, defined_parent?: TermIdentifier): Promise<ParentGuess[] | null> {
 //     if (!defined_parent || !defined_parent.label) {
