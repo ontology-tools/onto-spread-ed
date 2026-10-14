@@ -2,26 +2,21 @@ import datetime
 import os
 from typing import Tuple
 
-import yaml
 from flask import jsonify, Blueprint, request, make_response, Response, g
 from flask_executor import Executor
-from flask_github import GitHub
 from flask_sqlalchemy import SQLAlchemy
 from pydantic import ValidationError
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import NotFound, BadRequest
 
 from ose.building import available_stages
-from ose.project import BuildConfiguration, Project
+from ose.project import BuildConfiguration
 
 from ose_app.database.Release import OPEN_STATES, Release
 from ...guards.with_permission import requires_permissions
-from ose_app.model.Diff import diff
 from ose_app.release.runner import load_context, run_release, save_context
 from ose_app.release.stages import ReleaseContext
 from ose_app.services.ConfigurationService import ConfigurationService
-from ose_app.services.RepositoryConfigurationService import REPOSITORY_CONFIG_PATH_PROP
-from ose_app.utils import save_file
 
 bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 
@@ -67,38 +62,6 @@ def get_release_script(repo: str, config: ConfigurationService):
         raise BadRequest("Release script repository does not match requested repository")
 
     return jsonify(project.model_dump(mode="json"))
-
-
-@bp.route("/<repo>/release_script", methods=["PUT"])
-@requires_permissions("release")
-def save_release_script(repo: str, config: ConfigurationService, gh: GitHub):
-    old_project = config.get(repo)
-    if old_project is None:
-        raise NotFound(f"No such repository '{repo}'.")
-
-    try:
-        project = Project.model_validate(request.json)
-    except ValidationError as e:
-        return jsonify({"success": False, "error": f"Invalid project: {e}"}), 400
-
-    diffs = diff(old_project.model_dump(mode="json"), project.model_dump(mode="json"))
-    commit_message = (
-        "Update release script. "
-        + ", ".join(f"Set {d.field} to {d.new}" for d in diffs if d.change_type == "update")
-        + ", ".join(f"Added {d.new} to {d.field}" for d in diffs if d.change_type == "add")
-        + ", ".join(f"Removed {d.old} from {d.field}" for d in diffs if d.change_type == "remove")
-    )
-
-    save_file(
-        gh,
-        old_project.full_repository_name,
-        config.app_config[REPOSITORY_CONFIG_PATH_PROP],
-        yaml.safe_dump(project.model_dump(mode="json", exclude_defaults=True), sort_keys=False).encode(),
-        commit_message,
-        old_project.main_branch,
-    )
-
-    return jsonify({"success": True})
 
 
 @bp.route("/<repo>/cancel", methods=("POST",))

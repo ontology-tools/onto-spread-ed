@@ -1,10 +1,17 @@
+import yaml
 from flask import Blueprint, request, jsonify
 from flask_github import GitHub
+from pydantic import ValidationError
+
+from ose.building import available_stages
+from ose.project import Project
 
 from ose_app.guards.with_permission import requires_permissions
+from ose_app.model.Diff import diff
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.FileCache import FileCache
-from ose_app.services.RepositoryConfigurationService import RepositoryConfigurationService
+from ose_app.services.RepositoryConfigurationService import REPOSITORY_CONFIG_PATH_PROP, RepositoryConfigurationService
+from ose_app.utils import save_file
 
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
 
@@ -18,6 +25,62 @@ def get_settings(config: ConfigurationService):
         "changing_startup_allowed": config.changing_startup_allowed,
         "loading_new_allowed": config.loading_new_allowed,
     })
+
+
+@bp.route("/repositories/<repo>/project", methods=["GET"])
+@requires_permissions("repository-config-view")
+def get_project(repo: str, config: ConfigurationService):
+    project = config.get(repo)
+    if project is None:
+        return jsonify({"success": False, "error": f"No repository '{repo}' is loaded."}), 404
+
+    return jsonify({
+        "project": project.model_dump(mode="json"),
+        "available_stages": sorted(available_stages().keys()),
+    })
+
+
+@bp.route("/repositories/<repo>/project", methods=["PUT"])
+@requires_permissions("repository-config-edit")
+def save_project(repo: str, config: ConfigurationService, gh: GitHub):
+    """Saves the project configuration to the repository and uses it from then on"""
+    old_project = config.get(repo)
+    if old_project is None:
+        return jsonify({"success": False, "error": f"No repository '{repo}' is loaded."}), 404
+
+    try:
+        project = Project.model_validate(request.json)
+    except ValidationError as e:
+        return jsonify({"success": False, "error": f"Invalid project: {e}"}), 400
+
+    if project.full_repository_name != old_project.full_repository_name:
+        return jsonify({"success": False, "error": "The repository of a project cannot be changed."}), 400
+
+    old, new = old_project.model_dump(mode="json"), project.model_dump(mode="json")
+    if old == new:
+        return jsonify({"success": True, "project": new})
+
+    changes = [
+        f"Set {d.field} to {d.new}" if d.change_type == "update" else
+        f"Added {d.field}" if d.change_type == "add" and isinstance(d.new, dict) else
+        f"Added {d.new} to {d.field}" if d.change_type == "add" else
+        f"Removed {d.field}" if isinstance(d.old, dict) else
+        f"Removed {d.old} from {d.field}"
+        for d in diff(old, new)
+    ]
+    commit_message = "Update project configuration\n\n" + "\n".join(f"- {c}" for c in changes)
+
+    save_file(
+        gh,
+        old_project.full_repository_name,
+        config.app_config[REPOSITORY_CONFIG_PATH_PROP],
+        yaml.safe_dump(project.model_dump(mode="json", exclude_defaults=True), sort_keys=False).encode(),
+        commit_message,
+        old_project.main_branch,
+    )
+    config.replace(project)
+
+    return jsonify({"success": True, "project": new})
 
 
 @bp.route("/repositories/possibilities", methods=["GET"])

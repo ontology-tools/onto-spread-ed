@@ -78,6 +78,7 @@ Defined in `src/router.ts`. Home and Repo are imported statically; the other pag
 | `/admin/rebuild-index` | `admin/RebuildIndex.vue` |
 | `/admin/release`, `/admin/release/:repo`, `/admin/release/:id(\d+)` | `release/Release.vue` |
 | `/admin/settings` | `settings/Settings.vue` |
+| `/admin/settings/:repo/:tab?` | `settings/ProjectSettings.vue` (tabs in `settings/project/`) |
 | `/forbidden` | `pages/Forbidden.vue` |
 | `/loggedout` | `pages/LoggedOut.vue` |
 | `/direct?repo=&sheet=&go_to_row=&branch=` | Redirects to `/edit` (links of the former server-rendered app) |

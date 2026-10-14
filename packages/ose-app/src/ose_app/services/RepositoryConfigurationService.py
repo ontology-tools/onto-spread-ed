@@ -203,6 +203,15 @@ class RepositoryConfigurationService(ConfigurationService):
 
         return False
 
+    def replace(self, project: Project) -> bool:
+        key = next((k for k, v in self._loaded_repositories.items()
+                    if v.full_repository_name == project.full_repository_name), None)
+        if key is None:
+            return False
+
+        self._loaded_repositories[key] = project
+        return True
+
     def reload(self) -> None:
         self._loaded_repositories.clear()
         self._load_startups()

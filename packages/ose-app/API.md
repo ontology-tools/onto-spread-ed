@@ -140,6 +140,15 @@ Body `{args: any[]}`, one value per script argument. `400` for unknown scripts o
   startup_repositories: string[]; changing_startup_allowed: boolean; loading_new_allowed: boolean }
 ```
 
+### GET /api/settings/repositories/{repo}/project  (repository-config-view)
+`{project, available_stages: string[]}`: the project configuration (`Project.model_dump(mode="json")`) and the names
+of the build stages that can be used in build configurations. `404` if the repository is not loaded.
+
+### PUT /api/settings/repositories/{repo}/project  (repository-config-edit)
+Body: the complete project. It is validated, committed to the repository's configuration file on its main branch and
+used from then on. Returns `{success: true, project}`; `400` for an invalid project or a different
+`full_repository_name`, `404` if the repository is not loaded.
+
 | Method and path | Permission |
 |---|---|
 | GET /api/settings/repositories/startup | repository-config-view |
@@ -167,4 +176,4 @@ Body `{args: any[]}`, one value per script argument. `400` for unknown scripts o
 | GET, POST /api/release/{repo}/rerun-step?force= | Re-run the current step |
 | POST /api/release/{repo}/cancel | Cancel the running release |
 | GET /api/release/download?release=&artifact= | Download a release artifact |
-| GET, PUT /api/release/{repo}/release_script | Read / save the repository's project file |
+| GET /api/release/{repo}/release_script | Read the repository's project file (edited through the settings API) |

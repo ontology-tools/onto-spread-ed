@@ -32,6 +32,7 @@ export const router = createRouter({
         {path: "/admin/release/:repo", component: () => import("./release/Release.vue")},
         {path: "/admin/release/:id(\\d+)", component: () => import("./release/Release.vue")},
         {path: "/admin/settings", component: () => import("./settings/Settings.vue")},
+        {path: "/admin/settings/:repo/:tab?", name: "project-settings", component: () => import("./settings/ProjectSettings.vue")},
         {path: "/forbidden", component: () => import("./pages/Forbidden.vue")},
         {path: "/loggedout", component: () => import("./pages/LoggedOut.vue")},
         {path: "/:pathMatch(.*)*", component: () => import("./pages/NotFound.vue")},
@@ -39,6 +40,8 @@ export const router = createRouter({
 });
 
 // Pages that fill the breadcrumb/branch picker overwrite it themselves right away; for all others, clear it.
+// The project settings set it once when loaded, so switching between their tabs keeps it.
 router.afterEach((to, from, failure) => {
-    if (!failure && to.path !== from.path && to.name !== "repo" && to.name !== "edit") resetLayout();
+    const keep = to.name === "repo" || to.name === "edit" || (to.name === "project-settings" && from.name === to.name);
+    if (!failure && to.path !== from.path && !keep) resetLayout();
 });

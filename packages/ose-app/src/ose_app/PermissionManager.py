@@ -11,6 +11,7 @@ PERMISSION_IMPLICATIONS: Dict[str, Set[str]] = {
     "index": {"view"},
     "hierarchical-spreadsheets": {"view"},
     "repository-config-view": {"view"},
+    "repository-config-edit": {"repository-config-view"},
     "repository-config-manage-loaded": {"repository-config-view"},
     "repository-config-manage-startup": {"repository-config-view"},
     "scripts": {"edit"},

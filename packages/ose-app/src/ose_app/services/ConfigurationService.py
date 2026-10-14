@@ -67,6 +67,10 @@ class ConfigurationService(abc.ABC):
         else:
             return self.get_by_url(name)
 
+    def replace(self, project: Project) -> bool:
+        """Replaces the loaded project of the same repository with `project`, e.g. after its configuration was saved"""
+        return False
+
     def add_startup_repository(self, repo: str) -> bool:
         return False
 

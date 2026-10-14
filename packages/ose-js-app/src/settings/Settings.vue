@@ -1,8 +1,7 @@
 <script lang="ts" setup>
 
-import CollapsibleCard from "../common/CollapsibleCard.vue";
 import {computed, onMounted, ref} from "vue";
-import {api, clearCache} from "../api";
+import {api, clearCache, useMe} from "../api";
 import {layout} from "../state";
 import {alertDialog, promptDialog} from "../common/bootbox";
 import {Project} from "@ontospreaded/js-core";
@@ -32,11 +31,13 @@ onMounted(async () => {
   }
 })
 
+const {me} = useMe();
+const isAdmin = computed(() => !!me.value?.permissions?.includes("admin"));
+
 let loading = ref<boolean>(false);
 let deleting = ref<string | null>(null);
 let startupChanging = ref<string | null>(null);
-let installingWorkflow = ref<null | "busy" | "error" | "success">(null);
-let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null || installingWorkflow.value === "busy")
+let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null)
 
 let buttonStates = ref<{ reload: string | null }>({
   reload: null,
@@ -142,31 +143,6 @@ async function loadRepository() {
 }
 
 
-async function installWorkflow(name: string, repo: Project) {
-  installingWorkflow.value = "busy";
-  try {
-    const resp = await api(`/api/repo/${repo.short_name}/install_workflow/${name}`, {method: "POST"});
-
-    if (!resp.success) {
-      await alertDialog({
-        title: "Workflow installation failed",
-        message: resp.msg
-      });
-      installingWorkflow.value = "error"
-      return;
-    }
-
-    installingWorkflow.value = "success"
-  } catch (error: any) {
-    await alertDialog({
-      title: "Workflow installation failed",
-      message: error?.message ?? "An error occurred while installing the workflow."
-    });
-
-    installingWorkflow.value = "error"
-  }
-}
-
 async function reload() {
   buttonStates.value.reload = "loading"
   try {
@@ -203,97 +179,59 @@ async function reload() {
 
     <h1>Settings</h1>
     <h3>Repositories</h3>
-    <CollapsibleCard v-for="repo in settings.repositories">
-      <template #title>
-        {{ repo.short_name }} ({{ repo.full_repository_name }})
-      </template>
-      <template #buttons>
-        <button :disabled="blocked || !settings.changing_startup_allowed" class="btn btn-primary btn-sm"
-                @click="toggleStartup(repo)">
-          <template v-if="settings.startup_repositories.indexOf(repo.full_repository_name) >= 0">
-            <i class="fa fa-square-check"></i> Loaded on startup
-          </template>
-          <template v-else>
-            <i class="fa fa-square"></i> Not loaded on startup
-          </template>
-        </button>
-
-        <button v-if="settings.loading_new_allowed" :disabled="blocked"
-                class="btn btn-danger btn-sm btn-circle" @click="$event.stopPropagation(); unloadRepository(repo)">
-          <i :class="deleting === repo.full_repository_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']" class="fa"></i>
-        </button>
-      </template>
-      <template #body>
-        <h6>Core settings</h6>
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">ID Length</span>
-          <input v-model="repo.id_digits" class="form-control" type="number">
-        </div>
-
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">Main branch</span>
-          <input v-model="repo.main_branch" class="form-control" type="text">
-        </div>
-
-        <h6>Subontologies</h6>
-        <p class="text-body-secondary">
-          To generate hierarchical spreadsheets
-        </p>
-
-        <template v-for="subontology in repo.subontologies">
-          <div class="input-group input-group-sm mb-3">
-            <span class="input-group-text">Excel</span>
-            <input v-model="subontology.excel_file" class="form-control" type="text">
-            <span class="input-group-text">Released</span>
-            <input v-model="subontology.release_file" class="form-control" type="text">
-
-            <button :disabled="blocked" class="btn btn-danger"
-                    @click="repo.subontologies = Object.fromEntries(Object.entries(repo.subontologies).filter(([, x]) => x != subontology))">
-              <i class="fa fa-trash"></i>
-            </button>
+    <table class="table align-middle">
+      <thead>
+      <tr>
+        <th>Repository</th>
+        <th>GitHub</th>
+        <th>Loaded on startup</th>
+        <th></th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr v-for="repo in settings.repositories" :key="repo.full_repository_name">
+        <td>
+          <RouterLink :to="{name: 'project-settings', params: {repo: repo.short_name}}">
+            {{ repo.short_name }}
+          </RouterLink>
+          <div class="small text-body-secondary">{{ repo.full_name }}</div>
+        </td>
+        <td>{{ repo.full_repository_name }}</td>
+        <td>
+          <div class="form-check form-switch">
+            <input :checked="settings.startup_repositories.indexOf(repo.full_repository_name) >= 0"
+                   :disabled="blocked || !settings.changing_startup_allowed" class="form-check-input" role="switch"
+                   title="Load on startup" type="checkbox" @change="toggleStartup(repo)">
+            <i v-if="startupChanging === repo.full_repository_name" class="fa fa-spinner fa-spin"></i>
           </div>
-        </template>
-
-        <h6>Workflows</h6>
-        <p class="text-body-secondary">
-          Install github workflows in this repository
-        </p>
-
-
-        <button :class="{'btn-success': installingWorkflow === 'success', 'btn-danger': installingWorkflow === 'error'}"
-                :disabled="blocked" class="btn btn-primary btn-sm"
-                @click="installWorkflow('externals', repo)">
-          <i v-if="installingWorkflow === 'busy'" class="fa fa-spin fa-spinner"></i>
-          <i v-if="installingWorkflow === 'success'" class="fa fa-check"></i>
-          <i v-if="installingWorkflow === 'error'" class="fa fa-close"></i>
-          <i v-else class="fa fa-file-import"></i>
-          Automatically build externals owl file
-        </button>
-      </template>
-    </CollapsibleCard>
+        </td>
+        <td class="text-end text-nowrap">
+          <RouterLink :to="{name: 'project-settings', params: {repo: repo.short_name}}"
+                      class="btn btn-sm btn-outline-primary me-1">
+            <i class="fa fa-edit"></i> Configuration
+          </RouterLink>
+          <button v-if="settings.loading_new_allowed" :disabled="blocked" class="btn btn-sm btn-outline-danger"
+                  title="Unload repository" @click="unloadRepository(repo)">
+            <i :class="deleting === repo.full_repository_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']" class="fa"></i>
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
 
     <div class="d-flex gap-2">
-      <button v-if="settings.loading_new_allowed" :disabled="blocked" class="mb-3 btn btn-sm btn-primary add-file"
+      <button v-if="settings.loading_new_allowed" :disabled="blocked" class="mb-3 btn btn-sm btn-primary"
               @click="loadRepository">
         <i :class="loading ? ['fa-spinner', 'fa-spin'] : ['fa-add']" class="fa"></i>
         Load repository
       </button>
-      <button :class="[reloadButtonClass[buttonStates.reload ?? 'null']]" :disabled="blocked || buttonStates.reload === 'loading'"
-              class="mb-3 btn btn-sm btn-primary add-file"
+      <button v-if="isAdmin" :class="[reloadButtonClass[buttonStates.reload ?? 'null']]"
+              :disabled="blocked || buttonStates.reload === 'loading'" class="mb-3 btn btn-sm btn-primary"
               @click="reload()">
         <i :class="(reloadIconClass[buttonStates.reload ?? 'null'] ?? ['fa-refresh'])"
            class="fa"></i>
         Reload settings
       </button>
-      <slot name="buttons"></slot>
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: 14px
-}
-</style>

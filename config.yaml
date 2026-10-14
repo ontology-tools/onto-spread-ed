@@ -41,6 +41,7 @@ repositories:
 # index                            : Implies 'view'. Allows to manage the index powering search, autocomplete, etc.
 # hierarchical-spreadsheets        : Implies 'view'. Allows to download the hierarchical spreadsheets.
 # repository-config-view           : Implies 'view'. Allows to view the loaded configurations
+# repository-config-edit           : Implies 'repository-config-view'. Allows to edit the configuration of a loaded repository.
 # repository-config-manage-loaded  : Implies 'repository-config-view'. Allows to change the loaded configurations.
 # repository-config-manage-startup : Implies 'repository-config-view'. Allows to change the configurations loaded on startup.
 permission-groups:
@@ -60,6 +61,7 @@ permission-groups:
       - edit
       - add-external-ontology
       - release
+      - repository-config-edit
       - index
       - scripts
 

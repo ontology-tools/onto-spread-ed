@@ -53,13 +53,19 @@ def diff(a, b, __path: str ="") -> List[Diff]:
     else:
         fields = a.keys()
 
-    for f in fields:
-        val_a = a[f]
-        val_b = b[f]
+        for f in b.keys() - a.keys():
+            results.append(Diff(__path + ("." if __path else "") + f, None, b[f], "add"))
 
+    for f in fields:
         path = __path + ("." if __path else "") + f
 
-        if isinstance(val_a, PRIMITIVE_TYPES):
+        val_a = a[f]
+        if f not in b:
+            results.append(Diff(path, val_a, None, "remove"))
+            continue
+        val_b = b[f]
+
+        if isinstance(val_a, PRIMITIVE_TYPES) or type(val_a) is not type(val_b):
             if val_a != val_b:
                 results.append(Diff(path, val_a, val_b))
         elif isinstance(val_a, (list, tuple, set)):
