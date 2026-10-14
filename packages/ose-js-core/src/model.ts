@@ -1,8 +1,10 @@
-export interface ReleaseScriptFile {
+// Same as ose/project.py of ose-lib
+export interface ProjectFile {
     needs: string[];
     sources: {
         file: string;
         type: "classes" | "relations" | "individuals" | "owl";
+        spreadsheet_schema: string;
     }[];
     target: {
         file: string;
@@ -12,35 +14,88 @@ export interface ReleaseScriptFile {
     };
     addParentsFile: string | null;
     renameTermFile: string | null;
-
 }
 
-export interface ReleaseScript {
-    external: ReleaseScriptFile;
-    files: { [K: string]: ReleaseScriptFile };
-    full_repository_name: string;
-    iri_prefix: string;
+export interface BuildStep {
+    name: string;
+    args: { [K: string]: any };
+}
+
+export interface BuildConfiguration {
+    name: string;
+    description: string | null;
+    stages: BuildStep[];
+}
+
+export interface Project {
+    short_name: string;
+    full_name: string;
+    id_digits: number;
+    main_branch: string;
     prefixes: { [K: string]: string };
+    subontologies: {
+        [K: string]: {
+            release_file: string
+            excel_file: string
+        }
+    };
+    readonly_files: { [K: string]: string };
+    validation: ("include-external" | "include-dependencies")[];
+    iri_prefix: string;
     short_repository_name: string;
-    steps: {
-        args: any,
-        name: string
-    }[];
+    full_repository_name: string;
+    external: ProjectFile;
+    files: { [K: string]: ProjectFile };
+    build_configurations: BuildConfiguration[];
+    spreadsheet_schemas: { [K: string]: any };
 }
 
+// Same as ose/building of ose-lib
+export type BuildState = "starting" | "running" | "completed" | "cancelled" | "errored" | "paused";
+
+export interface StageResult {
+    log: { errors: Diagnostic[], warnings: Diagnostic[], infos: Diagnostic[] };
+    data: { [K: string]: any };
+    result: "skipped" | "cancelled" | "paused" | "failed" | "completed";
+}
+
+export interface BuildArtifact {
+    id: string;
+    local_path: string;
+    final_path: string | null;
+    kind: "source" | "intermediate" | "final";
+    origin: string;
+    creation_time: string;
+}
+
+export interface ReleaseContext {
+    build_id: string;
+    project: Project;
+    build_configuration: BuildConfiguration;
+    current_stage: number | null;
+    state: BuildState;
+    stage_results: (StageResult | null)[];
+    artifacts: BuildArtifact[];
+}
+
+export interface Progress {
+    stage: number;
+    current_item: number | null;
+    total_items: number | null;
+    item: string | null;
+    message: string | null;
+}
 
 export interface Release<D = Date> {
     id: number
-    state: "starting" | "running" | "completed" | "canceled" | "errored" | "waiting-for-user"
-    running: boolean
-    step: number
-    details: { [k: string]: any }
+    repo: string
+    state: BuildState
     started_by: string,
-    release_script: ReleaseScript,
     start: D
-    end: D
-    worker_id: string,
-    included_files: string[]
+    end: D | null
+    worker_id: string | null,
+    context: ReleaseContext | null,
+    progress: Progress | null
 }
 
 // Same as ose/model/ExcelOntology.py
@@ -93,26 +148,6 @@ export interface Term {
 }
 
 export type AutoFixState = "loading" | "impossible" | "fixed" | "loaded";
-
-export interface RepositoryConfig {
-    short_name: string
-    full_name: string
-
-    id_digits: number
-    indexed_files: string[]
-    main_branch: string
-    prefixes: { [K: string]: string }
-    release_file: string
-    release_script_path: string
-    subontologies: {
-        [K: string]: {
-            release_file: string
-            excel_file: string
-        }
-    }
-    readonly_files: {[K: string]: string}
-    validation: ("include-external" | "include-dependencies")[]
-}
 
 interface _BaseChangeRecord {
     type: "change" | "add" | "delete",

@@ -2,6 +2,7 @@
 
 import type { Release } from "../model";
 import { computed } from "vue";
+import { currentStage, releaseStages } from "./stages";
 
 const props = defineProps<{
   release?: Release
@@ -20,8 +21,8 @@ const props = defineProps<{
 
 const percent = computed(() => Math.round((props.details?.__progress?.progress ?? 0) * 100))
 
-const stepNumber = computed(() => props.stepNumber ?? props.release?.release_script.steps.findIndex(s => s.name === props.stepName) ?? -1)
-const state = computed(() => props.release?.state === 'running' && props.release?.step > stepNumber.value ? 'completed' : props.release?.state)
+const stepNumber = computed(() => props.stepNumber ?? releaseStages(props.release).findIndex(s => s.name === props.stepName))
+const state = computed(() => props.release?.state === 'running' && currentStage(props.release) > stepNumber.value ? 'completed' : props.release?.state)
 
 </script>
 
@@ -37,7 +38,7 @@ const state = computed(() => props.release?.state === 'running' && props.release
     </p>
     <div class="progress" role="progressbar">
       <div class="progress-bar"
-        :class="{ 'progress-bar-animated': state == 'running' || state == 'starting', 'progress-bar-striped': state == 'running' || state == 'starting', 'bg-success': state == 'completed', 'bg-danger': state == 'canceled' || state == 'errored', }"
+        :class="{ 'progress-bar-animated': state == 'running' || state == 'starting', 'progress-bar-striped': state == 'running' || state == 'starting', 'bg-success': state == 'completed', 'bg-danger': state == 'cancelled' || state == 'errored', }"
         :style="{ width: `${percent}%` }">{{ percent }}%
       </div>
     </div>

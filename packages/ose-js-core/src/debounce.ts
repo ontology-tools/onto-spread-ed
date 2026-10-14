@@ -1,5 +1,5 @@
 export function debounce<U extends unknown[], R>(func: (...args: U) => (R | Promise<R>), timeout: number = 100): (...args: U) => Promise<R> {
-    let timer: number;
+    let timer: ReturnType<typeof setTimeout>;
     return (...args: U) => {
         clearTimeout(timer);
         return new Promise(resolve => {
