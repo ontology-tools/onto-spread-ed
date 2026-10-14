@@ -171,9 +171,9 @@ used from then on. Returns `{success: true, project}`; `400` for an invalid proj
 | GET /api/release/{id} | Release by numeric id |
 | GET /api/release/{repo} | Releases of a repository |
 | GET, POST /api/release/{repo}/running | The running release of a repository |
-| POST /api/release/start | Start a release. Body `{repo, build_configuration}` (name or object) |
+| POST /api/release/start | Start a release. Body `{repo, build_configuration}` (name or object). If another release of the repository is still stopping, the new one stays `starting` (with a `progress.message`) until it has |
 | GET /api/release/{repo}/continue?force= | Continue a paused release; `force` skips the failed stage |
 | GET, POST /api/release/{repo}/rerun-step?force= | Re-run the current step |
-| POST /api/release/{repo}/cancel | Cancel the running release |
+| POST /api/release/{repo}/cancel | Cancel the running release. `state` becomes `cancelled` at once, `end` is set only once the worker has fully stopped |
 | GET /api/release/download?release=&artifact= | Download a release artifact |
 | GET /api/release/{repo}/release_script | Read the repository's project file (edited through the settings API) |

@@ -75,7 +75,9 @@ def release_cancel(repo: str, db: SQLAlchemy):
     release = release_or_err
     release.state = "cancelled"
     release.context = {**(release.context or {}), "state": "cancelled"}
-    release.end = datetime.datetime.now(datetime.timezone.utc)
+    if release.worker_id is None:
+        release.end = datetime.datetime.now(datetime.timezone.utc)
+    # otherwise the worker sets `end` once the release has fully stopped
     db.session.commit()
 
     return jsonify(release.as_dict())
