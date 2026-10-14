@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 62.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -49,7 +49,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 ose_app = [
-    "templates/**/*",
     "static/**/*",
     "database/migrations/alembic.ini",
     "database/migrations/script.py.mako",

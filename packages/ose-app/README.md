@@ -7,7 +7,8 @@ Flask web application for OntoSpreadEd - Ontology Spreadsheet Editor.
 This package provides the web interface and REST API for the OntoSpreadEd ontology spreadsheet editor. It includes:
 
 - Flask application factory and configuration
-- REST API endpoints for ontology operations
+- JSON API endpoints for ontology operations (see [API.md](API.md))
+- Serving the Vue single-page app (`ose-js-app`) as a catch-all
 - GitHub OAuth authentication
 - User and permission management
 - Ontology data store and caching

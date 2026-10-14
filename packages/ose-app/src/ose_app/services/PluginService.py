@@ -2,11 +2,9 @@ import logging
 import importlib.resources
 from importlib.metadata import entry_points
 from pathlib import Path
-from typing import Type
 
 from injector import Injector
 from ose_app.model.Script import Script
-from ose_app.release.ReleaseStep import ReleaseStep
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.model.Plugin import Plugin, PluginComponent
 
@@ -25,9 +23,6 @@ class PluginService:
     @property
     def plugins(self) -> list[Plugin]:
         return self._plugins
-
-    def get_release_steps(self) -> list[Type[ReleaseStep]]:
-        return [c for plugin in self._plugins for c in plugin.contents if issubclass(c, ReleaseStep)]
 
     def get_scripts(self) -> list[Script]:
         return [self._injector.create_object(c) for plugin in self._plugins for c in plugin.contents if issubclass(c, Script)]

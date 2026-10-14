@@ -1,27 +1,22 @@
 import typing
 
-from flask import Flask, Request
+from flask import Flask
 from flask_executor import Executor
 from flask_github import GitHub
 from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
 from injector import Injector, Module, provider, singleton
 
-from ose.services.PluginService import PluginService
+from ose.building.OntologyBuildService import OntologyBuildService
+from ose.building.RobotOntologyBuildService import RobotOntologyBuildService
 
-import ose.database as database
-
-from . import gh
-from .injectables import ActiveBranch
-from .OntologyDataStore import OntologyDataStore
+from . import database, gh
 from .PermissionManager import PermissionManager
 from .SpreadsheetSearcher import SpreadsheetSearcher
-from ose.services.ConfigurationService import ConfigurationService
-from ose.services.FileCache import FileCache
-from ose.services.LocalConfigurationService import LocalConfigurationService
-from ose.services.OntoloyBuildService import OntologyBuildService
-from ose.services.RepositoryConfigurationService import RepositoryConfigurationService
-from ose.services.RobotOntologyBuildService import RobotOntologyBuildService
+from .services.ConfigurationService import ConfigurationService
+from .services.FileCache import FileCache
+from .services.PluginService import PluginService
+from .services.RepositoryConfigurationService import RepositoryConfigurationService
 
 
 class AppModule(Module):
@@ -30,18 +25,6 @@ class AppModule(Module):
     def init_app(self, app: Flask):
         database.init_app(app)
         gh.init_app(app)
-
-    @provider
-    @request
-    def active_branch(self, r: Request, config: ConfigurationService) -> ActiveBranch:
-        repo_key = r.view_args.get("repo", r.view_args.get("repo_key", None))
-
-        repo = config.get(repo_key) if repo_key is not None else None
-
-        if repo_key is None or repo is None:
-            raise ValueError("Cannot identify active repository to calculate active branch!")
-        
-        return r.args.get('branch', repo.main_branch)
 
     @provider
     @request
@@ -57,25 +40,13 @@ class AppModule(Module):
 
     @provider
     @singleton
-    def ontodb(self, config: ConfigurationService) -> OntologyDataStore:
-        return OntologyDataStore(config)
-
-    @provider
-    @singleton
     def searcher(self, github: GitHub, config: ConfigurationService) -> SpreadsheetSearcher:
         return SpreadsheetSearcher(config, github)
 
     @provider
     @singleton
     def configuration_service(self, app: Flask, github: GitHub) -> ConfigurationService:
-        configuration_service = app.config.get("REPOSITORIES_SOURCE", "local")
-
-        service = {
-            "local": LocalConfigurationService,
-            "repository": RepositoryConfigurationService
-        }.get(configuration_service, LocalConfigurationService)
-
-        return service(app.config, github)
+        return RepositoryConfigurationService(app.config, github)
 
     @provider
     @singleton

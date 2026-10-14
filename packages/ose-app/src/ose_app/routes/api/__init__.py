@@ -8,6 +8,8 @@ from .scripts import bp as scripts
 from .settings import bp as settings
 from .visualise import bp as visualise
 from .plugins import bp as plugins
+from .me import bp as me
+from .admin import bp as admin
 
 blueprints = [
     release,
@@ -19,5 +21,7 @@ blueprints = [
     scripts,
     settings,
     visualise,
-    plugins
+    plugins,
+    me,
+    admin
 ]

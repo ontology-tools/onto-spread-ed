@@ -17,3 +17,19 @@ def search(repo: str, searcher: SpreadsheetSearcher):
     results = searcher.search_for(repo, query, fields=["label", "definition"], limit=limit)
 
     return jsonify(results)
+
+
+@bp.route("/<string:repo>/sheets", methods=["POST"])
+@requires_permissions("view")
+def search_sheets(repo: str, searcher: SpreadsheetSearcher):
+    """Search across all sheets of a repository, either by free text `query` or by assigned user `initials`."""
+    data = request.get_json(silent=True) or {}
+
+    if data.get("initials"):
+        results = searcher.search_for(repo, assigned_user=data["initials"])
+    elif data.get("query") is not None:
+        results = searcher.search_for(repo, search_string=data["query"])
+    else:
+        return jsonify({"success": False, "error": "Either 'query' or 'initials' is required."}), 400
+
+    return jsonify(results)

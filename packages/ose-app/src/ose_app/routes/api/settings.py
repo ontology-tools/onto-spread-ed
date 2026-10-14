@@ -9,6 +9,17 @@ from ose_app.services.RepositoryConfigurationService import RepositoryConfigurat
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
 
 
+@bp.route("", methods=["GET"])
+@requires_permissions("repository-config-view")
+def get_settings(config: ConfigurationService):
+    return jsonify({
+        "repositories": [p.model_dump(mode="json") for p in config.loaded_repositories()],
+        "startup_repositories": config.startup_repositories(),
+        "changing_startup_allowed": config.changing_startup_allowed,
+        "loading_new_allowed": config.loading_new_allowed,
+    })
+
+
 @bp.route("/repositories/possibilities", methods=["GET"])
 @requires_permissions("repository-config-manage-loaded")
 def possible_repositories(config: ConfigurationService, gh: GitHub):

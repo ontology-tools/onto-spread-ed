@@ -92,7 +92,7 @@ def create_app(config_filename=None):
     if config_filename is None:
         config_filename = "config.yaml"
 
-    # Clear type annotations to get around errors using url_for in jinja template
+    # Clear type annotations; kept for flask_injector compatibility with url_for (no jinja templates remain)
     # Source: https://github.com/python-injector/flask_injector/issues/78
     Flask.url_for.__annotations__ = {}
     # create and configure the app
@@ -126,9 +126,6 @@ def create_app(config_filename=None):
         module.init_app(app)
 
     injector = FlaskInjector(app=app, modules=[module])
-    from . import jinja_extensions
-
-    jinja_extensions.init_app(app, injector.injector)
 
     # CLI is optional - only initialize if ose-cli is installed
     try:

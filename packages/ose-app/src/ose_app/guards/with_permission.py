@@ -1,9 +1,10 @@
 import functools
 from typing import Optional, Sequence
 
-from flask import g, redirect, url_for, request, jsonify, render_template
+from flask import g, redirect, url_for, request, jsonify, current_app
 
 from ose_app.PermissionManager import PermissionManager
+from ose_app.guards.api_request import is_api_request
 
 
 def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = None,
@@ -25,7 +26,7 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
 
             # If the user is not logged in, then redirect him to the "logged out" page:
             if not g.user:
-                if request.accept_mimetypes.accept_html:
+                if request.accept_mimetypes.accept_html and not is_api_request():
                     return redirect(url_for("authentication.login", next=request.url))
                 else:
                     return jsonify({"success": False, "error": "You are not logged in!"}), 401
@@ -39,8 +40,8 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
                 permitted = permission_manager.has_permissions(user_name, *all_of)
 
             if not permitted:
-                if request.accept_mimetypes.accept_html:
-                    return render_template("forbidden.html"), 403
+                if request.accept_mimetypes.accept_html and not is_api_request():
+                    return redirect(f"{current_app.config['URL_PREFIX']}/forbidden")
                 else:
                     return jsonify(
                         {"success": False, "error": "You don't have permission to access this page!"}

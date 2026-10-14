@@ -9,7 +9,9 @@ from flask import Blueprint, request, jsonify, current_app, g, Response
 from flask_github import GitHub, GitHubError
 from openpyxl.worksheet.worksheet import Worksheet
 
+from ose_app import helpers
 from ose_app.PermissionManager import PermissionManager
+from ose_app.save import save_from_request
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.guards.with_permission import requires_permissions
 from ose.ontology import ExcelOntology
@@ -18,6 +20,30 @@ from ose_app.services.FileCache import FileCache
 from ose_app.utils import get_spreadsheet, save_file
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
+
+
+@bp.route("/save", methods=["POST"])
+@requires_permissions("edit")
+def save(searcher: SpreadsheetSearcher, gh: GitHub, config: ConfigurationService):
+    d = request.get_json() or {}
+    repo_key = d.get("repo_key")
+    if repo_key not in helpers.visible_repositories(config):
+        return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
+
+    return save_from_request(searcher, gh, config, d)
+
+
+@bp.route("/check-updates", methods=["POST"])
+@requires_permissions("view")
+def check_updates(gh: GitHub, config: ConfigurationService):
+    d = request.get_json() or {}
+    repo_key = d.get("repo_key")
+    if repo_key not in helpers.visible_repositories(config):
+        return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
+
+    up_to_date = helpers.is_up_to_date(gh, config, d.get("repo_key"), d.get("folder"), d.get("spreadsheet"),
+                                       d.get("file_sha"), d.get("branch"))
+    return jsonify({"up_to_date": up_to_date})
 
 
 @bp.route("/<repo>/<path:path>", methods=["PATCH"])
@@ -110,8 +136,7 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
 
 @bp.route("/get/<repo>/<path:path>", methods=["GET"])
 @requires_permissions("view")
-def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager,
-             searcher: SpreadsheetSearcher):
+def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
     if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
 
@@ -127,8 +152,6 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
     try:
         (file_sha, rows, header) = get_spreadsheet(gh, repository.full_repository_name, path, branch=branch)
 
-        suggestions = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
-
         data = dict(
             header=header,
             rows=rows,
@@ -138,7 +161,7 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
             spreadsheet_name=spreadsheet,
         )
 
-        return jsonify({"success": True, "spreadsheet": data, "suggestions": suggestions}), 200
+        return jsonify({"success": True, "spreadsheet": data}), 200
     except GitHubError as e:
         current_app.logger.error(e)
         return jsonify({"success": False, "error": f"Failed when communicating with github: {e}"}), 200

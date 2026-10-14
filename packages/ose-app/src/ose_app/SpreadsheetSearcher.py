@@ -7,11 +7,11 @@ from typing import Generator, Dict, List, Optional, Any
 from flask_github import GitHub
 from whoosh.qparser import MultifieldParser, QueryParser
 
-from ose.index.FileStorage import FileStorage
-from ose.index.create_index import add_entity_data_to_index, re_write_entity_data_set
-from ose.index.schema import schema
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils.github import get_spreadsheet, get_spreadsheets
+from ose_app.index.FileStorage import FileStorage
+from ose_app.index.create_index import add_entity_data_to_index, re_write_entity_data_set
+from ose_app.index.schema import schema
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.utils.github import get_spreadsheet, get_spreadsheets
 
 
 class SpreadsheetSearcher:
@@ -49,12 +49,7 @@ class SpreadsheetSearcher:
 
         with ix.searcher() as searcher:
             results = searcher.search(query, limit=limit)
-            resultslist = []
-            for hit in results:
-                allfields = {}
-                for field in hit:
-                    allfields[field] = hit[field]
-                resultslist.append(allfields)
+            resultslist = [hit.fields() for hit in results]
 
         ix.close()
         return resultslist
