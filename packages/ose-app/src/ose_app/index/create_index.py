@@ -2,7 +2,7 @@ import logging
 
 from whoosh.index import FileIndex
 from whoosh.qparser import MultifieldParser # pyright: ignore[reportPrivateImportUsage]
-from whoosh.writing import IndexWriter, SegmentWriter
+from whoosh.writing import IndexWriter
 
 from ose.project import Project
 
