@@ -4,14 +4,13 @@ import logging
 import traceback
 from importlib.metadata import entry_points
 from types import ModuleType
-from typing import Any, Callable
+from typing import Callable
 
 from ose.result import Err, Log, Success, is_successful
 from ose.building.BuildContext import _BuildContextStageResult, BuildContext, BuildState
 from ose.building.Progress import Progress
-from ose.project import BuildConfiguration, BuildStep
 from ose.building import stages as builtin_stage_module
-from ose.building.stages import BuildStage, StageResultType
+from ose.building.stages import BuildStage
 from ose.utils.logging import log_prefix
 
 STAGE_ENTRY_POINT_GROUP = "ose.build_stages"

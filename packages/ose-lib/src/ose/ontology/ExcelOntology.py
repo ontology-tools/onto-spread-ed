@@ -4,7 +4,6 @@ import dataclasses
 import itertools
 import logging
 import os.path
-import zipfile
 from io import BytesIO
 from typing import (
     DefaultDict,
@@ -20,7 +19,6 @@ from typing import (
 )
 
 import openpyxl
-from openpyxl.utils.exceptions import InvalidFileException
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 import pyhornedowl as ho
