@@ -28,7 +28,6 @@
                 "8080",
             ],
             "justMyCode": false,
-            "jinja": true,
             "autoStartBrowser": false,
             "preLaunchTask": "OSE: Update DB"
         },

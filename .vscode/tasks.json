@@ -26,13 +26,17 @@
             "detail": "Build JS core and JS app"
         },
         {
-            "label": "OSE: Build JS (watch)",
+            "label": "OSE: JS dev server",
             "type": "npm",
             "script": "dev",
-            "group": "build",
+            "options": {
+                "env": {
+                    "FLASK_PORT": "8080"
+                }
+            },
             "isBackground": true,
             "problemMatcher": [],
-            "detail": "Watch and rebuild JS app on changes"
+            "detail": "Vite dev server on :5173, proxies to the Flask debug config on :8080"
         },
         {
             "label": "OSE: Install Python Packages (dev)",
