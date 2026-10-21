@@ -9,7 +9,7 @@ import { COLUMN_NAMES, CURATION_STATUS, isRow, Row } from "@ontospreaded/js-core
 import { alertDialog, confirmDialog, promptDialog } from "../common/bootbox"
 import { Diagnostic as DiagnosticM, MergeConflict, Project } from "@ontospreaded/js-core";
 import Diagnostic from "../common/Diagnostic.vue"
-import { BModal, BSpinner, BToast, BToastOrchestrator, ControllerKey, useToastController } from "bootstrap-vue-next"
+import { BModal, BSpinner, BToast, ControllerKey, useToastController } from "bootstrap-vue-next"
 import { DIAGNOSTIC_DATA } from "@ontospreaded/js-core";
 import { debounce, SpreadsheetData, generateCommitMessage } from "@ontospreaded/js-core";
 import Merger from "./Merger.vue";
@@ -24,7 +24,6 @@ const props = defineProps<{
   filePath: string,
   config: {
     repository_config: Project,
-    main_branch: string,
     initials: string,
     all_initials: (string | null)[]
   }
@@ -52,7 +51,7 @@ const tableColumns = computed(() => spreadsheetData.value?.header?.map(h => colu
 const { repo, filePath } = props;
 const fileName = filePath.split('/').pop()!
 const fileFolder = filePath.substring(0, filePath.lastIndexOf("/"))
-const activeBranch = (route.query.branch as string | undefined) ?? props.config.main_branch;
+const activeBranch = (route.query.branch as string | undefined) ?? repoConfig.main_branch;
 const downloadPath = computed(() => `https://raw.githubusercontent.com/${repoConfig?.full_repository_name}/${activeBranch}/${filePath}`)
 
 const navigateToRow = route.query.row ? Number.parseInt(route.query.row as string) - 2 : null;
@@ -174,12 +173,15 @@ const onMessage = (e: MessageEvent) => {
 
 let checkForUpdatesTimer: ReturnType<typeof setInterval> | undefined;
 const updateState: { toast: ControllerKey | null } = { toast: null };
+// The toasts are rendered by App.vue, so the ones belonging to this sheet must be removed when it unmounts
+let readOnlyToast: ControllerKey | null = null;
+let unmounted = false;
 const loadError = ref<string | null>(null);
 onMounted(() => {
   loadData()
 
   if (isReadOnly) {
-    showToast?.({
+    readOnlyToast = showToast?.({
       props: {
         value: true,
         progressProps: {
@@ -192,7 +194,7 @@ onMounted(() => {
           h("span", null, `This file is readonly: ${readOnlyMessage}`)
         ])
       })
-    })
+    }) ?? null
   }
 
   window.addEventListener("resize", onWindowSizeChanged);
@@ -201,6 +203,7 @@ onMounted(() => {
   window.addEventListener("message", onMessage);
 })
 onUnmounted(() => {
+  unmounted = true;
   window.removeEventListener("resize", onWindowSizeChanged);
   window.removeEventListener("beforeunload", onBeforeUnload);
   window.removeEventListener("keydown", onKeyPress);
@@ -211,6 +214,10 @@ onUnmounted(() => {
   if (updateState.toast) {
     removeToast?.(updateState.toast)
     updateState.toast = null
+  }
+  if (readOnlyToast) {
+    removeToast?.(readOnlyToast)
+    readOnlyToast = null
   }
   try {
     tabulator.value?.destroy()
@@ -618,6 +625,9 @@ async function checkForUpdates(state: any) {
     console.debug("Checking for updates failed", e)
     return;
   }
+  if (unmounted) {
+    return;
+  }
   if (result.up_to_date) {
     // No updates
   } else {
@@ -741,11 +751,15 @@ function sendVisualisationRequest(sendType: "sheet" | "select") {
       visualisationWindow.oseDataChanged?.();
     };
 
+    // Give up once the window is closed or did not load within 30 seconds
+    const deadline = Date.now() + 30 * 1000;
     const interval = setInterval(() => {
       try {
         if (typeof visualisationWindow.oseDataChanged === 'function') {
           clearInterval(interval);
           sendData();
+        } else if (visualisationWindow.closed || Date.now() > deadline) {
+          clearInterval(interval);
         }
       } catch (_e) {
         clearInterval(interval);
@@ -1151,7 +1165,6 @@ function defColumnSize(field: string): number {
 </script>
 
 <template>
-  <BToastOrchestrator />
 
   <div :class="{ 'visually-hidden': mode !== 'edit' }" class="editor-container">
     <div class="row mb-3">

@@ -44,8 +44,9 @@ type GraphEdge = {
 const graph = computed(() => {
   const files = {external: props.project.external, ...props.project.files};
   const needs = new Map<string, string[]>(Object.entries(files).map(([k, f]) => [k, [...new Set(f.needs)]]));
-  const unknown = new Set([...needs.values()].flat().filter(n => !needs.has(n)));
-  for (const u of unknown) needs.set(u, []);
+  // Only the files can be needed, not the external ontology
+  const unknown = new Set([...needs.values()].flat().filter(n => !(n in props.project.files)));
+  for (const u of unknown) if (!needs.has(u)) needs.set(u, []);
 
   // Break cycles: edges back to a file that is still being visited are cyclic and ignored for the layout
   const cyclic = new Set<string>();
@@ -133,7 +134,7 @@ const graph = computed(() => {
           target: file?.target.file ?? "",
           sources: file?.sources.length ?? 0,
           publish: file?.target.publish ?? true,
-          unknown: unknown.has(id),
+          unknown: !(id in files),
           layer,
           order,
           x: layerX(layer),
@@ -241,7 +242,7 @@ function open(node: GraphNode) {
     The dependencies contain a cycle (red arrows). The project cannot be built until it is removed.
   </div>
   <div v-if="graph.unknown.length > 0" class="alert alert-warning py-2">
-    Some files need files that are not part of the project: {{ graph.unknown.join(", ") }}.
+    Some files need files that are not part of the project or cannot be needed: {{ graph.unknown.join(", ") }}.
   </div>
 
   <div class="graph-container">

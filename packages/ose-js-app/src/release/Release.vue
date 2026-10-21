@@ -14,9 +14,6 @@ import { layout } from "../state";
 
 interface PluginInfo {
   id: string;
-  name: string;
-  version: string;
-  description: string;
   components: { step_name: string; component_name: string }[];
   has_static: boolean;
   js_module: string | null;
@@ -24,9 +21,7 @@ interface PluginInfo {
 
 const route = useRoute()
 const router = useRouter()
-const prefix_url = prefix
 
-// The route is either /admin/release (chooser), /admin/release/:repo or /admin/release/:id
 const repo = ref<string | null>(null)
 const repos = ref<{ short: string, full: string }[] | null>(null)
 const chosenRepo = ref<string | null>(null)
@@ -41,42 +36,34 @@ const selected_sub_step = ref<string | null>(null)
 
 const { show: showToast } = useToastController();
 
-// Built-in step components
 const builtInSteps: { [k: string]: Component } = {
   "VALIDATION": Validation,
   "HUMAN_VERIFICATION": HumanVerification,
   "GITHUB_PUBLISH": GithubPublish,
 }
 
-// Dynamic plugin components - will be populated from API
 const pluginSteps = shallowRef<{ [k: string]: Component }>({})
 
-// Combined steps registry
 const _steps = computed(() => ({
   ...builtInSteps,
   ...pluginSteps.value
 }))
 
-// Load plugins from API
 async function loadPlugins() {
   try {
-    const response = await fetch(`${prefix_url}/api/plugins/`);
-    if (!response.ok) return;
-
-    const plugins: PluginInfo[] = await response.json();
+    const plugins = await api<PluginInfo[]>("/api/plugins/");
     const newPluginSteps: { [k: string]: Component } = {};
 
     for (const plugin of plugins) {
       if (!plugin.has_static || !plugin.js_module || plugin.components.length === 0) continue;
 
       for (const comp of plugin.components) {
-        // Create async component that loads from plugin's static folder
         const pluginId = plugin.id;
         const jsModule = plugin.js_module;
         const componentName = comp.component_name;
 
         newPluginSteps[comp.step_name] = markRaw(defineAsyncComponent(async () => {
-          const moduleUrl = `${prefix_url}/api/plugins/${pluginId}/static/${jsModule}`;
+          const moduleUrl = `${prefix}/api/plugins/${pluginId}/static/${jsModule}`;
           const module = await import(/* @vite-ignore */ moduleUrl);
           return module[componentName] || module.default;
         }));
@@ -140,19 +127,14 @@ function subSteps(data?: any): null | { [k: string]: SubStepContent } {
   return null
 }
 
-async function poll(withLoading: boolean = false) {
+async function poll() {
   const id = release.value?.id
   if (id === undefined) return
-  loading.value = withLoading;
   try {
-    let response = await fetch(`${prefix_url}/api/release/${id}`);
-    if (response.ok) {
-      const r = await response.json()
-      if (release.value?.id === id) release.value = r // ignore stale responses
-    }
-  } catch (e) {
-  } finally {
-    loading.value = false;
+    const r = await api<Release>(`/api/release/${id}`)
+    if (release.value?.id === id) release.value = r
+  } catch (e: any) {
+    if (release.value?.id === id) error.value = e.message
   }
 
   if (release.value && ['completed', 'cancelled'].includes(release.value.state)) {
@@ -168,19 +150,21 @@ function stopPolling() {
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null
+// Release controls call startPolling() after an await, which may resolve after leaving the page
+let unmounted = false
 
 function startPolling() {
-  if (pollInterval === null) {
+  if (pollInterval === null && !unmounted) {
     pollInterval = setInterval(poll, 2000)
   }
 }
 
 onBeforeUnmount(() => {
+  unmounted = true
   initToken++
   stopPolling()
 })
 
-// Decide what to show for the current route (replaces the server-side logic of the old Jinja page)
 let initToken = 0
 async function init() {
   if (!route.path.startsWith("/admin/release")) return // navigating away, the component is about to unmount
@@ -252,7 +236,6 @@ watch(chosenRepo, (value) => {
   if (value) router.push(`/admin/release/${value}`)
 })
 
-// Plugins are loaded once, independently of the route
 loadPlugins()
 
 watch(release, (value) => {
@@ -279,39 +262,24 @@ const icon_classes = computed(() => {
   }
 })
 
-async function _request<T = any, S = T>(request: () => Promise<Response>): Promise<T | undefined>
-
-async function _request<T = any, S = T>(request: () => Promise<Response>, post: ((json: T) => Promise<S>)): Promise<S | undefined>
-async function _request<T = any, S = T>(request: () => Promise<Response>, post: ((json: T) => Promise<S>) | null = null): Promise<S | T | undefined> {
+async function requestRelease(path: string, init: RequestInit = {}): Promise<Release | undefined> {
+  const page = route.fullPath
+  loading.value = true
+  error.value = null
   try {
-    loading.value = true;
-    const response = await request()
-
-    if (response.ok) {
-      const value = await response.json() as T
-      if (post !== null) {
-        return await post(value)
-      } else {
-        return value
-      }
-    } else {
-      const e = await response.json()
-      error.value = e.error
-    }
-
-    loading.value = false;
-  } catch (e) {
-    if (e instanceof Error) {
-      error.value = e.message
-    } else {
-      error.value = `An unknown error occurred: ${e}`
-    }
+    const result = await api<Release>(path, init)
+    if (!unmounted && route.fullPath === page) return result
+  } catch (e: any) {
+    if (!unmounted && route.fullPath === page) error.value = e.message
   } finally {
-    loading.value = false;
+    if (!unmounted && route.fullPath === page) loading.value = false
   }
 }
 
 async function rerunStep() {
+  const result = await requestRelease(`/api/release/${repo.value}/rerun-step?force=true`, {method: "POST"})
+  if (!result) return
+  release.value = result
   showToast?.({
     props: {
       value: 5000,
@@ -327,22 +295,14 @@ async function rerunStep() {
     })
   })
 
-  await fetch(`${prefix_url}/api/release/${repo.value}/rerun-step?force=true`, {
-    method: "POST"
-  })
-
   startPolling()
 }
 
 async function startRelease(buildConfiguration: BuildConfiguration) {
-  const r = await _request<Release>(() =>
-    fetch(prefix_url + "/api/release/start", {
-      method: "post",
-      body: JSON.stringify({ repo: repo.value, build_configuration: buildConfiguration }),
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }))
+  const r = await requestRelease("/api/release/start", {
+    method: "POST",
+    body: JSON.stringify({repo: repo.value, build_configuration: buildConfiguration}),
+  })
 
   if (r) {
     await router.push(`/admin/release/${r.id}`)
@@ -350,17 +310,14 @@ async function startRelease(buildConfiguration: BuildConfiguration) {
 }
 
 async function cancelRelease(): Promise<boolean> {
-  error.value = null
-  const cancelled = await _request<Release>(() => fetch(`${prefix_url}/api/release/${repo.value}/cancel`, {
-    method: "post"
-  }))
+  const cancelled = await requestRelease(`/api/release/${repo.value}/cancel`, {method: "POST"})
   if (cancelled) release.value = cancelled
   return cancelled !== undefined
 }
 
 async function restartRelease() {
   const buildConfiguration = release.value?.context?.build_configuration
-  // The backend lets the new release wait until the cancelled one has fully stopped
+  // A cancelled release no longer counts as open, the new one can start while the old one still stops
   if (buildConfiguration && await cancelRelease()) {
     await startRelease(buildConfiguration)
   }
@@ -404,8 +361,11 @@ function stepIconClasses(step: number): string[] {
 async function doReleaseControl(type: string) {
   switch (type) {
     case "continue":
-      await fetch(`${prefix_url}/api/release/${repo.value}/continue`)
-      startPolling()
+      const continued = await requestRelease(`/api/release/${repo.value}/continue`)
+      if (continued) {
+        release.value = continued
+        startPolling()
+      }
       break;
     default:
       console.warn(`No such release control type: '${type}'`)
@@ -414,7 +374,6 @@ async function doReleaseControl(type: string) {
 </script>
 
 <template>
-  <BToastOrchestrator />
   <div class="release">
     <div v-if="notFound" class="alert alert-danger">{{ notFound }}</div>
 

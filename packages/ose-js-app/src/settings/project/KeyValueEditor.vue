@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import {ref} from "vue";
+
 /**
  * Edits the entries of `entries` in place. With `typed`, values are parsed: `true`/`false` become booleans,
  * numbers become numbers and values starting with `[` or `{` are parsed as JSON.
@@ -31,10 +33,21 @@ function parse(value: string): any {
   return value;
 }
 
+/** Key whose rename was rejected, with the reason */
+const renameError = ref<{ key: string, message: string } | null>(null);
+
 /** Renames `oldKey` while keeping the order of the entries */
-function rename(oldKey: string, newKey: string) {
-  newKey = newKey.trim();
-  if (newKey === oldKey || newKey === "" || newKey in props.entries) return;
+function rename(oldKey: string, input: HTMLInputElement) {
+  const newKey = input.value.trim();
+  const error = newKey === "" ? `The ${props.keyLabel.toLowerCase()} must not be empty` :
+      newKey !== oldKey && newKey in props.entries ? `'${newKey}' exists already` : null;
+  if (error !== null) {
+    input.value = oldKey;
+    renameError.value = {key: oldKey, message: error};
+    return;
+  }
+  renameError.value = null;
+  if (newKey === oldKey) return;
 
   const entries = Object.entries(props.entries);
   for (const [k] of entries) delete props.entries[k];
@@ -50,16 +63,17 @@ function add() {
 
 <template>
   <div class="key-value-editor">
-    <div v-for="(value, key) in entries" :key="key" class="input-group input-group-sm mb-2">
+    <div v-for="(value, key) in entries" :key="key" class="input-group input-group-sm mb-2 has-validation">
       <span class="input-group-text">{{ keyLabel }}</span>
-      <input :value="key" class="form-control key" type="text"
-             @change="rename(key as string, ($event.target as HTMLInputElement).value)">
+      <input :class="{'is-invalid': renameError?.key === key}" :value="key" class="form-control key" type="text"
+             @change="rename(key as string, $event.target as HTMLInputElement)">
       <span class="input-group-text">{{ valueLabel }}</span>
       <input :value="format(value)" class="form-control" type="text"
              @change="entries[key] = parse(($event.target as HTMLInputElement).value)">
       <button class="btn btn-outline-danger" title="Remove" type="button" @click="delete entries[key]">
         <i class="fa fa-trash"></i>
       </button>
+      <div v-if="renameError?.key === key" class="invalid-feedback">{{ renameError.message }}</div>
     </div>
     <button class="btn btn-sm btn-outline-primary" type="button" @click="add">
       <i class="fa fa-add"></i> Add {{ keyLabel.toLowerCase() }}

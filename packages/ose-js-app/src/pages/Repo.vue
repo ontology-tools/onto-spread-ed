@@ -2,7 +2,7 @@
 import {computed, nextTick, onBeforeUnmount, ref, watch} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import type {TabulatorFull as Tabulator} from "tabulator-tables";
-import {cachedTree, fetchTree, type RepoTree, api, useMe} from "../api";
+import {fetchTree, type RepoTree, api, useMe} from "../api";
 import {layout} from "../state";
 
 type SearchHit = { class_id: string, definition: string, label: string, parent: string, repo: string, spreadsheet: string }
@@ -53,8 +53,6 @@ watch([repo, branch], async () => {
   if (route.name !== "repo") return;
   error.value = null;
   const [r, b] = [repo.value, branch.value];
-  const hit = cachedTree(r, b);
-  if (hit) return applyTree(hit);
   tree.value = null;
   layout.branches = [];
   layout.activeBranch = b ?? null;

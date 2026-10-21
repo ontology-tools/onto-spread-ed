@@ -25,6 +25,17 @@ function select(name: string) {
   router.replace({query: {...route.query, file: name}});
 }
 
+/** Renames (or with `newName` null removes) a file in the `files` argument of the stages, e.g. of MERGE */
+function updateStageArgs(name: string, newName: string | null) {
+  for (const stage of props.project.build_configurations.flatMap(c => c.stages)) {
+    const files = stage.args?.files;
+    if (!Array.isArray(files)) continue;
+    stage.args.files = newName === null
+        ? files.filter(f => f !== name)
+        : files.map(f => f === name ? newName : f);
+  }
+}
+
 function normaliseName(value: string) {
   return value.trim().replace(/[ ,./\-!?=]/g, "_");
 }
@@ -61,6 +72,7 @@ async function renameFile(name: string) {
   for (const f of Object.values(files.value)) {
     f.needs = f.needs.map(n => n === name ? newName : n);
   }
+  updateStageArgs(name, newName);
   select(newName);
 }
 
@@ -79,11 +91,13 @@ async function deleteFile(name: string) {
   for (const f of Object.values(files.value)) {
     f.needs = f.needs.filter(n => n !== name);
   }
+  updateStageArgs(name, null);
   select(EXTERNAL);
 }
 
+// Only the files can be needed, not the external ontology
 const possibleDependencies = computed(() =>
-    Object.keys(files.value).filter(k => k !== selected.value && !file.value.needs.includes(k)));
+    Object.keys(props.project.files).filter(k => k !== selected.value && !file.value.needs.includes(k)));
 </script>
 
 <template>

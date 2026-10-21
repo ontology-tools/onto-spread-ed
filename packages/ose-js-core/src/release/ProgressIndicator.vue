@@ -34,7 +34,9 @@ const state = computed(() => props.release?.state === 'running' && currentStage(
   <template v-if="details && '__progress' in details && details?.__progress">
     <p class="text-secondary mb-3">
       {{ details.__progress.message ?? "Working on" }} {{ details.__progress.current_item }}
-      ({{ details.__progress?.position?.[0] }}/{{ details.__progress?.position?.[1] }})
+      <template v-if="details.__progress.position">
+        ({{ details.__progress.position[0] }}/{{ details.__progress.position[1] }})
+      </template>
     </p>
     <div class="progress" role="progressbar">
       <div class="progress-bar"

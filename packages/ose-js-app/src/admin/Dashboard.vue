@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, h, onMounted, ref} from "vue";
 import {promptDialog} from "../common/bootbox";
-import {BToast, BToastOrchestrator, useToastController} from "bootstrap-vue-next";
+import {BToast, useToastController} from "bootstrap-vue-next";
 import {api, useMe} from "../api";
 import {layout} from "../state";
 
@@ -131,8 +131,6 @@ onMounted(async () => {
 </script>
 
 <template>
-  <BToastOrchestrator />
-
   <div v-if="me && !hasAny" class="alert alert-info">You do not have any admin permissions.</div>
   <div class="row align-stretch">
     <div v-if="can('release')" class="col-sm-6 col-md-4 col-lg-3 m-2">

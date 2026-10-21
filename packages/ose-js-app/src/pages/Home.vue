@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {ref} from "vue";
 import {useRouter} from "vue-router";
-import {cachedRepos, fetchRepos, type Repo} from "../api";
+import {fetchRepos, type Repo} from "../api";
 
 const router = useRouter();
 const repos = ref<Repo[] | null>(null);
@@ -15,9 +15,7 @@ function show(r: NonNullable<typeof repos.value>) {
   }
 }
 
-const known = cachedRepos();
-if (known) show(known);
-else fetchRepos().then(show).catch(e => {
+fetchRepos().then(show).catch(e => {
   error.value = e.message;
 });
 </script>

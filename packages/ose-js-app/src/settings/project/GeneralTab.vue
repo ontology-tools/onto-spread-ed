@@ -20,7 +20,9 @@ function toggleValidation(value: Project["validation"][number], enabled: boolean
   <div class="row g-3 mb-4">
     <div class="col-md-4">
       <label class="form-label" for="short-name">Short name</label>
-      <input id="short-name" v-model="project.short_name" class="form-control form-control-sm" type="text">
+      <!-- User access, the release history and the settings URL refer to the project by its short name -->
+      <input id="short-name" :value="project.short_name" class="form-control form-control-sm" disabled type="text"
+             title="The short name identifies the project and cannot be changed">
     </div>
     <div class="col-md-8">
       <label class="form-label" for="full-name">Full name</label>

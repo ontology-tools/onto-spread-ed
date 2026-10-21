@@ -41,10 +41,12 @@ export function stageDetails(release: Release<any> | null | undefined, stage: nu
 
     const progress = release?.progress;
     if (release?.state === "running" && progress?.stage === stage && progress.current_item !== null) {
+        // A negative item means the stage did not start on its first item yet
         const position = progress.current_item + 1;
+        const known = progress.current_item >= 0 && progress.total_items !== null;
         details.__progress = {
-            position: progress.total_items !== null ? [position, progress.total_items] : undefined,
-            progress: progress.total_items ? position / progress.total_items : 0,
+            position: known ? [position, progress.total_items!] : undefined,
+            progress: known && progress.total_items ? position / progress.total_items : 0,
             current_item: progress.item ?? undefined,
             message: progress.message ?? undefined,
         };

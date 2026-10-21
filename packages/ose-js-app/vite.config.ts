@@ -24,7 +24,7 @@ const oseHead = (): Plugin => ({
 });
 
 const flask = `http://localhost:${process.env.FLASK_PORT ?? 5000}`;
-const proxiedPaths = ['/api', '/login', '/logout', '/github-callback', '/user', '/status', '/static'];
+const proxiedPaths = ['/api', '/login', '/logout', '/github-callback', '/status', '/static'];
 
 export default defineConfig(({mode}) => ({
   base: './',
@@ -45,9 +45,11 @@ export default defineConfig(({mode}) => ({
     strictPort: true,
     proxy: Object.fromEntries(proxiedPaths.map((p) => [p, { target: flask }])),
   },
-  esbuild: {
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
-  },
+  // Strip debug output in production, but keep console.error/warn for diagnosing problems
+  esbuild: mode === 'production' ? {
+    drop: ['debugger'],
+    pure: ['console.log', 'console.debug'],
+  } : {},
   build: {
     outDir: resolve(__dirname, '../ose-app/src/ose_app/static/app'),
     emptyOutDir: true,

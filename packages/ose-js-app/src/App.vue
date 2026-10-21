@@ -22,7 +22,9 @@ const bare = computed(() => route.meta.bare === true);
 const loginUrl = computed(() => `${prefix}/login?next=${encodeURIComponent(window.location.origin + prefix + (route.path === "/loggedout" ? "/" : route.fullPath))}`);
 
 function setBranch(branch: string) {
-  router.push({query: {...route.query, branch}});
+  // The editor removes filter/row from the URL without the router, so route.query may still contain them
+  const {filter: _filter, row: _row, ...query} = route.query;
+  router.push({query: {...query, branch}});
 }
 </script>
 

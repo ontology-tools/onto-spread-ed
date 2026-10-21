@@ -65,7 +65,6 @@ export interface BuildArtifact {
     final_path: string | null;
     kind: "source" | "intermediate" | "final";
     origin: string;
-    creation_time: string;
 }
 
 export interface ReleaseContext {
@@ -94,6 +93,9 @@ export interface Release<D = Date> {
     start: D
     end: D | null
     worker_id: string | null,
+    heartbeat_at: D | null,
+    requested_action: "run" | "skip" | "rerun" | null,
+    requested_by: string | null,
     context: ReleaseContext | null,
     progress: Progress | null
 }

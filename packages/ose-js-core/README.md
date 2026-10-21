@@ -19,7 +19,7 @@ npm install @ontospreaded/js-core
 
 ## Requirements
 
-- Node.js 16+
+- Node.js 20.19+ (required by Vite 7)
 - Vue 3 (peer dependency)
 
 ## Build

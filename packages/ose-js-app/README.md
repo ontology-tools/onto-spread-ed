@@ -20,7 +20,7 @@ This package is private and used as part of the main OntoSpreadEd application.
 
 ## Requirements
 
-- Node.js 16+
+- Node.js 20.19+ (required by Vite 7)
 - Vue 3
 
 ## Build
@@ -40,7 +40,7 @@ npm run dev
 
 Run Flask next to it (`make dev-python`, or `make dev` for both; the proxy targets `localhost:$FLASK_PORT`, default 5000) and open `http://localhost:5173`. A small plugin in
 `vite.config.ts` injects `window.OSE_CONFIG` and the importmap (what Flask's `routes/spa.py` does in production), and the
-dev server proxies `/api`, `/login`, `/logout`, `/github-callback`, `/user`, `/status` and `/static` to Flask (`FLASK_PORT`, default 5000).
+dev server proxies `/api`, `/login`, `/logout`, `/github-callback`, `/status` and `/static` to Flask (`FLASK_PORT`, default 5000).
 Use `localhost` (not `127.0.0.1`). The OAuth callback URL can keep pointing at Flask directly (`http://localhost:<FLASK_PORT>/github-callback`).
 `npm -w @ontospreaded/js-app run watch` keeps the previous `vite build --watch` flow (open Flask directly).
 
@@ -56,7 +56,7 @@ src/
 ├── api.ts        # api() fetch helper, ApiError, useMe()
 ├── config.ts     # prefix, read from window.OSE_CONFIG
 ├── state.ts      # `layout` state for breadcrumb and branch picker
-├── pages/        # Home, Repo (folder browser + search), Forbidden, LoggedOut, NotFound
+├── pages/        # Home, Repo (folder browser + search), LoggedOut, NotFound
 ├── editor/  visualise/  admin/  release/  settings/  common/
 ```
 
@@ -74,12 +74,11 @@ Defined in `src/router.ts`. Home and Repo are imported statically; the other pag
 | `/repo/:repo/:path(.*)*` | `pages/Repo.vue`, folder browser and search |
 | `/edit/:repo/:path(.*)+` | `editor/Editor.vue` |
 | `/visualise` | `visualise/Visualise.vue`, `meta.bare`: rendered without the shell, opened as a popup from the editor |
-| `/admin`, `/admin/dashboard` | `admin/Dashboard.vue` |
+| `/admin/dashboard` (`/admin` redirects here) | `admin/Dashboard.vue` |
 | `/admin/rebuild-index` | `admin/RebuildIndex.vue` |
 | `/admin/release`, `/admin/release/:repo`, `/admin/release/:id(\d+)` | `release/Release.vue` |
 | `/admin/settings` | `settings/Settings.vue` |
 | `/admin/settings/:repo/:tab?` | `settings/ProjectSettings.vue` (tabs in `settings/project/`) |
-| `/forbidden` | `pages/Forbidden.vue` |
 | `/loggedout` | `pages/LoggedOut.vue` |
 | `/direct?repo=&sheet=&go_to_row=&branch=` | Redirects to `/edit` (links of the former server-rendered app) |
 | `/edit_external/:repo/:path(.*)*` | Redirects to `/repo` (former server-rendered page) |

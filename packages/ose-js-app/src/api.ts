@@ -65,25 +65,18 @@ export function useMe() {
     return {me, ready: meRequest};
 }
 
-// Module-level cache (for the lifetime of the page) so that navigating back and forth is instant.
-// `value` is set once loaded, so pages can read it synchronously.
-const cache = new Map<string, { promise: Promise<any>; value?: any }>();
+const cache = new Map<string, Promise<any>>();
 
 function cached<T>(key: string, url: string): Promise<T> {
     let entry = cache.get(key);
     if (!entry) {
-        const e: { promise: Promise<any>; value?: any } = {
-            promise: api<T>(url).then(v => {
-                e.value = v;
-                return v;
-            }).catch(err => {
-                if (cache.get(key) === e) cache.delete(key);
-                throw err;
-            })
-        };
-        cache.set(key, entry = e);
+        entry = api<T>(url).catch(err => {
+            if (cache.get(key) === entry) cache.delete(key);
+            throw err;
+        });
+        cache.set(key, entry);
     }
-    return entry.promise;
+    return entry;
 }
 
 /** Drop everything cached; call after changing repositories or their configuration. */
@@ -100,14 +93,10 @@ export type RepoTree = {
 const treeKey = (repo: string, branch?: string) => `tree:${repo}:${branch ?? ""}`;
 
 export const fetchRepos = () => cached<Repo[]>("repos", "/api/repo/");
-export const cachedRepos = () => cache.get("repos")?.value as Repo[] | undefined;
 
 export function fetchTree(repo: string, branch?: string) {
     return cached<RepoTree>(treeKey(repo, branch),
         `/api/repo/${repo}/tree` + (branch ? `?branch=${encodeURIComponent(branch)}` : ""));
 }
 
-export const cachedTree = (repo: string, branch?: string) => cache.get(treeKey(repo, branch))?.value as RepoTree | undefined;
-
 export const fetchConfig = <T>(repo: string) => cached<T>(`config:${repo}`, `/api/repo/${repo}/config`);
-export const cachedConfig = <T>(repo: string) => cache.get(`config:${repo}`)?.value as T | undefined;

@@ -35,8 +35,8 @@ const tab = computed(() => tabs.value.find(t => t.id === route.params.tab)?.id ?
 const repo = computed(() => route.params.repo as string);
 const project = ref<Project | null>(null);
 const availableStages = ref<string[]>([]);
-/** JSON of the project as saved, to detect unsaved changes */
 const saved = ref<string | null>(null);
+const revision = ref("");
 const loadError = ref<string | null>(null);
 const saving = ref<"idle" | "saving" | "error" | "success">("idle");
 const saveError = ref<string | null>(null);
@@ -46,17 +46,21 @@ const dirty = computed(() => project.value !== null && JSON.stringify(project.va
 async function load(name: string) {
   project.value = null;
   saved.value = null;
+  revision.value = "";
   loadError.value = null;
+  saving.value = "idle";
+  saveError.value = null;
   layout.breadcrumb = [{name: "Admin", to: "/admin"}, {name: "Settings", to: "/admin/settings"}, {name}];
   try {
-    const resp = await api<{ project: Project, available_stages: string[] }>(
+    const resp = await api<{ project: Project, revision: string, available_stages: string[] }>(
         `/api/settings/repositories/${encodeURIComponent(name)}/project`);
     if (name !== repo.value) return; // navigated elsewhere meanwhile
 
     setProject(resp.project);
+    revision.value = resp.revision;
     availableStages.value = resp.available_stages;
   } catch (e: any) {
-    loadError.value = e.message;
+    if (name === repo.value) loadError.value = e.message;
   }
 }
 
@@ -69,19 +73,24 @@ let resetSaveState: ReturnType<typeof setTimeout> | null = null;
 
 async function save() {
   if (!project.value) return;
+  const name = repo.value;
 
   if (resetSaveState !== null) clearTimeout(resetSaveState);
   saving.value = "saving";
   saveError.value = null;
   try {
-    const resp = await api<{ project: Project }>(`/api/settings/repositories/${encodeURIComponent(repo.value)}/project`, {
+    const resp = await api<{ project: Project, revision: string }>(`/api/settings/repositories/${encodeURIComponent(name)}/project`, {
       method: "PUT",
+      headers: {"If-Match": `"${revision.value}"`},
       body: JSON.stringify(project.value),
     });
-    setProject(resp.project);
     clearCache();
+    if (name !== repo.value) return;
+    setProject(resp.project);
+    revision.value = resp.revision;
     saving.value = "success";
   } catch (e: any) {
+    if (name !== repo.value) return;
     saveError.value = e.message;
     saving.value = "error";
   }
@@ -112,7 +121,6 @@ async function confirmLeave(): Promise<boolean> {
 }
 
 onBeforeRouteLeave(() => confirmLeave());
-// Switching tabs keeps the changes, switching the repository discards them
 onBeforeRouteUpdate((to, from) => to.params.repo === from.params.repo || confirmLeave());
 
 function onBeforeUnload(event: BeforeUnloadEvent) {
@@ -177,7 +185,7 @@ onBeforeUnmount(() => {
 
       <WorkflowsTab v-if="tab === 'workflows'" :project="project"/>
       <DependencyGraphTab v-else-if="tab === 'dependencies'" :project="project"/>
-      <fieldset v-else :disabled="!canEdit">
+      <fieldset v-else :disabled="!canEdit || saving === 'saving'">
         <GeneralTab v-if="tab === 'general'" :project="project"/>
         <FilesTab v-else-if="tab === 'files'" :project="project"/>
         <BuildsTab v-else-if="tab === 'builds'" :available-stages="availableStages" :project="project"/>
