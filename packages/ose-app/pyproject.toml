@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ose-app"
 description = "Flask web application for OntoSpreadEd - Ontology spreadsheet editor"
-requires-python = ">= 3.13"
+requires-python = ">=3.13"
 version = "1.4.2"
 
 dependencies = [
@@ -15,13 +15,11 @@ dependencies = [
     "Flask-Injector",
     "GitHub-Flask",
     "flask-cors==3.0.10",
-    "flask-executor",
     "Flask-Migrate",
     "networkx",
     "daff",
     "jsonschema",
     "openpyxl",
-    "pydot",
     "pyyaml",
     "requests",
     "whoosh3",

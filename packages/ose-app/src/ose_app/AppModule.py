@@ -1,14 +1,10 @@
 import typing
 
 from flask import Flask
-from flask_executor import Executor
 from flask_github import GitHub
 from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
 from injector import Injector, Module, provider, singleton
-
-from ose.building.OntologyBuildService import OntologyBuildService
-from ose.building.RobotOntologyBuildService import RobotOntologyBuildService
 
 from . import database, gh
 from .PermissionManager import PermissionManager
@@ -47,16 +43,6 @@ class AppModule(Module):
     @singleton
     def configuration_service(self, app: Flask, github: GitHub) -> ConfigurationService:
         return RepositoryConfigurationService(app.config, github)
-
-    @provider
-    @singleton
-    def executor(self, app: Flask) -> Executor:
-        return Executor(app)
-
-    @provider
-    @singleton
-    def ontology_builder(self) -> OntologyBuildService:
-        return RobotOntologyBuildService()
 
     @provider
     @singleton

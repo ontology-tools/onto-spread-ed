@@ -5,7 +5,7 @@ import os
 
 import jsonschema
 import openpyxl
-from flask import Blueprint, request, jsonify, current_app, g, Response
+from flask import Blueprint, request, jsonify, current_app, Response
 from flask_github import GitHub, GitHubError
 from openpyxl.worksheet.worksheet import Worksheet
 
@@ -24,10 +24,13 @@ bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
 @bp.route("/save", methods=["POST"])
 @requires_permissions("edit")
-def save(searcher: SpreadsheetSearcher, gh: GitHub, config: ConfigurationService):
-    d = request.get_json() or {}
+def save(searcher: SpreadsheetSearcher, gh: GitHub, config: ConfigurationService,
+         permission_manager: PermissionManager):
+    d = helpers.json_object()
+    if d is None:
+        return jsonify(helpers.NOT_AN_OBJECT), 400
     repo_key = d.get("repo_key")
-    if repo_key not in helpers.visible_repositories(config):
+    if repo_key not in helpers.visible_repositories(config, permission_manager):
         return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
 
     return save_from_request(searcher, gh, config, d)
@@ -35,10 +38,12 @@ def save(searcher: SpreadsheetSearcher, gh: GitHub, config: ConfigurationService
 
 @bp.route("/check-updates", methods=["POST"])
 @requires_permissions("view")
-def check_updates(gh: GitHub, config: ConfigurationService):
-    d = request.get_json() or {}
+def check_updates(gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
+    d = helpers.json_object()
+    if d is None:
+        return jsonify(helpers.NOT_AN_OBJECT), 400
     repo_key = d.get("repo_key")
-    if repo_key not in helpers.visible_repositories(config):
+    if repo_key not in helpers.visible_repositories(config, permission_manager):
         return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
 
     up_to_date = helpers.is_up_to_date(gh, config, d.get("repo_key"), d.get("folder"), d.get("spreadsheet"),
@@ -48,13 +53,8 @@ def check_updates(gh: GitHub, config: ConfigurationService):
 
 @bp.route("/<repo>/<path:path>", methods=["PATCH"])
 @requires_permissions("edit")
-def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
-    user_name = g.user.github_login if g.user else "*"
-    user_repos = (config.app_config['USERS']
-                  .get(user_name, config.app_config['USERS'].get("*", {}))
-                  .get("repositories", []))
-
-    if repo not in user_repos:
+def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
+    if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"msg": f"No such repository '{repo}'"}), 404
 
     static_folder = current_app.static_folder

@@ -57,11 +57,11 @@ def load_config(app: Flask, config_filename):
             repository_obj = dict()
             if "repositories" in file_config:
                 repositories = file_config["repositories"]
+                source = repositories.get("source", "repository")
                 repository_obj = {
-                    f"REPOSITORIES_{repositories['source'].upper()}_CONFIG_{k.replace('-', '_').upper()}": v
+                    f"REPOSITORIES_{source.upper()}_CONFIG_{k.replace('-', '_').upper()}": v
                     for k, v in repositories.get("data", dict()).items()
                 }
-                repository_obj["REPOSITORIES_SOURCE"] = file_config["repositories"]["source"]
                 del config_obj["REPOSITORIES"]
 
             config_obj = {**config_obj, **repository_obj}
@@ -74,6 +74,9 @@ def load_config(app: Flask, config_filename):
 
     # add aliases
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config.get("DATABASE_URI")
+
+    # The prefix is prepended to absolute paths, so '/' would produce protocol-relative URLs like '//api/...'
+    app.config["URL_PREFIX"] = (app.config.get("URL_PREFIX") or "").rstrip("/")
 
     # set version
     app.config["APP_VERSION"] = __version__
@@ -92,9 +95,6 @@ def create_app(config_filename=None):
     if config_filename is None:
         config_filename = "config.yaml"
 
-    # Clear type annotations; kept for flask_injector compatibility with url_for (no jinja templates remain)
-    # Source: https://github.com/python-injector/flask_injector/issues/78
-    Flask.url_for.__annotations__ = {}
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
@@ -109,6 +109,10 @@ def create_app(config_filename=None):
     from . import routes
 
     routes.init_app(app)
+
+    from .release import cli as release_cli
+
+    release_cli.init_app(app)
 
     @app.before_request
     def before_request(db: SQLAlchemy):

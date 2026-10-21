@@ -4,21 +4,29 @@ Logic shared between the JSON API routes.
 from urllib.parse import quote
 from typing import Any, Dict, List, Optional
 
-from flask import current_app, g
+from flask import current_app, g, request
 from flask_github import GitHub
 
+from ose_app.PermissionManager import PermissionManager
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.utils.github import get_branches
 
 
-def visible_repositories(config: ConfigurationService) -> Dict[str, Any]:
+def json_object() -> Optional[Dict[str, Any]]:
+    """The JSON body of the request if it is an object (an empty object without a body), otherwise None"""
+    d = request.get_json(silent=True)
+    if d is None and not request.get_data():
+        return {}
+    return d if isinstance(d, dict) else None
+
+
+NOT_AN_OBJECT = {"success": False, "error": "The request body must be a JSON object"}
+
+
+def visible_repositories(config: ConfigurationService, permission_manager: PermissionManager) -> Dict[str, Any]:
     """Repositories (short name -> project) the current user can see."""
     user_name = g.user.github_login if g.user else "*"
-    user_repos = (config.app_config['USERS']
-                  .get(user_name, config.app_config['USERS'].get("*", {}))
-                  .get("repositories", []))
-
-    repositories = {s: config.get(s) for s in user_repos}
+    repositories = {s: config.get(s) for s in permission_manager.user_repositories(user_name)}
     return {k: v for k, v in repositories.items() if v is not None}
 
 
@@ -81,17 +89,3 @@ def is_up_to_date(github: GitHub, config: ConfigurationService, repo_key: str, f
                                   params=params)
     return old_sha == spreadsheet_file['sha']
 
-
-if __name__ == "__main__":
-    fake = [
-        {"path": "a", "type": "tree"}, {"path": "a/b.xlsx", "type": "blob"}, {"path": "a/c.txt", "type": "blob"},
-        {"path": ".github", "type": "tree"}, {"path": ".github/w.xlsx", "type": "blob"},
-        {"path": "scripts", "type": "tree"}, {"path": "scripts/x.xlsx", "type": "blob"},
-        {"path": "a/sub", "type": "tree"}, {"path": "a/sub/.hidden.xlsx", "type": "blob"},
-        {"path": "top.xlsx", "type": "blob"},
-    ]
-    assert filter_tree_entries(fake) == [
-        {"path": "a", "type": "dir"}, {"path": "a/b.xlsx", "type": "file"},
-        {"path": "a/sub", "type": "dir"}, {"path": "top.xlsx", "type": "file"},
-    ]
-    print("ok")

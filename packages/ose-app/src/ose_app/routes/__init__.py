@@ -1,12 +1,14 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from werkzeug.exceptions import HTTPException
 
-from ose_app.guards.api_request import is_api_request
+
+def _is_api_request() -> bool:
+    return request.path == "/api" or request.path.startswith("/api/")
 
 
 def _handle_http_exception(e: HTTPException):
     """`/api` never renders HTML: HTTP errors (404, 405, 500, ...) become `{success: false, error}`."""
-    if not is_api_request():
+    if not _is_api_request():
         return e
     status = e.code or 500
     error = "Internal server error" if status >= 500 else (e.description or e.name)

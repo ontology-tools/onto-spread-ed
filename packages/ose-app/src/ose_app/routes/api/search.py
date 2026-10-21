@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.guards.with_permission import requires_permissions
+from ose_app.helpers import NOT_AN_OBJECT, json_object
 
 bp = Blueprint("api_search", __name__, url_prefix="/api/search")
 
@@ -23,7 +24,9 @@ def search(repo: str, searcher: SpreadsheetSearcher):
 @requires_permissions("view")
 def search_sheets(repo: str, searcher: SpreadsheetSearcher):
     """Search across all sheets of a repository, either by free text `query` or by assigned user `initials`."""
-    data = request.get_json(silent=True) or {}
+    data = json_object()
+    if data is None:
+        return jsonify(NOT_AN_OBJECT), 400
 
     if data.get("initials"):
         results = searcher.search_for(repo, assigned_user=data["initials"])

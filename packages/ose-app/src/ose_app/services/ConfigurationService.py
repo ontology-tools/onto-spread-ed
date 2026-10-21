@@ -39,11 +39,6 @@ class ConfigurationService(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def local_path(self, project: Project) -> str:
-        """Directory of the local clone of the repository of `project`"""
-        ...
-
-    @abc.abstractmethod
     def unload(self, name: str) -> bool:
         ...
 

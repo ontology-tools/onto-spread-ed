@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import csv
 import io
 import logging
 import re
@@ -11,29 +10,6 @@ import openpyxl
 from flask_github import GitHub, GitHubError
 
 _logger = logging.getLogger(__name__)
-
-
-def get_csv(github: GitHub,
-            repository_name: str,
-            folder: str,
-            spreadsheet_name: str,
-            branch: Optional[str] = None) -> Tuple[str, List[List[str]], List[str]]:
-    params = {"ref": branch} if branch else {}
-    csv_file = github.get(
-        f'repos/{repository_name}/contents/{folder}/{spreadsheet_name}',
-        params=params
-    )
-    file_sha = csv_file['sha']
-    csv_content = csv_file['content']
-    # print(csv_content)
-    decoded_data = str(base64.b64decode(csv_content), 'utf-8')
-    # print(decoded_data)
-    csv_reader = csv.reader(io.StringIO(decoded_data))
-    csv_data = list(csv_reader)
-    header = csv_data[0]
-    rows = csv_data[1:]
-
-    return file_sha, rows, header
 
 
 def download_file(github: GitHub, repository_name: str, spreadsheet: str, outpath: str, branch: Optional[str] = None):
@@ -122,22 +98,30 @@ def create_branch(github: GitHub, repo: str, branch: str, parent_branch: str) ->
         raise Exception(f"Unable to create new branch {branch} in {repo}")
 
 
-def save_file(github: GitHub, repo: str, path: str, content: bytes, message: str, branch: str) -> None:
+def save_file(github: GitHub, repo: str, path: str, content: bytes, message: str, branch: str,
+              sha: Optional[str] = None) -> None:
+    """
+    Creates or overwrites the file. With `sha`, GitHub refuses the change (409) if the file changed after it had that
+    sha.
+    """
     data = dict(
         message=message,
         branch=branch,
         content=base64.b64encode(content).decode("ascii")
     )
 
-    # Check if the file already exists
-    try:
-        response = github.get(
-            f'repos/{repo}/contents/{path}?ref={branch}'
-        )
-        data["sha"] = response["sha"]
-    except GitHubError as e:
-        if e.response.status_code != 404 and not e.response.ok:
-            raise e
+    if sha is not None:
+        data["sha"] = sha
+    else:
+        # Check if the file already exists
+        try:
+            response = github.get(
+                f'repos/{repo}/contents/{path}?ref={branch}'
+            )
+            data["sha"] = response["sha"]
+        except GitHubError as e:
+            if e.response.status_code != 404 and not e.response.ok:
+                raise e
 
     github.put(f"repos/{repo}/contents/{path}", data=data)
 

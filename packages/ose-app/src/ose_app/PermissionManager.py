@@ -1,4 +1,4 @@
-from typing import Dict, Set, Optional
+from typing import Dict, List, Set, Optional
 
 from flask import g
 
@@ -21,7 +21,7 @@ PERMISSION_IMPLICATIONS: Dict[str, Set[str]] = {
 class PermissionManager:
     _group_permissions: Dict[str, Set[str]]
     _user_permissions: Dict[str, Set[str]]
-    _user_repos: Dict[str, Set[str]]
+    _user_repos: Dict[str, List[str]]
 
     def __init__(self, config):
         self._group_permissions = {k: self.expand_permissions(set(v["permissions"])) for k, v in
@@ -35,7 +35,7 @@ class PermissionManager:
         self._user_permissions = {name: self.expand_permissions(p) for name, p in user_permissions.items()}
 
         self._user_repos = {
-            name: set(user.get("repositories", []))
+            name: list(dict.fromkeys(user.get("repositories", [])))
             for name, user in config["USERS"].items()
         }
 
@@ -55,13 +55,16 @@ class PermissionManager:
         return self._user_permissions.get(username, self._user_permissions.get("*", set()))
 
     def has_permissions(self, user_name: str, *permissions: str, repository: Optional[str] = None) -> bool:
+        # Repository access is never implied, not even for admins, so that it matches the listed repositories
+        if repository is not None and not self.can_access_repo(user_name, repository):
+            return False
+
         user_permission = self.user_permission(user_name)
 
         if "admin" in user_permission:
             return True
 
-        return all(p in user_permission for p in permissions) and (
-                repository is None or self.can_access_repo(user_name, repository))
+        return all(p in user_permission for p in permissions)
 
     def current_user_has_permissions(self, *permissions: str, repository: Optional[str] = None) -> bool:
         """
@@ -74,6 +77,9 @@ class PermissionManager:
         user_name = g.user.github_login if g.user else "*"
         return self.has_permissions(user_name, *permissions, repository=repository)
 
-    def can_access_repo(self, user_name: str, repository: Optional[str] = None) -> bool:
-        user_repos = self._user_repos.get(user_name, {})
-        return repository == "*" or repository in user_repos
+    def user_repositories(self, user_name: str) -> List[str]:
+        """Short names of the repositories the user can access. Unknown users get the ones of the '*' user."""
+        return self._user_repos.get(user_name, self._user_repos.get("*", []))
+
+    def can_access_repo(self, user_name: str, repository: str) -> bool:
+        return repository in self.user_repositories(user_name)

@@ -5,7 +5,7 @@ from ose_app.services.PluginService import PluginService
 bp = Blueprint("api_plugins", __name__, url_prefix="/api/plugins")
 
 
-@bp.route("/", methods=["GET"])
+@bp.route("/", methods=["GET"], strict_slashes=False)
 def get_plugins(plugin_service: PluginService):
     """Get information about all loaded plugins."""
     return jsonify(plugin_service.get_plugins_info())

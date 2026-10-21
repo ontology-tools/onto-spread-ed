@@ -1,17 +1,14 @@
 import json
 import logging
-import os
 from os import path
 from typing import Optional, Dict, Any, List
 
-import git
 import requests
 import yaml
 from flask_github import GitHub, GitHubError
 
 from ose.project import Project
 from ose_app.services.ConfigurationService import ConfigurationService
-from ose_app.utils.git import git_env, github_url
 
 REPOSITORY_CONFIG_PATH_PROP = "REPOSITORIES_REPOSITORY_CONFIG_PATH"
 REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_STARTUP_REPOSITORIES_FILE"
@@ -19,8 +16,6 @@ BASE_URL_PROP = "REPOSITORIES_REPOSITORY_CONFIG_BASE_URL"
 DEFAULT_HEADERS_PROP = "REPOSITORIES_REPOSITORY_CONFIG_REQUEST_HEADERS"
 ALLOW_LOAD_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_ALLOW_LOAD"
 ALLOW_SAVE_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_ALLOW_SAVE"
-LOCAL_DIR_PROP = "REPOSITORIES_REPOSITORY_CONFIG_LOCAL_DIR"
-TOKEN_PROP = "REPOSITORIES_REPOSITORY_CONFIG_GITHUB_TOKEN"
 
 
 class RepositoryConfigurationService(ConfigurationService):
@@ -35,8 +30,6 @@ class RepositoryConfigurationService(ConfigurationService):
         self._config_path = app_config.get(REPOSITORY_CONFIG_PATH_PROP)
         self._base_url = app_config.get(BASE_URL_PROP)
         self._headers = app_config.get(DEFAULT_HEADERS_PROP)
-        self._local_dir = path.abspath(app_config.get(LOCAL_DIR_PROP) or "repositories")
-        self._token = app_config.get(TOKEN_PROP)
         self._loaded_repositories = {}
 
         self._startup_repos_path = self.app_config.get(REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP)
@@ -125,24 +118,8 @@ class RepositoryConfigurationService(ConfigurationService):
         config = self.get_by_url(url)
         if config is not None:
             config.full_repository_name = full_name
-            self._clone(config)
 
         return config
-
-    def local_path(self, project: Project) -> str:
-        return path.join(self._local_dir, project.full_repository_name)
-
-    def _clone(self, project: Project) -> None:
-        """Clones the repository of `project` to its local path, unless it was cloned before"""
-        local = self.local_path(project)
-        if path.isdir(path.join(local, ".git")):
-            return
-
-        try:
-            os.makedirs(path.dirname(local), exist_ok=True)
-            git.Repo.clone_from(github_url(project.full_repository_name), local, env=git_env(self._token))
-        except git.GitError as e:
-            self._logger.warning(f"Could not clone '{project.full_repository_name}' to '{local}': {e}")
 
     def get_by_url(self, url: str) -> Optional[Project]:
         loaded = self._loaded_repositories.get(url, None)

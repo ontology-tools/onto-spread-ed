@@ -4,6 +4,7 @@ from os.path import normpath
 from flask import Blueprint, jsonify, current_app, request
 from flask_github import GitHub, GitHubError
 
+from ose_app.PermissionManager import PermissionManager
 from ose_app.guards.with_permission import requires_permissions
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.helpers import all_initials, repo_tree, user_initials, visible_repositories
@@ -13,19 +14,20 @@ from ose_app.utils.github import get_branches
 bp = Blueprint("api_repo", __name__, url_prefix="/api/repo")
 
 
-@bp.route("/", methods=["GET"])
+@bp.route("/", methods=["GET"], strict_slashes=False)
 @requires_permissions("view")
-def get_repos(config: ConfigurationService):
-    repos = [dict(short=k, full=p.full_repository_name) for k, p in visible_repositories(config).items()]
+def get_repos(config: ConfigurationService, permission_manager: PermissionManager):
+    repos = [dict(short=k, full=p.full_repository_name)
+             for k, p in visible_repositories(config, permission_manager).items()]
 
     return jsonify(repos)
 
 
 @bp.route("/<repo_key>/tree", methods=["GET"])
 @requires_permissions("view")
-def get_tree(repo_key: str, gh: GitHub, config: ConfigurationService):
+def get_tree(repo_key: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
     """Whole tree of a repository branch (what the repository browsing page shows)."""
-    if repo_key not in visible_repositories(config):
+    if repo_key not in visible_repositories(config, permission_manager):
         return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
 
     try:
@@ -39,16 +41,15 @@ def get_tree(repo_key: str, gh: GitHub, config: ConfigurationService):
 
 @bp.route("/<repo_key>/config", methods=["GET"])
 @requires_permissions("view")
-def get_config(repo_key: str, gh: GitHub, config: ConfigurationService):
+def get_config(repo_key: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
     """Repository configuration and branch info needed by the editor."""
-    if repo_key not in visible_repositories(config):
+    if repo_key not in visible_repositories(config, permission_manager):
         return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
 
     repository = config.get(repo_key)
     return jsonify(dict(
         repo_name=repo_key,
         repository_config=repository.model_dump(mode="json"),
-        main_branch=repository.main_branch,
         branches=get_branches(gh, repository.full_repository_name),
         initials=user_initials(config),
         all_initials=all_initials(config),

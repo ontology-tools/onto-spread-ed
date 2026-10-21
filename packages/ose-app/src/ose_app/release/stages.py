@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 import git
-from github import Auth, Github
+from github import Auth, Github, UnknownObjectException
 from pydantic import Field
 
 from ose.building import (
@@ -17,11 +17,11 @@ from ose.building import (
     ProgressManager,
     StageResult,
 )
-from ose.result import ResultContext, with_result_context_method
+from ose.result import Log, ResultContext, with_result_context_method
 from ose.utils.asyncio import as_thread
 from ose.utils.logging import log_prefix
 
-from ose_app.utils.git import git_env
+from ose_app.utils.git import git_env, github_url
 
 _logger = logging.getLogger(__name__)
 
@@ -50,15 +50,10 @@ class ReleaseContext(BuildContext):
 ReleaseStage = BuildStage[ReleaseContext]
 
 
-def _worktrees(repo: git.Repo) -> list[str]:
-    return [
-        path.realpath(line.removeprefix("worktree "))
-        for line in repo.git.worktree("list", "--porcelain").splitlines()
-        if line.startswith("worktree ")
-    ]
-
 
 class PreparationStage(ReleaseStage):
+    """Clone per release so cancellation and restarts never share git state."""
+
     @classmethod
     def name(cls) -> str:
         return "PREPARATION"
@@ -76,16 +71,20 @@ class PreparationStage(ReleaseStage):
     @as_thread
     def _prepare(self) -> None:
         build_dir, branch = self.context.build_dir, self.context.build_branch_name()
-        repo = git.Repo(self.context.project_dir)
-        repo.git.fetch("origin", "--prune", env=self.context.git_env())
+        main_branch = self.project.main_branch
 
-        if path.realpath(build_dir) in _worktrees(repo):
-            _logger.debug(f"Worktree {build_dir} already exists, removing it")
-            repo.git.worktree("remove", "--force", build_dir)
+        # A rerun starts from a fresh clone
+        shutil.rmtree(build_dir, ignore_errors=True)
 
-        _logger.debug(f"Creating a worktree for {self.context.project_dir} at {build_dir} with branch `{branch}`")
-        repo.git.worktree("add", "-B", branch, build_dir, f"origin/{self.project.main_branch}")
-        self.context.created_branches.add(branch)
+        # Without file contents of older commits (`blob:none`), they are fetched on demand
+        _logger.debug(f"Cloning {self.project.full_repository_name} into {build_dir}")
+        repo = git.Repo.clone_from(
+            github_url(self.project.full_repository_name),
+            build_dir,
+            env=self.context.git_env(),
+            multi_options=["--filter=blob:none", "--single-branch", f"--branch={main_branch}"],
+        )
+        repo.git.checkout("-B", branch)
 
 
 class HumanVerificationStage(ReleaseStage):
@@ -154,6 +153,7 @@ class GithubPublishStage(ReleaseStage):
     @as_thread
     def _commit_and_push(self, branch_name: str, message: str, final_paths: set[str | None]) -> None:
         git_repo = git.Repo(self.context.build_dir)
+        git_repo.git.update_environment(**self.context.git_env())  # the partial clone may fetch file contents
 
         dirty_files = set(item.a_path for item in git_repo.index.diff(None)) | set(git_repo.untracked_files)
         if dirty_files - final_paths:
@@ -208,7 +208,7 @@ class GithubPublishStage(ReleaseStage):
 
 
 class CleanupStage(ReleaseStage):
-    """Removes the worktree of the release and deletes the branches it created, locally and on GitHub"""
+    """Removes the build directory of the release and deletes the branches it pushed to GitHub"""
 
     @classmethod
     def name(cls) -> str:
@@ -220,27 +220,20 @@ class CleanupStage(ReleaseStage):
         ctx: ResultContext,
         on_progress_update: Callable[[Progress], None] | None = None,
     ) -> tuple[()]:
-        await self._cleanup(ctx)
+        await self._run(ctx.log)
         return ()
 
     @as_thread
-    def _cleanup(self, ctx: ResultContext) -> None:
-        repo = git.Repo(self.context.project_dir)
-        build_dir = self.context.build_dir
+    def _run(self, log: Log) -> None:
+        for branch in sorted(self.context.created_branches):
+            try:
+                self.context.gh.get_repo(self.project.full_repository_name).get_git_ref(f"heads/{branch}").delete()
+            except UnknownObjectException:
+                pass
+            except Exception as e:
+                log.warning(type="branch-not-deleted", branch=branch, msg=str(e))
 
-        if path.realpath(build_dir) in _worktrees(repo):
-            repo.git.worktree("remove", "--force", build_dir)
-        repo.git.worktree("prune")
-
-        remote_branches = {ref.remote_head for ref in repo.remotes.origin.refs}
-        for branch in self.context.created_branches:
-            if branch in repo.heads:
-                repo.git.branch("-D", branch)
-            if branch in remote_branches:
-                try:
-                    repo.git.push("origin", "--delete", branch, env=self.context.git_env())
-                except git.GitCommandError as e:
-                    ctx.log.warning(type="branch-not-deleted", branch=branch, msg=str(e))
+        shutil.rmtree(self.context.build_dir, ignore_errors=True)
 
 
 __all__ = [

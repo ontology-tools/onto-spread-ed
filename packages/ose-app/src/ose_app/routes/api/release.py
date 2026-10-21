@@ -3,18 +3,20 @@ import os
 from typing import Tuple
 
 from flask import jsonify, Blueprint, request, make_response, Response, g
-from flask_executor import Executor
 from flask_sqlalchemy import SQLAlchemy
 from pydantic import ValidationError
+from sqlalchemy import ColumnElement, case, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import NotFound, BadRequest
 
 from ose.building import available_stages
 from ose.project import BuildConfiguration
 
-from ose_app.database.Release import OPEN_STATES, Release
+from ose_app.database.Release import OPEN_STATES, Release, RequestedAction
 from ...guards.with_permission import requires_permissions
-from ose_app.release.runner import load_context, run_release, save_context
+from ose_app.helpers import NOT_AN_OBJECT, json_object
+from ose_app.release.runner import load_context, updated_rows
 from ose_app.release.stages import ReleaseContext
 from ose_app.services.ConfigurationService import ConfigurationService
 
@@ -22,33 +24,32 @@ bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 
 
 def get_current_release(q: Query[Release], repo: str) -> Release | Tuple[Response, int]:
-    ongoing = q.filter(Release.repo == repo, Release.state.in_(OPEN_STATES)).all()
-    if len(ongoing) > 1:
-        return (
-            jsonify(
-                dict(
-                    success=False,
-                    error="multiple-running",
-                    message="Multiple releases are running.",
-                    releases=[r.as_dict() for r in ongoing],
-                )
-            ),
-            400,
-        )
-    if len(ongoing) < 1:
-        return (
-            jsonify(
-                dict(
-                    success=False,
-                    error="no-release-running",
-                    message="No releases is running.",
-                    releases=[r.as_dict() for r in ongoing],
-                )
-            ),
-            400,
-        )
+    release = q.filter(Release.repo == repo, Release.state.in_(OPEN_STATES)).one_or_none()
+    if release is None:
+        return jsonify(success=False, error="no-release-running", message="No release is running.", releases=[]), 400
+    return release
 
-    return ongoing[0]
+
+def request_release_action(db: SQLAlchemy, release: Release, action: RequestedAction, *conditions: ColumnElement[bool]) -> bool:
+    """
+    Records a request for the release runner, which runs it with the GitHub token of the current user. Done in a
+    single update that only applies if the release is still open and the `conditions` hold. Returns whether it applied.
+    """
+    applied = updated_rows(
+        db.session,
+        update(Release)
+        .where(Release.id == release.id, Release.state.in_(OPEN_STATES), *conditions)
+        .values(requested_action=action, requested_by=g.user.github_login),
+    )
+    db.session.commit()
+    db.session.refresh(release)
+    return applied == 1
+
+
+def release_changed() -> Tuple[Response, int]:
+    return jsonify(dict(
+        success=False, error="release-changed", message="The release changed in the meantime. Please try again."
+    )), 409
 
 
 @bp.route("/<repo>/release_script", methods=["GET"])
@@ -73,20 +74,29 @@ def release_cancel(repo: str, db: SQLAlchemy):
         return release_or_err
 
     release = release_or_err
-    release.state = "cancelled"
-    release.context = {**(release.context or {}), "state": "cancelled"}
-    if release.worker_id is None:
-        release.end = datetime.datetime.now(datetime.timezone.utc)
-    # otherwise the worker sets `end` once the release has fully stopped
+    # The runner holding the release stops it and then sets `end`. Without one, it has stopped already.
+    db.session.execute(
+        update(Release)
+        .where(Release.id == release.id, Release.state.in_(OPEN_STATES))
+        .values(
+            state="cancelled",
+            requested_action=None,
+            requested_by=g.user.github_login,
+            end=case((Release.worker_id.is_(None), datetime.datetime.now(datetime.timezone.utc)), else_=Release.end),
+        )
+    )
     db.session.commit()
+    db.session.refresh(release)
 
     return jsonify(release.as_dict())
 
 
 @bp.route("/start", methods=("POST",))
 @requires_permissions("release")
-def release_start(db: SQLAlchemy, executor: Executor, config: ConfigurationService):
-    data = request.json or {}
+def release_start(db: SQLAlchemy, config: ConfigurationService):
+    data = json_object()
+    if data is None:
+        return jsonify(NOT_AN_OBJECT), 400
     repo = data.get("repo")
     project = config.get(repo) if isinstance(repo, str) else None
     if project is None:
@@ -110,9 +120,10 @@ def release_start(db: SQLAlchemy, executor: Executor, config: ConfigurationServi
     if missing:
         return jsonify({"success": False, "error": f"Unknown build stages: {', '.join(missing)}"}), 400
 
-    q = db.session.query(Release)
-    ongoing = q.filter(Release.repo == project.short_name, Release.state.in_(OPEN_STATES)).all()
-    if len(ongoing) > 0:
+    def already_running() -> Tuple[Response, int]:
+        ongoing = db.session.query(Release).filter(
+            Release.repo == project.short_name, Release.state.in_(OPEN_STATES)
+        ).all()
         return jsonify(
             dict(
                 success=False,
@@ -122,11 +133,13 @@ def release_start(db: SQLAlchemy, executor: Executor, config: ConfigurationServi
             )
         ), 400
 
+    if db.session.query(Release).filter(Release.repo == project.short_name, Release.state.in_(OPEN_STATES)).count():
+        return already_running()
+
     token = g.user.github_access_token
     context = ReleaseContext(
         project=project,
         build_configuration=build_configuration,
-        project_dir=config.local_path(project),
         github_token=token,
     )
 
@@ -136,18 +149,22 @@ def release_start(db: SQLAlchemy, executor: Executor, config: ConfigurationServi
         started_by=g.user.github_login,
         repo=project.short_name,
         context=context.model_dump(mode="json"),
+        requested_action="run",
+        requested_by=g.user.github_login,
     )
     db.session.add(release)
-    db.session.commit()
-
-    executor.submit(run_release, db, release.id, token)
+    try:
+        db.session.commit()
+    except IntegrityError:  # another release of the repository was started at the same time
+        db.session.rollback()
+        return already_running()
 
     return jsonify(release.as_dict())
 
 
 @bp.route("/<repo>/continue")
 @requires_permissions("release")
-def release_continue(repo: str, db: SQLAlchemy, executor: Executor):
+def release_continue(repo: str, db: SQLAlchemy):
     """Continues a paused release. With `force`, the failed stage of an errored release is skipped."""
     q: Query[Release] = db.session.query(Release)
     force = request.args.get("force", "false").lower() == "true"
@@ -158,7 +175,12 @@ def release_continue(repo: str, db: SQLAlchemy, executor: Executor):
 
     release = release_or_err
 
-    if release.state != "paused" and not force:
+    action: RequestedAction
+    if release.state == "paused":
+        action = "run"
+    elif force and release.state == "errored":
+        action = "skip"
+    else:
         return jsonify(
             dict(
                 success=False,
@@ -167,21 +189,16 @@ def release_continue(repo: str, db: SQLAlchemy, executor: Executor):
             )
         ), 400
 
-    token = g.user.github_access_token
-    if force and release.state == "errored":
-        context = load_context(release, token)
-        context.skip_current_stage()
-        save_context(db, release.id, context)
-
-    if release.worker_id is None:
-        executor.submit(run_release, db, release.id, token)
+    if not request_release_action(db, release, action, Release.state == release.state):
+        return release_changed()
 
     return jsonify(release.as_dict())
 
 
 @bp.route("/<repo>/rerun-step", methods=("POST", "GET"))
 @requires_permissions("release")
-def release_rerun_step(repo: str, db: SQLAlchemy, executor: Executor):
+def release_rerun_step(repo: str, db: SQLAlchemy):
+    """Runs the current stage again. With `force`, a running release is stopped first."""
     q: Query[Release] = db.session.query(Release)
     release_or_err = get_current_release(q, repo)
     if isinstance(release_or_err, tuple):
@@ -189,8 +206,10 @@ def release_rerun_step(repo: str, db: SQLAlchemy, executor: Executor):
 
     release = release_or_err
 
-    if release.worker_id is None or request.args.get("force", "false").lower() == "true":
-        executor.submit(run_release, db, release.id, g.user.github_access_token)
+    force = request.args.get("force", "false").lower() == "true"
+    conditions = () if force else (Release.worker_id.is_(None),)
+    # Without `force`, a release the runner holds is left alone
+    request_release_action(db, release, "rerun", *conditions)
 
     return jsonify(release.as_dict())
 
@@ -265,7 +284,7 @@ def get_releases_for_repo(repo: str, db: SQLAlchemy):
     return jsonify([r.as_dict() for r in releases])
 
 
-@bp.route("/", methods=("GET",))
+@bp.route("/", methods=("GET",), strict_slashes=False)
 @requires_permissions("release")
 def get_releases(db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)

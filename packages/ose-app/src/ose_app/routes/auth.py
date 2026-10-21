@@ -1,7 +1,5 @@
-from flask import Blueprint, request, session, redirect, current_app, jsonify
+from flask import Blueprint, request, session, redirect, current_app
 from flask_github import GitHub
-
-from ..guards.verify_login import verify_logged_in
 
 bp = Blueprint("authentication", __name__)
 
@@ -20,9 +18,3 @@ def login(github: GitHub):
 def logout():
     session.pop('user_id', None)
     return redirect(f"{current_app.config['URL_PREFIX']}/loggedout")
-
-
-@bp.route('/user')
-@verify_logged_in
-def user(github: GitHub):
-    return jsonify(github.get('/user'))

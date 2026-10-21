@@ -1,19 +1,30 @@
+import base64
+import hashlib
+import json
+
 import yaml
 from flask import Blueprint, request, jsonify
-from flask_github import GitHub
+from flask_github import GitHub, GitHubError
 from pydantic import ValidationError
+from yaml import YAMLError
 
 from ose.building import available_stages
 from ose.project import Project
 
 from ose_app.guards.with_permission import requires_permissions
-from ose_app.model.Diff import diff
+from ose_app.helpers import NOT_AN_OBJECT, json_object
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.FileCache import FileCache
 from ose_app.services.RepositoryConfigurationService import REPOSITORY_CONFIG_PATH_PROP, RepositoryConfigurationService
 from ose_app.utils import save_file
+from ose_app.utils.config_file import apply_changes
 
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
+
+
+def project_revision(project: Project) -> str:
+    data = json.dumps(project.model_dump(mode="json"), sort_keys=True)
+    return hashlib.sha256(data.encode()).hexdigest()
 
 
 @bp.route("", methods=["GET"])
@@ -36,6 +47,7 @@ def get_project(repo: str, config: ConfigurationService):
 
     return jsonify({
         "project": project.model_dump(mode="json"),
+        "revision": project_revision(project),
         "available_stages": sorted(available_stages().keys()),
     })
 
@@ -43,44 +55,58 @@ def get_project(repo: str, config: ConfigurationService):
 @bp.route("/repositories/<repo>/project", methods=["PUT"])
 @requires_permissions("repository-config-edit")
 def save_project(repo: str, config: ConfigurationService, gh: GitHub):
-    """Saves the project configuration to the repository and uses it from then on"""
     old_project = config.get(repo)
     if old_project is None:
         return jsonify({"success": False, "error": f"No repository '{repo}' is loaded."}), 404
 
+    if not request.if_match.contains(project_revision(old_project)):
+        return jsonify({"success": False, "error": "The configuration changed. Reload it and apply your changes again."}), 409
+
     try:
-        project = Project.model_validate(request.json)
+        project = Project.model_validate(request.get_json(silent=True))
     except ValidationError as e:
         return jsonify({"success": False, "error": f"Invalid project: {e}"}), 400
 
     if project.full_repository_name != old_project.full_repository_name:
         return jsonify({"success": False, "error": "The repository of a project cannot be changed."}), 400
+    if project.short_name != old_project.short_name:
+        return jsonify({"success": False, "error": "The short name of a project cannot be changed."}), 400
 
     old, new = old_project.model_dump(mode="json"), project.model_dump(mode="json")
     if old == new:
-        return jsonify({"success": True, "project": new})
+        return jsonify({"success": True, "project": new, "revision": project_revision(project)})
 
-    changes = [
-        f"Set {d.field} to {d.new}" if d.change_type == "update" else
-        f"Added {d.field}" if d.change_type == "add" and isinstance(d.new, dict) else
-        f"Added {d.new} to {d.field}" if d.change_type == "add" else
-        f"Removed {d.field}" if isinstance(d.old, dict) else
-        f"Removed {d.old} from {d.field}"
-        for d in diff(old, new)
-    ]
-    commit_message = "Update project configuration\n\n" + "\n".join(f"- {c}" for c in changes)
+    full_name, branch = old_project.full_repository_name, old_project.main_branch
+    config_path = config.app_config[REPOSITORY_CONFIG_PATH_PROP]
+    try:
+        current = gh.get(f"repos/{full_name}/contents/{config_path}", params={"ref": branch})
+        text = base64.b64decode(current["content"]).decode("utf-8")
+        document = yaml.safe_load(text)
+        on_github = Project.model_validate(document)
+    except (GitHubError, YAMLError, ValidationError, UnicodeDecodeError) as e:
+        return jsonify({"success": False, "error": f"Could not read the current configuration from GitHub: {e}"}), 502
 
-    save_file(
-        gh,
-        old_project.full_repository_name,
-        config.app_config[REPOSITORY_CONFIG_PATH_PROP],
-        yaml.safe_dump(project.model_dump(mode="json", exclude_defaults=True), sort_keys=False).encode(),
-        commit_message,
-        old_project.main_branch,
-    )
+    if on_github.model_dump(mode="json") != old:
+        config.replace(on_github)
+        return jsonify({"success": False, "error": "The configuration was changed on GitHub since it was loaded. "
+                                                   "Reload the configuration and apply your changes again."}), 409
+
+    fields = ", ".join(key.replace("_", " ") for key in new if old[key] != new[key])
+    commit_message = f"Update {project.short_name} project configuration\n\nChange {fields}."
+    document = apply_changes(document, old, new)
+    content = (json.dumps(document, indent=2, ensure_ascii=False) + "\n" if config_path.endswith(".json") else
+               yaml.safe_dump(document, sort_keys=False, allow_unicode=True))
+
+    try:
+        save_file(gh, full_name, config_path, content.encode(), commit_message, branch, sha=current["sha"])
+    except GitHubError as e:
+        if e.response.status_code == 409:
+            return jsonify({"success": False, "error": "The configuration was changed on GitHub meanwhile. "
+                                                       "Reload the configuration and apply your changes again."}), 409
+        raise
     config.replace(project)
 
-    return jsonify({"success": True, "project": new})
+    return jsonify({"success": True, "project": new, "revision": project_revision(project)})
 
 
 @bp.route("/repositories/possibilities", methods=["GET"])
@@ -95,16 +121,12 @@ def possible_repositories(config: ConfigurationService, gh: GitHub):
     return jsonify({"success": True, "repositories": repos})
 
 
-@bp.route("/repositories/startup", methods=["GET"])
-@requires_permissions("repository-config-view")
-def startup_repositories(config: ConfigurationService):
-    return jsonify([p.model_dump(mode="json") for p in config.loaded_repositories()])
-
-
 @bp.route("/repositories/load", methods=["POST"])
 @requires_permissions("repository-config-manage-loaded")
 def load_repository(config: ConfigurationService):
-    data = request.json or {}
+    data = json_object()
+    if data is None:
+        return jsonify(NOT_AN_OBJECT), 400
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -125,7 +147,9 @@ def load_repository(config: ConfigurationService):
 @bp.route("/repositories/unload", methods=["POST"])
 @requires_permissions("repository-config-manage-loaded")
 def unload_repository(config: ConfigurationService):
-    data = request.json or {}
+    data = json_object()
+    if data is None:
+        return jsonify(NOT_AN_OBJECT), 400
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -141,7 +165,9 @@ def unload_repository(config: ConfigurationService):
 @bp.route("/repositories/add_startup", methods=["POST"])
 @requires_permissions("repository-config-manage-startup")
 def add_as_default(config: ConfigurationService):
-    data = request.json or {}
+    data = json_object()
+    if data is None:
+        return jsonify(NOT_AN_OBJECT), 400
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -157,7 +183,9 @@ def add_as_default(config: ConfigurationService):
 @bp.route("/repositories/remove_startup", methods=["POST"])
 @requires_permissions("repository-config-manage-startup")
 def remove_startup(config: ConfigurationService):
-    data = request.json or {}
+    data = json_object()
+    if data is None:
+        return jsonify(NOT_AN_OBJECT), 400
 
     if "full_name" not in data or not isinstance(data["full_name"], str):
         return jsonify({"success": False, "error": "Invalid format"}), 400
@@ -182,9 +210,6 @@ def reload_config(config: ConfigurationService):
 @bp.route("/clear_caches", methods=["POST"])
 @requires_permissions("admin")
 def clear_caches(cache: FileCache):
-    """
-    Clears caches for the configuration service.
-    """
     cache.clear()
 
     return jsonify({"success": True, "message": "Caches cleared successfully"})
