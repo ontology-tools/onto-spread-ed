@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Literal, Tuple
 
 from ose.ontology import ExcelOntology, OntologyImport
-from ose.result import ResultContext, Result, with_result_context_method, is_successful
+from ose.result import ResultContext, Result, with_result_context_method
 
 from ose.building.OntologyBuildService import OntologyBuildService
 
@@ -16,7 +16,6 @@ class HornedOntologyBuildService(OntologyBuildService):
         outfile: str,
         iri: str,
         main_ontology_name: str,
-        tmp_dir: str,
         renamings: List[
             Tuple[str, str, Literal["class", "object property", "data_property"]]
         ],
@@ -26,22 +25,26 @@ class HornedOntologyBuildService(OntologyBuildService):
     ) -> Result[Any]:
         raise NotImplementedError
 
+    @with_result_context_method
     async def build_ontology(
         self,
+        ctx: ResultContext,
         ontology: ExcelOntology,
         outfile: str,
         prefixes: Dict[str, str] | None,
         dependency_iris: List[str] | None,
-        tmp_dir: str,
+        local_ontologies: Dict[str, str],
         iri_prefix: str,
-    ) -> Result[Any]:
-        result = ontology.to_owl(prefixes if prefixes is not None else {})
+    ) -> ho.PyIndexedOntology:
+        missing = [dependency for dependency in dependency_iris or [] if dependency not in local_ontologies]
+        if missing:
+            ctx.fail(
+                type="unknown-dependency",
+                msg=f"No local files for the dependencies {', '.join(missing)}",
+            )
 
-        if not is_successful(result):
-            return result
-
-        result.value.save_to_file(outfile)
-
+        result = ctx.unwrap(ontology.to_owl(prefixes if prefixes is not None else {}))
+        result.save_to_file(outfile)
         return result
 
     @with_result_context_method
@@ -60,12 +63,22 @@ class HornedOntologyBuildService(OntologyBuildService):
         for path in ontologies:
             try:
                 ontology = ho.open_ontology_from_file(path)
-            except ValueError as e:
+            except (OSError, ValueError) as e:
                 ctx.fail(type="unreadable-ontology", file=path, msg=str(e))
             for c in ontology.get_components():
                 if isinstance(c.component, hom.OntologyID):
                     continue  # keep the merged ontology's own ID
                 o.add_component(c.component, c.ann)
+
+        for property_iri, value in annotations.items():
+            o.add_component(
+                hom.OntologyAnnotation(
+                    hom.Annotation(
+                        o.annotation_property(property_iri),
+                        hom.SimpleLiteral(value),
+                    )
+                )
+            )
 
         o.save_to_file(outfile)
 

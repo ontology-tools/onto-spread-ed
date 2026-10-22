@@ -22,6 +22,7 @@ import openpyxl
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 import pyhornedowl as ho
+import pyhornedowl.model as hom
 from typing_extensions import Self
 
 from ose.schema import (
@@ -61,6 +62,7 @@ DIAGNOSTIC_KIND = Literal[
     "missing-id",
     "inconsistent-import",
     "missing-import",
+    "missing-ontology-id",
     "no-parent",
     "unknown-parent",
     "missing-parent",
@@ -170,6 +172,10 @@ class ExcelOntology:
             term
             for t in self._terms
             if (term := t.as_resolved_term()) is not None
+            and all(
+                not isinstance(value, TermIdentifierBase) or value.is_resolved()
+                for _, value in t.relations
+            )
             and lower(t.curation_status()) not in self._discard_status
             and lower(t.curation_status()) not in self._ignore_status
         ]
@@ -302,7 +308,7 @@ class ExcelOntology:
         err_default: dict,
     ) -> OntologyImport:
         ctx.log.template = err_default
-        ontology = OntologyImport.model_construct()
+        ontology = OntologyImport.model_construct(id=None, iri=None)
         unprocessable_columns = []
         for col, val in row:
             if str_empty(val):
@@ -352,6 +358,10 @@ class ExcelOntology:
                     msg=f"The column '{col.get_name()}' could not be processed",
                 )
                 unprocessable_columns.append(col)
+
+        if ontology.id is None:
+            ctx.log.error(type="missing-ontology-id", msg="Import row is missing an ontology ID")
+            ctx.fail()
 
         OntologyImport.model_validate(ontology)
 
@@ -625,11 +635,11 @@ class ExcelOntology:
     def apply_new_parents(self, file: str) -> None:
         with open(file, "r") as f:
             rows = csv.reader(f)
-            next(rows)
+            next(rows, None)
 
             for row in rows:
                 # Skip potential ROBOT header
-                if row[0] == "ID" or len(row) < 3:
+                if not row or row[0] == "ID" or len(row) < 2 or str_empty(row[0]) or str_empty(row[1]):
                     continue
 
                 id = row[0]
@@ -645,24 +655,24 @@ class ExcelOntology:
     ) -> None:
         with open(file, "r") as f:
             rows = csv.reader(f)
-            next(rows)
+            next(rows, None)
 
             for row in rows:
                 # Skip potential ROBOT header
-                if row[0] == "ID" or len(row) < 2:
+                if not row or row[0] == "ID" or len(row) < 2 or str_empty(row[0]) or str_empty(row[1]):
                     continue
 
                 id = row[0]
                 label = row[1]
 
                 term: TermIdentifier | UnresolvedTerm | None
-                if scope == "self" or scope == "all":
+                if scope in ("self", "all"):
                     term = self._term_by_id(id)
 
                     if term is not None:
                         term.label = label
 
-                else:
+                if scope in ("import", "all"):
                     term = next(
                         (
                             t
@@ -695,10 +705,13 @@ class ExcelOntology:
         sheet: Worksheet | None = wb.active
         assert sheet is not None
         data = sheet.rows
-        header = next(data)
+        header = next(data, None)
         mapped: List[ColumnMapping | None] = []
+        if header is None:
+            return (iter(()), mapped)
         for h in header:
             if h.value is None:
+                mapped.append(None)
                 continue
 
             header_name = str(h.value).strip()
@@ -721,6 +734,35 @@ class ExcelOntology:
     def resolve(self, ctx: ResultContext) -> tuple[()]:
         imported = self.imported_terms()
 
+        def make_index(items):
+            by_id = defaultdict(list)
+            by_label = defaultdict(list)
+            for item in items:
+                if item.id is not None:
+                    by_id[item.id].append(item)
+                if item.label is not None:
+                    by_label[item.label].append(item)
+            return by_id, by_label
+
+        def find_matches(reference, index):
+            by_id, by_label = index
+            found = []
+            seen = set()
+            candidates = []
+            if reference.id is not None:
+                candidates.extend(by_id.get(reference.id, ()))
+            if reference.label is not None:
+                candidates.extend(by_label.get(reference.label, ()))
+            for candidate in candidates:
+                if id(candidate) not in seen:
+                    found.append(candidate)
+                    seen.add(id(candidate))
+            return found
+
+        term_index = make_index(self._terms + imported)
+        relation_index = make_index(self._relations + imported)
+        imported_index = make_index(imported)
+
         # Resolve terms
         for term in self._terms:
             if (
@@ -738,12 +780,13 @@ class ExcelOntology:
                 )
                 # continue
 
-            if term.is_resolved():
+            if term.is_resolved() and not any(
+                isinstance(value, TermIdentifierBase) and value.is_unresolved()
+                for _, value in term.relations
+            ):
                 continue
 
-            relation_values = [
-                x for r, x in term.relations if isinstance(x, TermIdentifierBase)
-            ]
+            relation_values = [x for _, x in term.relations if isinstance(x, TermIdentifierBase)]
             unresolved = [
                 *term.sub_class_of,
                 *term.disjoint_with,
@@ -751,15 +794,7 @@ class ExcelOntology:
             unresolved = [i for i in unresolved if i.is_unresolved()]
             for unresolved_term in unresolved:
                 matching_terms: list[TermIdentifierBase] = [
-                    t
-                    for t in (self._terms + imported)
-                    if t != unresolved_term
-                    and (
-                        unresolved_term.label is not None
-                        and unresolved_term.label == t.label
-                        or unresolved_term.id is not None
-                        and unresolved_term.id == t.id
-                    )
+                    t for t in find_matches(unresolved_term, term_index) if t != unresolved_term
                 ]
 
                 matching_terms.sort(
@@ -776,24 +811,28 @@ class ExcelOntology:
                         m if isinstance(m, TermIdentifierBase) else m.identifier()
                     )
 
+            # Resolved terms require concrete TermIdentifier values. The parser uses
+            # the unresolved subtype while it is looking up a relation value.
+            term.relations = [
+                (relation, resolved if (resolved := value.as_resolved_identifier()) is not None else value)
+                if isinstance(value, TermIdentifierBase)
+                else (relation, value)
+                for relation, value in term.relations
+            ]
+
         # Resolve relations
         for relation in self._relations:
-            if not relation.is_unresolved():
+            if not relation.is_unresolved() and not any(
+                reference.is_unresolved()
+                for reference in [
+                    *relation.sub_property_of,
+                    *relation.equivalent_relations,
+                    *relation.inverse_of,
+                ]
+            ):
                 continue
 
-            matching_import = next(
-                (
-                    t
-                    for t in imported
-                    if (
-                        relation.label is not None
-                        and relation.label == t.label
-                        or relation.id is not None
-                        and relation.id == t.id
-                    )
-                ),
-                None,
-            )
+            matching_import = next(iter(find_matches(relation, imported_index)), None)
 
             if matching_import is not None:
                 if matching_import.id is not None:
@@ -802,16 +841,7 @@ class ExcelOntology:
                     relation.label = matching_import.label
 
             if relation.range and relation.range.is_unresolved():
-                matching_terms = [
-                    t
-                    for t in (self._terms + imported)
-                    if (
-                        relation.range.label is not None
-                        and relation.range.label == t.label
-                        or relation.range.id is not None
-                        and relation.range.id == t.id
-                    )
-                ]
+                matching_terms = find_matches(relation.range, term_index)
 
                 for m in matching_terms:
                     if (
@@ -826,16 +856,7 @@ class ExcelOntology:
                     )
 
             if relation.domain and relation.domain.is_unresolved():
-                matching_terms = [
-                    t
-                    for t in (self._terms + imported)
-                    if (
-                        relation.domain.label is not None
-                        and relation.domain.label == t.label
-                        or relation.domain.id is not None
-                        and relation.domain.id == t.id
-                    )
-                ]
+                matching_terms = find_matches(relation.domain, term_index)
 
                 for m in matching_terms:
                     if (
@@ -850,16 +871,7 @@ class ExcelOntology:
                     )
 
             for sub in relation.sub_property_of:
-                matching_terms = [
-                    t
-                    for t in (self._relations + imported)
-                    if (
-                        sub.label is not None
-                        and sub.label == t.label
-                        or sub.id is not None
-                        and sub.id == t.id
-                    )
-                ]
+                matching_terms = find_matches(sub, relation_index)
 
                 for m in matching_terms:
                     if (
@@ -872,61 +884,44 @@ class ExcelOntology:
                     sub.complement(m)
 
             for er in relation.equivalent_relations:
-                matching_terms = [
-                    t
-                    for t in (self._terms + imported)
-                    if (
-                        er.label is not None
-                        and er.label == t.label
-                        or er.id is not None
-                        and er.id == t.id
-                    )
-                ]
+                matching_terms = find_matches(er, relation_index)
 
                 for m in matching_terms:
-                    if (
-                        isinstance(m, UnresolvedTerm)
-                        and lower(m.curation_status())
-                        in self._ignore_status + self._discard_status
-                    ):
-                        continue
+                    er.complement(m.identifier() if isinstance(m, UnresolvedRelation) else m)
 
-                    er.complement(m)
+            for inverse in relation.inverse_of:
+                matching_relations = find_matches(inverse, relation_index)
+                for candidate in matching_relations:
+                    inverse.complement(
+                        candidate.identifier()
+                        if isinstance(candidate, UnresolvedRelation)
+                        else candidate
+                    )
 
         # Resolve used relations
-        replacements: List[Tuple[UnresolvedRelation, UnresolvedRelation]] = []
-        for relation in self._used_relations:
-            if relation.is_unresolved():
-                matching = next(
-                    (
-                        r
-                        for r in self._relations
-                        if not r.is_unresolved()
-                        and (r.label == relation.label or r.id == id)
+        resolved_used: Set[UnresolvedRelation] = set()
+        for used in self._used_relations:
+            match = next(
+                (
+                    candidate
+                    for candidate in find_matches(used, relation_index)
+                    if not isinstance(candidate, UnresolvedRelation) or not candidate.is_unresolved()
+                ),
+                None,
+            )
+            if match is not None:
+                used = UnresolvedRelation(
+                    id=match.id,
+                    label=match.label,
+                    owl_property_type=(
+                        match.owl_property_type
+                        if isinstance(match, UnresolvedRelation)
+                        else used.owl_property_type
                     ),
-                    None,
+                    origin=used.origin,
                 )
-
-                if matching is not None:
-                    replacements.append((relation, matching))
-                    continue
-
-                matching_term = next(
-                    (
-                        t
-                        for i in self._imports
-                        for t in i.imported_terms
-                        if t.id == relation.id or t.label == relation.label
-                    ),
-                    None,
-                )
-                if matching_term is not None:
-                    relation.id = matching_term.id
-                    relation.label = matching_term.label
-
-        for old, new in replacements:
-            self._used_relations.remove(old)
-            self._used_relations.add(new)
+            resolved_used.add(used)
+        self._used_relations = resolved_used
 
         for term in self._terms:
             for relation_term, _ in term.relations:
@@ -934,19 +929,12 @@ class ExcelOntology:
                     used_relations = [
                         r
                         for r in self._used_relations
-                        if (
-                            r.label is None
-                            or relation_term.label is None
-                            or relation_term.label == r.label
-                        )
-                        and (
-                            r.id is None
-                            or relation_term.label is None
-                            or relation_term.label == r.label
-                        )
+                        if (relation_term.id is not None and relation_term.id == r.id)
+                        or (relation_term.label is not None and relation_term.label == r.label)
                     ]
                     for r in used_relations:
-                        relation_term.complement(r.identifier())
+                        if r.id is not None and r.label is not None:
+                            relation_term.complement(r.identifier())
 
         return ()
 
@@ -1005,10 +993,10 @@ class ExcelOntology:
             if c("missing-id") and term.id is None:
                 ctx.log.error(type="missing-id", term=term.__dict__)
 
-            term_id = term.identifier().assert_resolved_identifier()
-
-            by_id[term_id.id].append(term)
-            by_label[term_id.label].append(term)
+            if term.id is not None:
+                by_id[term.id].append(term)
+            if term.label is not None:
+                by_label[term.label].append(term)
 
             if (
                 c("inconsistent-import", "missing-import")
@@ -1093,7 +1081,7 @@ class ExcelOntology:
                         )
 
             for relation, value in term.relations:
-                if isinstance(value, TermIdentifier):
+                if isinstance(value, TermIdentifierBase):
                     if c("unknown-relation-value") and value.is_unresolved():
                         ctx.log.error(
                             type="unknown-relation-value",
@@ -1102,7 +1090,7 @@ class ExcelOntology:
                             term=term.__dict__,
                         )
                     else:
-                        t = self._raw_term_by_id(value.id)
+                        t = self._raw_term_by_id(value.id) if value.id is not None else None
                         if c("missing-relation-value") and t is None:
                             ctx.log.error(
                                 type="missing-relation-value",
@@ -1133,10 +1121,10 @@ class ExcelOntology:
             if c("missing-id") and relation.id is None:
                 ctx.log.error(type="missing-id", relation=relation.__dict__)
 
-            relation_id = relation.identifier().assert_resolved_identifier()
-
-            by_id[relation_id.id].append(relation)
-            by_label[relation_id.label].append(relation)
+            if relation.id is not None:
+                by_id[relation.id].append(relation)
+            if relation.label is not None:
+                by_label[relation.label].append(relation)
 
             if relation.domain:
                 if c("unknown-domain") and relation.domain.is_unresolved():
@@ -1199,7 +1187,7 @@ class ExcelOntology:
                         )
 
             for r, value in relation.relations:
-                if isinstance(value, TermIdentifier):
+                if isinstance(value, TermIdentifierBase):
                     if c("unknown-relation-value") and value.is_unresolved():
                         ctx.log.error(
                             type="unknown-relation-value",
@@ -1208,7 +1196,7 @@ class ExcelOntology:
                             term=relation.__dict__,
                         )
                     else:
-                        t = self._raw_term_by_id(value.id)
+                        t = self._raw_term_by_id(value.id) if value.id is not None else None
                         if c("missing-relation-value") and t is None:
                             ctx.log.error(
                                 type="missing-relation-value",
@@ -1242,7 +1230,8 @@ class ExcelOntology:
 
         # Check for duplicates
         if c("duplicate"):
-            for k, items in itertools.chain(by_id.items(), by_label.items()):
+            grouped = [*(('id', k, items) for k, items in by_id.items()), *(('label', k, items) for k, items in by_label.items())]
+            for field, k, items in grouped:
                 duplicates = [
                     item
                     for item in items
@@ -1252,16 +1241,9 @@ class ExcelOntology:
                 if len(duplicates) > 1:
                     mismatches = []
                     for a, b in itertools.combinations(duplicates, 2):
-                        if (
-                            a.id is None
-                            or b.id is None
-                            or a.label is None
-                            or b.label is None
-                        ):
-                            continue
-                        if a.label != b.label:
+                        if a.label is not None and b.label is not None and a.label != b.label:
                             mismatches.append(("label", a, b))
-                        if a.id != b.id:
+                        if a.id is not None and b.id is not None and a.id != b.id:
                             mismatches.append(("id", a, b))
                         if isinstance(a, UnresolvedTerm) and isinstance(
                             b, UnresolvedTerm
@@ -1293,7 +1275,7 @@ class ExcelOntology:
                     if len(mismatches) > 0:
                         ctx.log.error(
                             type="duplicate",
-                            duplicate_field="id" if k in by_id else "label",
+                            duplicate_field=field,
                             duplicate_value=k,
                             duplicates=list(
                                 set(x for _, a, b in mismatches for x in [a, b])
@@ -1307,12 +1289,13 @@ class ExcelOntology:
 
     def remove_duplicates(self) -> int:
         to_remove: List[UnresolvedTerm] = []
-        hashset: Set[TermIdentifier] = set()
+        hashset: Set[tuple[str | None, str | None]] = set()
         for term in self._terms:
-            if term.identifier() in hashset:
+            key = (term.id, term.label)
+            if key in hashset:
                 to_remove.append(term)
             else:
-                hashset.add(term.identifier(TermIdentifier))
+                hashset.add(key)
 
         for term in to_remove:
             self._terms.remove(term)
@@ -1464,20 +1447,20 @@ class ExcelOntology:
             ciri = c.first
             o.declare_class(ciri)
             o.add_component(
-                ho.model.AnnotationAssertion(
+                hom.AnnotationAssertion(
                     ciri,
-                    ho.model.Annotation(
+                    hom.Annotation(
                         o.annotation_property(constants.RDFS_LABEL),
-                        ho.model.SimpleLiteral(term.label),
+                        hom.SimpleLiteral(term.label),
                     ),
                 )
             )
 
             for parent in term.sub_class_of:
-                o.add_component(ho.model.SubClassOf(c, o.class_(parent.id)))
+                o.add_component(hom.SubClassOf(c, o.class_(parent.id)))
 
             for disjoint in term.disjoint_with:
-                o.add_component(ho.model.DisjointClasses([c, o.class_(disjoint.id)]))
+                o.add_component(hom.DisjointClasses([c, o.class_(disjoint.id)]))
 
             for eq in term.equivalent_to:
                 raise NotImplementedError("TODO: Require later pho which parses MS")
@@ -1491,7 +1474,7 @@ class ExcelOntology:
                             op = o.object_property(riri)
                             o.declare_object_property(riri)
                             o.add_component(
-                                ho.model.SubClassOf(c, op.some(o.class_(value.id)))
+                                hom.SubClassOf(c, op.some(o.class_(value.id)))
                             )
                         else:
                             ctx.log.warning(
@@ -1506,10 +1489,10 @@ class ExcelOntology:
                             dp = o.data_property(riri)
                             o.declare_data_property(riri)
                             o.add_component(
-                                ho.model.SubClassOf(
+                                hom.SubClassOf(
                                     c,
-                                    ho.model.DataSomeValuesFrom(
-                                        dp, ho.model.Datatype(o.iri(value.id))
+                                    hom.DataSomeValuesFrom(
+                                        dp, hom.Datatype(o.iri(value.id))
                                     ),
                                 )
                             )
@@ -1526,17 +1509,16 @@ class ExcelOntology:
                             ap = o.annotation_property(riri)
                             o.declare_annotation_property(riri)
                             o.add_component(
-                                ho.model.AnnotationAssertion(
+                                hom.AnnotationAssertion(
                                     ciri,
-                                    ho.model.Annotation(
-                                        ap, ho.model.SimpleLiteral(value)
+                                    hom.Annotation(
+                                        ap, hom.SimpleLiteral(value)
                                     ),
                                 )
                             )
                         else:
                             ctx.log.warning(
                                 type="wrong-relation-value-type",
-                                term=term.__dict__,
                                 relation=term_relation.__dict__,
                                 value=value,
                                 message=f"Expected a string for AnnotationProperty relation, got {type(value)}",
@@ -1562,32 +1544,32 @@ class ExcelOntology:
 
                     if relation.domain and relation.domain.is_resolved():
                         o.add_component(
-                            ho.model.ObjectPropertyDomain(
+                            hom.ObjectPropertyDomain(
                                 op, o.class_(relation.domain.id)
                             )
                         )
                     if relation.range and relation.range.is_resolved():
                         o.add_component(
-                            ho.model.ObjectPropertyRange(
+                            hom.ObjectPropertyRange(
                                 op, o.class_(relation.range.id)
                             )
                         )
 
                     for sub in relation.sub_property_of:
                         o.add_component(
-                            ho.model.SubObjectPropertyOf(op, o.object_property(sub.id))
+                            hom.SubObjectPropertyOf(op, o.object_property(sub.id))
                         )
 
                     for eq_r in relation.equivalent_relations:
                         o.add_component(
-                            ho.model.EquivalentObjectProperties(
+                            hom.EquivalentObjectProperties(
                                 [op, o.object_property(eq_r.id)]
                             )
                         )
 
                     for inv in relation.inverse_of:
                         o.add_component(
-                            ho.model.InverseObjectProperties(
+                            hom.InverseObjectProperties(
                                 op, o.object_property(inv.id)
                             )
                         )
@@ -1598,25 +1580,25 @@ class ExcelOntology:
 
                     if relation.domain and relation.domain.is_resolved():
                         o.add_component(
-                            ho.model.DataPropertyDomain(
+                            hom.DataPropertyDomain(
                                 dp, o.class_(relation.domain.id)
                             )
                         )
                     if relation.range and relation.range.is_resolved():
                         o.add_component(
-                            ho.model.DataPropertyRange(
-                                dp, ho.model.Datatype(o.iri(relation.range.id))
+                            hom.DataPropertyRange(
+                                dp, hom.Datatype(o.iri(relation.range.id))
                             )
                         )
 
                     for sub in relation.sub_property_of:
                         o.add_component(
-                            ho.model.SubDataPropertyOf(dp, o.data_property(sub.id))
+                            hom.SubDataPropertyOf(dp, o.data_property(sub.id))
                         )
 
                     for eq_r in relation.equivalent_relations:
                         o.add_component(
-                            ho.model.EquivalentDataProperties(
+                            hom.EquivalentDataProperties(
                                 [dp, o.data_property(eq_r.id)]
                             )
                         )
@@ -1625,17 +1607,17 @@ class ExcelOntology:
                     o.declare_annotation_property(riri)
 
             o.add_component(
-                ho.model.AnnotationAssertion(
+                hom.AnnotationAssertion(
                     riri,
-                    ho.model.Annotation(
+                    hom.Annotation(
                         o.annotation_property(constants.RDFS_LABEL),
-                        ho.model.SimpleLiteral(relation.label),
+                        hom.SimpleLiteral(relation.label),
                     ),
                 )
             )
 
             for r, value in relation.relations:
-                riri = o.iri(r.id)
+                property_iri = o.iri(r.id)
 
                 match propery_kinds.get(r):
                     case OWLPropertyType.ObjectProperty | OWLPropertyType.DataProperty:
@@ -1648,20 +1630,19 @@ class ExcelOntology:
                         )
                     case OWLPropertyType.AnnotationProperty:
                         if isinstance(value, str):
-                            ap = o.annotation_property(riri)
-                            o.declare_annotation_property(riri)
+                            ap = o.annotation_property(property_iri)
+                            o.declare_annotation_property(property_iri)
                             o.add_component(
-                                ho.model.AnnotationAssertion(
-                                    ciri,
-                                    ho.model.Annotation(
-                                        ap, ho.model.SimpleLiteral(value)
+                                hom.AnnotationAssertion(
+                                    riri,
+                                    hom.Annotation(
+                                        ap, hom.SimpleLiteral(value)
                                     ),
                                 )
                             )
                         else:
                             ctx.log.warning(
                                 type="wrong-relation-value-type",
-                                term=term.__dict__,
                                 relation=relation.__dict__,
                                 value=value,
                                 message=f"Expected a string for AnnotationProperty relation, got {type(value)}",
@@ -1671,7 +1652,6 @@ class ExcelOntology:
                     case _:
                         ctx.log.warning(
                             type="unknown-relation-type",
-                            term=term.__dict__,
                             relation=relation.__dict__,
                             value=value,
                             message=f"Unknown relation type {propery_kinds.get(r)}",
@@ -1686,7 +1666,7 @@ class ExcelOntology:
         ws: Worksheet = wb.active  # type: ignore
 
         header = ["ID", "Label", "Parent", "Disjoint classes", "Logical definition"] + [
-            (r.label if r.id is None else f"REL '{r.label}'") for r in relations
+            f"REL '{r.label or r.id}'" for r in relations
         ]
         if include_origin:
             header += ["origin"]
@@ -1711,9 +1691,8 @@ class ExcelOntology:
                 ),
                 "; ".join(term.equivalent_to),
             ] + [
-                term.get_relation_value(i)
+                self._excel_relation_value(term.get_relation_values(r))
                 for r in relations
-                if (i := r.as_resolved_identifier()) is not None
             ]
 
             if include_origin:
@@ -1728,3 +1707,14 @@ class ExcelOntology:
             ws.append(row)
 
         return wb
+
+    @staticmethod
+    def _excel_relation_value(values: list) -> str:
+        def render(value):
+            if isinstance(value, TermIdentifierBase):
+                if value.label is not None and value.id is not None:
+                    return f"{value.label} [{value.id}]"
+                return value.label or value.id or ""
+            return str(value)
+
+        return "; ".join(render(value) for value in values)

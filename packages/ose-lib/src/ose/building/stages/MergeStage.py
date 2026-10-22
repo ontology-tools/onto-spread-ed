@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, Literal
+from typing import Callable
 
 from ose.utils.asyncio import check_cancelled
 
@@ -7,12 +7,9 @@ from ose.building.Progress import Progress
 
 
 from ose.result import ResultContext, with_result_context_method
-from ose.building.HornedOntologyBuildService import HornedOntologyBuildService
+from ose.building.RobotOntologyBuildService import RobotOntologyBuildService
 from ose.building.stages.BuildStage import BuildStage
 from ose.building.Progress import ProgressManager
-
-EntityType = Literal["class", "object property", "data_property"]
-
 
 class MergeStage(BuildStage):
     @classmethod
@@ -28,7 +25,7 @@ class MergeStage(BuildStage):
         self, ctx: ResultContext, on_progress_update: Callable[[Progress], None] | None = None
     ) -> tuple[()]:
         progress = ProgressManager(on_progress_update)
-        build_service = HornedOntologyBuildService()
+        build_service = RobotOntologyBuildService()
 
         merge_files = [
             (n, f)
@@ -55,7 +52,7 @@ class MergeStage(BuildStage):
             version_iri = (
                 file.target.iri + "/" + datetime.now().astimezone().strftime("%Y-%m-%d")
             )
-                
+
             ctx.unwrap(await build_service.merge_ontologies(
                 ontologies,
                 self._local_name(file.target.file),

@@ -61,9 +61,9 @@ def from_project_file(
                 ontology.merge_with(owl_ontology)
 
     if project_file.renameTermFile is not None:
-        ontology.apply_renamings(project_file.renameTermFile)
+        ontology.apply_renamings(path.join(working_dir, project_file.renameTermFile))
 
     if project_file.addParentsFile is not None:
-        ontology.apply_new_parents(project_file.addParentsFile)
+        ontology.apply_new_parents(path.join(working_dir, project_file.addParentsFile))
 
     return ontology

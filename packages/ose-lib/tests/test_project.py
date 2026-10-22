@@ -17,7 +17,6 @@ def make_context(stages=("A", "B")):
         project_data(build_configurations=[{"name": "default", "stages": [{"name": s} for s in stages]}])
     )
     return BuildContext(
-        project_dir=".",
         build_dir="build",
         project=project,
         state="starting",

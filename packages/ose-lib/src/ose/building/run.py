@@ -84,10 +84,10 @@ async def run_build[C: BuildContext](
             try:
                 result = await stage.run(on_progress_update=report_progress)
             except asyncio.CancelledError:
-                context.set_stage_result(Success("cancelled"))
+                cancelled = context.set_stage_result(Success("cancelled"))
                 context.state = "cancelled"
                 if on_stage_done is not None:
-                    on_stage_done(context, stage, ("cancelled", {}))
+                    on_stage_done(context, stage, cancelled)
                 raise
             except Exception as e:
                 logger.exception(f"Build stage {stage.name()} raised an exception")

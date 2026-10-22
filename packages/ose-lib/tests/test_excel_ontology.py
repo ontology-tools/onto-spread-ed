@@ -5,6 +5,7 @@ from helpers import PREFIXES, TERM_HEADER, project_data, write_csv, write_xlsx
 from ose import constants
 from ose.ontology.ExcelOntology import ExcelOntology
 from ose.result import is_err, is_successful
+from ose.schema import Schema
 
 IRI = "http://example.org/ex.owl"
 EX = "http://example.org/EX_"
@@ -117,6 +118,24 @@ def test_add_terms_from_excel_accepts_bytes(tmp_path):
     assert o.find_term_id("part") == "EX:0000003"
 
 
+def test_excel_blank_header_preserves_column_alignment(tmp_path):
+    file = write_xlsx(
+        tmp_path / "terms.xlsx",
+        [["ID", None, "Label", "Parent"], ["EX:1", "ignored", "thing", None]],
+    )
+    o = ExcelOntology(IRI)
+
+    assert is_successful(o.add_terms_from_excel("terms.xlsx", file))
+    assert o.find_term_id("thing") == "EX:1"
+
+
+def test_excel_empty_sheet_is_handled(tmp_path):
+    file = write_xlsx(tmp_path / "empty.xlsx", [])
+    result = ExcelOntology(IRI).add_terms_from_excel("empty.xlsx", file)
+
+    assert is_successful(result)
+
+
 # --- Relations ----------------------------------------------------------------
 
 RELATION_HEADER = ["ID", "Relationship", "Domain", "Range", "Relationship type"]
@@ -146,6 +165,80 @@ def test_relations_from_excel_and_their_use_in_terms(tmp_path):
     assert (value.id, value.label) == ("EX:0000003", "part")
 
     assert "unknown-relation" not in types(o.validate().log.errors)
+
+    exported = [[cell.value for cell in row] for row in o.to_excel().active.rows]
+    relation_column = exported[0].index("REL 'has part'")
+    car_row = next(row for row in exported[1:] if row[0] == "EX:0000004")
+    assert car_row[relation_column] == "part [EX:0000003]"
+
+
+def test_equivalent_and_inverse_relations_resolve_to_relations(tmp_path):
+    relations = write_xlsx(
+        tmp_path / "relations.xlsx",
+        [
+            ["ID", "Relationship", "Equivalent to relationship", "Inverse of"],
+            ["EX:10", "has part", "part of", None],
+            ["EX:11", "part of", None, "has part"],
+        ],
+    )
+    o = ExcelOntology(IRI)
+    assert is_successful(o.add_relations_from_excel("relations.xlsx", relations))
+
+    assert is_successful(o.resolve())
+    has_part, part_of = o.relations()
+    assert [(r.id, r.label) for r in has_part.equivalent_relations] == [("EX:11", "part of")]
+    assert [(r.id, r.label) for r in part_of.inverse_of] == [("EX:10", "has part")]
+
+
+def test_relation_resolution_matches_id_when_used_label_is_none():
+    from ose.schema import OWLPropertyType, UnresolvedRelation
+
+    o = ExcelOntology(IRI)
+    o._relations.append(
+        UnresolvedRelation(
+            id="EX:10",
+            label="has part",
+            owl_property_type=OWLPropertyType.ObjectProperty,
+            origin=("relations.xlsx", 2),
+        )
+    )
+    o._used_relations.add(
+        UnresolvedRelation(id="EX:10", owl_property_type=OWLPropertyType.ObjectProperty, origin=("terms.xlsx", 1))
+    )
+
+    assert is_successful(o.resolve())
+    [used] = o.used_relations()
+    assert (used.id, used.label) == ("EX:10", "has part")
+
+
+def test_to_owl_relation_annotation_uses_relation_as_subject(tmp_path):
+    schema = Schema.model_validate(
+        {
+            "mappings": [
+                {"type": "plain", "kind": "ID", "columns": ["ID"]},
+                {"type": "label", "columns": ["Relationship"]},
+                {
+                    "type": "relation",
+                    "columns": ["Note"],
+                    "relation": {"id": "EX:20", "label": "note"},
+                },
+            ]
+        }
+    )
+    relations = write_xlsx(
+        tmp_path / "relations.xlsx",
+        [["ID", "Relationship", "Note"], ["EX:10", "has part", "note value"]],
+    )
+    o = ExcelOntology(IRI)
+    assert is_successful(o.add_relations_from_excel("relations.xlsx", relations, schema))
+    assert is_successful(o.resolve())
+
+    result = o.to_owl(PREFIXES)
+    assert is_successful(result)
+    out = str(tmp_path / "out.owl")
+    result.value.save_to_file(out)
+    owl = ho.open_ontology(out)
+    assert owl.get_annotation(EX + "10", EX + "20") == "note value"
 
 
 def test_undefined_relation_column_is_reported():
@@ -191,6 +284,33 @@ def test_add_imported_terms(tmp_path):
     assert running is not None and running.sub_class_of[0].id == "BFO:0000015"
 
 
+def test_import_without_ontology_id_fails(tmp_path):
+    file = write_xlsx(
+        tmp_path / "imports.xlsx",
+        [["Ontology ID", "IRI"], [None, "http://example.org/import.owl"]],
+    )
+    result = ExcelOntology(IRI).add_imported_terms("imports.xlsx", file)
+
+    assert is_err(result)
+    assert types(result.log.errors) == ["missing-ontology-id"]
+
+
+def test_renaming_scope_all_updates_local_and_imported_terms(tmp_path):
+    imports = write_xlsx(
+        tmp_path / "imports.xlsx",
+        [["Ontology ID", "IRI", "IDs"], ["EXT", "http://example.org/ext.owl", "thing [EX:1]"]],
+    )
+    renames = write_csv(tmp_path / "renames.csv", [["ID", "NEW LABEL"], ["EX:1", "renamed"]])
+    o = ExcelOntology(IRI)
+    o.add_terms_from_list([["EX:1", "thing"]], ["ID", "Label"])
+    assert is_successful(o.add_imported_terms("imports.xlsx", imports))
+
+    o.apply_renamings(renames, scope="all")
+
+    assert o.find_term_label("EX:1") == "renamed"
+    assert [(term.id, term.label) for term in o.imported_terms()] == [("EX:1", "renamed")]
+
+
 def test_import_other_excel_ontology_resolves_references():
     upper = ontology()
     upper.resolve()
@@ -204,6 +324,25 @@ def test_import_other_excel_ontology_resolves_references():
     wheel = lower.term_by_id("EX:0000100")
     assert wheel is not None and wheel.sub_class_of[0].id == "EX:0000003"
     assert lower.validate().log.errors == []
+
+
+def test_from_project_file_resolves_rename_and_parent_paths(tmp_path):
+    from ose.ontology.loading import from_project_file
+    from ose.project import Project
+
+    write_xlsx(tmp_path / "upper.xlsx", [TERM_HEADER, *ROWS])
+    write_csv(tmp_path / "rename.csv", [["ID", "NEW LABEL"], ["EX:0000002", "item"]])
+    write_csv(tmp_path / "parents.csv", [["ID", "NEW PARENT ID"], ["EX:0000003", "EX:0000001"]])
+    data = project_data()
+    data["files"]["upper"].update(renameTermFile="rename.csv", addParentsFile="parents.csv")
+    project = Project.model_validate(data)
+
+    result = from_project_file(project.files["upper"], project, str(tmp_path))
+    assert is_successful(result)
+    result.value.resolve()
+    assert result.value.find_term_label("EX:0000002") == "item"
+    part = result.value.term_by_id("EX:0000003")
+    assert part is not None and "EX:0000001" in [parent.id for parent in part.sub_class_of]
 
 
 def test_merge_with_combines_terms_and_imports():
@@ -250,6 +389,36 @@ def test_remove_duplicates():
     assert sorted(t.id for t in o.terms()) == ["EX:0000001", "EX:0000002", "EX:0000003"]
 
 
+def test_validate_and_remove_duplicates_tolerate_missing_labels():
+    o = ExcelOntology(IRI)
+    assert is_successful(o.add_terms_from_list([["EX:1", None]], ["ID", "Label"]))
+
+    result = o.validate(only=["missing-label"])
+    assert is_err(result)
+    assert types(result.log.errors) == ["missing-label"]
+    assert o.remove_duplicates() == 0
+
+
+def test_csv_modifications_skip_blank_rows_and_accept_two_column_parents(tmp_path):
+    parent_file = write_csv(
+        tmp_path / "parents.csv",
+        [["ID", "NEW PARENT ID"], [], ["EX:0000003", "EX:0000001"]],
+    )
+    rename_file = write_csv(
+        tmp_path / "rename.csv",
+        [["ID", "NEW LABEL"], [], ["EX:0000002", "item"]],
+    )
+    o = ontology()
+
+    o.apply_new_parents(parent_file)
+    o.apply_renamings(rename_file)
+    o.resolve()
+
+    assert o.find_term_label("EX:0000002") == "item"
+    part = o.term_by_id("EX:0000003")
+    assert part is not None and "EX:0000001" in [parent.id for parent in part.sub_class_of]
+
+
 # --- Validation ---------------------------------------------------------------
 
 
@@ -277,6 +446,15 @@ def test_validate_reports_duplicates():
     errors = o.validate(only=["duplicate"]).log.errors
     assert types(errors) == ["duplicate"]
     assert errors[0]["duplicate_value"] == "EX:0000002"
+
+
+def test_validate_reports_duplicate_labels_with_field_label():
+    o = ontology([["EX:1", "same", None, "", ""], ["EX:2", "same", None, "", ""]])
+    errors = o.validate(only=["duplicate"]).log.errors
+
+    assert len(errors) == 1
+    assert errors[0]["duplicate_field"] == "label"
+    assert errors[0]["duplicate_value"] == "same"
 
 
 def test_validate_reports_ignored_parent():

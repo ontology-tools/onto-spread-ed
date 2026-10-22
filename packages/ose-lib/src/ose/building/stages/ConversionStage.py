@@ -42,6 +42,10 @@ class ConversionStage(BuildStage):
         )
 
         loaded: dict[str, ExcelOntology] = dict()
+        # IRIs of the ontologies of this build, mapped to their files
+        local_ontologies = {
+            self.project.external.target.iri: self._local_name(self.project.external.target.file)
+        }
         for i, (k, file) in enumerate(sources):
             progress.next_item(item=file.target.file, message="Building")
             ontology = ExcelOntology(file.target.iri)
@@ -61,14 +65,21 @@ class ConversionStage(BuildStage):
                 await check_cancelled()
 
             for s in file.sources:
+                schema = self.project.spreadsheet_schema(s.spreadsheet_schema)
+                if schema is None:
+                    ctx.fail(
+                        type="schema-not-found",
+                        msg=f"Spreadsheet schema '{s.spreadsheet_schema}' not found.",
+                    )
+
                 if s.type == "classes":
                     ctx.unwrap(
-                        ontology.add_terms_from_excel(s.file, self._local_name(s.file))
+                        ontology.add_terms_from_excel(s.file, self._local_name(s.file), schema)
                     )
                 elif s.type == "relations":
                     ctx.unwrap(
                         ontology.add_relations_from_excel(
-                            s.file, self._local_name(s.file)
+                            s.file, self._local_name(s.file), schema
                         )
                     )
 
@@ -81,24 +92,22 @@ class ConversionStage(BuildStage):
             ctx.unwrap(ontology.resolve())
             await check_cancelled()
 
-            dependencies = [
-                f
-                for f in (
-                    [self.project.files[n].target.iri for n in file.needs]
-                    + [self.project.external.target.iri]
-                )
+            dependency_iris = [self.project.files[n].target.iri for n in file.needs] + [
+                self.project.external.target.iri
             ]
+            outfile = self._local_name(file.target.file)
 
             ctx.unwrap(
                 await builder.build_ontology(
                     ontology,
-                    self._local_name(file.target.file),
+                    outfile,
                     self.project.prefixes,
-                    dependencies,
-                    self.context.project_dir,
+                    dependency_iris,
+                    dict(local_ontologies),
                     self.project.iri_prefix,
                 )
             )
+            local_ontologies[file.target.iri] = outfile
 
             self.context.add_intermediate_artifact(file, self.name())
 

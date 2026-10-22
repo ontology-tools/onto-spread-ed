@@ -107,7 +107,6 @@ class ExternalImportsStage(BuildStage):
             self._local_name(file.target.file),
             file.target.iri,
             self.project.short_repository_name,
-            self.context.project_dir,
             renamings,
             new_parents,
         ))

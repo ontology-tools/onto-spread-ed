@@ -45,10 +45,9 @@ def build_dir(tmp_path):
     return d
 
 
-def make_context(build_dir, data=None, stage="TEST", args=None, project_dir=None) -> BuildContext:
+def make_context(build_dir, data=None, stage="TEST", args=None) -> BuildContext:
     project = Project.model_validate(data or project_data())
     return BuildContext(
-        project_dir=str(project_dir or build_dir.parent),
         build_dir=str(build_dir),
         project=project,
         state="running",
@@ -71,11 +70,11 @@ class FakeBuilder:
         self.builds: list[tuple] = []
         self.merges: list[tuple] = []
 
-    async def build_ontology(self, ontology, outfile, prefixes, dependency_iris, tmp_dir, iri_prefix):
-        self.builds.append((ontology, outfile, dependency_iris))
+    async def build_ontology(self, ontology, outfile, prefixes, dependency_iris, local_ontologies, iri_prefix):
+        self.builds.append((ontology, outfile, dependency_iris, local_ontologies))
         return Success(())
 
-    async def merge_imports(self, imports, outfile, iri, main_ontology_name, tmp_dir, renamings, new_parents):
+    async def merge_imports(self, imports, outfile, iri, main_ontology_name, renamings, new_parents):
         self.merges.append((imports, outfile, iri, main_ontology_name, renamings, new_parents))
         return Success(())
 
@@ -194,7 +193,6 @@ def new_context(project: Project, tmp_path) -> BuildContext:
     return BuildContext(
         project=project,
         build_configuration=project.build_configuration("default"),
-        project_dir=str(tmp_path),
         build_dir=str(tmp_path / "build"),
     )
 
@@ -243,7 +241,7 @@ def test_run_build_records_exception_as_failed_stage(tmp_path, test_stages):
 def test_context_defaults_to_new_build_dir(tmp_path, test_stages):
     project = project_with_stages({"name": "RECORD"})
 
-    ctx = BuildContext(project=project, build_configuration=project.build_configuration("default"), project_dir=".")
+    ctx = BuildContext(project=project, build_configuration=project.build_configuration("default"))
 
     assert ctx.state == "starting"
     assert os.path.isdir(ctx.build_dir)
@@ -274,7 +272,6 @@ def test_build_pauses_and_continues(tmp_path, test_stages):
     ctx = CustomContext(
         project=project,
         build_configuration=project.build_configuration("default"),
-        project_dir=str(tmp_path),
         build_dir=str(tmp_path),
         release_id=7,
     )
@@ -282,7 +279,7 @@ def test_build_pauses_and_continues(tmp_path, test_stages):
     ctx = asyncio.run(run_build(
         ctx,
         on_progress=lambda c, p: progress.append((c.current_stage, p.message)),
-        on_stage_done=lambda c: done.append((c.current_stage, c.state)),
+        on_stage_done=lambda c, _stage, _result: done.append((c.current_stage, c.state)),
     ))
 
     assert isinstance(ctx, CustomContext) and ctx.release_id == 7
@@ -336,7 +333,7 @@ def test_cancelled_build(tmp_path, test_stages):
     done = []
 
     async def cancel_soon():
-        task = asyncio.create_task(run_build(ctx, on_stage_done=lambda c: done.append(c.state)))
+        task = asyncio.create_task(run_build(ctx, on_stage_done=lambda c, _stage, _result: done.append(c.state)))
         await asyncio.sleep(0.01)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
@@ -416,11 +413,15 @@ def test_conversion_stage_builds_files_in_dependency_order(build_dir, fake_build
     result = run_stage(ConversionStage, ctx)
 
     assert is_successful(result), result.log.errors
-    [(upper, upper_out, upper_deps), (lower, lower_out, lower_deps)] = fake_builder.builds
+    [(upper, upper_out, upper_deps, upper_local), (lower, lower_out, lower_deps, lower_local)] = fake_builder.builds
     assert (upper.iri(), upper_out) == ("http://example.org/upper.owl", str(build_dir / "upper.owl"))
     assert (lower.iri(), lower_out) == ("http://example.org/lower.owl", str(build_dir / "lower.owl"))
     assert upper_deps == ["http://example.org/external.owl"]
     assert lower_deps == ["http://example.org/upper.owl", "http://example.org/external.owl"]
+    # Dependencies are the files of this build, not the ones in the project directory
+    external = {"http://example.org/external.owl": str(build_dir / "external.owl")}
+    assert upper_local == external
+    assert lower_local == {**external, "http://example.org/upper.owl": str(build_dir / "upper.owl")}
 
     thing = upper.term_by_id("EX:0000001")
     assert thing is not None and thing.sub_class_of[0].id == "BFO:0000001"  # resolved from external.owl
@@ -443,12 +444,14 @@ def test_conversion_stage_fails_on_invalid_spreadsheet(build_dir, fake_builder):
 
 
 @pytest.mark.skipif(shutil.which(os.environ.get("ROBOT", "robot")) is None, reason="ROBOT is not installed")
-def test_conversion_stage_with_robot(build_dir):
-    ctx = make_context(build_dir, stage="EXCEL2OWL", project_dir=build_dir)
+def test_conversion_stage_with_robot(build_dir, tmp_path):
+    before = set(os.listdir(build_dir))
+    ctx = make_context(build_dir, stage="EXCEL2OWL")
 
     result = run_stage(ConversionStage, ctx)
 
     assert is_successful(result), result.log.errors
+    assert set(os.listdir(build_dir)) == before | {"upper.owl", "lower.owl"}
     upper = ho.open_ontology(str(build_dir / "upper.owl"))
     assert upper.get_annotation(EX + "0000002", RDFS_LABEL) == "object"
     assert EX + "0000001" in upper.get_superclasses(EX + "0000002")

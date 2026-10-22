@@ -1,9 +1,8 @@
 import os
 import tempfile
-from datetime import datetime
 from typing import Any, Literal, Optional, TYPE_CHECKING
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from uuid import UUID, uuid4
 
 from ose.project import BuildConfiguration, Project, ProjectFile
@@ -25,7 +24,6 @@ class BuildArtifact(BaseModel):
     """Path of the file in the project, if it is published"""
     kind: ArtifactKind
     origin: str
-    creation_time: datetime
 
 
 BuildState = Literal["starting", "running", "completed", "cancelled", "errored", "paused"]
@@ -40,54 +38,33 @@ class _BuildContextStageResult(BaseModel):
 
 
 class BuildContext(BaseModel):
-    project: Project = Field(frozen=True)
-    """
-    The project being built.
-    """
-
-    project_dir: str = Field(frozen=True)
-    """
-    The directory where the project is located.
-    """
-
+    project: Project = Field(frozen=True, description="The project being built.")
     build_dir: str = Field(
         frozen=True,
         default_factory=lambda data: tempfile.mkdtemp(prefix=f"ose-build-{data['project'].short_name}-"),
+        description="Directory for build artifacts; defaults to a new temporary directory.",
     )
-    """
-    A directory where build artifacts and temporary files can be stored during the build process. Defaults to a new
-    temporary directory.
-    """
+    build_configuration: BuildConfiguration = Field(
+        frozen=True, description="Configuration used for this build."
+    )
+    artifacts: list[BuildArtifact] = Field(
+        default_factory=list, description="Artifacts generated during the build."
+    )
+    build_id: UUID = Field(
+        default_factory=uuid4, frozen=True, description="Unique identifier for this build context."
+    )
+    current_stage: Optional[int] = Field(
+        default=None, description="Index of the current stage in build_configuration.stages."
+    )
+    state: BuildState = Field(default="starting", description="Current state of the build.")
+    stage_results: list[_BuildContextStageResult | None] = Field(
+        default_factory=list, description="Results for each stage in the build configuration."
+    )
 
-    build_configuration: BuildConfiguration = Field(frozen=True)
-    """
-    The build configuration used for this build.
-    """
-
-    artifacts: list[BuildArtifact] = []
-    """
-    A list of artifacts generated during the build.
-    """
-
-    build_id: UUID = Field(default_factory=uuid4, frozen=True)
-    """
-    A unique identifier for this build context.
-    """
-
-    current_stage: Optional[int] = None
-    """
-    The current stage of the build as index for build_configuration.stages.
-    """
-
-    state: BuildState = "starting"
-    """
-    The current state of the build.
-    """
-
-    stage_results: list[_BuildContextStageResult | None] = []
-    """
-    A list of results for each stage of the build.
-    """
+    @field_validator("build_dir")
+    @classmethod
+    def _absolute_build_dir(cls, value: str) -> str:
+        return os.path.abspath(value)
 
     @property
     def is_active(self) -> bool:
@@ -105,7 +82,7 @@ class BuildContext(BaseModel):
         else:
             result = self.stage_results[self.current_stage]
             should_rerun = result is None or result.result in ("failed", "cancelled")
-            index = self.current_stage + should_rerun
+            index = self.current_stage if should_rerun else self.current_stage + 1
 
         return index if index < len(self.build_configuration.stages) else None
 
@@ -169,7 +146,6 @@ class BuildContext(BaseModel):
             final_path=final_path,
             kind=kind,
             origin=origin,
-            creation_time=datetime.now().astimezone(),
         )
         self.artifacts.append(artifact)
         return artifact

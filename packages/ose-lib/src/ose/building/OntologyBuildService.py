@@ -13,7 +13,6 @@ class OntologyBuildService(ABC):
         outfile: str,
         iri: str,
         main_ontology_name: str,
-        tmp_dir: str,
         renamings: List[
             Tuple[str, str, Literal["class", "object property", "data_property"]]
         ],
@@ -21,6 +20,7 @@ class OntologyBuildService(ABC):
             Tuple[str, str, Literal["class", "object property", "data_property"]]
         ],
     ) -> Result[Any]:
+        """Builds the external ontology `outfile` from the terms imported from other ontologies"""
         ...
 
     @abstractmethod
@@ -29,8 +29,15 @@ class OntologyBuildService(ABC):
                        outfile: str,
                        prefixes: Optional[Dict[str, str]],
                        dependency_iris: Optional[List[str]],
-                       tmp_dir: str,
+                       local_ontologies: Dict[str, str],
                        iri_prefix: str) -> Result[Any]:
+        """
+        Builds `outfile` from `ontology`.
+
+        :param dependency_iris: IRIs of the ontologies that `ontology` imports. Each must be in `local_ontologies`.
+        :param local_ontologies: IRIs of the ontologies of the build mapped to their local files. Imports of these IRIs,
+            also by the dependencies, are resolved to the files instead of the published versions.
+        """
         ...
 
     @abstractmethod
