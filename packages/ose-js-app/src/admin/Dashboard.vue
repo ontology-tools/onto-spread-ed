@@ -4,6 +4,7 @@ import {promptDialog} from "../common/bootbox";
 import {BToast, useToastController} from "bootstrap-vue-next";
 import {api, useMe} from "../api";
 import {layout} from "../state";
+import {pluginTypeLabel, type PluginInfo} from "../common/plugins";
 
 const {me, ready} = useMe()
 
@@ -118,10 +119,20 @@ const scripts = ref<null | {
   }
 }>(null)
 
+const plugins = ref<PluginInfo[] | null>(null)
+const pluginsError = ref<string | null>(null)
+
 onMounted(async () => {
   layout.breadcrumb = [{name: "Admin"}]
   try {
     await ready
+    if (can("admin")) {
+      try {
+        plugins.value = await api<PluginInfo[]>("/api/plugins/")
+      } catch (error) {
+        pluginsError.value = error instanceof Error ? error.message : String(error)
+      }
+    }
     if (can("scripts")) scripts.value = (await api("/api/scripts/")).result
   } catch (e) {
     console.debug("Scripts not available", e)
@@ -212,6 +223,29 @@ onMounted(async () => {
     </div>
 
   </div>
+
+  <section v-if="can('admin')" class="mt-4" aria-labelledby="loaded-plugins-heading">
+    <h2 id="loaded-plugins-heading">Loaded plugins</h2>
+    <p v-if="pluginsError" class="alert alert-danger" role="alert">Could not load plugins: {{ pluginsError }}</p>
+    <p v-else-if="plugins === null" role="status">Loading plugins…</p>
+    <p v-else-if="plugins.length === 0">No plugins are loaded.</p>
+    <div v-else class="table-responsive">
+      <table class="table table-striped align-middle">
+        <caption>Each row represents a loaded extension. A package can provide several extension types.</caption>
+        <thead>
+          <tr><th scope="col">Plugin</th><th scope="col">Type</th><th scope="col">Distribution</th><th scope="col">Version</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="plugin in plugins" :key="`${plugin.type}:${plugin.id}`">
+            <th scope="row">{{ plugin.id }}</th>
+            <td>{{ pluginTypeLabel(plugin.type) }}</td>
+            <td>{{ plugin.distribution ?? 'Unknown' }}</td>
+            <td>{{ plugin.version ?? 'Unknown' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
 </template>
 

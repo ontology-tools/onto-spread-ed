@@ -14,11 +14,11 @@ dependencies = [
     "scipy>=1.17.0",
 ]
 
-[project.entry-points.'ose.plugins']
-hierarchical_spreadsheets = "ose_plugin_hierarchical_spreadsheets:HierarchicalSpreadsheetsPlugin"
+[project.entry-points.'ose.build_stages']
+hierarchical_spreadsheets = "ose_plugin_hierarchical_spreadsheets.stages"
 
 [tool.uv.sources]
-ose-core = { workspace = true }
+ose-lib = { workspace = true }
 
 [tool.setuptools.packages.find]
 where = ["src"]

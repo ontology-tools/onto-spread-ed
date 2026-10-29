@@ -4,8 +4,8 @@ from typing import Literal, Dict, Tuple
 from aiohttp import ClientSession
 
 from ose_plugin_hbcp.search_api.APIClient import APIClient
-from ose.model.Term import Term
-from ose.model.TermIdentifier import TermIdentifier
+from ose.schema.Term import Term
+from ose.schema import TermIdentifierBase as TermIdentifier, termid
 
 
 class BCIOSearchClient(APIClient):
@@ -15,17 +15,17 @@ class BCIOSearchClient(APIClient):
     _term_link_to_relation_mapping: Dict[
         str, Tuple[TermIdentifier, Literal["single", "multiple", "multiple-per-line"]]
     ] = {
-        "synonyms": (TermIdentifier(id="IAO:0000118", label="alternative label"), "multiple"),
-        "definition": (TermIdentifier(id="IAO:0000115", label="definition"), "single"),
-        "informalDefinition": (TermIdentifier(label="informalDefinition"), "single"),
-        "lowerLevelOntology": (TermIdentifier(label="lowerLevelOntology"), "multiple"),
-        "curatorNote": (TermIdentifier(id="IAO:0000232", label="curator note"), "single"),
-        "curationStatus": (TermIdentifier(id="IAO:0000114", label="has curation status"), "single"),
-        "comment": (TermIdentifier(id="rdfs:comment", label="rdfs:comment"), "single"),
-        "examples": (TermIdentifier(id="IAO:0000112", label="example of usage"), "multiple-per-line"),
-        "fuzzySet": (TermIdentifier(label="fuzzySet"), "single"),
-        "fuzzyExplanation": (TermIdentifier(label="fuzzyExplanation"), "single"),
-        "crossReferences": (TermIdentifier(id="oboInOwl:hasDbXref", label="database_cross_reference"), "multiple"),
+        "synonyms": (termid(id="IAO:0000118", label="alternative label"), "multiple"),
+        "definition": (termid(id="IAO:0000115", label="definition"), "single"),
+        "informalDefinition": (termid(label="informalDefinition"), "single"),
+        "lowerLevelOntology": (termid(label="lowerLevelOntology"), "multiple"),
+        "curatorNote": (termid(id="IAO:0000232", label="curator note"), "single"),
+        "curationStatus": (termid(id="IAO:0000114", label="has curation status"), "single"),
+        "comment": (termid(id="rdfs:comment", label="rdfs:comment"), "single"),
+        "examples": (termid(id="IAO:0000112", label="example of usage"), "multiple-per-line"),
+        "fuzzySet": (termid(label="fuzzySet"), "single"),
+        "fuzzyExplanation": (termid(label="fuzzyExplanation"), "single"),
+        "crossReferences": (termid(id="oboInOwl:hasDbXref", label="database_cross_reference"), "multiple"),
     }
 
     def convert_to_api_term(self, term: Term, with_references=True) -> Dict:

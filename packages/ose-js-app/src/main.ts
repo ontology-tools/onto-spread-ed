@@ -10,6 +10,7 @@ import "./main.scss";
 
 import App from "./App.vue";
 import {router} from "./router";
+import {loadPlugins} from "./plugins";
 
 // Expose Vue and @ontospreaded/js-core globally for dynamically loaded plugin components
 (window as any).Vue = Vue;
@@ -28,4 +29,4 @@ app.use(router);
 
 app.config.globalProperties.$filters = $filters;
 
-app.mount("#app");
+void loadPlugins().then(() => app.mount("#app"));

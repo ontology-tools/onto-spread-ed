@@ -1,27 +1,20 @@
 <script setup lang="ts">
 
-import { type Release, ProgressIndicator } from "@ontospreaded/js-core";
+import { type StageViewProps, type ReleaseControlEmit, ProgressIndicator } from "@ontospreaded/js-core";
 
-defineProps<{
-  data: any,
-  release: Release,
-  selectedSubStep: string | null
-}>()
+defineProps<StageViewProps>()
 
-
-defineEmits<{
-  (e: 'release-control', type: string, ...args: any[]): void
-}>()
+defineEmits<ReleaseControlEmit>()
 </script>
 
 <template>
   <h3>Publishing the release</h3>
-  <template v-if="release.state === 'waiting-for-user' && data?.errors?.length > 0">
+  <template v-if="(release.state === 'errored' || release.state === 'paused') && data?.errors?.length">
     <div class="alert alert-danger">
       <h4>Errors occurred while publishing to BCIOSearch</h4>
       <p>Some API calls failed. Please review the errors below.</p>
     </div>
-    <div v-for="error in data.errors" class="alert alert-danger">
+    <div v-for="error in data?.errors" class="alert alert-danger">
       <template v-if="error.type === 'http-error'">
         <h6 v-if="error.term">Term: {{ error.term }}</h6>
         <p class="mb-1"><strong>HTTP {{ error.status_code }}:</strong> {{ error.response?.['hydra:title'] ?? 'Request failed' }}</p>
@@ -36,7 +29,7 @@ defineEmits<{
     </div>
   </template>
 
-  <ProgressIndicator v-else :details="data" :release="release" stepName="BCIO_SEARCH" >
+  <ProgressIndicator v-else :details="data ?? undefined" :release="release" stepName="BCIO_SEARCH" >
     <p>
       The ontologies are being published to BCIOSearch. This will take a while.<br>
     </p>

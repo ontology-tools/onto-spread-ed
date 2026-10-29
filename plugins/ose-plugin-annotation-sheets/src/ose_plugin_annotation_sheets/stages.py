@@ -1,18 +1,15 @@
 import re
-from typing import Dict, Optional
 
 import networkx as nx
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
-from flask_github import GitHub
-from flask_sqlalchemy import SQLAlchemy
+from ose.building.stages import BuildStage
+from ose.building.Progress import ProgressManager
+from ose.ontology.hierarchy import build_hierarchy
+from ose.result import Success
+from ose.utils.asyncio import check_cancelled
 
-from ose.release.ReleaseStep import ReleaseStep
-from ose.release.hierarchy import build_hierarchy
-from ose.model.ReleaseScript import ReleaseScript
-from ose.model.Result import Result
-from ose.services.ConfigurationService import ConfigurationService
 
 # Default color palette (cycled when no explicit color is provided)
 _DEFAULT_PALETTE = [
@@ -45,33 +42,17 @@ def _color_shades(base_hex: str) -> tuple[str, str, str]:
     return base_hex.upper(), blend(0.30), blend(0.55)
 
 
-class GenerateAnnotationSheetsReleaseStep(ReleaseStep):
-    def __init__(
-        self,
-        db: SQLAlchemy,
-        gh: GitHub,
-        release_script: ReleaseScript,
-        release_id: int,
-        tmp: str,
-        config: ConfigurationService,
-        *,
-        included_files: list[str],
-        intro_sheet: Optional[str] = None,
-        sheets: Optional[Dict[str, dict]] = None,
-        arms: Optional[list[str]] = None,
-        annotation_columns: Optional[list[str]] = None,
-        article_header: str = "Article 1 (citation)",
-        output_filename: Optional[str] = None,
-    ) -> None:
-        super().__init__(db, gh, release_script, release_id, tmp, config)
-
-        self._included_files = included_files
-        self._intro_sheet = intro_sheet
-        self._sheets_config = sheets or {}
-        self._arms = arms or []
-        self._annotation_columns = annotation_columns or []
-        self._article_header = article_header
-        self._output_filename = output_filename
+class GenerateAnnotationSheetsStage(BuildStage):
+    def __init__(self, step_config, context):
+        super().__init__(step_config, context)
+        args = self.config.args
+        self._included_files = args["included_files"]
+        self._intro_sheet = args.get("intro_sheet")
+        self._sheets_config = args.get("sheets") or {}
+        self._arms = args.get("arms") or []
+        self._annotation_columns = args.get("annotation_columns") or []
+        self._article_header = args.get("article_header", "Article 1 (citation)")
+        self._output_filename = args.get("output_filename")
 
     @classmethod
     def name(cls) -> str:
@@ -87,7 +68,7 @@ class GenerateAnnotationSheetsReleaseStep(ReleaseStep):
         if cfg and cfg.get("name"):
             return cfg["name"]
         # Strip repo prefix, title-case, replace underscores
-        short = self._release_script.short_repository_name.lower()
+        short = self.project.short_repository_name.lower()
         display = re.sub(rf"^{re.escape(short)}[_]?", "", file_key, flags=re.IGNORECASE)
         return display.replace("_", " ").strip().title()
 
@@ -106,15 +87,13 @@ class GenerateAnnotationSheetsReleaseStep(ReleaseStep):
     # Workbook generation
     # ------------------------------------------------------------------
 
-    def run(self) -> bool:
-        result = Result(())
+    async def run(self, on_progress_update=None):
 
-        files = [(k, f) for k, f in self._release_script.files.items() if k in self._included_files]
-        self._total_items = len(files)
+        files = [(k, f) for k, f in self.project.files.items() if k in self._included_files]
+        progress = ProgressManager(on_progress_update, len(files))
 
         if self._intro_sheet:
             # Download and use the intro spreadsheet as the base workbook (keeps its first sheet intact)
-            self._download(self._intro_sheet)
             wb = openpyxl.load_workbook(self._local_name(self._intro_sheet))
             # Remove all sheets except the first
             for sheet_name in wb.sheetnames[1:]:
@@ -126,9 +105,10 @@ class GenerateAnnotationSheetsReleaseStep(ReleaseStep):
                 wb.remove(default_sheet)
 
         for idx, (file_key, file) in enumerate(files):
-            self._next_item(item=file.target.file, message="Generating annotation sheet for")
+            await check_cancelled()
+            progress.next_item(item=file.target.file, message="Generating annotation sheet for")
 
-            G, ontology = build_hierarchy(file, self._artifacts(), self._local_name, self._repo_config.prefixes)
+            G, ontology = build_hierarchy(file, self.context.artifacts, self._local_name, self.project.prefixes)
             sheet_name = self._sheet_display_name(file_key)
             # Excel sheet names are limited to 31 characters
             sheet_name = sheet_name[:31]
@@ -137,7 +117,7 @@ class GenerateAnnotationSheetsReleaseStep(ReleaseStep):
             self._populate_sheet(ws, G, ontology, sheet_name, base_color)
 
         # Save
-        short = self._release_script.short_repository_name
+        short = self.project.short_repository_name
         if self._output_filename:
             file_name = self._output_filename
         else:
@@ -145,10 +125,9 @@ class GenerateAnnotationSheetsReleaseStep(ReleaseStep):
 
         local_path = self._local_name(file_name)
         wb.save(local_path)
-        self._store_artifact(local_path, file_name)
+        self.context.add_final_artifact(local_path, self.name(), file_name)
 
-        self._set_release_result(result)
-        return result.ok()
+        return Success(())
 
     def _populate_sheet(
         self,

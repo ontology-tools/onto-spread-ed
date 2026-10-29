@@ -1,23 +1,13 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch, shallowRef, markRaw, type Component, h } from "vue";
+import { computed, onBeforeUnmount, ref, watch, h } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { BuildConfiguration, BuildStep, Diagnostic, Release, currentStage, releaseStages, stageDetails } from "@ontospreaded/js-core";
+import { BuildConfiguration, BuildStep, Diagnostic, Release, currentStage, releaseStages, stageDetails, registry } from "@ontospreaded/js-core";
 import Setup from "./Setup.vue";
-import Validation from "./steps/Validation.vue";
-import HumanVerification from "./steps/HumanVerification.vue";
-import GithubPublish from "./steps/GithubPublish.vue";
 import Generic from "./steps/Generic.vue";
 import { BToast, useToastController } from "bootstrap-vue-next";
 import RepositorySelector from "./RepositorySelector.vue";
-import { api, prefix } from "../api";
+import { api } from "../api";
 import { layout } from "../state";
-
-interface PluginInfo {
-  id: string;
-  components: { step_name: string; component_name: string }[];
-  has_static: boolean;
-  js_module: string | null;
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -36,49 +26,9 @@ const selected_sub_step = ref<string | null>(null)
 
 const { show: showToast } = useToastController();
 
-const builtInSteps: { [k: string]: Component } = {
-  "VALIDATION": Validation,
-  "HUMAN_VERIFICATION": HumanVerification,
-  "GITHUB_PUBLISH": GithubPublish,
-}
-
-const pluginSteps = shallowRef<{ [k: string]: Component }>({})
-
-const _steps = computed(() => ({
-  ...builtInSteps,
-  ...pluginSteps.value
-}))
-
-async function loadPlugins() {
-  try {
-    const plugins = await api<PluginInfo[]>("/api/plugins/");
-    const newPluginSteps: { [k: string]: Component } = {};
-
-    for (const plugin of plugins) {
-      if (!plugin.has_static || !plugin.js_module || plugin.components.length === 0) continue;
-
-      for (const comp of plugin.components) {
-        const pluginId = plugin.id;
-        const jsModule = plugin.js_module;
-        const componentName = comp.component_name;
-
-        newPluginSteps[comp.step_name] = markRaw(defineAsyncComponent(async () => {
-          const moduleUrl = `${prefix}/api/plugins/${pluginId}/static/${jsModule}`;
-          const module = await import(/* @vite-ignore */ moduleUrl);
-          return module[componentName] || module.default;
-        }));
-      }
-    }
-
-    pluginSteps.value = newPluginSteps;
-  } catch (e) {
-    console.error("Failed to load plugins:", e);
-  }
-}
-
 const shownStep = computed(() => selected_step.value ?? currentStage(release.value))
 const currentStep = computed<BuildStep | null>(() => releaseStages(release.value)[shownStep.value] ?? null)
-const stepComponent = computed(() => (currentStep.value ? _steps.value[currentStep.value.name] : undefined) ?? Generic)
+const stepComponent = computed(() => (currentStep.value ? registry.stageView(currentStep.value.name) : undefined) ?? Generic)
 
 const stepProps = computed(() => {
   const possibleProps = {
@@ -236,7 +186,6 @@ watch(chosenRepo, (value) => {
   if (value) router.push(`/admin/release/${value}`)
 })
 
-loadPlugins()
 
 watch(release, (value) => {
   if (value !== null && pollInterval === null && !['completed', 'cancelled'].includes(value.state)) {

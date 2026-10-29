@@ -35,18 +35,18 @@ A Python-based web platform for collaborative editing of OWL ontologies through 
 
 ## 🛠️ Technology Stack
 
-- **Backend**: Python 3.8+ with Flask framework
+- **Backend**: Python 3.13+ with Flask framework
 - **Frontend**: Single-page app in Vue 3 with TypeScript, vue-router and Bootstrap (served by Flask, which only provides a JSON API)
 - **Database**: SQLAlchemy with SQLite/PostgreSQL support
 - **Search**: Whoosh full-text search engine
 - **Ontology Processing**: py-horned-owl for OWL parsing and manipulation
-- **File Processing**: pandas and openpyxl for Excel file handling
+- **File Processing**: openpyxl for Excel file handling
 - **Authentication**: GitHub OAuth integration
 
 ## 📋 Prerequisites
 
-- Python 3.8 or higher
-- Node.js 16+ and npm (for frontend build)
+- Python 3.13 or higher
+- Node.js 20.19+ and npm (for frontend build; required by Vite 7)
 - GitHub OAuth application (for authentication)
 - Git (for repository integration)
 
@@ -103,8 +103,10 @@ Edit  `config.yaml` file in the project root. You can control the following para
 | `OSE_GITHUB_CLIENT_ID` | Client id of the GitHub OAuth app| | |
 | `OSE_GITHUB_CLIENT_SECRET` | Client secret of the GitHub OAuth app | | |
 | `OSE_INDEX_PATH` | Path to store the search index at | `ose_index` | |
-| `OSE_URL_PREFIX` | URL prefix the app is served under | `/` | |
+| `OSE_URL_PREFIX` | URL prefix the app is served under, e.g. `/onto-ed` (a trailing slash is removed) | empty (served at the root) | |
 | `ROBOT` | Path to [`robot`](https://robot.obolibrary.org) | looks for robot in `$PATH` | |
+| `OSE_ROBOT_CACHE_DIR` | Directory for downloaded and extracted ontologies | `$XDG_CACHE_HOME/ontospreaded` or `~/.cache/ontospreaded` | |
+| `OSE_ROBOT_CACHE_MAX_AGE` | Download cache lifetime in seconds; refreshed content invalidates extracted ontologies | `86400` | `0` refreshes every build |
 
 
 ### 6. Repository Configuration
@@ -143,15 +145,21 @@ For development:
 make dev
 ```
 
-This starts the vite dev server (`npm run dev`, port 5173) and Flask on port 5000 (`make dev-python`); the two can also be run in separate terminals.
+This starts the vite dev server (`npm run dev`, port 5173), Flask on port 5000 (`make dev-python`) and the release runner (`make dev-release-runner`); they can also be run in separate terminals.
+`npm run dev` builds `ose-js-core` and generates the plugin shims first, so it also works on a fresh clone (after `make install`).
 Open the application at **`http://localhost:5173`** (use `localhost`, not `127.0.0.1`). Vite injects the runtime configuration (`OSE_CONFIG`, importmap)
-and proxies `/api`, `/login`, `/logout`, `/github-callback`, `/user`, `/status` and `/static` to Flask.
+and proxies `/api`, `/login`, `/logout`, `/github-callback`, `/status` and `/static` to Flask.
 For GitHub login the OAuth app's callback URL may stay pointed at Flask directly (e.g. `http://localhost:5000/github-callback`, or your `FLASK_PORT`): the session cookie is shared across ports on `localhost`
 and the login `next` URL points back to :5173.
 
 To run Flask only: `flask --app ose_app:create_app run --debug`.
 
 For production deployment, use a WSGI server like Gunicorn or uwsgi.
+
+Releases are executed by the release runner, a separate process: `flask --app ose_app:create_app release-runner`.
+Run exactly one per database, next to the web server. It runs at most `RELEASE_MAX_PARALLEL` (default 2) releases of
+different repositories at once and stops them on `SIGTERM`; releases that were running are marked as interrupted and can
+be rerun. With uwsgi, let it supervise the runner (see `attach-daemon2` below); with Gunicorn, add a systemd service for it.
 
 ### Custom Ontology Repositories
 
@@ -201,7 +209,7 @@ build_configurations: # Stages of the builds, e.g. of a release
           - name: GITHUB_PUBLISH
 ```
 
-The project file can be edited from the release UI. See the `Project` class of `ose-lib` (`packages/ose-lib/src/ose/project.py`) for details.
+The project file can be edited in the settings of the admin area (Admin → Settings), which commit the changes to the repository. See the `Project` class of `ose-lib` (`packages/ose-lib/src/ose/project.py`) for details.
 
 
 ## 🔧 Advanced Configuration
@@ -231,6 +239,9 @@ die-on-term = true
 
 req-logger = file:/var/log/ose.req.log
 logger = file:/var/log/ose.log
+
+# The release runner, started, stopped and restarted with uwsgi
+attach-daemon2 = cmd=venv/bin/flask --app app:app release-runner,stopsignal=15,reloadsignal=15
 ```
 
 #### Example systemd service files

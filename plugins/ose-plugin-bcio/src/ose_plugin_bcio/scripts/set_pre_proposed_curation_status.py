@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from typing import Annotated, Union
 
@@ -7,13 +8,14 @@ from flask_github import GitHub
 from openpyxl.styles import PatternFill
 import pyhornedowl
 
-from ose.model.Script import Script
-import ose.utils.github as github
+from ose_app.model.Script import Script
+import ose_app.utils.github as github
 from ose import constants
-from ose.model.ExcelOntology import ExcelOntology
-from ose.model.Term import UnresolvedTerm, Term
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils import get_spreadsheets, str_empty
+from ose.ontology.ExcelOntology import ExcelOntology
+from ose.schema.Term import UnresolvedTerm, Term
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.utils.github import get_spreadsheets
+from ose.utils import str_empty
 
 
 def is_incomplete(term: Union[UnresolvedTerm, Term]):
@@ -40,17 +42,18 @@ class SetPreProposedCurationStatusScript(Script):
         
         assert repository is not None, f"Repository configuration for '{repo}' not found."
         
-        full_repo = repository.full_name
+        full_repo = repository.full_repository_name
         branch = repository.main_branch
-        active_sheets = repository.indexed_files
-        regex = "|".join(f"({r})" for r in active_sheets)
+        active_sheets = [source.file for file in repository.files.values() for source in file.sources
+                         if source.type in ("classes", "relations")]
+        regex = "|".join(f"({re.escape(r)})" for r in active_sheets) or r"(?!)"
 
         externals_owl = "addicto_external.owl"
         externals_content = github.get_file(self.gh, full_repo, externals_owl).decode()
 
         external_ontology = ExcelOntology(externals_owl)
         ontology = pyhornedowl.open_ontology(externals_content, "rdf")
-        for [p, d] in repository.prefixes:
+        for p, d in repository.prefixes.items():
             ontology.prefix_mapping.add_prefix(p, d)
 
         for c in ontology.get_classes():

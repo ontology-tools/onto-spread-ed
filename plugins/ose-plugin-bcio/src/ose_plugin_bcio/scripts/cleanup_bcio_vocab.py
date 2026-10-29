@@ -1,3 +1,4 @@
+import re
 import base64
 import io
 import json
@@ -6,12 +7,12 @@ import aiohttp
 from flask_github import GitHub
 from injector import inject
 
-from ose.model.ExcelOntology import ExcelOntology
-from ose.model.Script import Script
-from ose.model.TermIdentifier import TermIdentifier
+from ose.ontology.ExcelOntology import ExcelOntology
+from ose_app.model.Script import Script
+from ose.schema import termid
 from ..BCIOSearchService import BCIOSearchService
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils import get_spreadsheets, get_spreadsheet
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.utils.github import get_spreadsheets, get_spreadsheet
 
 
 class CleanUpBCIOVocabScript(Script):
@@ -36,20 +37,21 @@ class CleanUpBCIOVocabScript(Script):
 
         # get all BCIO Vocab terms
         async with aiohttp.ClientSession() as session:
-            service = BCIOSearchService(self.config, session)
+            service = BCIOSearchService(repo.prefixes, session)
             bcio_terms = await service.get_all_terms()
 
         bcio_vocab_by_id = dict([(t.id.strip(), t) for t in bcio_terms if t.id is not None])
 
         # get all BCIO excel terms
         branch = repo.main_branch
-        active_sheets = repo.indexed_files
-        regex = "|".join(f"({r})" for r in active_sheets)
+        active_sheets = [source.file for file in repo.files.values() for source in file.sources
+                         if source.type in ("classes", "relations")]
+        regex = "|".join(f"({re.escape(r)})" for r in active_sheets) or r"(?!)"
 
-        excel_files = get_spreadsheets(self.gh, repo.full_name, branch, include_pattern=regex)
+        excel_files = get_spreadsheets(self.gh, repo.full_repository_name, branch, include_pattern=regex)
 
         for file in excel_files:
-            _, data, _ = get_spreadsheet(self.gh, repo.full_name, file)
+            _, data, _ = get_spreadsheet(self.gh, repo.full_repository_name, file)
 
             for entity in data:
                 term_id = entity.get("ID", "").strip()
@@ -59,7 +61,7 @@ class CleanUpBCIOVocabScript(Script):
         exclude = set()
         for k, v in bcio_vocab_by_id.items():
             # Population is expanded
-            if v.get_relation_value(TermIdentifier(id=None, label="lowerLevelOntology")) == "population":
+            if v.get_relation_value(termid(id=None, label="lowerLevelOntology")) == "population":
                 exclude.add(k)
 
             if v.curation_status() == "external":

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Annotated, Dict
 
@@ -5,15 +6,16 @@ from flask_github import GitHub
 from injector import inject
 import pyhornedowl
 
-from ose.model.Script import Script
-import ose.utils.github as github
+from ose_app.model.Script import Script
+import ose_app.utils.github as github
 from ose import constants
-from ose.model.ExcelOntology import ExcelOntology, OntologyImport
-from ose.model.Term import Term
-from ose.model.TermIdentifier import TermIdentifier
+from ose.ontology.ExcelOntology import ExcelOntology, OntologyImport
+from ose.schema.Term import Term
+from ose.schema import termid
 # from ose.routes.api.external import update_imports
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils import get_spreadsheets, lower
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.utils.github import get_spreadsheets
+from ose.utils import lower
 
 
 class ImportMissingExternalsScript(Script):
@@ -36,10 +38,11 @@ class ImportMissingExternalsScript(Script):
 
         assert repository is not None, f"Repository configuration for '{repo}' not found."
 
-        full_repo = repository.full_name
+        full_repo = repository.full_repository_name
         branch = repository.main_branch
-        active_sheets = repository.indexed_files
-        regex = "|".join(f"({r})" for r in active_sheets)
+        active_sheets = [source.file for file in repository.files.values() for source in file.sources
+                         if source.type in ("classes", "relations")]
+        regex = "|".join(f"({re.escape(r)})" for r in active_sheets) or r"(?!)"
 
         externals_owl = "addicto_external.owl"
         externals_content = github.get_file(self.gh, full_repo, externals_owl).decode()
@@ -88,7 +91,7 @@ class ImportMissingExternalsScript(Script):
                         OntologyImport(
                             id=pref,
                             iri=f"http://purl.obolibrary.org/obo/{pref.lower()}.owl",
-                            root_id=TermIdentifier("BFO:0000001", "entity"),
+                            root_id=termid(id="BFO:0000001", label="entity"),
                             intermediates="all",
                             prefixes=[],
                             imported_terms=[],

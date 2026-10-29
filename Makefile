@@ -4,7 +4,7 @@
 
 .PHONY: all build build-js build-python build-plugins \
         install install-js install-python \
-        dev dev-js dev-python \
+        dev dev-js dev-python dev-release-runner \
         clean clean-js clean-python \
         test test-python lint \
         help
@@ -61,10 +61,10 @@ build: build-js build-python
 ## Root `npm run build`: js-core -> shims -> js-app (CSS is bundled by vite), then plugins
 build-js:
 	npm run build
-	@for plugin in $(JS_PLUGINS); do \
+	@set -e; for plugin in $(JS_PLUGINS); do \
 		pkg_name=$$(node -p "require('./$$plugin/package.json').name"); \
 		echo "Building JS plugin: $$pkg_name"; \
-		npm -w "$$pkg_name" run build || true; \
+		npm -w "$$pkg_name" run build; \
 	done
 
 ## Build Python packages
@@ -78,10 +78,10 @@ build-python: build-js
 # Development (watch mode)
 # ============================================================================
 
-## Start development mode: vite serve on :5173 (proxies to Flask on :5000) plus Flask
+## Start development mode: vite serve on :5173 (proxies to Flask on :5000), Flask and the release runner
 dev:
 	@echo ">>> Open http://localhost:5173 (vite dev server, proxies the API to Flask on :5000)"
-	$(MAKE) -j2 dev-js dev-python
+	$(MAKE) -j3 dev-js dev-python dev-release-runner
 
 ## Run the vite dev server on :5173 (generates the shims first)
 dev-js:
@@ -90,6 +90,10 @@ dev-js:
 ## Run the Flask development server
 dev-python:
 	uv run flask --app ose_app:create_app run --debug --port 5000
+
+## Run the release runner, which executes the releases started in the web app
+dev-release-runner:
+	uv run flask --app ose_app:create_app release-runner
 
 # ============================================================================
 # Database
@@ -174,7 +178,7 @@ build-prod: clean build
 	find dist -mindepth 1 -and -name "ose*" -and -not \(\
 		-name "ose_app*" \
 		-o -name "ose_cli*" \
-		-o -name "ose_core*" \
+		-o -name "ose_lib*" \
 		-o -name "ose_plugin_hierarchical_spreadsheets*" \
 		-o -name "ose_plugin_annotation_sheets*" \
 	\) -exec rm -rf {} + 

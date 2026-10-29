@@ -7,15 +7,15 @@ name = "ose-plugin-annotation-sheets"
 version = "1.4.2"
 description = "OntoSpreadEd plugin for generating annotation sheet templates"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "networkx>=3.6.1",
     "openpyxl>=3.1.0",
     "ose-lib==1.4.2",
 ]
 
-[project.entry-points.'ose.plugins']
-annotation_sheets = "ose_plugin_annotation_sheets:AnnotationSheetsPlugin"
+[project.entry-points.'ose.build_stages']
+annotation_sheets = "ose_plugin_annotation_sheets.stages"
 
 [tool.uv.sources]
 ose-lib = { workspace = true }

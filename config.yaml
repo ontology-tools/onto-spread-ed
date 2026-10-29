@@ -19,7 +19,7 @@ enable-plugins: true
 
 # Repositories
 repositories:
-  # Where to look for repository configration. Possible values: 'repository' or 'local'
+  # The repository configuration is read from the ontology repositories on GitHub
   source: 'repository'
   data:
     # Whether the loaded repositories can be changed through the admin interface

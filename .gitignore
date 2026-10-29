@@ -24,3 +24,6 @@ ssl/
 
 .env
 packages/ose-app/src/ose_app/static/app/
+
+# Local clones of the loaded repositories (REPOSITORIES_REPOSITORY_CONFIG_LOCAL_DIR)
+repositories/

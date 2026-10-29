@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "openpyxl",
+    "networkx>=3.6.1",
     "py-horned-owl>=2",
     "pydantic>=2.13.5",
     "typing-extensions",

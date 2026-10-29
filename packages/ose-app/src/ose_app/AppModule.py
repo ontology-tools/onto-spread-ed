@@ -62,7 +62,7 @@ class AppModule(Module):
         
     @provider
     @singleton
-    def plugin_service(self, config: ConfigurationService, injector: Injector) -> PluginService:
-        plugin_service = PluginService(config, injector)
-        plugin_service.load_plugins()
+    def plugin_service(self, injector: Injector) -> PluginService:
+        plugin_service = PluginService(injector)
+        plugin_service.discover_all()
         return plugin_service

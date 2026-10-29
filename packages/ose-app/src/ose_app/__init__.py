@@ -16,6 +16,7 @@ except PackageNotFoundError:
 import json
 import logging
 from os import path
+import os
 
 import yaml
 from flask import Flask, session, g
@@ -66,11 +67,24 @@ def load_config(app: Flask, config_filename):
 
             config_obj = {**config_obj, **repository_obj}
 
+            if "PLUGINS" in config_obj:
+                config_obj["PLUGINS"] = {
+                    plugin.replace("-", "_").upper(): {
+                        setting.replace("-", "_").upper(): value for setting, value in settings.items()
+                    }
+                    for plugin, settings in config_obj["PLUGINS"].items()
+                }
             app.config.from_mapping(config_obj)
 
     # load from env
     app.config.from_prefixed_env()
     app.config.from_prefixed_env("OSE")
+
+    # Share YAML/JSON plugin settings with stages running outside Flask.
+    for plugin, settings in app.config.get("PLUGINS", {}).items():
+        for setting, value in settings.items():
+            key = f"OSE_PLUGINS__{plugin.upper()}__{setting.upper()}"
+            os.environ[key] = str(value)
 
     # add aliases
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config.get("DATABASE_URI")

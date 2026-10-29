@@ -13,11 +13,14 @@ dependencies = [
     "ose-plugin-hbcp==1.4.2",
 ]
 
-[project.entry-points.'ose.plugins']
-addicto = "ose_plugin_addicto:AddictOPlugin"
+[project.entry-points.'ose.build_stages']
+addicto = "ose_plugin_addicto.stages"
+
+[project.entry-points.'ose.web_plugins']
+"org.bssofoundry.addicto" = "ose_plugin_addicto.web:WEB_PLUGIN"
 
 [tool.uv.sources]
-ose-core = { workspace = true }
+ose-lib = { workspace = true }
 ose-plugin-hbcp = { workspace = true }
 
 [tool.setuptools.packages.find]

@@ -1,113 +1,119 @@
+import inspect
 import logging
-import importlib.resources
-from importlib.metadata import entry_points
+from dataclasses import asdict, dataclass
+from importlib import import_module
+from importlib.metadata import EntryPoint, entry_points
 from pathlib import Path
+from types import ModuleType
 
 from injector import Injector
-from ose_app.model.Script import Script
-from ose_app.services.ConfigurationService import ConfigurationService
-from ose_app.model.Plugin import Plugin, PluginComponent
+from flask import url_for
 
-PLUGIN_ENTRY_POINT_GROUP = "ose.plugins"
+from ose.building.stages import BuildStage
+from ose_app.model import WebPlugin
+from ose_app.model.Script import Script
+
+
+@dataclass(frozen=True)
+class _PluginInfo:
+    id: str
+    type: str
+    distribution: str | None
+    version: str | None
+
+    @classmethod
+    def from_entry_point(cls, ep: EntryPoint, group: str) -> "_PluginInfo":
+        return cls(
+            id=ep.name,
+            type=group,
+            distribution=ep.dist.metadata["Name"] if ep.dist else None,
+            version=ep.dist.version if ep.dist else None,
+        )
+
+
+@dataclass(frozen=True)
+class _DiscoveredWebPlugin:
+    plugin: WebPlugin
+    static_path: Path
 
 
 class PluginService:
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, config: ConfigurationService, injector: Injector):
-        self._plugins: list[Plugin] = []
-        self._plugin_packages: dict[str, str] = {}  # plugin_id -> package_name
-        self._config = config
+    def __init__(self, injector: Injector):
         self._injector = injector
+        self._scripts: list[type[Script]] = []
+        self._web_plugins: dict[str, _DiscoveredWebPlugin] = {}
+        self._plugin_info: dict[str, list[_PluginInfo]] = {}
 
-    @property
-    def plugins(self) -> list[Plugin]:
-        return self._plugins
+    def discover_all(self) -> None:
+        self.discover_build_stages()
+        self.discover_scripts()
+        self.discover_web_plugins()
 
-    def get_scripts(self) -> list[Script]:
-        return [self._injector.create_object(c) for plugin in self._plugins for c in plugin.contents if issubclass(c, Script)]
+    def _discover_classes[T](self, group: str, base: type[T]) -> list[type[T]]:
+        classes = []
+        self._plugin_info[group] = []
+        for ep in sorted(entry_points(group=group), key=lambda ep: ep.name):
+            try:
+                module = ep.load()
+                if not isinstance(module, ModuleType):
+                    raise TypeError("Expected a module")
+                discovered = [
+                    cls for _, cls in inspect.getmembers(module, inspect.isclass)
+                    if issubclass(cls, base) and not inspect.isabstract(cls)
+                ]
+                classes.extend(discovered)
+                self._plugin_info[group].append(_PluginInfo.from_entry_point(ep, group))
+            except Exception:
+                self._logger.exception("Failed to load '%s' from %s", ep.name, group)
+        return classes
 
-    def get_plugin_components(self) -> dict[str, tuple[Plugin, PluginComponent]]:
-        """Get all plugin components mapped by their step name."""
-        return {
-            comp.step_name: (plugin, comp)
-            for plugin in self._plugins
-            for comp in plugin.components
-        }
+    def discover_scripts(self):
+        self._scripts = self._discover_classes("ose.scripts", Script)
+        self._logger.info("Discovered %d scripts", len(self._scripts))
 
-    def get_plugin_static_path(self, plugin_id: str) -> Path | None:
-        """Get the path to a plugin's static folder.
-        
-        Returns None if the plugin doesn't exist or has no static folder.
-        """
-        plugin = next((p for p in self._plugins if p.id == plugin_id), None)
-        if plugin is None:
-            return None
+    def discover_build_stages(self):
+        """Record stage plugins for the overview; builds discover stages through ose-lib."""
+        stages = self._discover_classes("ose.build_stages", BuildStage)
+        self._logger.info("Discovered %d plugin build stages", len(stages))
 
-        package_name = self._plugin_packages.get(plugin_id)
-        if package_name is None:
-            return None
-
-        try:
-            static_folder = plugin.static_folder or "static"
-            files = importlib.resources.files(package_name)
-            static_path = files.joinpath(static_folder)
-
-            # For traversable resources, get the actual filesystem path
-            with importlib.resources.as_file(static_path) as path:
-                # Return a copy of the path since the context manager may clean up
-                return Path(path)
-        except (TypeError, FileNotFoundError, OSError):
-            return None
-
-    def get_plugins_info(self) -> list[dict]:
-        """Get serializable information about all loaded plugins for the frontend."""
-        result = []
-        for plugin in self._plugins:
-            info = {
-                "id": plugin.id,
-                "name": plugin.name,
-                "version": plugin.version,
-                "description": plugin.description,
-                "components": [
-                    {"step_name": c.step_name, "component_name": c.component_name}
-                    for c in plugin.components
-                ],
-                "has_static": self.get_plugin_static_path(plugin.id) is not None,
-                "js_module": plugin.js_module
-            }
-            result.append(info)
-        return result
-
-    def load_plugins(self):
-        """Load plugins using Python's entry points system.
-        
-        Plugins should define entry points in the 'ose.plugins' group.
-        Each entry point should point to a Plugin instance.
-        
-        Example in pyproject.toml:
-            [project.entry-points.'ose.plugins']
-            my_plugin = "my_package:MY_PLUGIN"
-        """
-        eps = entry_points(group=PLUGIN_ENTRY_POINT_GROUP)
-
-        self._logger.debug(f"Found {len(eps)} plugin entry points")
-
-        for ep in eps:
+    def discover_web_plugins(self):
+        group = "ose.web_plugins"
+        self._web_plugins = {}
+        self._plugin_info[group] = []
+        for ep in sorted(entry_points(group=group), key=lambda ep: ep.name):
             try:
                 plugin = ep.load()
+                if not isinstance(plugin, WebPlugin):
+                    raise TypeError("Expected a WebPlugin instance")
+                module = import_module(ep.module)
+                static = Path(module.__file__).parent / plugin.static_folder
+                info = _PluginInfo.from_entry_point(ep, group)
+                self._web_plugins[ep.name] = _DiscoveredWebPlugin(plugin=plugin, static_path=static)
+                self._plugin_info[group].append(info)
+            except Exception:
+                self._logger.exception("Failed to load web plugin '%s'", ep.name)
 
-                if not isinstance(plugin, Plugin):
-                    self._logger.warning(
-                        f"Entry point '{ep.name}' did not return a Plugin instance, got {type(plugin).__name__}"
-                    )
-                    continue
+        self._logger.info("Discovered %d web plugins", len(self._web_plugins))
 
-                self._plugins.append(plugin)
-                # Store the package name for later use
-                self._plugin_packages[plugin.id] = ep.value.split(":")[0]
-                self._logger.info(f"Loaded plugin: {plugin.name} (version: {plugin.version})")
+    def get_scripts(self) -> list[Script]:
+        return [self._injector.create_object(cls) for cls in self._scripts]
 
-            except Exception as e:
-                self._logger.error(f"Failed to load plugin from entry point '{ep.name}': {e}")
+    def get_plugin_static_path(self, plugin_id: str) -> Path | None:
+        plugin = self._web_plugins.get(plugin_id)
+        return plugin.static_path if plugin is not None else None
 
+    def get_plugins_info(self) -> list[dict]:
+        result = []
+        plugins = (plugin for group in self._plugin_info.values() for plugin in group)
+        for info in sorted(plugins, key=lambda plugin: (plugin.id, plugin.type)):
+            item = asdict(info)
+            if info.type == "ose.web_plugins":
+                item["module_url"] = url_for(
+                    "api_plugins.get_plugin_static",
+                    plugin_id=info.id,
+                    filename=self._web_plugins[info.id].plugin.module,
+                )
+            result.append(item)
+        return result

@@ -12,11 +12,10 @@
     "build:js-core": "npm -w @ontospreaded/js-core run build",
     "build:shims": "node scripts/generate-shims.mjs",
     "build:js-app": "npm -w @ontospreaded/js-app run build",
-    "dev": "npm run build:shims && npm -w @ontospreaded/js-app run dev",
+    "dev": "npm run build:js-core && npm run build:shims && npm -w @ontospreaded/js-app run dev",
     "clean": "npm -w @ontospreaded/js-core run clean && npm -w @ontospreaded/js-app run clean"
   },
   "devDependencies": {
-    "sass": "^1.77.0",
     "typescript": "~5.9.3"
   },
   "license": "AGPL-3.0-or-later",

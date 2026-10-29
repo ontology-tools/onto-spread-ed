@@ -9,10 +9,6 @@
 			"path": "packages/ose-app"
 		},
 		{
-			"name": "ose-core",
-			"path": "packages/ose-core"
-		},
-		{
 			"name": "ose-lib",
 			"path": "packages/ose-lib"
 		},
