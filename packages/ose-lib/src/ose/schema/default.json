@@ -69,12 +69,12 @@
     },
     {
       "type": "relation",
-      "pattern": "REL '([^']+)'",
+      "pattern": "REL '([^']+)'(?:\\s*\\[[^\\]]+\\])?",
       "relation": {"label": "{1}"},
       "property_type": "ObjectProperty",
       "separator": ";"
     },
-    {"type": "relation", "pattern": "ANN '([^']+)'", "relation": {"label": "{1}"}},
+    {"type": "relation", "pattern": "ANN '([^']+)'(?:\\s*\\[[^\\]]+\\])?", "relation": {"label": "{1}"}},
     {
       "type": "relation",
       "columns": ["Informal definition", "Informal Definition", "informal definition"],
