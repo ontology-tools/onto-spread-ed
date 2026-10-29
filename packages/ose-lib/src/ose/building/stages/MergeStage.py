@@ -26,6 +26,10 @@ class MergeStage(BuildStage):
     ) -> tuple[()]:
         progress = ProgressManager(on_progress_update)
         build_service = RobotOntologyBuildService()
+        local_ontologies = {
+            file.target.iri: self._local_name(file.target.file)
+            for file in [self.project.external, *self.project.files.values()]
+        }
 
         merge_files = [
             (n, f)
@@ -59,6 +63,7 @@ class MergeStage(BuildStage):
                 file.target.iri,
                 version_iri,
                 file.target.ontology_annotations,
+                local_ontologies=local_ontologies,
             ))
 
             self.context.add_final_artifact(file, self.name())
@@ -82,6 +87,7 @@ class MergeStage(BuildStage):
                 file.target.iri,
                 version_iri,
                 file.target.ontology_annotations,
+                local_ontologies=local_ontologies,
             ))
 
             self.context.add_final_artifact(file, self.name())

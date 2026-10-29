@@ -46,7 +46,8 @@ class OntologyBuildService(ABC):
                          outfile: str,
                          iri: str,
                          version_iri: str,
-                         annotations: Dict[str, str]) -> Result[Any]:
+                         annotations: Dict[str, str], *,
+                         local_ontologies: dict[str, str] | None = None) -> Result[Any]:
         ...
 
     @abstractmethod

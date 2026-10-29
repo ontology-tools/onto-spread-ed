@@ -806,6 +806,18 @@ class ExcelOntology:
                     )
                 )
 
+                candidate_ids = sorted({t.id for t in matching_terms if t.id is not None})
+                if unresolved_term.id is None and len(candidate_ids) > 1:
+                    ctx.log.warning(
+                        type="ambiguous-reference",
+                        origin=term.origin[0] if term.origin else None,
+                        row=term.origin[1] if term.origin else None,
+                        reference=unresolved_term.label,
+                        candidates=candidate_ids,
+                        chosen=matching_terms[0].id,
+                        msg="Multiple entities match this label; specify an explicit ID to disambiguate.",
+                    )
+
                 for m in matching_terms:
                     unresolved_term.complement(
                         m if isinstance(m, TermIdentifierBase) else m.identifier()
@@ -1345,10 +1357,10 @@ class ExcelOntology:
         for p, prefix_iri in prefixes.items():
             ontology.prefix_mapping.add_prefix(p, prefix_iri)
 
-        for c in ontology.get_classes():
+        for c in sorted(ontology.get_classes()):
             id = get_id(ontology, c)
 
-            labels = ontology.get_annotations(c, constants.RDFS_LABEL)
+            labels = sorted(ontology.get_annotations(c, constants.RDFS_LABEL))
 
             if id is None:
                 ctx.log.warning(
@@ -1389,7 +1401,7 @@ class ExcelOntology:
                         )
                     )
 
-        for r in ontology.get_object_properties():
+        for r in sorted(ontology.get_object_properties()):
             id = ontology.get_id_for_iri(r)
             op_label = ontology.get_annotation(r, constants.RDFS_LABEL)
 

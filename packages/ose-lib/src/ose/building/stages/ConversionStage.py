@@ -30,7 +30,10 @@ class ConversionStage(BuildStage):
         ts = graphlib.TopologicalSorter(
             {name: f.needs for name, f in self.project.files.items()}
         )
-        sources = [(name, self.project.files[name]) for name in ts.static_order()]
+        sources = [
+            (name, self.project.files[name]) for name in ts.static_order()
+            if any(source.type != "owl" for source in self.project.files[name].sources)
+        ]
 
         progress.total_items = len(sources)
 

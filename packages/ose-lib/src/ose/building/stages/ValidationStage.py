@@ -10,9 +10,7 @@ from ose.result import ResultContext, with_result_context_method
 from ose.ontology import ExcelOntology
 
 
-
 class ValidationStage(BuildStage):
-
     @classmethod
     def name(cls) -> str:
         return "VALIDATION"
@@ -21,18 +19,14 @@ class ValidationStage(BuildStage):
     async def run(
         self, ctx: ResultContext, on_progress_update: Callable[[Progress], None] | None = None
     ) -> StageResult:
-        validation_info = dict()
+        validation_info = self.result_data
         progress = ProgressManager(on_progress_update)
 
-        ts = graphlib.TopologicalSorter(
-            {name: f.needs for name, f in self.project.files.items()}
-        )
+        ts = graphlib.TopologicalSorter({name: f.needs for name, f in self.project.files.items()})
         sources = [(name, self.project.files[name]) for name in ts.static_order()]
 
         external = ctx.unwrap(
-            ExcelOntology.from_owl(
-                self._local_name(self.project.external.target.file), self.project.prefixes
-            )
+            ExcelOntology.from_owl(self._local_name(self.project.external.target.file), self.project.prefixes)
         )
         await check_cancelled()
 
@@ -43,6 +37,9 @@ class ValidationStage(BuildStage):
         loaded: dict[str, ExcelOntology] = dict()
         for k, file in sources:
             progress.next_item(item=k, message="Validating")
+
+            if all(s.type == "owl" for s in file.sources):
+                continue
 
             result = await self._validate_file(file, external, loaded)
             validation_info[k] = dict(
@@ -55,7 +52,11 @@ class ValidationStage(BuildStage):
                 overall_ontology.merge_with(ontology)
                 loaded[k] = ontology
 
-        global_result = overall_ontology.validate(only=["duplicate"])
+        only = self.config.args.get("only")
+        global_result = overall_ontology.validate(
+            only=["duplicate"] if only is None or "duplicate" in only else [],
+            exclude=self.config.args.get("exclude"),
+        )
         validation_info["global"] = dict(
             valid=global_result.successful,
             warnings=global_result.log.warnings,
@@ -78,15 +79,23 @@ class ValidationStage(BuildStage):
             if n not in loaded:
                 ctx.fail(type="dependency-failed", file=file.target.file, msg=f"Depends on '{n}', which failed")
 
-            ctx.unwrap(ontology.import_other_excel_ontology(loaded[n]))  # Must exist queue is ordered to first load ontologies others depend on
+            ctx.unwrap(
+                ontology.import_other_excel_ontology(loaded[n])
+            )  # Must exist queue is ordered to first load ontologies others depend on
 
             await check_cancelled()
 
         for s in file.sources:
+            schema = self.project.spreadsheet_schema(s.spreadsheet_schema)
             if s.type == "classes":
-                ctx.unwrap(ontology.add_terms_from_excel(s.file, self._local_name(s.file)))
+                ctx.unwrap(ontology.add_terms_from_excel(s.file, self._local_name(s.file), schema))
             elif s.type == "relations":
-                ctx.unwrap(ontology.add_relations_from_excel(s.file, self._local_name(s.file)))
+                ctx.unwrap(ontology.add_relations_from_excel(s.file, self._local_name(s.file), schema))
+            elif s.type == "owl":
+                imported = ctx.unwrap(ExcelOntology.from_owl(self._local_name(s.file), self.project.prefixes))
+                ctx.unwrap(ontology.import_other_excel_ontology(imported))
+            else:
+                ctx.fail(type="not-implemented", msg=f"Source type '{s.type}' is not implemented yet.")
 
             await check_cancelled()
 
@@ -99,7 +108,7 @@ class ValidationStage(BuildStage):
         ctx.unwrap(ontology.resolve())
         await check_cancelled()
 
-        ctx.unwrap(ontology.validate())
+        ctx.unwrap(ontology.validate(only=self.config.args.get("only"), exclude=self.config.args.get("exclude")))
         await check_cancelled()
 
         return ontology

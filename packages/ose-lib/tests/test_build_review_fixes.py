@@ -80,8 +80,8 @@ def test_merge_stage_delegates_to_robot(tmp_path, monkeypatch, sources, inputs):
     calls = []
 
     class RobotService:
-        async def merge_ontologies(self, ontologies, outfile, iri, version_iri, annotations):
-            calls.append((ontologies, outfile, iri, annotations))
+        async def merge_ontologies(self, ontologies, outfile, iri, version_iri, annotations, *, local_ontologies=None):
+            calls.append((ontologies, outfile, iri, annotations, local_ontologies))
             return Success(())
 
     merge_module = importlib.import_module("ose.building.stages.MergeStage")
@@ -106,5 +106,10 @@ def test_merge_stage_delegates_to_robot(tmp_path, monkeypatch, sources, inputs):
         str(tmp_path / "upper.owl"),
         "http://example.org/upper.owl",
         {"http://example.org/source": "curated"},
+        {
+            "http://example.org/external.owl": str(tmp_path / "external.owl"),
+            "http://example.org/upper.owl": str(tmp_path / "upper.owl"),
+            "http://example.org/lower.owl": str(tmp_path / "lower.owl"),
+        },
     )]
     assert [(artifact.local_path, artifact.kind) for artifact in build_context.artifacts] == [("upper.owl", "final")]

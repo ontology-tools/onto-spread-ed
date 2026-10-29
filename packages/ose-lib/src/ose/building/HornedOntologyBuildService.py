@@ -56,6 +56,8 @@ class HornedOntologyBuildService(OntologyBuildService):
         iri: str,
         version_iri: str,
         annotations: Dict[str, str],
+        *,
+        local_ontologies: dict[str, str] | None = None,
     ) -> ho.PyIndexedOntology:
         o = ho.PyIndexedOntology()
         o.add_component(hom.OntologyID(o.iri(iri), o.iri(version_iri) if version_iri else None))

@@ -20,10 +20,12 @@ T = TypeVar("T", bound=BuildContext)
 class BuildStage(abc.ABC, Generic[T]):
     config: BuildStep
     context: T
+    result_data: dict[str, Any]
     
     def __init__(self, step_config: BuildStep, context: T):
         self.config = step_config
         self.context = context
+        self.result_data: dict[str, Any] = {}
 
     @classmethod
     @abc.abstractmethod

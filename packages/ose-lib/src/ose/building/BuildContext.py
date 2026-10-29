@@ -99,9 +99,11 @@ class BuildContext(BaseModel):
         self.stage_results[self.current_stage] = r
         return r
 
-    def set_stage_result(self, result: "Result[StageResult]") -> _BuildContextStageResult:
+    def set_stage_result(
+        self, result: "Result[StageResult]", data: dict[str, Any] | None = None
+    ) -> _BuildContextStageResult:
         result_type: StageResultKind
-        data: dict[str, Any] = dict()
+        data = data if data is not None else {}
 
         if self.current_stage is None:
             raise ValueError("Not running a stage, cannot set stage result")

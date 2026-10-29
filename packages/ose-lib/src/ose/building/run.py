@@ -84,7 +84,7 @@ async def run_build[C: BuildContext](
             try:
                 result = await stage.run(on_progress_update=report_progress)
             except asyncio.CancelledError:
-                cancelled = context.set_stage_result(Success("cancelled"))
+                cancelled = context.set_stage_result(Success("cancelled"), stage.result_data)
                 context.state = "cancelled"
                 if on_stage_done is not None:
                     on_stage_done(context, stage, cancelled)
@@ -99,7 +99,7 @@ async def run_build[C: BuildContext](
                 )
                 result = Err(log)
 
-            stage_result = context.set_stage_result(result)
+            stage_result = context.set_stage_result(result, stage.result_data)
 
             state: BuildState = "running"
             if not is_successful(result):

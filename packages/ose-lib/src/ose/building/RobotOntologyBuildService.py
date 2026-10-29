@@ -557,9 +557,11 @@ class RobotOntologyBuildService(OntologyBuildService):
         iri: str,
         version_iri: str,
         annotations: Dict[str, str],
+        *,
+        local_ontologies: dict[str, str] | None = None,
     ) -> Result[Any]:
         command = [ROBOT, "merge"]
-        command += [s for o in ontologies for s in ["--input", o]]
+        command += [s for o in ontologies for s in ["--input", os.path.abspath(o)]]
         command += ["annotate"]
         command += [s for k, v in annotations.items() for s in ["--annotation", k, v]]
         command += ["--ontology-iri", iri]
@@ -579,11 +581,13 @@ class RobotOntologyBuildService(OntologyBuildService):
             ]
         )
 
-        command += ["--output", outfile]
+        command += ["--output", os.path.abspath(outfile)]
 
-        result = await self._execute_command(command)
-
-        return result
+        with tempfile.TemporaryDirectory(prefix="ose-robot-merge-") as work_dir:
+            if local_ontologies:
+                catalog = self._create_catalog_file(work_dir, local_ontologies)
+                command[2:2] = ["--catalog", catalog]
+            return await self._execute_command(command, cwd=work_dir)
 
     @with_result_context_method
     async def _execute_command(
