@@ -31,8 +31,6 @@ REPOSITORIES_REPOSITORY_CONFIG_BASE_URL = 'repos/{full_name}/contents/{path}'
 REPOSITORIES_REPOSITORY_CONFIG_REQUEST_HEADERS = {
     "Accept": "application/vnd.github.raw+json",
 }
-BCIO_SEARCH_API_PATH = "https://api.bciosearch.org/"
-ADDICTO_VOCAB_API_PATH = "https://api.addictovocab.org/"
 
 
 ENABLE_PLUGINS = True

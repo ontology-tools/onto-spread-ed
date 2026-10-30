@@ -22,3 +22,5 @@ export * from './release/stages';
 
 // Components
 export { ProgressIndicator };
+
+export * from "./plugins";
