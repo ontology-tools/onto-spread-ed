@@ -151,3 +151,24 @@ def test_imported_label_resolution_is_stable_and_reports_ambiguity(
     assert result.log.warnings[0]["type"] == "ambiguous-reference"
     assert result.log.warnings[0]["candidates"] == ["EX:1", "EX:9"]
     assert result.log.warnings[0]["origin"] == "terms.xlsx"
+
+
+def test_label_shared_with_obsolete_terms_is_not_ambiguous() -> None:
+    from ose.ontology import ExcelOntology
+
+    local = ExcelOntology("http://example.org/local.owl")
+    local.add_terms_from_list(
+        [
+            ["EX:1", "shared", None, "Obsolete"],
+            ["EX:2", "shared", None, "Published"],
+            ["EX:3", "shared", None, "Pre-proposed"],
+            ["EX:4", "child", "shared", "Published"],
+        ],
+        ["ID", "Label", "Parent", "Curation status"],
+        origin="terms.xlsx",
+    ).value_or_raise()
+    result = local.resolve()
+    assert is_successful(result), result.log.errors
+    child = local.term_by_id("EX:4")
+    assert child is not None and child.sub_class_of[0].id == "EX:2"
+    assert not [w for w in result.log.warnings if w["type"] == "ambiguous-reference"]

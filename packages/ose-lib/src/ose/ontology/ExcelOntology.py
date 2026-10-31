@@ -806,7 +806,15 @@ class ExcelOntology:
                     )
                 )
 
-                candidate_ids = sorted({t.id for t in matching_terms if t.id is not None})
+                candidate_ids = sorted({
+                    t.id
+                    for t in matching_terms
+                    if t.id is not None
+                    and not (
+                        isinstance(t, UnresolvedTerm)
+                        and lower(t.curation_status()) in self._ignore_status + self._discard_status
+                    )
+                })
                 if unresolved_term.id is None and len(candidate_ids) > 1:
                     ctx.log.warning(
                         type="ambiguous-reference",
