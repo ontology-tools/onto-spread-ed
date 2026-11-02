@@ -5,7 +5,7 @@ from injector import inject
 import openpyxl
 import pyhornedowl
 import requests
-from flask_github import GitHub
+from github import Github
 
 from ose_app.model.Script import Script
 import ose_app.utils.github as github
@@ -23,7 +23,7 @@ class UpdateImportsToLatestVersionsScript(Script):
         return "Update Imports to Latest Versions"
 
     @inject
-    def __init__(self, gh: GitHub, config: ConfigurationService) -> None:
+    def __init__(self, gh: Github, config: ConfigurationService) -> None:
         self.gh = gh
         self.config = config
 

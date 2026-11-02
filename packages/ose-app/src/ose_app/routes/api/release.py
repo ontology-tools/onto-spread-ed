@@ -15,7 +15,7 @@ from ose.project import BuildConfiguration
 
 from ose_app.database.Release import OPEN_STATES, Release, RequestedAction
 from ...guards.with_permission import requires_permissions
-from ose_app.helpers import NOT_AN_OBJECT, json_object
+from ose_app.routes.api.common import NOT_AN_OBJECT, json_object
 from ose_app.release.runner import load_context, updated_rows
 from ose_app.release.stages import ReleaseContext
 from ose_app.services.ConfigurationService import ConfigurationService

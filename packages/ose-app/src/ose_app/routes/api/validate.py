@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 import jsonschema
 from flask import Blueprint, request, jsonify, current_app
-from flask_github import GitHub
+from github import Github
 from openpyxl.workbook import Workbook
 
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
@@ -164,7 +164,7 @@ def order_dependencies(files: Dict[str, ProjectFile]) -> List[tuple[str, Project
 
 @bp.route("/file", methods=("POST",))
 @requires_permissions("view")
-def validate_file(config: ConfigurationService, gh: GitHub, cache: FileCache):
+def validate_file(config: ConfigurationService, gh: Github, cache: FileCache):
     data = json.loads(request.data)
 
     try:

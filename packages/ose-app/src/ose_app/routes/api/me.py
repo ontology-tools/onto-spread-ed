@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, g, jsonify
 
 from ose_app.PermissionManager import PERMISSION_IMPLICATIONS, PermissionManager
-from ose_app.helpers import all_initials, user_initials
+from ose_app.routes.api.common import all_initials, user_initials
 from ose_app.services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("api_me", __name__, url_prefix="/api/me")

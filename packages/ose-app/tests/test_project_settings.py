@@ -1,6 +1,7 @@
 import base64
 import copy
 import json
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -23,17 +24,23 @@ class Configuration:
 
 
 class GitHub:
+    """Fake PyGithub client: `get_repo` returns the fake itself, which serves a single configuration file"""
+
     def __init__(self, document):
         self.document = document
         self.commits = []
 
-    def get(self, *args, **kwargs):
-        return {"sha": str(len(self.commits)), "content": base64.b64encode(json.dumps(self.document).encode()).decode()}
+    def get_repo(self, full_name):
+        return self
 
-    def put(self, path, data):
-        assert data["sha"] == str(len(self.commits))
-        self.commits.append(data)
-        self.document = yaml.safe_load(base64.b64decode(data["content"]))
+    def get_contents(self, path, ref=None):
+        content = base64.b64encode(json.dumps(self.document).encode()).decode()
+        return SimpleNamespace(sha=str(len(self.commits)), encoding="base64", decoded_content=base64.b64decode(content))
+
+    def update_file(self, path, message, content, sha, branch=None):
+        assert sha == str(len(self.commits))
+        self.commits.append({"message": message, "content": base64.b64encode(content).decode(), "sha": sha})
+        self.document = yaml.safe_load(content)
 
 
 @pytest.fixture

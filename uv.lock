@@ -728,16 +728,6 @@ wheels = [
 ]
 
 [[package]]
-name = "github-flask"
-version = "3.2.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "flask" },
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/9b/22b02ef71386337226e98b842f1891740505aa5324c739f93c66b8db5197/GitHub-Flask-3.2.0.tar.gz", hash = "sha256:24600b720f698bac10667b76b136995ba7821d884e58b27e2a18ca0e4760c786", size = 5127, upload-time = "2017-11-02T11:16:43.67Z" }
-
-[[package]]
 name = "gitpython"
 version = "3.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1324,7 +1314,6 @@ dependencies = [
     { name = "flask-injector" },
     { name = "flask-migrate" },
     { name = "flask-sqlalchemy" },
-    { name = "github-flask" },
     { name = "gitpython" },
     { name = "jsonschema" },
     { name = "networkx" },
@@ -1356,7 +1345,6 @@ requires-dist = [
     { name = "flask-injector" },
     { name = "flask-migrate" },
     { name = "flask-sqlalchemy", specifier = "==3.1.1" },
-    { name = "github-flask" },
     { name = "gitpython", specifier = ">=3.2.0" },
     { name = "jsonschema" },
     { name = "networkx" },

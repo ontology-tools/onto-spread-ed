@@ -1,16 +1,17 @@
 import typing
 
 from flask import Flask
-from flask_github import GitHub
 from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
+from github import Github
 from injector import Injector, Module, provider, singleton
 
-from . import database, gh
+from . import database
 from .PermissionManager import PermissionManager
 from .SpreadsheetSearcher import SpreadsheetSearcher
 from .services.ConfigurationService import ConfigurationService
 from .services.FileCache import FileCache
+from .services.GithubService import GithubService
 from .services.PluginService import PluginService
 from .services.RepositoryConfigurationService import RepositoryConfigurationService
 
@@ -20,7 +21,6 @@ class AppModule(Module):
 
     def init_app(self, app: Flask):
         database.init_app(app)
-        gh.init_app(app)
 
     @provider
     @request
@@ -30,19 +30,25 @@ class AppModule(Module):
         return database.db
 
     @provider
+    @singleton
+    def github_service(self, app: Flask) -> GithubService:
+        return GithubService(app.config.get("GITHUB_CLIENT_ID"), app.config.get("GITHUB_CLIENT_SECRET"))
+
+    @provider
     @request
-    def github(self) -> GitHub:
-        return gh.github
+    def github(self, github_service: GithubService) -> Github:
+        """Client acting on behalf of the user of the current request"""
+        return github_service.current_client()
 
     @provider
     @singleton
-    def searcher(self, github: GitHub, config: ConfigurationService) -> SpreadsheetSearcher:
-        return SpreadsheetSearcher(config, github)
+    def searcher(self, github_service: GithubService, config: ConfigurationService) -> SpreadsheetSearcher:
+        return SpreadsheetSearcher(config, github_service)
 
     @provider
     @singleton
-    def configuration_service(self, app: Flask, github: GitHub) -> ConfigurationService:
-        return RepositoryConfigurationService(app.config, github)
+    def configuration_service(self, app: Flask, github_service: GithubService) -> ConfigurationService:
+        return RepositoryConfigurationService(app.config, github_service)
 
     @provider
     @singleton

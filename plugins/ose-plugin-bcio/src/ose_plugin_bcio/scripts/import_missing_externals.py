@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import Annotated, Dict
 
-from flask_github import GitHub
+from github import Github
 from injector import inject
 import pyhornedowl
 
@@ -28,7 +28,7 @@ class ImportMissingExternalsScript(Script):
         return "Import Missing Externals"
 
     @inject
-    def __init__(self, gh: GitHub, config: ConfigurationService) -> None:
+    def __init__(self, gh: Github, config: ConfigurationService) -> None:
         super().__init__()
         self.gh = gh
         self.config = config

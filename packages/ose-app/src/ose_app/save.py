@@ -1,4 +1,3 @@
-import base64
 import io
 import json
 import threading
@@ -9,15 +8,16 @@ from typing import Any, Dict, List, Tuple
 import daff
 import openpyxl
 from flask import current_app, g, jsonify
-from flask_github import GitHub
+from github import Github
 from openpyxl.styles import Font, PatternFill
 
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.utils import get_spreadsheet, create_branch
+from ose_app.utils.github import delete_branch, merge_branch
 
 
-def save_spreadsheet(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService, repo_key: str,
+def save_spreadsheet(searcher: SpreadsheetSearcher, github: Github, config: ConfigurationService, repo_key: str,
                      path: str, row_data_parsed, initial_data_parsed, file_sha_original: str, commit_msg: str,
                      commit_msg_extra: str, header, merge_strategy: str, target_branch: str = None):
     overwrite = merge_strategy is not None
@@ -25,6 +25,10 @@ def save_spreadsheet(searcher: SpreadsheetSearcher, github: GitHub, config: Conf
     id_suffix = ""
 
     repository = config.get(repo_key)
+    
+    if repository is None:
+        return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
+    
     default_branch = target_branch or repository.main_branch
 
     if path in repository.readonly_files:
@@ -128,10 +132,6 @@ def save_spreadsheet(searcher: SpreadsheetSearcher, github: GitHub, config: Conf
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
 
-        # base64_bytes = base64.b64encode(sample_string_bytes)
-        base64_bytes = base64.b64encode(spreadsheet_stream.getvalue())
-        base64_string = base64_bytes.decode("ascii")
-
         # Create a new branch to commit the change to (in case of simultaneous updates)
         branch = f"{g.user.github_login}_{datetime.now(timezone.utc).strftime('%Y-%m-%d_%H%M%S')}"
         create_branch(github, repository.full_repository_name, branch, default_branch)
@@ -143,29 +143,15 @@ def save_spreadsheet(searcher: SpreadsheetSearcher, github: GitHub, config: Conf
                                                                   branch=default_branch)
 
         # Commit changes to branch (replace code with sheet)
-        data = {"message": commit_msg, "content": base64_string, "branch": branch, "sha": file_sha_theirs}
         current_app.logger.debug("About to commit file to branch %s",
                                  f"repos/{repository.full_repository_name}/contents/{path}")
-        response = github.put(f"repos/{repository.full_repository_name}/contents/{path}", data=data)
-        if not response:
-            raise Exception(
-                f"Unable to commit addition of {path} to branch {branch} in {repository.full_repository_name}"
-            )
+        repo = github.get_repo(repository.full_repository_name)
+        repo.update_file(path, commit_msg, spreadsheet_stream.getvalue(), file_sha_theirs, branch=branch)
 
         # Create a PR for the change
         current_app.logger.debug("About to create PR from branch", )
-        response = github.post(
-            f"repos/{repository.full_repository_name}/pulls",
-            data={
-                "title": commit_msg,
-                "head": branch,
-                "base": default_branch,
-                "body": commit_msg_extra
-            },
-        )
-        if not response:
-            raise Exception(f"Unable to create PR for branch {branch} in {repository.full_repository_name}")
-        pr_info = response['html_url']
+        pr = repo.create_pull(title=commit_msg, body=commit_msg_extra or "", head=branch, base=default_branch)
+        pr_info = pr.html_url
 
         # Do not merge automatically if this file was stale as that will overwrite the other changes
 
@@ -178,12 +164,9 @@ def save_spreadsheet(searcher: SpreadsheetSearcher, github: GitHub, config: Conf
             if len(conflicts) > 0:
 
                 # Delete the branch again
-                current_app.logger.debug("About to delete branch",
+                current_app.logger.debug("About to delete branch %s",
                                          f"repos/{repository.full_repository_name}/git/refs/heads/{branch}")
-                response = github.delete(
-                    f"repos/{repository.full_repository_name}/git/refs/heads/{branch}")
-                if not response:
-                    raise Exception(f"Unable to delete branch {branch} in {repository.full_repository_name}")
+                delete_branch(github, repository.full_repository_name, branch)
 
                 return jsonify({
                     "success": False,
@@ -217,24 +200,12 @@ def save_spreadsheet(searcher: SpreadsheetSearcher, github: GitHub, config: Conf
         else:
             # Merge the created PR
             current_app.logger.debug("About to merge created PR")
-            response = github.post(
-                f"repos/{repository.full_repository_name}/merges",
-                data={
-                    "head": branch,
-                    "base": default_branch,
-                    "commit_message": commit_msg
-                },
-            )
-            if not response:
-                raise Exception(f"Unable to merge PR from branch {branch} in {repository.full_repository_name}")
+            merge_branch(github, repository.full_repository_name, branch, default_branch, commit_msg)
 
             # Delete the branch again
             current_app.logger.debug("About to delete branch %s",
                                      f"repos/{repository.full_repository_name}/git/refs/heads/{branch}")
-            response = github.delete(
-                f"repos/{repository.full_repository_name}/git/refs/heads/{branch}")
-            if not response:
-                raise Exception(f"Unable to delete branch {branch} in {repository.full_repository_name}")
+            delete_branch(github, repository.full_repository_name, branch)
 
         current_app.logger.info("Save succeeded.")
         # Update the search index for this file ASYNCHRONOUSLY (don't wait)
@@ -246,7 +217,6 @@ def save_spreadsheet(searcher: SpreadsheetSearcher, github: GitHub, config: Conf
         # Get the sha AGAIN for the file
         (saved_sha, saved_rows, saved_header) = get_spreadsheet(github, repository.full_repository_name, path,
                                                               branch=default_branch)
-        github.get(f"repos/{repository.full_repository_name}/contents/{path}")
         return jsonify({
             "success": True,
             "new_rows": saved_rows,
@@ -337,7 +307,7 @@ def _parse_json_field(save_data: dict, name: str, required: bool):
     return value, None
 
 
-def save_from_request(searcher: SpreadsheetSearcher, github: GitHub, config: ConfigurationService, save_data: dict):
+def save_from_request(searcher: SpreadsheetSearcher, github: Github, config: ConfigurationService, save_data: dict):
     """Handles a save request body (`/api/edit/save`). Invalid requests answer 400 `{success: false, error}`."""
     if not isinstance(save_data, dict):
         return _bad_request("Request body must be a JSON object")

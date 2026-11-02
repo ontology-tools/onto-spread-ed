@@ -4,7 +4,7 @@ from typing import Annotated, Union
 
 from injector import inject
 import openpyxl
-from flask_github import GitHub
+from github import Github
 from openpyxl.styles import PatternFill
 import pyhornedowl
 
@@ -32,7 +32,7 @@ class SetPreProposedCurationStatusScript(Script):
         return "Set Pre-proposed Curation Status"
     
     @inject
-    def __init__(self, gh: GitHub, config: ConfigurationService) -> None:
+    def __init__(self, gh: Github, config: ConfigurationService) -> None:
         super().__init__()
         self.gh = gh
         self.config = config

@@ -5,10 +5,12 @@ from typing import Optional, Dict, Any, List
 
 import requests
 import yaml
-from flask_github import GitHub, GitHubError
+from github import GithubException
 
 from ose.project import Project
 from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.services.GithubService import GithubService
+from ose_app.utils.github import get_file
 
 REPOSITORY_CONFIG_PATH_PROP = "REPOSITORIES_REPOSITORY_CONFIG_PATH"
 REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_STARTUP_REPOSITORIES_FILE"
@@ -22,10 +24,10 @@ class RepositoryConfigurationService(ConfigurationService):
     _logger = logging.getLogger(__name__)
     _loaded_repositories: Dict[str, Project]
 
-    def __init__(self, app_config: Dict[str, Any], gh: GitHub, *_args, **_kwargs):
+    def __init__(self, app_config: Dict[str, Any], github_service: GithubService, *_args, **_kwargs):
         super().__init__(app_config)
 
-        self._gh = gh
+        self._github_service = github_service
 
         self._config_path = app_config.get(REPOSITORY_CONFIG_PATH_PROP)
         self._base_url = app_config.get(BASE_URL_PROP)
@@ -126,22 +128,19 @@ class RepositoryConfigurationService(ConfigurationService):
         if loaded is not None:
             return loaded
 
-        if self._gh.get_access_token() is None:
-            unauthorized_url = "https://api.github.com/" + url
-            response = requests.get(unauthorized_url, headers=self._headers)
-        else:
-            try:
-                response = self._gh.get(url, headers=self._headers)
-            except GitHubError as e:
-                self._logger.warning(f"Could not get repository configuration from '{url}': e {e.response}")
-                return None
+        requester = self._github_service.current_client().requester
+        try:
+            status, _, body = requester.requestJson("GET", "/" + url.lstrip("/"), headers=self._headers)
+        except (GithubException, requests.RequestException) as e:
+            self._logger.warning(f"Could not get repository configuration from '{url}': {e}")
+            return None
 
-        if not response.ok:
-            self._logger.warning(f"Could not get repository configuration from '{url}': {response}")
+        if not 200 <= status < 300:
+            self._logger.warning(f"Could not get repository configuration from '{url}': {status} {body}")
             return None
 
         try:
-            data = yaml.safe_load(response.text)
+            data = yaml.safe_load(body)
         except yaml.YAMLError as e:
             self._logger.warning(f"Could not parse repository configuration from '{url}': {e}")
             return None
@@ -157,19 +156,11 @@ class RepositoryConfigurationService(ConfigurationService):
         return configuration
 
     def get_file_raw(self, config: Project, path: str) -> Optional[bytes]:
-        url = self._base_url.format(full_name=config.full_repository_name, path=path)
-
         try:
-            response = self._gh.get(url, headers=self._headers)
-        except GitHubError as e:
+            return get_file(self._github_service.current_client(), config.full_repository_name, path)
+        except (GithubException, IsADirectoryError) as e:
             self._logger.warning(f"Could not get file '{path}': {e}")
-            return
-
-        if not response.ok:
-            self._logger.warning(f"Could not get file '{path}': {response}")
             return None
-
-        return response.content
 
     def unload(self, name: str) -> bool:
         key = next((k for k, v in self._loaded_repositories.items() if

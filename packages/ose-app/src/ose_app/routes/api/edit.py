@@ -1,4 +1,3 @@
-import base64
 import io
 import json
 import os
@@ -6,10 +5,10 @@ import os
 import jsonschema
 import openpyxl
 from flask import Blueprint, request, jsonify, current_app, Response
-from flask_github import GitHub, GitHubError
+from github import Github, GithubException
 from openpyxl.worksheet.worksheet import Worksheet
 
-from ose_app import helpers
+from ose_app.routes.api import common
 from ose_app.PermissionManager import PermissionManager
 from ose_app.save import save_from_request
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
@@ -17,20 +16,20 @@ from ose_app.guards.with_permission import requires_permissions
 from ose.ontology import ExcelOntology
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.FileCache import FileCache
-from ose_app.utils import get_spreadsheet, save_file
+from ose_app.utils import get_file, get_spreadsheet, save_file
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
 
 @bp.route("/save", methods=["POST"])
 @requires_permissions("edit")
-def save(searcher: SpreadsheetSearcher, gh: GitHub, config: ConfigurationService,
+def save(searcher: SpreadsheetSearcher, gh: Github, config: ConfigurationService,
          permission_manager: PermissionManager):
-    d = helpers.json_object()
+    d = common.json_object()
     if d is None:
-        return jsonify(helpers.NOT_AN_OBJECT), 400
+        return jsonify(common.NOT_AN_OBJECT), 400
     repo_key = d.get("repo_key")
-    if repo_key not in helpers.visible_repositories(config, permission_manager):
+    if repo_key not in common.visible_repositories(config, permission_manager):
         return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
 
     return save_from_request(searcher, gh, config, d)
@@ -38,22 +37,22 @@ def save(searcher: SpreadsheetSearcher, gh: GitHub, config: ConfigurationService
 
 @bp.route("/check-updates", methods=["POST"])
 @requires_permissions("view")
-def check_updates(gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
-    d = helpers.json_object()
+def check_updates(gh: Github, config: ConfigurationService, permission_manager: PermissionManager):
+    d = common.json_object()
     if d is None:
-        return jsonify(helpers.NOT_AN_OBJECT), 400
+        return jsonify(common.NOT_AN_OBJECT), 400
     repo_key = d.get("repo_key")
-    if repo_key not in helpers.visible_repositories(config, permission_manager):
+    if repo_key not in common.visible_repositories(config, permission_manager):
         return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
 
-    up_to_date = helpers.is_up_to_date(gh, config, d.get("repo_key"), d.get("folder"), d.get("spreadsheet"),
+    up_to_date = common.is_up_to_date(gh, config, d.get("repo_key"), d.get("folder"), d.get("spreadsheet"),
                                        d.get("file_sha"), d.get("branch"))
     return jsonify({"up_to_date": up_to_date})
 
 
 @bp.route("/<repo>/<path:path>", methods=["PATCH"])
 @requires_permissions("edit")
-def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
+def edit(repo: str, path: str, gh: Github, config: ConfigurationService, permission_manager: PermissionManager):
     if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"msg": f"No such repository '{repo}'"}), 404
 
@@ -81,11 +80,9 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService, permiss
 
     branch = data.get("branch", repository.main_branch)
 
-    params = {"ref": branch} if branch != repository.main_branch else {}
-    spreadsheet_file = gh.get(f'repos/{repository.full_repository_name}/contents/{path}', params=params)
-    base64_bytes = spreadsheet_file['content'].encode('utf-8')
-    decoded_data = base64.decodebytes(base64_bytes)
-    wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
+    content = get_file(gh, repository.full_repository_name, path,
+                       branch=branch if branch != repository.main_branch else None)
+    wb = openpyxl.load_workbook(io.BytesIO(content))
     sheet = wb.active
     if not isinstance(sheet, Worksheet):
         return jsonify({"msg": "File has no active sheet"}), 400
@@ -136,7 +133,7 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService, permiss
 
 @bp.route("/get/<repo>/<path:path>", methods=["GET"])
 @requires_permissions("view")
-def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager):
+def get_data(repo: str, path: str, gh: Github, config: ConfigurationService, permission_manager: PermissionManager):
     if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
 
@@ -162,14 +159,14 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
         )
 
         return jsonify({"success": True, "spreadsheet": data}), 200
-    except GitHubError as e:
+    except GithubException as e:
         current_app.logger.error(e)
         return jsonify({"success": False, "error": f"Failed when communicating with github: {e}"}), 200
 
 
 @bp.route("/suggestions/<repo>", methods=["GET"])
 @requires_permissions("view")
-def get_suggestions(repo: str, permission_manager: PermissionManager, config: ConfigurationService, gh: GitHub,
+def get_suggestions(repo: str, permission_manager: PermissionManager, config: ConfigurationService, gh: Github,
                     searcher: SpreadsheetSearcher, cache: FileCache):
     if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404

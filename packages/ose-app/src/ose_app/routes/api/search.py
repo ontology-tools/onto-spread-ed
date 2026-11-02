@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.guards.with_permission import requires_permissions
-from ose_app.helpers import NOT_AN_OBJECT, json_object
+from ose_app.routes.api.common import NOT_AN_OBJECT, json_object
 
 bp = Blueprint("api_search", __name__, url_prefix="/api/search")
 

@@ -4,7 +4,7 @@ import io
 import json
 
 import aiohttp
-from flask_github import GitHub
+from github import Github
 from injector import inject
 
 from ose.ontology.ExcelOntology import ExcelOntology
@@ -25,7 +25,7 @@ class CleanUpBCIOVocabScript(Script):
         return "Cleanup terms on BCIO Vocab"
 
     @inject
-    def __init__(self, gh: GitHub, config: ConfigurationService) -> None:
+    def __init__(self, gh: Github, config: ConfigurationService) -> None:
         super().__init__()
         self.gh = gh
         self.config = config

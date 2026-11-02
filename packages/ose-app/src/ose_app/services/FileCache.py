@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict
 
 import requests
-from flask_github import GitHub
+from github import Github
 
 from ose_app.utils import get_file
 
@@ -72,7 +72,7 @@ class FileCache:
             del self._cache[id]
         return None
 
-    def get_from_github(self, gh: GitHub, repo: str, path: str, lifetime: Optional[int] = None) -> bytes:
+    def get_from_github(self, gh: Github, repo: str, path: str, lifetime: Optional[int] = None) -> bytes:
         self._load_cache()
 
         lifetime = lifetime or self.lifetime

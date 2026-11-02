@@ -1,4 +1,3 @@
-import base64
 import io
 import json
 import os
@@ -11,7 +10,7 @@ import jsonschema
 import openpyxl
 import requests
 from flask import jsonify, Blueprint, request, current_app, Response
-from flask_github import GitHub
+from github import Github
 from openpyxl.worksheet.worksheet import Worksheet
 
 from ose_app.guards.with_permission import requires_permissions
@@ -19,7 +18,7 @@ from ose.ontology import OntologyImport
 from ose.schema import TermIdentifier, termid
 from ose.utils import str_empty
 from ose_app.services.ConfigurationService import ConfigurationService
-from ose_app.utils import save_file
+from ose_app.utils import get_file, save_file
 
 bp = Blueprint("api_external", __name__, url_prefix="/api/external")
 
@@ -101,7 +100,7 @@ def guess_parent():
 
 @bp.route("/<repo>/import", methods=["POST"])
 @requires_permissions("edit")
-def import_term(repo: str, gh: GitHub, config: ConfigurationService):
+def import_term(repo: str, gh: Github, config: ConfigurationService):
     user_name = flask.g.user.github_login if flask.g.user else "*"
     user_repos = (config.app_config['USERS']
                   .get(user_name, config.app_config['USERS'].get("*", {}))
@@ -158,7 +157,7 @@ def _parse_term_identifier(value: str) -> TermIdentifier:
     return TermIdentifier(id=match.group(2), label=match.group(1))
 
 
-def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyImport], branch: str) -> bool:
+def update_imports(repo: str, repository: str, gh: Github, imps: List[OntologyImport], branch: str) -> bool:
     external_file = None
     if repo == "BCIO":
         external_file = "Upper Level BCIO/inputs/BCIO_External_Imports.xlsx"
@@ -168,10 +167,7 @@ def update_imports(repo: str, repository: str, gh: GitHub, imps: List[OntologyIm
         external_file = "imports/External_Imports.xlsx"
 
     if external_file is not None:
-        spreadsheet_file = gh.get(f'repos/{repository}/contents/{external_file}')
-        base64_bytes = spreadsheet_file['content'].encode('utf-8')
-        decoded_data = base64.decodebytes(base64_bytes)
-        wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
+        wb = openpyxl.load_workbook(io.BytesIO(get_file(gh, repository, external_file)))
         sheet = wb.active
         assert isinstance(sheet, Worksheet)
 

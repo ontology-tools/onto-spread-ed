@@ -7,28 +7,36 @@ import re
 from typing import List, Tuple, Dict, Optional, Literal, Union
 
 import openpyxl
-from flask_github import GitHub, GitHubError
+from github import Github, UnknownObjectException
+from github.GithubObject import NotSet
+from github.GitRelease import GitRelease
 
 _logger = logging.getLogger(__name__)
 
 
-def download_file(github: GitHub, repository_name: str, spreadsheet: str, outpath: str, branch: Optional[str] = None):
+def download_file(github: Github, repository_name: str, spreadsheet: str, outpath: str, branch: Optional[str] = None):
     content = get_file(github, repository_name, spreadsheet, branch=branch)
 
     with open(outpath, "wb") as f:
         f.write(content)
 
 
-def get_file(github: GitHub, repository_name: str, spreadsheet: str, branch: Optional[str] = None) -> bytes:
-    params = {"ref": branch} if branch else {}
-    response = github.get(
-        f'repos/{repository_name}/contents/{spreadsheet}',
-        headers={
-            "Accept": "application/vnd.github.raw+json"
-        },
-        params=params
-    )
-    return response.content
+def get_content(github: Github, repository_name: str, path: str, branch: Optional[str] = None) -> Tuple[str, bytes]:
+    """The sha and the content of a file. Raises `GithubException` if it cannot be read."""
+    repo = github.get_repo(repository_name)
+    file = repo.get_contents(path, ref=branch or NotSet)
+    if isinstance(file, list):
+        raise IsADirectoryError(f"'{path}' in '{repository_name}' is a directory")
+
+    if file.encoding == "base64":
+        return file.sha, file.decoded_content
+
+    # GitHub omits the content of files larger than 1 MB. Blobs are available up to 100 MB.
+    return file.sha, base64.b64decode(repo.get_git_blob(file.sha).content)
+
+
+def get_file(github: Github, repository_name: str, spreadsheet: str, branch: Optional[str] = None) -> bytes:
+    return get_content(github, repository_name, spreadsheet, branch)[1]
 
 
 def parse_spreadsheet(data: bytes) -> Tuple[List[Dict[str, str]], List[str]]:
@@ -49,124 +57,91 @@ def parse_spreadsheet(data: bytes) -> Tuple[List[Dict[str, str]], List[str]]:
     return rows, header
 
 
-def get_spreadsheet(github: GitHub,
+def get_spreadsheet(github: Github,
                     repository_name: str,
                     path: str,
                     branch: Optional[str] = None) -> Tuple[str, List[Dict[str, str]], List[str]]:
-    params = {"ref": branch} if branch else {}
-    spreadsheet_file = github.get(
-        f'repos/{repository_name}/contents/{path}',
-        params=params
-    )
-    file_sha = spreadsheet_file['sha']
-    base64_bytes = spreadsheet_file['content'].encode('utf-8')
-    decoded_data = base64.decodebytes(base64_bytes)
-
-    rows, header = parse_spreadsheet(decoded_data)
+    file_sha, data = get_content(github, repository_name, path, branch)
+    rows, header = parse_spreadsheet(data)
 
     return file_sha, rows, header
 
 
-def get_spreadsheets(github: GitHub,
+def get_spreadsheets(github: Github,
                      repository_name: str,
                      branch: str,
                      exclude_pattern: Optional[Union[re.Pattern, str]] = None,
                      include_pattern: Optional[Union[re.Pattern, str]] = None) -> list[str]:
-    tree = github.get(
-        f'repos/{repository_name}/git/trees/{branch}',
-        params={"recursive": "true"}
-    )
-    entries = tree["tree"]
+    tree = github.get_repo(repository_name).get_git_tree(branch, recursive=True)
 
-    return [x["path"] for x in entries if x["path"].endswith(".xlsx") and
-            (re.match(include_pattern, x["path"])
+    return [x.path for x in tree.tree if x.path.endswith(".xlsx") and
+            (re.match(include_pattern, x.path)
              if include_pattern is not None else
-             not (exclude_pattern and re.match(exclude_pattern, x["path"])))
+             not (exclude_pattern and re.match(exclude_pattern, x.path)))
             ]
 
 
-def create_branch(github: GitHub, repo: str, branch: str, parent_branch: str) -> None:
-    response = github.get(f"repos/{repo}/git/ref/heads/{parent_branch}")
-    if not response or "object" not in response or "sha" not in response["object"]:
-        raise Exception(f"Unable to get SHA for HEAD of {parent_branch} in {repo}")
-    sha = response["object"]["sha"]
-    # current_app.logger.debug("About to try to create branch in %s", f"repos/{repo_detail}/git/refs")
-    response = github.post(
-        f"repos/{repo}/git/refs", data={"ref": f"refs/heads/{branch}", "sha": sha},
-    )
-    if not response:
-        raise Exception(f"Unable to create new branch {branch} in {repo}")
+def create_branch(github: Github, repo: str, branch: str, parent_branch: str) -> None:
+    repository = github.get_repo(repo)
+    sha = repository.get_git_ref(f"heads/{parent_branch}").object.sha
+    repository.create_git_ref(f"refs/heads/{branch}", sha)
 
 
-def save_file(github: GitHub, repo: str, path: str, content: bytes, message: str, branch: str,
+def delete_branch(github: Github, repo: str, branch: str) -> None:
+    github.get_repo(repo).get_git_ref(f"heads/{branch}").delete()
+
+
+def merge_branch(github: Github, repo: str, head: str, base: str, commit_message: str) -> None:
+    """Merges `head` into `base` directly, without a pull request"""
+    github.get_repo(repo).merge(base=base, head=head, commit_message=commit_message)
+
+
+def save_file(github: Github, repo: str, path: str, content: bytes, message: str, branch: str,
               sha: Optional[str] = None) -> None:
     """
     Creates or overwrites the file. With `sha`, GitHub refuses the change (409) if the file changed after it had that
     sha.
     """
-    data = dict(
-        message=message,
-        branch=branch,
-        content=base64.b64encode(content).decode("ascii")
-    )
+    repository = github.get_repo(repo)
 
-    if sha is not None:
-        data["sha"] = sha
-    else:
+    if sha is None:
         # Check if the file already exists
         try:
-            response = github.get(
-                f'repos/{repo}/contents/{path}?ref={branch}'
-            )
-            data["sha"] = response["sha"]
-        except GitHubError as e:
-            if e.response.status_code != 404 and not e.response.ok:
-                raise e
+            existing = repository.get_contents(path, ref=branch)
+            if not isinstance(existing, list):
+                sha = existing.sha
+        except UnknownObjectException:
+            pass
 
-    github.put(f"repos/{repo}/contents/{path}", data=data)
-
-
-def create_pr(github: GitHub, repo: str, title: str, body: str, source: str, target: str) -> int:
-    response = github.post(
-        f"repos/{repo}/pulls",
-        data={
-            "title": title,
-            "head": source,
-            "base": target,
-            "body": body
-        },
-    )
-
-    return response['number']
+    if sha is None:
+        repository.create_file(path, message, content, branch=branch)
+    else:
+        repository.update_file(path, message, content, sha, branch=branch)
 
 
-def merge_pr(github: GitHub, repo: str, pr: int, merge_method: Literal['squash', 'merge', 'rebase'] = "squash") -> None:
-    github.put(f"repos/{repo}/pulls/{pr}/merge", data=dict(
-        merge_method=merge_method
-    ))
+def create_pr(github: Github, repo: str, title: str, body: str, source: str, target: str) -> int:
+    return github.get_repo(repo).create_pull(title=title, body=body, head=source, base=target).number
 
 
-def get_latest_release(gh: GitHub, full_repository_name: str) -> Optional[Dict[str, str]]:
+def merge_pr(github: Github, repo: str, pr: int, merge_method: Literal['squash', 'merge', 'rebase'] = "squash") -> None:
+    github.get_repo(repo).get_pull(pr).merge(merge_method=merge_method)
+
+
+def get_latest_release(gh: Github, full_repository_name: str) -> Optional[GitRelease]:
     try:
-        response = gh.get(f"repos/{full_repository_name}/releases/latest")
-        return response
-    except GitHubError as e:
-        if e.response.status_code == 404:
-            return None
-        else:
-            raise e
+        return gh.get_repo(full_repository_name).get_latest_release()
+    except UnknownObjectException:
+        return None
 
 
-def create_release(gh: GitHub, full_repository_name: str, tag_name: str, branch: str):
-    data = dict(
-        tag_name=tag_name,
-        target_commitish=branch,
+def create_release(gh: Github, full_repository_name: str, tag_name: str, branch: str):
+    gh.get_repo(full_repository_name).create_git_release(
+        tag=tag_name,
         name=tag_name,
-        body=f"Release {tag_name}"
+        message=f"Release {tag_name}",
+        target_commitish=branch,
     )
 
-    gh.post(f"repos/{full_repository_name}/releases", data=data)
 
-def get_branches(gh: GitHub, full_repository_name: str) -> list[str]:
-    branches = gh.get(f"repos/{full_repository_name}/branches")
-    return [b["name"] for b in branches]
+def get_branches(gh: Github, full_repository_name: str) -> list[str]:
+    return [b.name for b in gh.get_repo(full_repository_name).get_branches()]

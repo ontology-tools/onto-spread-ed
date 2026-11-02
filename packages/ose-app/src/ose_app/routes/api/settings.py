@@ -1,10 +1,9 @@
-import base64
 import hashlib
 import json
 
 import yaml
 from flask import Blueprint, request, jsonify
-from flask_github import GitHub, GitHubError
+from github import Github, GithubException
 from pydantic import ValidationError
 from yaml import YAMLError
 
@@ -12,11 +11,12 @@ from ose.building import available_stages
 from ose.project import Project
 
 from ose_app.guards.with_permission import requires_permissions
-from ose_app.helpers import NOT_AN_OBJECT, json_object
+from ose_app.routes.api.common import NOT_AN_OBJECT, json_object
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.FileCache import FileCache
 from ose_app.services.RepositoryConfigurationService import REPOSITORY_CONFIG_PATH_PROP, RepositoryConfigurationService
 from ose_app.utils import save_file
+from ose_app.utils.github import get_content
 from ose_app.utils.config_file import apply_changes
 
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
@@ -54,7 +54,7 @@ def get_project(repo: str, config: ConfigurationService):
 
 @bp.route("/repositories/<repo>/project", methods=["PUT"])
 @requires_permissions("repository-config-edit")
-def save_project(repo: str, config: ConfigurationService, gh: GitHub):
+def save_project(repo: str, config: ConfigurationService, gh: Github):
     old_project = config.get(repo)
     if old_project is None:
         return jsonify({"success": False, "error": f"No repository '{repo}' is loaded."}), 404
@@ -79,11 +79,11 @@ def save_project(repo: str, config: ConfigurationService, gh: GitHub):
     full_name, branch = old_project.full_repository_name, old_project.main_branch
     config_path = config.app_config[REPOSITORY_CONFIG_PATH_PROP]
     try:
-        current = gh.get(f"repos/{full_name}/contents/{config_path}", params={"ref": branch})
-        text = base64.b64decode(current["content"]).decode("utf-8")
+        current_sha, current = get_content(gh, full_name, config_path, branch)
+        text = current.decode("utf-8")
         document = yaml.safe_load(text)
         on_github = Project.model_validate(document)
-    except (GitHubError, YAMLError, ValidationError, UnicodeDecodeError) as e:
+    except (GithubException, IsADirectoryError, YAMLError, ValidationError, UnicodeDecodeError) as e:
         return jsonify({"success": False, "error": f"Could not read the current configuration from GitHub: {e}"}), 502
 
     if on_github.model_dump(mode="json") != old:
@@ -98,9 +98,9 @@ def save_project(repo: str, config: ConfigurationService, gh: GitHub):
                yaml.safe_dump(document, sort_keys=False, allow_unicode=True))
 
     try:
-        save_file(gh, full_name, config_path, content.encode(), commit_message, branch, sha=current["sha"])
-    except GitHubError as e:
-        if e.response.status_code == 409:
+        save_file(gh, full_name, config_path, content.encode(), commit_message, branch, sha=current_sha)
+    except GithubException as e:
+        if e.status == 409:
             return jsonify({"success": False, "error": "The configuration was changed on GitHub meanwhile. "
                                                        "Reload the configuration and apply your changes again."}), 409
         raise
@@ -111,12 +111,11 @@ def save_project(repo: str, config: ConfigurationService, gh: GitHub):
 
 @bp.route("/repositories/possibilities", methods=["GET"])
 @requires_permissions("repository-config-manage-loaded")
-def possible_repositories(config: ConfigurationService, gh: GitHub):
+def possible_repositories(config: ConfigurationService, gh: Github):
     if not isinstance(config, RepositoryConfigurationService):
         return jsonify({"success": False, "message": "Not supported!"}), 400
 
-    response = gh.get("/user/repos", all_pages=True)
-    repos = [{"short_name": r["name"], "full_name": r["full_name"]} for r in response]
+    repos = [{"short_name": r.name, "full_name": r.full_name} for r in gh.get_user().get_repos()]
 
     return jsonify({"success": True, "repositories": repos})
 

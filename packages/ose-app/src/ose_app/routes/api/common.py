@@ -1,15 +1,14 @@
 """
 Logic shared between the JSON API routes.
 """
-from urllib.parse import quote
 from typing import Any, Dict, List, Optional
 
 from flask import current_app, g, request
-from flask_github import GitHub
+from github import Github
 
 from ose_app.PermissionManager import PermissionManager
 from ose_app.services.ConfigurationService import ConfigurationService
-from ose_app.utils.github import get_branches
+from ose_app.utils.github import get_branches, get_content
 
 
 def json_object() -> Optional[Dict[str, Any]]:
@@ -58,7 +57,7 @@ def filter_tree_entries(items: List[dict]) -> List[Dict[str, str]]:
     return entries
 
 
-def repo_tree(github: GitHub, config: ConfigurationService, repo_key: str,
+def repo_tree(github: Github, config: ConfigurationService, repo_key: str,
               branch: Optional[str] = None) -> Optional[dict]:
     """Whole tree of a branch, shown on the repository browsing page. Returns None for unknown repositories."""
     repository = config.get(repo_key)
@@ -67,8 +66,7 @@ def repo_tree(github: GitHub, config: ConfigurationService, repo_key: str,
 
     active_branch = branch or repository.main_branch
     branches = get_branches(github, repository.full_repository_name)
-    result = github.get(f'repos/{repository.full_repository_name}/git/trees/{quote(active_branch, safe="")}',
-                        params={"recursive": 1})
+    tree = github.get_repo(repository.full_repository_name).get_git_tree(active_branch, recursive=True)
 
     return dict(
         repo_name=repo_key,
@@ -76,16 +74,18 @@ def repo_tree(github: GitHub, config: ConfigurationService, repo_key: str,
         branches=branches,
         active_branch=active_branch,
         main_branch=repository.main_branch,
-        entries=filter_tree_entries(result.get("tree", [])),
-        truncated=bool(result.get("truncated")),  # ponytail: huge repos are cut off by GitHub, not paged through
+        entries=filter_tree_entries([e.raw_data for e in tree.tree]),
+        truncated=bool(tree.raw_data.get("truncated")),
     )
 
 
-def is_up_to_date(github: GitHub, config: ConfigurationService, repo_key: str, folder: str, spreadsheet: str,
+def is_up_to_date(github: Github, config: ConfigurationService, repo_key: str, folder: str, spreadsheet: str,
                   old_sha: str, branch: Optional[str] = None) -> bool:
     repository = config.get(repo_key)
-    params = {"ref": branch} if branch else {}
-    spreadsheet_file = github.get(f'repos/{repository.full_repository_name}/contents/{folder}/{spreadsheet}',
-                                  params=params)
-    return old_sha == spreadsheet_file['sha']
+    
+    if repository is None:
+        return False
+    
+    sha, _ = get_content(github, repository.full_repository_name, f"{folder}/{spreadsheet}", branch)
+    return old_sha == sha
 
