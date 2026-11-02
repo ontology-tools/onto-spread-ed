@@ -7,11 +7,15 @@ import re
 from typing import List, Tuple, Dict, Optional, Literal, Union
 
 import openpyxl
-from github import Github, UnknownObjectException
+from github import Github, GithubException, UnknownObjectException
 from github.GithubObject import NotSet
 from github.GitRelease import GitRelease
 
 _logger = logging.getLogger(__name__)
+
+
+def is_unauthorized(e: BaseException) -> bool:
+    return isinstance(e, GithubException) and e.status == 401
 
 
 def download_file(github: Github, repository_name: str, spreadsheet: str, outpath: str, branch: Optional[str] = None):

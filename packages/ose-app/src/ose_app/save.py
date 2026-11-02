@@ -14,7 +14,7 @@ from openpyxl.styles import Font, PatternFill
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.utils import get_spreadsheet, create_branch
-from ose_app.utils.github import delete_branch, merge_branch
+from ose_app.utils.github import delete_branch, is_unauthorized, merge_branch
 
 
 def save_spreadsheet(searcher: SpreadsheetSearcher, github: Github, config: ConfigurationService, repo_key: str,
@@ -226,6 +226,8 @@ def save_spreadsheet(searcher: SpreadsheetSearcher, github: Github, config: Conf
         })
 
     except Exception as err:
+        if is_unauthorized(err):
+            raise
         current_app.logger.error(err)
         traceback.print_exc()
         return jsonify({

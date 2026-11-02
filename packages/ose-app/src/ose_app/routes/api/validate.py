@@ -15,6 +15,7 @@ from ose.project import ProjectFile
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.FileCache import FileCache
 from ose_app.utils import get_file
+from ose_app.utils.github import is_unauthorized
 
 bp = Blueprint("api_validate", __name__, url_prefix="/api/validate")
 
@@ -212,6 +213,8 @@ def validate_file(config: ConfigurationService, gh: Github, cache: FileCache):
                 external = ExcelOntology.from_owl(external_raw, project.prefixes).value_or_raise()
                 o.import_other_excel_ontology(external)
             except Exception as e:
+                if is_unauthorized(e):
+                    raise
                 current_app.logger.error(e)
 
         if "include-dependencies" in project.validation:

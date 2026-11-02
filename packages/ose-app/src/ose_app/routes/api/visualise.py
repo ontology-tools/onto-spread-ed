@@ -11,6 +11,7 @@ from ose.project import ProjectFile
 from ose.schema import Term, UnresolvedTerm, TermIdentifier
 from ose_app.services.FileCache import FileCache
 from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.utils.github import is_unauthorized
 
 logger = logging.getLogger(__name__)
 
@@ -218,6 +219,8 @@ def get_dependencies(
         return jsonify({"success": True, "data": ontology_data}), 200
 
     except Exception as e:
+        if is_unauthorized(e):
+            raise
         logger.error(f"Error loading dependencies for {repo}/{path}: {str(e)}")
         logger.error(traceback.format_exc())
         return (

@@ -16,7 +16,7 @@ from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.FileCache import FileCache
 from ose_app.services.RepositoryConfigurationService import REPOSITORY_CONFIG_PATH_PROP, RepositoryConfigurationService
 from ose_app.utils import save_file
-from ose_app.utils.github import get_content
+from ose_app.utils.github import get_content, is_unauthorized
 from ose_app.utils.config_file import apply_changes
 
 bp = Blueprint("api_settings", __name__, url_prefix="/api/settings")
@@ -84,6 +84,8 @@ def save_project(repo: str, config: ConfigurationService, gh: Github):
         document = yaml.safe_load(text)
         on_github = Project.model_validate(document)
     except (GithubException, IsADirectoryError, YAMLError, ValidationError, UnicodeDecodeError) as e:
+        if is_unauthorized(e):
+            raise
         return jsonify({"success": False, "error": f"Could not read the current configuration from GitHub: {e}"}), 502
 
     if on_github.model_dump(mode="json") != old:

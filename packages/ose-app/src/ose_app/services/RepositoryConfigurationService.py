@@ -10,7 +10,7 @@ from github import GithubException
 from ose.project import Project
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.GithubService import GithubService
-from ose_app.utils.github import get_file
+from ose_app.utils.github import get_file, is_unauthorized
 
 REPOSITORY_CONFIG_PATH_PROP = "REPOSITORIES_REPOSITORY_CONFIG_PATH"
 REPOSITORY_CONFIG_STARTUP_REPOSITORIES_PROP = "REPOSITORIES_REPOSITORY_CONFIG_STARTUP_REPOSITORIES_FILE"
@@ -130,11 +130,15 @@ class RepositoryConfigurationService(ConfigurationService):
 
         requester = self._github_service.current_client().requester
         try:
-            status, _, body = requester.requestJson("GET", "/" + url.lstrip("/"), headers=self._headers)
+            status, headers, body = requester.requestJson("GET", "/" + url.lstrip("/"), headers=self._headers)
         except (GithubException, requests.RequestException) as e:
+            if is_unauthorized(e):
+                raise
             self._logger.warning(f"Could not get repository configuration from '{url}': {e}")
             return None
 
+        if status == 401:
+            raise GithubException(status, body, headers)
         if not 200 <= status < 300:
             self._logger.warning(f"Could not get repository configuration from '{url}': {status} {body}")
             return None
@@ -159,6 +163,8 @@ class RepositoryConfigurationService(ConfigurationService):
         try:
             return get_file(self._github_service.current_client(), config.full_repository_name, path)
         except (GithubException, IsADirectoryError) as e:
+            if is_unauthorized(e):
+                raise
             self._logger.warning(f"Could not get file '{path}': {e}")
             return None
 

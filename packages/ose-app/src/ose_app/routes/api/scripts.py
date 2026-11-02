@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, jsonify
 from ose_app.guards.with_permission import requires_permissions
 from ose_app.routes.api.common import json_object
 from ose_app.services.PluginService import PluginService
+from ose_app.utils.github import is_unauthorized
 
 bp = Blueprint("api_scripts", __name__, url_prefix="/api/scripts")
 
@@ -45,7 +46,9 @@ def run_script(plugin_service: PluginService, name: str):
             result = asyncio.run(result)
 
         return jsonify({"success": True, "result": result})
-    except Exception:
+    except Exception as e:
+        if is_unauthorized(e):
+            raise
         error = traceback.format_exc()
         current_app.logger.error(error)
         return jsonify({"success": False, "error": error}), 500

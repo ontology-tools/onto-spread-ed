@@ -17,6 +17,7 @@ from ose.ontology import ExcelOntology
 from ose_app.services.ConfigurationService import ConfigurationService
 from ose_app.services.FileCache import FileCache
 from ose_app.utils import get_file, get_spreadsheet, save_file
+from ose_app.utils.github import is_unauthorized
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
@@ -160,6 +161,8 @@ def get_data(repo: str, path: str, gh: Github, config: ConfigurationService, per
 
         return jsonify({"success": True, "spreadsheet": data}), 200
     except GithubException as e:
+        if is_unauthorized(e):
+            raise
         current_app.logger.error(e)
         return jsonify({"success": False, "error": f"Failed when communicating with github: {e}"}), 200
 
@@ -185,6 +188,8 @@ def get_suggestions(repo: str, permission_manager: PermissionManager, config: Co
 
         suggestions_external = [t.label for t in external.terms()]
     except Exception as e:
+        if is_unauthorized(e):
+            raise
         current_app.logger.error(e)
 
     suggestions = suggestions_index + suggestions_external
