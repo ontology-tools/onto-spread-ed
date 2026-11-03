@@ -38,7 +38,6 @@ packages/
 │   │   ├── database/   # SQLAlchemy models
 │   │   ├── guards/     # Auth decorators
 │   │   └── static/app/ # Built Vue SPA (output of the ose-js-app build)
-│   ├── API.md          # JSON API reference
 │   └── pyproject.toml
 │
 ├── ose-js-core/        # Shared TypeScript library

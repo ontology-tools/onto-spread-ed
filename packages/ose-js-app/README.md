@@ -5,7 +5,7 @@ Vue 3 single-page app for OntoSpreadEd - the Ontology Spreadsheet Editor.
 ## Description
 
 The whole web UI is this one SPA (vue-router, history mode). Flask (`ose-app`) only provides the JSON API
-(`packages/ose-app/API.md`), the OAuth routes and static files, and serves the built app as a catch-all.
+(`routes/api/` in `ose-app`), the OAuth routes and static files, and serves the built app as a catch-all.
 It includes:
 
 - Spreadsheet editor with Tabulator.js integration
@@ -112,7 +112,7 @@ The router resets the layout when the path changes, so each page sets it again o
 1. Create `src/<area>/MyPage.vue`. Load data with `api()` and set `layout.breadcrumb` (and branches if needed).
 2. Add a lazy route in `src/router.ts` (`meta: {bare: true}` for no navbar/breadcrumb). Flask needs no change: its catch-all
    serves every non-`/api`, non-`/static` GET.
-3. If the page needs data, add a JSON endpoint under `/api/` in `ose-app` (`routes/api/`, guarded by `requires_permissions`) and document it in `packages/ose-app/API.md`.
+3. If the page needs data, add a JSON endpoint under `/api/` in `ose-app` (`routes/api/`, guarded by `requires_permissions`).
 4. Link to it with `<RouterLink to="/...">`; never include the prefix, the router adds it.
 
 ## Plugins
