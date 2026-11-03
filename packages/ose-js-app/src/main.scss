@@ -203,3 +203,18 @@ nav {
   color: var(--bs-gray-600);
   font-size: x-small;
 }
+// Routes with `meta: {fillHeight: true}` fill the window: the navbar and breadcrumb stay at the top and the page's
+// root element (a flex child of #content) gets the remaining height to scroll in
+.app-layout.fill-height {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  > .container-fluid,
+  #content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+}

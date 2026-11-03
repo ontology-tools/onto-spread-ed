@@ -29,7 +29,7 @@ import {
 import { buildGraphFromSpreadsheet, type DependencyData } from './graph-builder';
 import { NavigateToTermMessage } from "@ontospreaded/js-core";
 
-import { prefix as URL_PREFIX } from '../api';
+import { api } from '../api';
 
 
 const data = ref<VisualisationData | null>(window.ose?.visualise ?? null);
@@ -174,13 +174,7 @@ async function fetchGraph() {
   loading.value = true;
   error.value = null;
   try {
-    const response = await fetch(`${URL_PREFIX}/api/visualise/dependencies/${sheetData.value.repo_name}/${sheetData.value.folder}/${sheetData.value.spreadsheet_name}`);
-
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
+    const result = await api(`/api/visualise/dependencies/${sheetData.value.repo_name}/${sheetData.value.folder}/${sheetData.value.spreadsheet_name}`);
 
     if (!result.success) {
       throw new Error(result.error || 'Failed to load dependencies');

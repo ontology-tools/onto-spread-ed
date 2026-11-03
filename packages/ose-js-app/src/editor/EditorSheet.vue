@@ -1403,8 +1403,16 @@ function defColumnSize(field: string): number {
 </template>
 
 <style lang="scss">
+.merge-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// The edit route fills the window (meta.fillHeight), so the editor takes the height left below the breadcrumb
 .editor-container {
-  height: calc(100vh - 143px);
+  flex: 1;
+  min-height: 0;
   width: 100%;
   display: flex;
   flex-direction: column;

@@ -9,8 +9,11 @@ export const router = createRouter({
     routes: [
         {path: "/", component: Home},
         {path: "/home", component: Home},
-        {path: "/repo/:repo/:path(.*)*", name: "repo", component: Repo},
-        {path: "/edit/:repo/:path(.*)+", name: "edit", component: () => import("./editor/Editor.vue")},
+        {path: "/repo/:repo/:path(.*)*", name: "repo", component: Repo, meta: {fillHeight: true}},
+        {
+            path: "/edit/:repo/:path(.*)+", name: "edit", component: () => import("./editor/Editor.vue"),
+            meta: {fillHeight: true},
+        },
         // Links of the former server-rendered pages
         {
             path: "/direct",

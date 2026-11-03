@@ -179,7 +179,7 @@ async function search(type: "search" | "initials") {
 
 <template>
   <div v-if="error" class="alert alert-danger">{{ error }}</div>
-  <template v-else>
+  <div v-else class="repo-page">
     <h2 class="mt-3">{{ repo }}</h2>
 
     <label class="font-weight-bold form-label" for="inputText">Search across all spreadsheets:</label>
@@ -201,12 +201,14 @@ async function search(type: "search" | "initials") {
       <div v-else ref="tableEl" class="mt-2" style="font-size: 0.8em; width: 100%;"></div>
     </div>
 
-    <div v-if="!tree" class="spinner-border spinner-border-sm mt-3" role="status"></div>
+    <div v-if="!tree" class="loading-tree" role="status">
+      <div class="loader"></div>
+    </div>
     <template v-else>
       <p v-if="tree.truncated" class="alert alert-warning mt-3">
         The repository is too large; the file tree is incomplete.
       </p>
-      <ul class="list-unstyled mt-3">
+      <ul class="file-tree list-unstyled mt-3">
         <li class="p-1">
           <i class="fa-solid fa-folder-open me-2" style="color: orange"></i><strong>{{ repo }}</strong>
         </li>
@@ -223,5 +225,32 @@ async function search(type: "search" | "initials") {
         </li>
       </ul>
     </template>
-  </template>
+  </div>
 </template>
+
+<style scoped>
+/* The route fills the window (meta.fillHeight), so the header and search stay put and only the tree scrolls */
+.repo-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-tree {
+  flex: 1;
+  min-height: 8rem;
+  overflow-y: auto;
+}
+
+/* Centered in the space left below the search */
+.loading-tree {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+.loading-tree .loader {
+  transform: scale(2);
+}
+</style>

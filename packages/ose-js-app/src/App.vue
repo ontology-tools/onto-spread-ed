@@ -18,6 +18,8 @@ watch(me, m => {
 });
 
 const bare = computed(() => route.meta.bare === true);
+// The page fills the window below the navbar and breadcrumb and scrolls internally instead of the whole page
+const fillHeight = computed(() => route.meta.fillHeight === true);
 
 const loginUrl = computed(() => `${prefix}/login?next=${encodeURIComponent(window.location.origin + prefix + (route.path === "/loggedout" ? "/" : route.fullPath))}`);
 
@@ -30,7 +32,7 @@ function setBranch(branch: string) {
 
 <template>
   <router-view v-if="bare"/>
-  <template v-else>
+  <div v-else class="app-layout" :class="{'fill-height': fillHeight}">
     <div v-if="me?.environment === 'test'" class="banner">
       <i class="fa fa-exclamation-triangle"></i> THIS IS A TEST INSTANCE WORKING WITH (POSSIBLY
       OUTDATED) COPIES OF THE ONTOLOGIES <i class="fa fa-exclamation-triangle"></i>
@@ -98,6 +100,6 @@ function setBranch(branch: string) {
         <small>v{{ me?.app_version }}</small>
       </div>
     </div>
-  </template>
+  </div>
   <BToastOrchestrator/>
 </template>
