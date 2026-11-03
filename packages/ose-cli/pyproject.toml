@@ -6,10 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "ose-cli"
 description = "CLI for OntoSpreadEd - Ontology spreadsheet editor"
 requires-python = ">=3.13"
-version = "1.4.2"
+version = "2.0.0"
 
 dependencies = [
-    "ose-lib==1.4.2",
+    "ose-lib==2.0.0",
     "click>=8.0",
     "pyyaml>=6.0",
 ]

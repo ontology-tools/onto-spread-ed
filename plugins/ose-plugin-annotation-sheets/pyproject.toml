@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ose-plugin-annotation-sheets"
-version = "1.4.2"
+version = "2.0.0"
 description = "OntoSpreadEd plugin for generating annotation sheet templates"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "networkx>=3.6.1",
     "openpyxl>=3.1.0",
-    "ose-lib==1.4.2",
+    "ose-lib==2.0.0",
 ]
 
 [project.entry-points.'ose.build_stages']

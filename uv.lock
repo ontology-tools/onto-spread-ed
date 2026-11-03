@@ -1305,7 +1305,7 @@ wheels = [
 
 [[package]]
 name = "ose-app"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "packages/ose-app" }
 dependencies = [
     { name = "daff" },
@@ -1367,7 +1367,7 @@ dev = [
 
 [[package]]
 name = "ose-cli"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "packages/ose-cli" }
 dependencies = [
     { name = "click" },
@@ -1393,7 +1393,7 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "ose-lib"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "packages/ose-lib" }
 dependencies = [
     { name = "networkx" },
@@ -1426,7 +1426,7 @@ dev = [
 
 [[package]]
 name = "ose-plugin-addicto"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "plugins/ose-plugin-addicto" }
 dependencies = [
     { name = "ose-lib" },
@@ -1441,7 +1441,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-annotation-sheets"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "plugins/ose-plugin-annotation-sheets" }
 dependencies = [
     { name = "networkx" },
@@ -1458,7 +1458,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-bcio"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "plugins/ose-plugin-bcio" }
 dependencies = [
     { name = "ose-app" },
@@ -1475,7 +1475,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-hbcp"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "plugins/ose-plugin-hbcp" }
 dependencies = [
     { name = "aiohttp" },
@@ -1492,7 +1492,7 @@ requires-dist = [
 
 [[package]]
 name = "ose-plugin-hierarchical-spreadsheets"
-version = "1.4.2"
+version = "2.0.0"
 source = { editable = "plugins/ose-plugin-hierarchical-spreadsheets" }
 dependencies = [
     { name = "networkx" },

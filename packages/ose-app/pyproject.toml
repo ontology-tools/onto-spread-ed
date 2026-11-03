@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ose-app"
 description = "Flask web application for OntoSpreadEd - Ontology spreadsheet editor"
 requires-python = ">=3.13"
-version = "1.4.2"
+version = "2.0.0"
 
 dependencies = [
     "ose-lib",
