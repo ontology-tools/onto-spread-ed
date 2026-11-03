@@ -124,7 +124,7 @@ def engine(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'ose.db'}")
     Base.metadata.create_all(engine)
     with Session(engine) as s:
-        s.add(User("token", id=1, github_login="user"))
+        s.add(User("token", id=1, github_id=1, github_login="user"))
         s.commit()
     return engine
 
@@ -216,7 +216,7 @@ def given_back(release: Release) -> bool:
 @pytest.mark.parametrize("requested_by, expected_token", [("user", "token"), ("missing", None), (None, None)])
 def test_loads_requester_token_by_github_username(engine, tmp_path, runner, requested_by, expected_token):
     with Session(engine) as s:
-        s.add(User("starter-token", github_login="starter"))
+        s.add(User("starter-token", github_id=2, github_login="starter"))
         s.commit()
     release_id = add_release(engine, tmp_path, "RECORD", started_by="starter", requested_by=requested_by)
 
@@ -371,7 +371,7 @@ def test_cancel_endpoint_clears_requests_without_scheduling_stages(engine, tmp_p
     release_id = add_release(engine, tmp_path, "CLEANUP", requested_action="rerun", worker_id=worker_id)
     app = Flask(__name__)
     with app.test_request_context(), Session(engine) as s:
-        g.user = User("token", id=1, github_login="user")
+        g.user = User("token", id=1, github_id=1, github_login="user")
         response = release_cancel.__wrapped__("EX", types.SimpleNamespace(session=s))
 
     data = response.get_json()
