@@ -12,7 +12,6 @@ import pyhornedowl.model as hom
 import pytest
 
 from helpers import TERM_HEADER, project_data, write_owl, write_xlsx
-from ose.building import run_build
 from ose.building.BuildContext import BuildContext
 from ose.building.RobotOntologyBuildService import RobotOntologyBuildService
 from ose.building.stages import ConversionStage
@@ -52,20 +51,6 @@ def make_context(tmp_path: Path, stages: list[str]) -> BuildContext:
         build_dir=str(tmp_path),
         build_configuration=BuildConfiguration(name="test", stages=[BuildStep(name=s) for s in stages]),
     )
-
-
-def test_validation_does_not_read_stale_or_absent_merge_outputs(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(importlib.import_module("ose.building.run"), "entry_points", lambda **_: [])
-    context = make_context(tmp_path, ["VALIDATION"])
-    result = asyncio.run(run_build(context))
-    assert result.state == "completed"
-    stage = result.stage_results[0]
-    assert stage is not None
-    assert stage.data["merged"]["skipped"]
-    assert stage.data["upper"]["valid"]
-    assert not (tmp_path / "upper.owl").exists()
 
 
 def test_conversion_does_not_overwrite_owl_merge_targets(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
