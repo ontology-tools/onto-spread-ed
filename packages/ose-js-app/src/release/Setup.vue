@@ -1,77 +1,53 @@
 <script lang="ts" setup>
 import {computed, onMounted, Ref, ref, watch} from "vue";
-import {Release, ReleaseScript} from "@ontospreaded/js-core"
-import ReleaseScriptViewer from "./ReleaseScriptViewer.vue";
-
-const showAdvanced = ref<boolean>()
-const releaseScript: Ref<ReleaseScript | null> = ref(null);
-declare var URLS: { [key: string]: any }
-const prefix_url = URLS.prefix
-
-const saving = ref<"idle" | "saving" | "error" | "success">("idle")
+import {BuildConfiguration, Project, Release} from "@ontospreaded/js-core"
+import {api, useMe} from "../api";
 
 const props = defineProps<{ repo?: string }>()
 
-const lastReleases = ref<Release[] | null>(null)
+defineEmits<{
+  (e: 'settingsConfirmed', buildConfiguration: BuildConfiguration): void
+}>()
 
-const loading = computed(() => lastReleases.value === null)
+const {me} = useMe();
+const canViewSettings = computed(() => !!me.value?.permissions?.some(p => p === "repository-config-view" || p === "admin"));
+
+const project: Ref<Project | null> = ref(null);
+const buildConfiguration: Ref<BuildConfiguration | null> = ref(null);
+/** Releases of the repository, the latest first */
+const lastReleases = ref<Release[] | null>(null)
+const error = ref<string | null>(null)
+
+const loading = computed(() => lastReleases.value === null && error.value === null)
 const lastSuccessfulRelease = computed(() => lastReleases.value?.find(x => x.state === "completed") ?? null)
 const lastRelease = computed(() => lastReleases.value?.[0] ?? null)
 
-defineEmits<{
-  (e: 'settingsConfirmed', script: ReleaseScript): void
-}>()
-
-watch(props, (value, oldValue) => value.repo !== oldValue.repo && update())
+watch(() => props.repo, () => update())
 
 async function update() {
-  if (props.repo) {
-    releaseScript.value = null
-    releaseScript.value = await (await fetch(`${prefix_url}/api/release/${props.repo}/release_script`)).json()
+  project.value = null
+  buildConfiguration.value = null
+  lastReleases.value = null
+  error.value = null
+  if (!props.repo) return
 
-    const releases: Release[] = await (await fetch(`${prefix_url}/api/release/${props.repo}`)).json()
-    releases.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
-    lastReleases.value = releases
-  }
-}
-
-let _saveFileAnimationTimeout: number | null = null;
-
-async function saveFile($event: MouseEvent) {
-  $event.preventDefault()
-
-  if (_saveFileAnimationTimeout !== null) {
-    clearTimeout(_saveFileAnimationTimeout)
-  }
-
-  saving.value = "saving"
-
+  const repo = props.repo
   try {
-    const response = await fetch(`${prefix_url}/api/release/${props.repo}/release_script`, {
-      method: "PUT",
-      headers: {
-        'Content-Type': "application/json"
-      },
-      body: JSON.stringify(releaseScript.value)
-    })
+    const [p, releases] = await Promise.all([
+      api<Project>(`/api/release/${repo}/release_script`),
+      api<Release[]>(`/api/release/${repo}`),
+    ])
+    if (repo !== props.repo) return
 
-    if (response.ok) {
-      saving.value = "success";
-    } else {
-      saving.value = "error"
-    }
-  } catch (e) {
-    saving.value = "error"
+    project.value = p
+    buildConfiguration.value = p.build_configurations[0] ?? null
+    lastReleases.value = releases.sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
+  } catch (e: any) {
+    if (repo === props.repo) error.value = e.message
   }
-
-  _saveFileAnimationTimeout = setTimeout(() => {
-    saving.value = "idle";
-    _saveFileAnimationTimeout = null
-  }, 5000)
 }
 
 onMounted(() => update())
-
 </script>
 
 <template>
@@ -79,7 +55,8 @@ onMounted(() => update())
   <div class="preparation">
 
     <h3>Release setup</h3>
-    <p>
+    <div v-if="error" class="alert alert-danger">Loading the release setup of {{ repo }} failed: {{ error }}</div>
+    <p v-else>
       Currently, there is no release running for {{ repo }}.
       <template v-if="loading">
         <span class="placeholder" style="width: 400px"></span>
@@ -97,64 +74,45 @@ onMounted(() => update())
       </template>
     </p>
 
-    <div class="btn-group  w-100">
+    <p v-if="project && project.build_configurations.length === 0" class="alert alert-warning">
+      The project has no build configuration. Add one in the project settings to start a release.
+    </p>
 
-      <button :disabled="!releaseScript" class="btn btn-success"
-              @click="$emit('settingsConfirmed', releaseScript)">
+    <div class="d-flex gap-2">
+      <button :disabled="!buildConfiguration" class="btn btn-success flex-grow-1"
+              @click="$emit('settingsConfirmed', buildConfiguration!)">
         <i class="fa fa-play"></i>
         Start a release
       </button>
-      <button :disabled="!releaseScript" class="btn btn-success dropdown-toggle dropdown-toggle-split flex-grow-0"
-              data-bs-toggle="dropdown"
-              type="button">
-      </button>
-
-      <ul class="dropdown-menu">
-        <li><a class="dropdown-item" href="#" @click="showAdvanced = !showAdvanced">
-          <i :class="[showAdvanced ? 'fa-check-square' : 'fa-square']" class="fa-regular"></i> Show advanced
-          configuration
-        </a></li>
-      </ul>
+      <select v-if="(project?.build_configurations.length ?? 0) > 1" v-model="buildConfiguration"
+              class="form-select flex-grow-0 w-auto" title="Build configuration">
+        <option v-for="bc in project?.build_configurations" :value="bc">{{ bc.name }}</option>
+      </select>
+      <RouterLink v-if="canViewSettings && repo"
+                  :to="{name: 'project-settings', params: {repo, tab: 'builds'}}"
+                  class="btn btn-outline-secondary" title="Edit the build configurations in the project settings">
+        <i class="fa fa-gear"></i> Configure
+      </RouterLink>
     </div>
+    <p v-if="buildConfiguration?.description" class="text-body-secondary mt-2 mb-0">
+      {{ buildConfiguration.description }}
+    </p>
+
     <ul class="list-group mt-2">
       <li v-for="release in lastReleases" class="list-group-item ">
-        <a class=" d-flex justify-content-between align-items-start" style="text-decoration: none; color: inherit" :href="`${release.id}`">
+        <RouterLink class="d-flex justify-content-between align-items-start" style="text-decoration: none; color: inherit" :to="`/admin/release/${release.id}`">
           <div class="ms-2 me-auto">
             <div class="fw-bold">{{ $filters.formatDate(release.start) }}</div>
             {{ release.started_by }}
           </div>
           <span class="badge rounded-pill" :class="{
-            'text-bg-primary': ['running', 'waiting-for-user'].indexOf(release.state) >=0,
-            'text-bg-success': release.state === 'success',
-            'text-bg-error': release.state === 'errored',
-            'text-bg-secondary': release.state === 'canceled',
+            'text-bg-primary': ['starting', 'running', 'paused'].indexOf(release.state) >=0,
+            'text-bg-success': release.state === 'completed',
+            'text-bg-danger': release.state === 'errored',
+            'text-bg-secondary': release.state === 'cancelled',
           }">{{ release.state }}</span>
-        </a>
+        </RouterLink>
       </li>
     </ul>
-
-
-    <ReleaseScriptViewer v-if="!!releaseScript && showAdvanced" :release-script="releaseScript"
-                         class="mt-2">
-      <template v-slot:buttons>
-        <button :class="({
-                  'btn-primary': saving === 'idle' || saving === 'saving',
-                  'btn-success': saving === 'success',
-                  'btn-danger': saving === 'error'
-                })"
-                class="mb-3 btn btn-sm btn-primary"
-                @click="saveFile">
-          <i v-if="saving === 'idle'" class="fa fa-save"></i>
-          <i v-if="saving === 'saving'" class="fa fa-spin fa-spinner"></i>
-          <i v-if="saving === 'success'" class="fa fa-check"></i>
-          <i v-if="saving === 'error'" class="fa fa-xmark"></i>
-          Save release script
-        </button>
-      </template>
-    </ReleaseScriptViewer>
   </div>
 </template>
-
-<style scoped>
-
-</style>

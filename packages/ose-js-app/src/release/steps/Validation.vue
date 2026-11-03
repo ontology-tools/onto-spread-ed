@@ -1,21 +1,14 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
-import {AutoFixState, Diagnostic as DiagnosticM, Release, Term, ProgressIndicator} from "@ontospreaded/js-core";
+import {AutoFixState, Diagnostic as DiagnosticM, Release, StageDetails, Term, ProgressIndicator} from "@ontospreaded/js-core";
 import ErrorLink from "../ErrorLink.vue";
 import {guessParent} from "../autofix/guessParent"
 import Diagnostic from "../../common/Diagnostic.vue";
 
-declare var URLS: { [key: string]: any }
-const prefix_url = URLS.prefix
+import { prefix as prefix_url } from "../../config";
 
 const props = defineProps<{
-  data: {
-    [K: string]: {
-      errors: DiagnosticM[],
-      warnings: DiagnosticM[],
-      info: DiagnosticM[]
-    }
-  } | null,
+  data: StageDetails | null,
   release: Release,
   selectedSubStep: string | null
 }>()
@@ -31,25 +24,19 @@ function autoFixState(diag: DiagnosticM): AutoFixState | null {
   return autoFixStates.value[id] ?? null
 }
 
-const errors = computed<DiagnosticM[] | null>(() => {
-  if (!props.data) {
-    return null
-  }
+const errors = computed<DiagnosticM[] | null>(() => props.data?.errors ?? null)
+const warnings = computed<DiagnosticM[] | null>(() => props.data?.warnings ?? null)
 
-  return Object.values(props.data).flatMap((v) => v.errors)
-})
-const warnings = computed<any[] | null>(() => {
-  if (!props.data) {
-    return null
-  }
+// The validation results per file
+const sources = computed<string[]>(() => Object.entries(props.data ?? {})
+    .filter(([k, v]) => !k.startsWith("_") && Array.isArray(v?.errors) && Array.isArray(v?.warnings) &&
+        ["errors", "warnings", "infos"].indexOf(k) < 0)
+    .map(([k, _]) => k))
 
-  return Object.values(props.data).flatMap((v) => v.warnings)
-})
+const shortRepoName = computed(() => props.release.repo)
 
-const shortRepoName = computed(() => props.release.release_script.short_repository_name)
-
-async function updateTerm(path: string, id: Term, term: Term): Promise<AutoFixState> {
-  const repo = props.release.release_script.short_repository_name
+async function updateTerm(path: string, id: string, term: Term): Promise<AutoFixState> {
+  const repo = props.release.repo
 
   try {
     const response = await fetch(`${prefix_url}/api/edit/${repo}/${path}`, {
@@ -90,7 +77,7 @@ async function autofix(error: DiagnosticM) {
     return
   }
 
-  const repo = props.release.release_script.short_repository_name;
+  const repo = props.release.repo;
   autoFixStates.value[id] = "loading"
   if (error.type === "unknown-parent") {
     autoFixStates.value[id] = await guessParent(error, repo)
@@ -139,10 +126,10 @@ async function autofix(error: DiagnosticM) {
     <p v-else>
       <span class="text-danger bg-danger-subtle rounded ps-1 pe-1">{{
           errors?.length ?? 0
-        }} {{ $filters.pluralise("error", errors) }}</span> and
+        }} {{ $filters.pluralise("error", errors ?? []) }}</span> and
       <span class="text-warning bg-warning-subtle rounded ps-1 pe-1">{{
           warnings?.length ?? 0
-        }} {{ $filters.pluralise("warning", warnings) }}</span>
+        }} {{ $filters.pluralise("warning", warnings ?? []) }}</span>
       were found during the validation. Please fix the errors and save the spreadsheets. Errors are problems which
       prevent
       the release from continuing. Warnings hint at possible problems, but the release might continue without solving
@@ -151,7 +138,7 @@ async function autofix(error: DiagnosticM) {
       validation, restart the release as well.
     </p>
 
-    <template v-for="source in data ? Object.keys(data) : []">
+    <template v-for="source in sources">
       <template v-if="selectedSubStep === null || selectedSubStep === source">
         <div v-for="error in data?.[source].errors"
              :class="[`val-error-type-${error.type}`, `val-error-source-${source}`]"
@@ -164,7 +151,7 @@ async function autofix(error: DiagnosticM) {
                          :term="error.term ?? error.relation"></ErrorLink>
             </Diagnostic>
 
-            <button v-if="release.release_script.short_repository_name.toLowerCase() !== 'addicto'"
+            <button v-if="release.repo.toLowerCase() !== 'addicto'"
                     :class="{'btn-success': autoFixState(error) === 'fixed', 'btn-danger': autoFixState(error) === 'impossible'}"
                     class="btn btn-primary"
                     @click="autofix(error)">
@@ -259,7 +246,7 @@ async function autofix(error: DiagnosticM) {
                   <span style="text-transform: capitalize">{{ mismatch.field }}</span> is
                   <code v-if="['definition', 'curation status'].indexOf(mismatch.field) >= 0">
                     {{
-                      mismatch.a.relations.find(x => x[0]?.label?.endsWith(mismatch.field))?.[1]
+                      mismatch.a.relations.find((x: any) => x[0]?.label?.endsWith(mismatch.field))?.[1]
                     }}
                   </code>
                   <code v-else>{{ mismatch.a[mismatch.field] }}</code>
@@ -269,7 +256,7 @@ async function autofix(error: DiagnosticM) {
                   and
                   <code v-if="['definition', 'curation status'].indexOf(mismatch.field) >= 0">
                     {{
-                      mismatch.b.relations.find(x => x[0]?.label?.endsWith(mismatch.field))?.[1]
+                      mismatch.b.relations.find((x: any) => x[0]?.label?.endsWith(mismatch.field))?.[1]
                     }}
                   </code>
                   <code v-else>{{ mismatch.b[mismatch.field] }}</code>

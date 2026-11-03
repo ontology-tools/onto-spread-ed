@@ -1,39 +1,67 @@
-import base64
 import io
 import json
 import os
 
 import jsonschema
 import openpyxl
-from flask import Blueprint, request, jsonify, current_app, g, Response
-from flask_github import GitHub, GitHubError
+from flask import Blueprint, request, jsonify, current_app, Response
+from github import Github, GithubException
 from openpyxl.worksheet.worksheet import Worksheet
 
+from ose_app.routes.api import common
 from ose_app.PermissionManager import PermissionManager
+from ose_app.save import save_from_request
 from ose_app.SpreadsheetSearcher import SpreadsheetSearcher
 from ose_app.guards.with_permission import requires_permissions
-from ose.model.ExcelOntology import ExcelOntology
-from ose.model.ReleaseScript import ReleaseScript
-from ose.services.ConfigurationService import ConfigurationService
-from ose.services.FileCache import FileCache
-from ose.utils import github, get_spreadsheet
+from ose.ontology import ExcelOntology
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.services.FileCache import FileCache
+from ose_app.utils import get_file, get_spreadsheet, save_file
+from ose_app.utils.github import is_unauthorized
 
 bp = Blueprint("api_edit", __name__, url_prefix="/api/edit")
 
 
+@bp.route("/save", methods=["POST"])
+@requires_permissions("edit")
+def save(searcher: SpreadsheetSearcher, gh: Github, config: ConfigurationService,
+         permission_manager: PermissionManager):
+    d = common.json_object()
+    if d is None:
+        return jsonify(common.NOT_AN_OBJECT), 400
+    repo_key = d.get("repo_key")
+    if repo_key not in common.visible_repositories(config, permission_manager):
+        return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
+
+    return save_from_request(searcher, gh, config, d)
+
+
+@bp.route("/check-updates", methods=["POST"])
+@requires_permissions("view")
+def check_updates(gh: Github, config: ConfigurationService, permission_manager: PermissionManager):
+    d = common.json_object()
+    if d is None:
+        return jsonify(common.NOT_AN_OBJECT), 400
+    repo_key = d.get("repo_key")
+    if repo_key not in common.visible_repositories(config, permission_manager):
+        return jsonify({"success": False, "error": f"No such repository '{repo_key}'"}), 404
+
+    up_to_date = common.is_up_to_date(gh, config, d.get("repo_key"), d.get("folder"), d.get("spreadsheet"),
+                                       d.get("file_sha"), d.get("branch"))
+    return jsonify({"up_to_date": up_to_date})
+
+
 @bp.route("/<repo>/<path:path>", methods=["PATCH"])
 @requires_permissions("edit")
-def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
-    user_name = g.user.github_login if g.user else "*"
-    user_repos = (config.app_config['USERS']
-                  .get(user_name, config.app_config['USERS'].get("*", {}))
-                  .get("repositories", []))
-
-    if repo not in user_repos:
+def edit(repo: str, path: str, gh: Github, config: ConfigurationService, permission_manager: PermissionManager):
+    if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"msg": f"No such repository '{repo}'"}), 404
 
+    static_folder = current_app.static_folder
+    assert static_folder is not None
+
     schema: dict
-    with open(os.path.join(current_app.static_folder, "schema", "req_body_edit.json"), "r") as f:
+    with open(os.path.join(static_folder, "schema", "req_body_edit.json"), "r") as f:
         schema = json.load(f)
 
     data = request.json
@@ -43,6 +71,8 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
         return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
 
     repository = config.get(repo)
+    if repository is None:
+        return jsonify({"msg": f"No such repository '{repo}'"}), 404
 
     id = data["id"]
     term_id = data["term"].get("id", None)
@@ -51,12 +81,12 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
 
     branch = data.get("branch", repository.main_branch)
 
-    params = {"ref": branch} if branch != repository.main_branch else {}
-    spreadsheet_file = gh.get(f'repos/{repository.full_name}/contents/{path}', params=params)
-    base64_bytes = spreadsheet_file['content'].encode('utf-8')
-    decoded_data = base64.decodebytes(base64_bytes)
-    wb = openpyxl.load_workbook(io.BytesIO(decoded_data))
-    sheet: Worksheet = wb.active
+    content = get_file(gh, repository.full_repository_name, path,
+                       branch=branch if branch != repository.main_branch else None)
+    wb = openpyxl.load_workbook(io.BytesIO(content))
+    sheet = wb.active
+    if not isinstance(sheet, Worksheet):
+        return jsonify({"msg": "File has no active sheet"}), 400
 
     data = sheet.rows
     header = list(next(data))
@@ -73,17 +103,18 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
     found = False
     changed = []
     for row in data:
-        if row[0].value.lower() == id.lower():
+        row_id = row[0].value
+        if isinstance(row_id, str) and row_id.lower() == id.lower():
             found = True
             if term_id is not None:
                 row[0].value = term_id
                 changed += [("id", term_id)]
 
-            if term_parent is not None:
+            if term_parent is not None and parent_col is not None:
                 row[parent_col].value = term_parent
                 changed += [("parent", term_parent)]
 
-            if term_label is not None:
+            if term_label is not None and label_col is not None:
                 row[label_col].value = term_label
                 changed = [("label", term_label)]
 
@@ -94,7 +125,7 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
         spreadsheet_stream = io.BytesIO()
         wb.save(spreadsheet_stream)
         msg = f"Updating {path.split('/')[-1]}\n\n" + "\n".join([f"Set {f} to '{v}' for {id}" for f, v in changed])
-        github.save_file(gh, repository.full_name, path, spreadsheet_stream.getvalue(), msg, branch)
+        save_file(gh, repository.full_repository_name, path, spreadsheet_stream.getvalue(), msg, branch)
 
         return Response(status=200)
 
@@ -103,8 +134,7 @@ def edit(repo: str, path: str, gh: GitHub, config: ConfigurationService):
 
 @bp.route("/get/<repo>/<path:path>", methods=["GET"])
 @requires_permissions("view")
-def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, permission_manager: PermissionManager,
-             searcher: SpreadsheetSearcher):
+def get_data(repo: str, path: str, gh: Github, config: ConfigurationService, permission_manager: PermissionManager):
     if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
 
@@ -113,11 +143,12 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
     folder = next(path_parts, "")
 
     repository = config.get(repo)
+    if repository is None:
+        return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
+
     branch = request.args.get("branch", None)
     try:
-        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_name, path, branch=branch)
-
-        suggestions = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
+        (file_sha, rows, header) = get_spreadsheet(gh, repository.full_repository_name, path, branch=branch)
 
         data = dict(
             header=header,
@@ -128,35 +159,37 @@ def get_data(repo: str, path: str, gh: GitHub, config: ConfigurationService, per
             spreadsheet_name=spreadsheet,
         )
 
-        return jsonify({"success": True, "spreadsheet": data, "suggestions": suggestions}), 200
-    except GitHubError as e:
+        return jsonify({"success": True, "spreadsheet": data}), 200
+    except GithubException as e:
+        if is_unauthorized(e):
+            raise
         current_app.logger.error(e)
         return jsonify({"success": False, "error": f"Failed when communicating with github: {e}"}), 200
 
 
 @bp.route("/suggestions/<repo>", methods=["GET"])
 @requires_permissions("view")
-def get_suggestions(repo: str, permission_manager: PermissionManager, config: ConfigurationService, gh: GitHub,
+def get_suggestions(repo: str, permission_manager: PermissionManager, config: ConfigurationService, gh: Github,
                     searcher: SpreadsheetSearcher, cache: FileCache):
     if not permission_manager.current_user_has_permissions(repository=repo):
         return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
 
     suggestions_index = [f['label'] for f in searcher.search_for(repo, "label:(?*)", limit=None) if "label" in f]
 
-    repo = config.get(repo)
+    project = config.get(repo)
+    if project is None:
+        return jsonify({"success": False, "error": f"No such repository '{repo}'"}), 404
 
-    release_script: ReleaseScript
-
-    suggestions_external = []
+    suggestions_external: list[str] = []
     try:
-        release_script = ReleaseScript.from_json(json.loads(config.get_file(repo, repo.release_script_path)))
+        external_raw = cache.get_from_github(gh, project.full_repository_name, project.external.target.file).decode()
 
-        external_raw = cache.get_from_github(gh, repo.full_name, release_script.external.target.file).decode()
-
-        external = ExcelOntology.from_owl(external_raw, repo.prefixes).value
+        external = ExcelOntology.from_owl(external_raw, project.prefixes).value_or_raise()
 
         suggestions_external = [t.label for t in external.terms()]
     except Exception as e:
+        if is_unauthorized(e):
+            raise
         current_app.logger.error(e)
 
     suggestions = suggestions_index + suggestions_external

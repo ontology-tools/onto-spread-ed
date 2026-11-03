@@ -5,27 +5,18 @@ import aiohttp
 
 from ose_plugin_hbcp.search_api.APIService import APIService
 from .BCIOSearchClient import BCIOSearchClient
-from ose.services.ConfigurationService import ConfigurationService
-
-PROP_BCIO_SEARCH_API_PATH = "BCIO_SEARCH_API_PATH"
-PROP_BCIO_SEARCH_API_AUTH_TOKEN = "BCIO_SEARCH_API_AUTH_TOKEN"
 
 
 class BCIOSearchService(APIService[BCIOSearchClient]):
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, config: ConfigurationService, session: aiohttp.ClientSession):
-        path = config.app_config.get(PROP_BCIO_SEARCH_API_PATH, os.environ.get(PROP_BCIO_SEARCH_API_PATH))
-        auth_token = config.app_config.get(
-            PROP_BCIO_SEARCH_API_AUTH_TOKEN, os.environ.get(PROP_BCIO_SEARCH_API_AUTH_TOKEN, None)
-        )
-
+    def __init__(self, prefixes: dict[str, str], session: aiohttp.ClientSession):
         api_client = BCIOSearchClient(
-            path, session, auth_token, config.app_config.get("ENVIRONMENT", "debug") != "production"
+            os.environ.get("OSE_PLUGINS__BCIO__API_PATH", "https://api.bciosearch.org/"), session,
+            os.environ.get("OSE_PLUGINS__BCIO__API_AUTH_TOKEN"),
         )
-
-        super().__init__(config, api_client)
+        super().__init__(prefixes, api_client)
 
     @property
-    def repository_name(self):
-        return "BCIO"
+    def repository_name(self) -> str:
+        return "bcio"

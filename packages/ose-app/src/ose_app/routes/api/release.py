@@ -1,140 +1,68 @@
-import dataclasses
 import datetime
-import json
 import os
 from typing import Tuple
 
-import jsonschema
-from flask import jsonify, Blueprint, current_app, request, make_response, Response, g
-from flask_executor import Executor
-from flask_github import GitHub
+from flask import jsonify, Blueprint, request, make_response, Response, g
 from flask_sqlalchemy import SQLAlchemy
+from pydantic import ValidationError
+from sqlalchemy import ColumnElement, case, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query
 from werkzeug.exceptions import NotFound, BadRequest
 
-from ose.services.PluginService import PluginService
+from ose.building import available_stages
+from ose.project import BuildConfiguration
 
-from ose.database.Release import Release, ReleaseArtifact
+from ose_app.database.Release import OPEN_STATES, Release, RequestedAction
 from ...guards.with_permission import requires_permissions
-from ose.model.Diff import diff
-from ose.model.ReleaseScript import ReleaseScript
-from ose.release.do_release import do_release
-from ose.release.common import next_release_step
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils import save_file, get_file
+from ose_app.routes.api.common import NOT_AN_OBJECT, json_object
+from ose_app.release.runner import load_context, updated_rows
+from ose_app.release.stages import ReleaseContext
+from ose_app.services.ConfigurationService import ConfigurationService
 
 bp = Blueprint("api_release", __name__, url_prefix="/api/release")
 
-RELEASE_STEP_SELECTION = -1
-RELEASE_STEP_PREPARATION = 0
-RELEASE_STEP_VALIDATION = 1
-RELEASE_STEP_EXTERNAL = 2
-RELEASE_STEP_UPPER = 3
-RELEASE_STEP_LOWER = 4
-RELEASE_STEP_FINAL = 5
-RELEASE_STEP_HUMAN = 6
-RELEASE_STEP_PUBLISH = 7
-
 
 def get_current_release(q: Query[Release], repo: str) -> Release | Tuple[Response, int]:
-    ongoing = q.filter_by(running=True, repo=repo).all()
-    if len(ongoing) > 1:
-        return (
-            jsonify(
-                dict(
-                    success=False,
-                    error="multiple-running",
-                    message="Multiple releases are running.",
-                    releases=[r.as_dict() for r in ongoing],
-                )
-            ),
-            400,
-        )
-    if len(ongoing) < 1:
-        return (
-            jsonify(
-                dict(
-                    success=False,
-                    error="no-release-running",
-                    message="No releases is running.",
-                    releases=[r.as_dict() for r in ongoing],
-                )
-            ),
-            400,
-        )
+    release = q.filter(Release.repo == repo, Release.state.in_(OPEN_STATES)).one_or_none()
+    if release is None:
+        return jsonify(success=False, error="no-release-running", message="No release is running.", releases=[]), 400
+    return release
 
-    return ongoing[0]
+
+def request_release_action(db: SQLAlchemy, release: Release, action: RequestedAction, *conditions: ColumnElement[bool]) -> bool:
+    """
+    Records a request for the release runner, which runs it with the GitHub token of the current user. Done in a
+    single update that only applies if the release is still open and the `conditions` hold. Returns whether it applied.
+    """
+    applied = updated_rows(
+        db.session,
+        update(Release)
+        .where(Release.id == release.id, Release.state.in_(OPEN_STATES), *conditions)
+        .values(requested_action=action, requested_by=g.user.github_login),
+    )
+    db.session.commit()
+    db.session.refresh(release)
+    return applied == 1
+
+
+def release_changed() -> Tuple[Response, int]:
+    return jsonify(dict(
+        success=False, error="release-changed", message="The release changed in the meantime. Please try again."
+    )), 409
 
 
 @bp.route("/<repo>/release_script", methods=["GET"])
 @requires_permissions("release")
 def get_release_script(repo: str, config: ConfigurationService):
-    repo_config = config.get(repo)
-    if repo_config is None:
+    project = config.get(repo)
+    if project is None:
         raise NotFound(f"No such repository '{repo}'.")
 
-    # Try get from remote
-    data = config.get_file(repo_config, repo_config.release_script_path)
-    if data is None:
-        raise NotFound(f"No release script for '{repo}'.")
-
-    data = json.loads(data)
-
-    release_script = ReleaseScript.from_json(data)
-
-    if release_script.short_repository_name.lower() != repo.lower():
+    if project.short_repository_name.lower() != repo.lower():
         raise BadRequest("Release script repository does not match requested repository")
 
-    release_script.full_repository_name = repo_config.full_name
-
-    return jsonify(dataclasses.asdict(release_script))
-
-
-@bp.route("/<repo>/release_script", methods=["PUT"])
-@requires_permissions("release")
-def save_release_script(repo: str, config: ConfigurationService, gh: GitHub):
-    repo_config = config.get(repo)
-    if repo_config is None:
-        raise NotFound(f"No such repository '{repo}'.")
-
-    assert current_app.static_folder is not None
-
-    schema: dict
-    with open(os.path.join(current_app.static_folder, "schema", "release_script.json"), "r") as f:
-        schema = json.load(f)
-
-    data = request.json
-    try:
-        jsonschema.validate(data, schema)
-        assert data is not None
-    except jsonschema.ValidationError as e:
-        return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
-
-    release_script = ReleaseScript.from_json(data)
-    release_script_binary = json.dumps(dataclasses.asdict(release_script), indent=2).encode()
-
-    old_release_script_binary = get_file(gh, repo_config.full_name, repo_config.release_script_path)
-    old_release_script_json = json.loads(old_release_script_binary)
-    old_release_script = ReleaseScript.from_json(old_release_script_json)
-
-    diffs = diff(old_release_script, release_script)
-    commit_message = (
-        "Update release script. "
-        + ", ".join(f"Set {d.field} to {d.new}" for d in diffs if d.change_type == "update")
-        + ", ".join(f"Added {d.new} to {d.field}" for d in diffs if d.change_type == "add")
-        + ", ".join(f"Removed {d.old} from {d.field}" for d in diffs if d.change_type == "remove")
-    )
-
-    save_file(
-        gh,
-        repo_config.full_name,
-        repo_config.release_script_path,
-        release_script_binary,
-        commit_message,
-        repo_config.main_branch,
-    )
-
-    return jsonify({"success": True})
+    return jsonify(project.model_dump(mode="json"))
 
 
 @bp.route("/<repo>/cancel", methods=("POST",))
@@ -146,46 +74,56 @@ def release_cancel(repo: str, db: SQLAlchemy):
         return release_or_err
 
     release = release_or_err
-
-    q.filter(Release.id == release.id).update(
-        {
-            Release.running: False,
-            Release.end: datetime.datetime.now(datetime.timezone.utc),
-            Release.state: "canceled",
-            Release.worker_id: None,
-        }
+    # The runner holding the release stops it and then sets `end`. Without one, it has stopped already.
+    db.session.execute(
+        update(Release)
+        .where(Release.id == release.id, Release.state.in_(OPEN_STATES))
+        .values(
+            state="cancelled",
+            requested_action=None,
+            requested_by=g.user.github_login,
+            end=case((Release.worker_id.is_(None), datetime.datetime.now(datetime.timezone.utc)), else_=Release.end),
+        )
     )
-    q.session.commit()
-
-    release = q.get(release.id)
-    assert release is not None
+    db.session.commit()
+    db.session.refresh(release)
 
     return jsonify(release.as_dict())
 
 
 @bp.route("/start", methods=("POST",))
 @requires_permissions("release")
-def release_start(
-    db: SQLAlchemy, gh: GitHub, executor: Executor, config: ConfigurationService, plugin_service: PluginService
-):
-    assert current_app.static_folder is not None
+def release_start(db: SQLAlchemy, config: ConfigurationService):
+    data = json_object()
+    if data is None:
+        return jsonify(NOT_AN_OBJECT), 400
+    repo = data.get("repo")
+    project = config.get(repo) if isinstance(repo, str) else None
+    if project is None:
+        return jsonify(dict(success=False, error="no-such-repository", message=f"No repository '{repo}' found.")), 400
 
-    schema: dict
-    with open(os.path.join(current_app.static_folder, "schema", "release_script.json"), "r") as f:
-        schema = json.load(f)
-
-    data = request.json
+    requested = data.get("build_configuration")
     try:
-        jsonschema.validate(data, schema)
-        assert data is not None
-    except jsonschema.ValidationError as e:
-        return jsonify({"success": False, "error": f"Invalid format: {e}"}), 400
+        if isinstance(requested, dict):
+            build_configuration = BuildConfiguration.model_validate(requested)
+        elif isinstance(requested, str):
+            build_configuration = project.build_configuration(requested)
+        elif project.build_configurations:
+            build_configuration = project.build_configurations[0]
+        else:
+            return jsonify({"success": False, "error": "The project has no build configuration"}), 400
+    except (ValidationError, KeyError) as e:
+        return jsonify({"success": False, "error": f"Invalid build configuration: {e}"}), 400
 
-    release_script = ReleaseScript.from_json(data)
+    stages = available_stages()
+    missing = [s.name for s in build_configuration.stages if s.name not in stages]
+    if missing:
+        return jsonify({"success": False, "error": f"Unknown build stages: {', '.join(missing)}"}), 400
 
-    q: Query[Release] = db.session.query(Release)
-    ongoing = q.filter_by(running=True, repo=release_script.short_repository_name).all()
-    if len(ongoing) > 0:
+    def already_running() -> Tuple[Response, int]:
+        ongoing = db.session.query(Release).filter(
+            Release.repo == project.short_name, Release.state.in_(OPEN_STATES)
+        ).all()
         return jsonify(
             dict(
                 success=False,
@@ -195,45 +133,39 @@ def release_start(
             )
         ), 400
 
-    repo = release_script.short_repository_name
-    repo_config = config.get(repo)
-    if repo_config is None:
-        return jsonify(
-            dict(
-                success=False,
-                error="no-such-repository",
-                message=f"No repository '{repo}' found.",
-            )
-        ), 400
+    if db.session.query(Release).filter(Release.repo == project.short_name, Release.state.in_(OPEN_STATES)).count():
+        return already_running()
+
+    token = g.user.github_access_token
+    context = ReleaseContext(
+        project=project,
+        build_configuration=build_configuration,
+        github_token=token,
+    )
 
     release = Release(
-        state="starting",
-        start=datetime.datetime.utcnow(),
-        step=0,
+        state=context.state,
+        start=datetime.datetime.now(datetime.timezone.utc),
         started_by=g.user.github_login,
-        details={},
-        running=True,
-        repo=repo,
-        release_script=dataclasses.asdict(release_script),
+        repo=project.short_name,
+        context=context.model_dump(mode="json"),
+        requested_action="run",
+        requested_by=g.user.github_login,
     )
     db.session.add(release)
-    db.session.commit()
-
-    f = executor.submit(do_release, db, gh, release_script, release.id, config, plugin_service)
+    try:
+        db.session.commit()
+    except IntegrityError:  # another release of the repository was started at the same time
+        db.session.rollback()
+        return already_running()
 
     return jsonify(release.as_dict())
 
 
 @bp.route("/<repo>/continue")
 @requires_permissions("release")
-def release_continue(
-    repo: str,
-    db: SQLAlchemy,
-    gh: GitHub,
-    executor: Executor,
-    config: ConfigurationService,
-    plugin_service: PluginService,
-):
+def release_continue(repo: str, db: SQLAlchemy):
+    """Continues a paused release. With `force`, the failed stage of an errored release is skipped."""
     q: Query[Release] = db.session.query(Release)
     force = request.args.get("force", "false").lower() == "true"
 
@@ -243,12 +175,12 @@ def release_continue(
 
     release = release_or_err
 
-    if release.state in ["canceled", "completed"]:
-        return jsonify(
-            dict(success=False, error="canceled-or-completed", message="Cannot resume a completed or canceled release!")
-        ), 400
-
-    if release.state != "waiting-for-user" and not force:
+    action: RequestedAction
+    if release.state == "paused":
+        action = "run"
+    elif force and release.state == "errored":
+        action = "skip"
+    else:
         return jsonify(
             dict(
                 success=False,
@@ -257,34 +189,16 @@ def release_continue(
             )
         ), 400
 
-    release_script = ReleaseScript.from_json(release.release_script)
-    if release_script.steps[release.step].name != "HUMAN_VERIFICATION" and not force:
-        return jsonify(
-            dict(
-                success=False,
-                error="cannot-be-continued",
-                message="The release cannot be manually continued in its current step.",
-            )
-        ), 400
-
-    next_release_step(q, release.id)
-
-    if release.worker_id is None:        
-        executor.submit(do_release, db, gh, release_script, release.id, config, plugin_service)
+    if not request_release_action(db, release, action, Release.state == release.state):
+        return release_changed()
 
     return jsonify(release.as_dict())
 
 
 @bp.route("/<repo>/rerun-step", methods=("POST", "GET"))
 @requires_permissions("release")
-def release_rerun_step(
-    repo: str,
-    db: SQLAlchemy,
-    gh: GitHub,
-    executor: Executor,
-    config: ConfigurationService,
-    plugin_service: PluginService,
-):
+def release_rerun_step(repo: str, db: SQLAlchemy):
+    """Runs the current stage again. With `force`, a running release is stopped first."""
     q: Query[Release] = db.session.query(Release)
     release_or_err = get_current_release(q, repo)
     if isinstance(release_or_err, tuple):
@@ -292,15 +206,10 @@ def release_rerun_step(
 
     release = release_or_err
 
-    if release.state in ["canceled", "completed"]:
-        return jsonify(
-            dict(success=False, error="canceled-or-completed", message="Cannot resume a completed or canceled release!")
-        ), 400
-
-    if release.worker_id is None or request.args.get("force", "false").lower() == "true":
-        release_script = ReleaseScript.from_json(release.release_script)
-
-        executor.submit(do_release, db, gh, release_script, release.id, config, plugin_service)
+    force = request.args.get("force", "false").lower() == "true"
+    conditions = () if force else (Release.worker_id.is_(None),)
+    # Without `force`, a release the runner holds is left alone
+    request_release_action(db, release, "rerun", *conditions)
 
     return jsonify(release.as_dict())
 
@@ -308,26 +217,33 @@ def release_rerun_step(
 @bp.route("/download", methods=("GET",))
 @requires_permissions("release")
 def download_release_file(db: SQLAlchemy):
-    file = request.args.get("file", "<none>")
-    if not file.isdigit():
-        return jsonify(dict(success=False, error="invalid-query", message="Expected 'file' argument.")), 400
+    release_id, artifact_id = request.args.get("release", "<none>"), request.args.get("artifact")
+    if not release_id.isdigit() or not artifact_id:
+        return jsonify(dict(
+            success=False, error="invalid-query", message="Expected 'release' and 'artifact' arguments."
+        )), 400
 
-    artifact = db.session.get(ReleaseArtifact, int(file))
-    if artifact is not None and artifact.downloadable:
-        with open(artifact.local_path, "rb") as o:
-            response = make_response(o.read())
-            if artifact.local_path.endswith(".xlsx"):
-                response.headers.set(
-                    "Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-            else:
-                response.headers.set("Content-Type", "text/plain")
+    release = db.session.get(Release, int(release_id))
+    context = load_context(release, g.user.github_access_token) if release is not None and release.context else None
+    a = context.artifact(artifact_id) if context is not None else None
+    if context is None or a is None:
+        return jsonify(dict(success=False, error="no-such-file", message=f"No such file '{artifact_id}' in the release.")), 404
 
-            response.headers.set("Content-Disposition", "attachment", filename=os.path.basename(artifact.target_path))
+    build_dir = os.path.realpath(context.build_dir)
+    file = os.path.realpath(os.path.join(build_dir, a.local_path))
+    if os.path.commonpath([build_dir, file]) != build_dir or not os.path.isfile(file):
+        return jsonify(dict(success=False, error="no-such-file", message=f"No such file '{artifact_id}' in the release.")), 404
 
-            return response
+    with open(file, "rb") as o:
+        response = make_response(o.read())
+    if a.local_path.endswith(".xlsx"):
+        response.headers.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    else:
+        response.headers.set("Content-Type", "text/plain")
 
-    return jsonify(dict(success=False, error="no-such-file", message=f"No such file '{file}' in the release.")), 404
+    response.headers.set("Content-Disposition", "attachment", filename=os.path.basename(a.final_path or a.local_path))
+
+    return response
 
 
 @bp.route("/<repo>/running", methods=("POST", "GET"))
@@ -368,7 +284,7 @@ def get_releases_for_repo(repo: str, db: SQLAlchemy):
     return jsonify([r.as_dict() for r in releases])
 
 
-@bp.route("/", methods=("GET",))
+@bp.route("/", methods=("GET",), strict_slashes=False)
 @requires_permissions("release")
 def get_releases(db: SQLAlchemy):
     q: Query[Release] = db.session.query(Release)

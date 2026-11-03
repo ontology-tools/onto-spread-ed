@@ -17,7 +17,7 @@ defineEmits<{
 <template>
   <h3>Publishing the release</h3>
 
-  <TechnicalError v-if="release.state == 'waiting-for-user' && data && (data.errors?.length ?? 0) > 0"
+  <TechnicalError v-if="release.state == 'errored' && data && (data.errors?.length ?? 0) > 0"
                   :release="release"
                   :details="data"></TechnicalError>
   <template v-else-if="release.state === 'completed'">

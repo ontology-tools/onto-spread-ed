@@ -2,25 +2,25 @@ import logging
 import os.path
 import shutil
 import threading
-from typing import Generator, Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any
 
-from flask_github import GitHub
 from whoosh.qparser import MultifieldParser, QueryParser
 
-from ose.index.FileStorage import FileStorage
-from ose.index.create_index import add_entity_data_to_index, re_write_entity_data_set
-from ose.index.schema import schema
-from ose.services.ConfigurationService import ConfigurationService
-from ose.utils.github import get_spreadsheet, get_spreadsheets
+from ose_app.index.FileStorage import FileStorage
+from ose_app.index.create_index import add_entity_data_to_index, re_write_entity_data_set
+from ose_app.index.schema import schema
+from ose_app.services.ConfigurationService import ConfigurationService
+from ose_app.services.GithubService import GithubService
+from ose_app.utils.github import get_spreadsheet, get_spreadsheets
 
 
 class SpreadsheetSearcher:
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, config: ConfigurationService, github: GitHub):
+    def __init__(self, config: ConfigurationService, github_service: GithubService):
         self.config = config
         self.threadLock = threading.Lock()
-        self.github = github
+        self.github_service = github_service
 
         index_dir = self.config.app_config["INDEX_PATH"]
         if not os.path.exists(index_dir):
@@ -49,12 +49,7 @@ class SpreadsheetSearcher:
 
         with ix.searcher() as searcher:
             results = searcher.search(query, limit=limit)
-            resultslist = []
-            for hit in results:
-                allfields = {}
-                for field in hit:
-                    allfields[field] = hit[field]
-                resultslist.append(allfields)
+            resultslist = [hit.fields() for hit in results]
 
         ix.close()
         return resultslist
@@ -152,18 +147,7 @@ class SpreadsheetSearcher:
             os.mkdir(index_dir)
             index = self.storage.create_index(schema)
             repositories = self.config.loaded_repositories()
-
-            def get_excel_files(repo, directory="") -> Generator[str, None, None]:
-
-                directories = self.github.get(
-                    f'repos/{repo}/contents/{directory}'
-                )
-
-                for entry in directories:
-                    if entry['type'] == 'dir':
-                        yield from get_excel_files(repo, entry['path'])
-                    elif entry['type'] == 'file' and entry['name'].endswith('.xlsx'):
-                        yield entry['path']
+            github = self.github_service.current_client()
 
             sheets = []
             for config in repositories:
@@ -175,10 +159,10 @@ class SpreadsheetSearcher:
                 active_sheets = config.indexed_files
                 regex = "|".join(f"({r})" for r in active_sheets)
 
-                excel_files = get_spreadsheets(self.github, config.full_name, branch, include_pattern=regex)
+                excel_files = get_spreadsheets(github, config.full_name, branch, include_pattern=regex)
 
                 for file in excel_files:
-                    _, data, _ = get_spreadsheet(self.github, config.full_name, file)
+                    _, data, _ = get_spreadsheet(github, config.full_name, file)
 
                     entity_data = data
 

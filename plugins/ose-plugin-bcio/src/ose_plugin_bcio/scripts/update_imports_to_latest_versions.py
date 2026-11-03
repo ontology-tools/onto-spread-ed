@@ -1,4 +1,3 @@
-import json
 from io import BytesIO
 from typing import Annotated, List
 
@@ -6,13 +5,12 @@ from injector import inject
 import openpyxl
 import pyhornedowl
 import requests
-from flask_github import GitHub
+from github import Github
 
-from ose.model.Script import Script
-import ose.utils.github as github
-from ose.model.ReleaseScript import ReleaseScript
-from ose.model.Result import Result
-from ose.services.ConfigurationService import ConfigurationService
+from ose_app.model.Script import Script
+import ose_app.utils.github as github
+from ose.result import Log
+from ose_app.services.ConfigurationService import ConfigurationService
 from ose.utils import str_space_eq, lower
 
 class UpdateImportsToLatestVersionsScript(Script):
@@ -25,25 +23,20 @@ class UpdateImportsToLatestVersionsScript(Script):
         return "Update Imports to Latest Versions"
 
     @inject
-    def __init__(self, gh: GitHub, config: ConfigurationService) -> None:
+    def __init__(self, gh: Github, config: ConfigurationService) -> None:
         self.gh = gh
         self.config = config
 
     def run(self, repo: Annotated[str, "Repository name"]) -> str:
-        result = Result([])
+        result = Log()
+        all_changes = []
         repository = self.config.get(repo)
         
         assert repository is not None, f"Repository configuration for '{repo}' not found."
         
-        release_script_json = self.config.get_file(repository, repository.release_script_path)
-        
-        assert release_script_json is not None, f"Release script not found at '{repository.release_script_path}'"
-        
-        release_script = ReleaseScript.from_json(json.loads(release_script_json))
-
-        for source in release_script.external.sources:
+        for source in repository.external.sources:
             file = self.config.get_file_raw(repository, source.file)
-            assert file is not None, f"Could not load file '{source.file}' from repository '{repository.full_name}'"
+            assert file is not None, f"Could not load file '{source.file}' from repository '{repository.full_repository_name}'"
             file = BytesIO(file)
 
             wb = openpyxl.load_workbook(file)
@@ -99,9 +92,9 @@ class UpdateImportsToLatestVersionsScript(Script):
                 spreadsheet_stream = BytesIO()
                 wb.save(spreadsheet_stream)
 
-                github.save_file(self.gh, repository.full_name, source.file, spreadsheet_stream.getvalue(), "\n".join(changes),
+                github.save_file(self.gh, repository.full_repository_name, source.file, spreadsheet_stream.getvalue(), "\n".join(changes),
                                 repository.main_branch)
 
-                result.value += changes
+                all_changes += changes
 
-        return "\n".join(result.value)
+        return "\n".join(all_changes)

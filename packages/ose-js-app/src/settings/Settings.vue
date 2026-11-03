@@ -1,97 +1,114 @@
 <script lang="ts" setup>
 
-import CollapsibleCard from "../common/CollapsibleCard.vue";
-import {computed, ref} from "vue";
+import {computed, onMounted, ref} from "vue";
+import {api, clearCache, useMe} from "../api";
+import {layout} from "../state";
 import {alertDialog, promptDialog} from "../common/bootbox";
-import {RepositoryConfig} from "@ontospreaded/js-core";
+import {Project} from "@ontospreaded/js-core";
 
-declare var SETTINGS: {
-  repositories: RepositoryConfig[],
+type Settings = {
+  repositories: Project[],
   startup_repositories: string[],
   changing_startup_allowed: boolean,
   loading_new_allowed: boolean
 }
-declare var URLS: { [key: string]: any }
+const settings = ref<Settings>({
+  repositories: [],
+  startup_repositories: [],
+  changing_startup_allowed: false,
+  loading_new_allowed: false
+})
 
-const prefix_url = URLS.prefix
-const settings = ref<typeof SETTINGS>(SETTINGS)
+onMounted(async () => {
+  layout.breadcrumb = [{name: "Admin", to: "/admin"}, {name: "Settings"}]
+  try {
+    settings.value = await api<Settings>("/api/settings")
+  } catch (e: any) {
+    await alertDialog({
+      title: "Loading settings failed",
+      message: e.message
+    })
+  }
+})
+
+const {me} = useMe();
+const isAdmin = computed(() => !!me.value?.permissions?.includes("admin"));
 
 let loading = ref<boolean>(false);
 let deleting = ref<string | null>(null);
 let startupChanging = ref<string | null>(null);
-let installingWorkflow = ref<null | "busy" | "error" | "success">(null);
-let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null || installingWorkflow.value === "busy")
+let blocked = computed(() => loading.value || deleting.value !== null || startupChanging.value !== null)
 
 let buttonStates = ref<{ reload: string | null }>({
   reload: null,
 })
 
-let runningTimeouts: { [key: string]: number } = {};
+const reloadButtonClass: Record<string, string> = {success: 'btn-success', null: 'btn-primary', error: 'btn-danger'}
+const reloadIconClass: Record<string, string[]> = {success: ['fa-check'], error: ['fa-cross'], loading: ['fa-spinner', 'fa-spin']}
 
-async function toggleStartup(repo: RepositoryConfig) {
-  startupChanging.value = repo.full_name;
+let runningTimeouts: { [key: string]: ReturnType<typeof setTimeout> } = {};
 
-  const currentlySet = settings.value.startup_repositories.indexOf(repo.full_name) >= 0;
+async function toggleStartup(repo: Project) {
+  startupChanging.value = repo.full_repository_name;
+
+  const currentlySet = settings.value.startup_repositories.indexOf(repo.full_repository_name) >= 0;
   const route = currentlySet ? 'remove' : 'add';
 
-  const resp = await (await fetch(`${prefix_url}/api/settings/repositories/${route}_startup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({"full_name": repo.full_name})
-  })).json()
-
-  if (resp.success) {
-    settings.value.startup_repositories = currentlySet ?
-        settings.value.startup_repositories.filter(x => x !== repo.full_name) :
-        [...settings.value.startup_repositories, repo.full_name];
-  } else {
-
-    await alertDialog({
-      title: currentlySet ? "Unsetting as startup failed" : "Unsetting as startup failed",
-      message: "The current configuration probably does not allow setting startup repositories."
+  try {
+    const resp = await api<{success: boolean}>(`/api/settings/repositories/${route}_startup`, {
+      method: "POST",
+      body: JSON.stringify({"full_name": repo.full_repository_name})
     })
+    if (!resp.success) {
+      throw new Error("The current configuration probably does not allow setting startup repositories.")
+    }
+    settings.value.startup_repositories = currentlySet ?
+        settings.value.startup_repositories.filter(x => x !== repo.full_repository_name) :
+        [...settings.value.startup_repositories, repo.full_repository_name];
+  } catch (e: any) {
+    await alertDialog({
+      title: currentlySet ? "Unsetting as startup failed" : "Setting as startup failed",
+      message: e.message
+    })
+  } finally {
+    startupChanging.value = null;
   }
-
-  startupChanging.value = null;
 }
 
-async function unloadRepository(repo: RepositoryConfig) {
-  deleting.value = repo.full_name;
+async function unloadRepository(repo: Project) {
+  deleting.value = repo.full_repository_name;
 
-  const resp = await (await fetch(`${prefix_url}/api/settings/repositories/unload`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({"full_name": repo.full_name})
-  })).json()
-
-  if (resp.success) {
+  try {
+    const resp = await api<{success: boolean}>("/api/settings/repositories/unload", {
+      method: "POST",
+      body: JSON.stringify({"full_name": repo.full_repository_name})
+    })
+    if (!resp.success) {
+      throw new Error("The repository was probably already unloaded. Try refreshing the page.")
+    }
+    clearCache();
     settings.value.repositories = settings.value.repositories.filter(x => x !== repo)
-  } else {
+  } catch (e: any) {
     await alertDialog({
       title: "Unloading failed",
-      message: "The repository was probably already unloaded. Try refreshing the page."
+      message: e.message
     })
+  } finally {
+    deleting.value = null;
   }
-
-  deleting.value = null;
 }
 
 async function loadRepository() {
   loading.value = true;
-  let resp = await (await fetch(`${prefix_url}/api/settings/repositories/possibilities`)).json()
-
-  if (resp.success) {
+  try {
+    const resp = await api("/api/settings/repositories/possibilities")
     const suggestions = resp.repositories;
     const index = await promptDialog({
       title: "Found possible external parents",
       message:
           `Chose one of your repositories to load.`,
       inputType: "select",
-      inputOptions: suggestions.map(({short_name, full_name}, i) => ({
+      inputOptions: suggestions.map(({short_name, full_name}: { short_name: string, full_name: string }, i: number) => ({
         value: i,
         text: `${short_name} (${full_name})`
       })),
@@ -108,66 +125,30 @@ async function loadRepository() {
     })
 
     if (index !== null) {
-      const result = await (await fetch(`${prefix_url}/api/settings/repositories/load`, {
+      const result = await api("/api/settings/repositories/load", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
         body: JSON.stringify(suggestions[index])
-      })).json()
-
-      if (result.success) {
-        settings.value.repositories = [...settings.value.repositories, result.repo]
-      } else {
-        await alertDialog({
-          title: "Loading failed",
-          message: result.error
-        })
-      }
+      })
+      clearCache();
+      settings.value.repositories = [...settings.value.repositories, result.repo]
     }
-  } else {
+  } catch (e: any) {
     await alertDialog({
-      title: "Unloading failed",
-      message: "The repository was probably already unloaded. Try refreshing the page."
+      title: "Loading failed",
+      message: e.message
     })
-  }
-  loading.value = false;
-}
-
-
-async function installWorkflow(name: string, repo: RepositoryConfig) {
-  installingWorkflow.value = "busy";
-  try {
-    const resp = await (await fetch(`${prefix_url}/api/repo/${repo.short_name}/install_workflow/${name}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })).json();
-
-    if (!resp.success) {
-      await alertDialog({
-        title: "Workflow installation failed",
-        message: resp.msg
-      });
-    }
-
-    installingWorkflow.value = "success"
-  } catch (error) {
-    await alertDialog({
-      title: "Workflow installation failed",
-      message: "An error occurred while installing the workflow."
-    });
-
-    installingWorkflow.value = "error"
+  } finally {
+    loading.value = false;
   }
 }
+
 
 async function reload() {
   buttonStates.value.reload = "loading"
   try {
-    const resp = await (await fetch(`${prefix_url}/api/settings/repositories/reload`, {method: "post"})).json();
+    const resp = await api("/api/settings/repositories/reload", {method: "POST"});
     if (resp.success) {
+      clearCache();
       settings.value.repositories = resp.repositories;
       buttonStates.value.reload = "success";
     } else {
@@ -198,109 +179,59 @@ async function reload() {
 
     <h1>Settings</h1>
     <h3>Repositories</h3>
-    <CollapsibleCard v-for="repo in settings.repositories">
-      <template #title>
-        {{ repo.short_name }} ({{ repo.full_name }})
-      </template>
-      <template #buttons>
-        <button :disabled="blocked || !settings.changing_startup_allowed" class="btn btn-primary btn-sm"
-                @click="toggleStartup(repo)">
-          <template v-if="settings.startup_repositories.indexOf(repo.full_name) >= 0">
-            <i class="fa fa-square-check"></i> Loaded on startup
-          </template>
-          <template v-else>
-            <i class="fa fa-square"></i> Not loaded on startup
-          </template>
-        </button>
-
-        <button v-if="settings.loading_new_allowed" :disabled="blocked"
-                class="btn btn-danger btn-sm btn-circle" @click="$event.stopPropagation(); unloadRepository(repo)">
-          <i :class="deleting === repo.full_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']" class="fa"></i>
-        </button>
-      </template>
-      <template #body>
-        <h6>Core settings</h6>
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">ID Length</span>
-          <input v-model="repo.id_digits" class="form-control" type="number">
-        </div>
-
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">Main branch</span>
-          <input v-model="repo.main_branch" class="form-control" type="text">
-        </div>
-
-        <h6>Release</h6>
-
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">Released OWL file</span>
-          <input v-model="repo.release_file" class="form-control" type="text">
-        </div>
-
-        <div class="input-group input-group-sm mb-3">
-          <span class="input-group-text">Released script</span>
-          <input v-model="repo.release_script_path" class="form-control" type="text">
-        </div>
-
-        <h6>Subontologies</h6>
-        <p class="text-body-secondary">
-          To generate hierarchical spreadsheets
-        </p>
-
-        <template v-for="subontology in repo.subontologies">
-          <div class="input-group input-group-sm mb-3">
-            <span class="input-group-text">Excel</span>
-            <input v-model="subontology.excel_file" class="form-control" type="text">
-            <span class="input-group-text">Released</span>
-            <input v-model="subontology.release_file" class="form-control" type="text">
-
-            <button :disabled="blocked" class="btn btn-danger"
-                    @click="repo.subontology = repo.subontologies.filter(x => x != subontology)">
-              <i class="fa fa-trash"></i>
-            </button>
+    <table class="table align-middle">
+      <thead>
+      <tr>
+        <th>Repository</th>
+        <th>GitHub</th>
+        <th>Loaded on startup</th>
+        <th></th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr v-for="repo in settings.repositories" :key="repo.full_repository_name">
+        <td>
+          <RouterLink :to="{name: 'project-settings', params: {repo: repo.short_name}}">
+            {{ repo.short_name }}
+          </RouterLink>
+          <div class="small text-body-secondary">{{ repo.full_name }}</div>
+        </td>
+        <td>{{ repo.full_repository_name }}</td>
+        <td>
+          <div class="form-check form-switch">
+            <input :checked="settings.startup_repositories.indexOf(repo.full_repository_name) >= 0"
+                   :disabled="blocked || !settings.changing_startup_allowed" class="form-check-input" role="switch"
+                   title="Load on startup" type="checkbox" @change="toggleStartup(repo)">
+            <i v-if="startupChanging === repo.full_repository_name" class="fa fa-spinner fa-spin"></i>
           </div>
-        </template>
-
-        <h6>Workflows</h6>
-        <p class="text-body-secondary">
-          Install github workflows in this repository
-        </p>
-
-
-        <button :class="{'btn-success': installingWorkflow === 'success', 'btn-danger': installingWorkflow === 'error'}"
-                :disabled="blocked" class="btn btn-primary btn-sm"
-                @click="installWorkflow('externals', repo)">
-          <i v-if="installingWorkflow === 'busy'" class="fa fa-spin fa-spinner"></i>
-          <i v-if="installingWorkflow === 'success'" class="fa fa-check"></i>
-          <i v-if="installingWorkflow === 'error'" class="fa fa-close"></i>
-          <i v-else class="fa fa-file-import"></i>
-          Automatically build externals owl file
-        </button>
-      </template>
-    </CollapsibleCard>
+        </td>
+        <td class="text-end text-nowrap">
+          <RouterLink :to="{name: 'project-settings', params: {repo: repo.short_name}}"
+                      class="btn btn-sm btn-outline-primary me-1">
+            <i class="fa fa-edit"></i> Configuration
+          </RouterLink>
+          <button v-if="settings.loading_new_allowed" :disabled="blocked" class="btn btn-sm btn-outline-danger"
+                  title="Unload repository" @click="unloadRepository(repo)">
+            <i :class="deleting === repo.full_repository_name ? ['fa-spinner', 'fa-spin'] : ['fa-trash']" class="fa"></i>
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
 
     <div class="d-flex gap-2">
-      <button v-if="settings.loading_new_allowed" :disabled="blocked" class="mb-3 btn btn-sm btn-primary add-file"
+      <button v-if="settings.loading_new_allowed" :disabled="blocked" class="mb-3 btn btn-sm btn-primary"
               @click="loadRepository">
         <i :class="loading ? ['fa-spinner', 'fa-spin'] : ['fa-add']" class="fa"></i>
         Load repository
       </button>
-      <button :class="[{'success': 'btn-success', null: 'btn-primary', 'error': 'btn-danger'}[buttonStates.reload]]" :disabled="blocked || buttonStates.reload === 'loading'"
-              class="mb-3 btn btn-sm btn-primary add-file"
+      <button v-if="isAdmin" :class="[reloadButtonClass[buttonStates.reload ?? 'null']]"
+              :disabled="blocked || buttonStates.reload === 'loading'" class="mb-3 btn btn-sm btn-primary"
               @click="reload()">
-        <i :class="{'success': ['fa-check'], 'error': ['fa-cross'], 'loading': ['fa-spinner', 'fa-spin']}[buttonStates.reload] ?? ['fa-refresh']"
+        <i :class="(reloadIconClass[buttonStates.reload ?? 'null'] ?? ['fa-refresh'])"
            class="fa"></i>
         Reload settings
       </button>
-      <slot name="buttons"></slot>
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: 14px
-}
-</style>

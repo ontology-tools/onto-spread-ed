@@ -1,0 +1,26 @@
+{
+  "mappings": [
+    {"type": "plain", "kind": "ONTOLOGY_ID", "columns": ["Ontology ID"]},
+    {"type": "iri", "kind": "ONTOLOGY_IRI", "columns": ["PURL", "IRI"]},
+    {
+      "type": "term",
+      "kind": "EXCLUDED_IMPORT_ID",
+      "columns": ["Exclude", "Excluding", "Excluded", "Remove"],
+      "separator": ";",
+      "require_id": true,
+      "require_label": true
+    },
+    {"type": "term", "kind": "ROOT_ID", "columns": ["ROOT_ID"], "require_id": true, "require_label": true},
+    {"type": "iri", "kind": "VERSION_IRI", "columns": ["VERSION"]},
+    {
+      "type": "term",
+      "kind": "IMPORTED_ID",
+      "columns": ["IDs"],
+      "separator": ";",
+      "require_id": true,
+      "require_label": true
+    },
+    {"type": "plain", "kind": "PLAIN", "columns": ["Intermediates"]},
+    {"type": "prefix", "columns": ["Prefix"], "separator": ";"}
+  ]
+}

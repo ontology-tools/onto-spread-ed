@@ -1,0 +1,49 @@
+import {createRouter, createWebHistory} from "vue-router";
+import {prefix} from "./config";
+import {resetLayout} from "./state";
+import Home from "./pages/Home.vue";
+import Repo from "./pages/Repo.vue";
+
+export const router = createRouter({
+    history: createWebHistory(prefix || "/"),
+    routes: [
+        {path: "/", component: Home},
+        {path: "/home", component: Home},
+        {path: "/repo/:repo/:path(.*)*", name: "repo", component: Repo, meta: {fillHeight: true}},
+        {
+            path: "/edit/:repo/:path(.*)+", name: "edit", component: () => import("./editor/Editor.vue"),
+            meta: {fillHeight: true},
+        },
+        // Links of the former server-rendered pages
+        {
+            path: "/direct",
+            redirect: to => {
+                const {repo, sheet, go_to_row, branch} = to.query;
+                if (typeof repo !== "string" || typeof sheet !== "string") return "/";
+                const query: Record<string, string> = {};
+                if (typeof go_to_row === "string") query.filter = JSON.stringify({Label: go_to_row});
+                if (typeof branch === "string") query.branch = branch;
+                return {name: "edit", params: {repo, path: sheet.split("/")}, query};
+            },
+        },
+        {path: "/edit_external/:repo/:path(.*)*", redirect: to => ({name: "repo", params: to.params})},
+        {path: "/visualise", component: () => import("./visualise/Visualise.vue"), meta: {bare: true}},
+        {path: "/admin", redirect: "/admin/dashboard"},
+        {path: "/admin/dashboard", component: () => import("./admin/Dashboard.vue")},
+        {path: "/admin/rebuild-index", component: () => import("./admin/RebuildIndex.vue")},
+        {path: "/admin/release", component: () => import("./release/Release.vue")},
+        {path: "/admin/release/:repo", component: () => import("./release/Release.vue")},
+        {path: "/admin/release/:id(\\d+)", component: () => import("./release/Release.vue")},
+        {path: "/admin/settings", component: () => import("./settings/Settings.vue")},
+        {path: "/admin/settings/:repo/:tab?", name: "project-settings", component: () => import("./settings/ProjectSettings.vue")},
+        {path: "/loggedout", component: () => import("./pages/LoggedOut.vue")},
+        {path: "/:pathMatch(.*)*", component: () => import("./pages/NotFound.vue")},
+    ],
+});
+
+// Pages that fill the breadcrumb/branch picker overwrite it themselves right away; for all others, clear it.
+// The project settings set it once when loaded, so switching between their tabs keeps it.
+router.afterEach((to, from, failure) => {
+    const keep = to.name === "repo" || to.name === "edit" || (to.name === "project-settings" && from.name === to.name);
+    if (!failure && to.path !== from.path && !keep) resetLayout();
+});

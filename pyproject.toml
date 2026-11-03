@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "onto-spread-ed-workspace"
 description = "OntoSpreadEd - Ontology spreadsheet editor (monorepo workspace)"
-requires-python = ">= 3.12"
+requires-python = ">=3.13"
 version = "0.1.0"
 
 # This is a workspace root - no packages are published from here
@@ -28,7 +28,7 @@ plugins = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py312"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
@@ -43,7 +43,8 @@ py-modules = []
 packages = []
 
 [tool.uv.sources]
-ose-core = { workspace = true }
+ose-lib = { workspace = true }
+
 ose-plugin-addicto = { workspace = true }
 ose-plugin-annotation-sheets = { workspace = true }
 ose-plugin-bcio = { workspace = true }

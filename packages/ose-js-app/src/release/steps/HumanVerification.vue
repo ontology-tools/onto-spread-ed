@@ -2,10 +2,12 @@
 import {Release} from "@ontospreaded/js-core";
 import {computed, ref} from "vue";
 
+import { prefix } from "../../config";
+
 const props = defineProps<{
   data?: {
     files: {
-      link: string,
+      artifact: string,
       name: string
     }[]
   },
@@ -40,7 +42,10 @@ const allChecked = computed(() => [
     <a href="https://webprotege.stanford.edu/">Web protege</a>).
   </p>
   <ul>
-    <li v-for="file in data?.files"><a :href="file.link" :download="file.name">{{ file.name }}</a></li>
+    <li v-for="file in data?.files">
+      <a :href="`${prefix}/api/release/download?release=${release.id}&artifact=${file.artifact}`"
+         :download="file.name">{{ file.name }}</a>
+    </li>
 
   </ul>
   <p>
@@ -50,7 +55,7 @@ const allChecked = computed(() => [
   <ul class="list-unstyled">
     <li class="ms-4">
       <div class="form-check">
-        <input v-model="checkHierarchy" :disabled="release.state !== 'waiting-for-user'"
+        <input v-model="checkHierarchy" :disabled="release.state !== 'paused'"
                class="form-check-input checklist" type="checkbox" value="" id="chk-inferred">
         <label class="form-check-label" for="chk-inferred">
           Start the reasoner. Does the inferred hierarchy look alright?
@@ -59,7 +64,7 @@ const allChecked = computed(() => [
     </li>
     <li class="ms-4">
       <div class="form-check">
-        <input v-model="checkLabels" :disabled="release.state !== 'waiting-for-user'"
+        <input v-model="checkLabels" :disabled="release.state !== 'paused'"
                class="form-check-input checklist" type="checkbox" value="" id="chk-labels">
         <label class="form-check-label" for="chk-labels">
           Do the labels look alright?
@@ -68,7 +73,7 @@ const allChecked = computed(() => [
     </li>
     <li class="ms-4" v-if="hasHierarchicalSpreadsheets">
       <div class="form-check">
-        <input v-model="checkHierarchicalSpreadsheets" :disabled="release.state !== 'waiting-for-user'"
+        <input v-model="checkHierarchicalSpreadsheets" :disabled="release.state !== 'paused'"
                class="form-check-input checklist" type="checkbox" value="" id="chk-hierarchical-spreadsheets">
         <label class="form-check-label" for="chk-hierarchical-spreadsheets">
           Do the hierarchy, labels, and other fields in the hierarchical spreadsheets look alright?
@@ -78,7 +83,7 @@ const allChecked = computed(() => [
   </ul>
 
   <button class="btn btn-success w-100" id="btn-publish-release"
-          :disabled="!allChecked || release.state !== 'waiting-for-user'" @click="$emit('release-control', 'continue')">
+          :disabled="!allChecked || release.state !== 'paused'" @click="$emit('release-control', 'continue')">
     Everything looks alright. Publish the release!
   </button>
 

@@ -13,12 +13,6 @@ const props = withDefaults(defineProps<{
   format: "long"
 });
 
-const badgeClasses = computed(() => ({
-  "text-bg-danger": (props.severity ?? data.value.severity) === "error",
-  "text-bg-warning": (props.severity ?? data.value.severity) === "warning",
-  "text-bg-info": (props.severity ?? data.value.severity) === "info",
-}))
-
 const data = computed(() => ({
   severity: DIAGNOSTIC_DATA[props.diagnostic.type].severity,
   title: DIAGNOSTIC_DATA[props.diagnostic.type].title(props.diagnostic),

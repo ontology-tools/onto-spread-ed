@@ -10,11 +10,11 @@ from typing import Union, List, Literal, Optional, Dict, Tuple, Any, TypeVar
 
 import aiohttp
 import async_lru
-from attr import dataclass
+from dataclasses import dataclass
 
-from ose.model.Result import Result
-from ose.model.Term import Term
-from ose.model.TermIdentifier import TermIdentifier
+from ose.result import Result, Log, Err, Success
+from ose.schema.Term import Term
+from ose.schema import TermIdentifierBase as TermIdentifier, termid
 from .HttpError import HttpError
 
 T = TypeVar('T')
@@ -132,7 +132,7 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
         label: str = rev["label"]
 
         parent_term = rev.get("parentTerm", None)
-        parents: List[TermIdentifier] = [TermIdentifier(id=parent_term.split("/")[-1])] if parent_term else []
+        parents: List[TermIdentifier] = [termid(id=parent_term.split("/")[-1])] if parent_term else []
 
         logical_definition = rev.get("logicalDefinition", None)
         equivalent_to: List[str] = [logical_definition] if logical_definition else []
@@ -144,8 +144,8 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
             async with self._request([rev["@id"], "term_links"], "get") as response:
                 term_links = (await response.json())["hydra:member"]
                 relations = [
-                    (TermIdentifier(label=link["type"]),
-                     TermIdentifier(linked["id"], linked["termRevisions"][0]["label"]))
+                    (termid(label=link["type"]),
+                     termid(id=linked["id"], label=linked["termRevisions"][0]["label"]))
                     for link in term_links
                     for linked in link["linkedTerms"]
                 ]
@@ -168,11 +168,11 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
         if definition_source is not None:
             parts = definition_source.split("\n")
             if len(parts) == 1:
-                relations.append((TermIdentifier(id="IAO:0000119", label="definition source"), parts[0]))
+                relations.append((termid(id="IAO:0000119", label="definition source"), parts[0]))
             elif len(parts) == 2:
                 relations += [
-                    (TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy"), parts[0]),
-                    (TermIdentifier(id="IAO:0000119", label="definition source"), parts[1])
+                    (termid(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy"), parts[0]),
+                    (termid(id="IAO:0000119", label="definition source"), parts[1])
                 ]
 
         return Term(i, label, ("web", -1), relations, parents, equivalent_to, disjoint_with)
@@ -212,20 +212,20 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
     async def declare_term(self, term: Union[Term, TermIdentifier]) -> Result[Union[bool]]:
         exists = (await self.get_term(term, with_references=False)) is not None
         if exists:
-            return Result(False)
+            return Success(False)
 
         data = self.convert_to_api_term(term, False)
 
         async with self._request("terms", "post", data) as r:
 
             if not r.ok:
-                result = Result()
+                result = Log()
                 error = await r.text()
-                result.error(status_code=r.status, body=error)
+                result.error(type="http-error", status_code=r.status, body=error)
                 self._logger.error(f"Failed to declare term '{term.label} ({term.id})': {error}")
-                return result
+                return Err(result)
 
-            return Result(True)
+            return Success(True)
 
     async def update_term(self, term: Term, msg: str, with_references=True):
         existing = await self.get_term(term, with_references)
@@ -246,8 +246,8 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
         pass
 
     def _merge_definition_source_and_id(self, term: Term) -> Optional[str]:
-        defined_by = term.get_relation_value(TermIdentifier(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy"))
-        definition_source = term.get_relation_value(TermIdentifier(id="IAO:0000119", label="definition source"))
+        defined_by = term.get_relation_value(termid(id="rdfs:isDefinedBy", label="rdfs:isDefinedBy"))
+        definition_source = term.get_relation_value(termid(id="IAO:0000119", label="definition source"))
         return "\n".join(d for d in [defined_by, definition_source] if d is not None)
 
     def _terms_equal(self, ignore_if_not_exists: List[str], new: Term, old: Term):
@@ -301,8 +301,8 @@ class APIClient(abc.ABC, metaclass=ABCMeta):
         if not (value_eq(old_definition_source, new_definition_source)):
             self._logger.debug(f"DIFF <definitionSource>\n  {[old_definition_source]}\n  {[new_definition_source]}")
             result = False
-        old_examples = old.get_relation_values(TermIdentifier(label="example of usage"))
-        new_examples = new.get_relation_values(TermIdentifier(label="example of usage"))
+        old_examples = old.get_relation_values(termid(label="example of usage"))
+        new_examples = new.get_relation_values(termid(label="example of usage"))
         if isinstance(old_examples, list):
             old_examples = "\n".join(old_examples)
         if isinstance(new_examples, list):

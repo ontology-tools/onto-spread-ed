@@ -1,27 +1,19 @@
 import typing
 
-from flask import Flask, Request
-from flask_executor import Executor
-from flask_github import GitHub
+from flask import Flask
 from flask_injector import request
 from flask_sqlalchemy import SQLAlchemy
+from github import Github
 from injector import Injector, Module, provider, singleton
 
-from ose.services.PluginService import PluginService
-
-import ose.database as database
-
-from . import gh
-from .injectables import ActiveBranch
-from .OntologyDataStore import OntologyDataStore
+from . import database
 from .PermissionManager import PermissionManager
 from .SpreadsheetSearcher import SpreadsheetSearcher
-from ose.services.ConfigurationService import ConfigurationService
-from ose.services.FileCache import FileCache
-from ose.services.LocalConfigurationService import LocalConfigurationService
-from ose.services.OntoloyBuildService import OntologyBuildService
-from ose.services.RepositoryConfigurationService import RepositoryConfigurationService
-from ose.services.RobotOntologyBuildService import RobotOntologyBuildService
+from .services.ConfigurationService import ConfigurationService
+from .services.FileCache import FileCache
+from .services.GithubService import GithubService
+from .services.PluginService import PluginService
+from .services.RepositoryConfigurationService import RepositoryConfigurationService
 
 
 class AppModule(Module):
@@ -29,19 +21,6 @@ class AppModule(Module):
 
     def init_app(self, app: Flask):
         database.init_app(app)
-        gh.init_app(app)
-
-    @provider
-    @request
-    def active_branch(self, r: Request, config: ConfigurationService) -> ActiveBranch:
-        repo_key = r.view_args.get("repo", r.view_args.get("repo_key", None))
-
-        repo = config.get(repo_key) if repo_key is not None else None
-
-        if repo_key is None or repo is None:
-            raise ValueError("Cannot identify active repository to calculate active branch!")
-        
-        return r.args.get('branch', repo.main_branch)
 
     @provider
     @request
@@ -51,41 +30,25 @@ class AppModule(Module):
         return database.db
 
     @provider
+    @singleton
+    def github_service(self, app: Flask) -> GithubService:
+        return GithubService(app.config.get("GITHUB_CLIENT_ID"), app.config.get("GITHUB_CLIENT_SECRET"))
+
+    @provider
     @request
-    def github(self) -> GitHub:
-        return gh.github
+    def github(self, github_service: GithubService) -> Github:
+        """Client acting on behalf of the user of the current request"""
+        return github_service.current_client()
 
     @provider
     @singleton
-    def ontodb(self, config: ConfigurationService) -> OntologyDataStore:
-        return OntologyDataStore(config)
+    def searcher(self, github_service: GithubService, config: ConfigurationService) -> SpreadsheetSearcher:
+        return SpreadsheetSearcher(config, github_service)
 
     @provider
     @singleton
-    def searcher(self, github: GitHub, config: ConfigurationService) -> SpreadsheetSearcher:
-        return SpreadsheetSearcher(config, github)
-
-    @provider
-    @singleton
-    def configuration_service(self, app: Flask, github: GitHub) -> ConfigurationService:
-        configuration_service = app.config.get("REPOSITORIES_SOURCE", "local")
-
-        service = {
-            "local": LocalConfigurationService,
-            "repository": RepositoryConfigurationService
-        }.get(configuration_service, LocalConfigurationService)
-
-        return service(app.config, github)
-
-    @provider
-    @singleton
-    def executor(self, app: Flask) -> Executor:
-        return Executor(app)
-
-    @provider
-    @singleton
-    def ontology_builder(self) -> OntologyBuildService:
-        return RobotOntologyBuildService()
+    def configuration_service(self, app: Flask, github_service: GithubService) -> ConfigurationService:
+        return RepositoryConfigurationService(app.config, github_service)
 
     @provider
     @singleton
@@ -105,7 +68,7 @@ class AppModule(Module):
         
     @provider
     @singleton
-    def plugin_service(self, config: ConfigurationService, injector: Injector) -> PluginService:
-        plugin_service = PluginService(config, injector)
-        plugin_service.load_plugins()
+    def plugin_service(self, injector: Injector) -> PluginService:
+        plugin_service = PluginService(injector)
+        plugin_service.discover_all()
         return plugin_service

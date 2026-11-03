@@ -1,3 +1,8 @@
-import AddictOVocab from "./AddictOVocab.vue"
+import {definePlugin} from "@ontospreaded/js-core";
 
-export { AddictOVocab };
+export default definePlugin({
+    apiVersion: 1,
+    setup(ose) {
+        ose.release.addStageView("ADDICTO_VOCAB", () => import("./AddictOVocab.vue"));
+    },
+});

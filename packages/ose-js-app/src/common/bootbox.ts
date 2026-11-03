@@ -13,21 +13,22 @@ export function promptDialog<T = string>(options: PromptOptions): Promise<T | nu
 
 export type AlertOptions = Omit<BootboxAlertOptions, "callback">
 
-export function alertDialog<T = string>(options: AlertOptions, resumeAfter: "callback" | "hidden" = "hide"): Promise<T | null> {
+export function alertDialog<T = string>(options: AlertOptions, resumeAfter: "callback" | "hidden" = "callback"): Promise<T | null> {
     return new Promise(resolve => {
         let value: T | null = null;
-        bootbox.alert({
+        bootbox.alert(<BootboxAlertOptions>{
             ...options,
             onHidden() {
                 if (resumeAfter === "hidden") {
                     resolve(value)
                 }
             },
-            callback(result: T | null) {
+            callback(result: void) {
+                const r = (result as unknown as T | null | undefined) ?? null;
                 if (resumeAfter === "hidden") {
-                    value = result ?? null;
+                    value = r;
                 } else {
-                    resolve(result ?? null)
+                    resolve(r)
                 }
             }
         })

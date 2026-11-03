@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import {computed} from "vue";
+import {useRouter} from "vue-router";
 import {Diagnostic, Term} from "@ontospreaded/js-core";
 
 const props = defineProps<{
@@ -12,15 +13,16 @@ const props = defineProps<{
   error: Diagnostic,
   term?: Term
 }>()
-declare var URLS: { [key: string]: any }
+const router = useRouter()
+const editHref = (origin: [string, number]) =>
+  router.resolve({name: "edit", params: {repo: props.short_repository_name, path: origin[0].split("/")}, query: {row: origin[1]}}).href
 const item = computed(() => (!!props.term ? props.term : props.error)!)
-const prefix_url = URLS.prefix
 </script>
 
 <template>
   <template v-if="item.hasOwnProperty('origin') && item.origin">
     <a target="_blank"
-       :href="`${prefix_url}/edit/${short_repository_name}/${item.origin[0]}?row=${item.origin[1]}`">
+       :href="editHref(item.origin)">
       <slot>
         <i>
           at <b>{{ item.origin[0] }}</b>

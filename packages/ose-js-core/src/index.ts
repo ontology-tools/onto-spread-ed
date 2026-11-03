@@ -18,6 +18,9 @@ export * from './debounce';
 export * from './filter';
 export * from './messages';
 export * from './commit-message';
+export * from './release/stages';
 
 // Components
 export { ProgressIndicator };
+
+export * from "./plugins";

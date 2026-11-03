@@ -2,9 +2,9 @@
 # ================================
 # Build system for all packages in the monorepo
 
-.PHONY: all build build-js build-python build-css build-plugins \
+.PHONY: all build build-js build-python build-plugins \
         install install-js install-python \
-        dev dev-js dev-python \
+        dev dev-js dev-python dev-release-runner \
         clean clean-js clean-python \
         test test-python lint \
         help
@@ -54,48 +54,46 @@ define get_pkg_name
 $(shell node -p "require('$(1)/package.json').name")
 endef
 
-## Build everything (JS and CSS first, then Python packages which include static files)
-build: build-js build-css build-python
+## Build everything (JS first, then Python packages which include static files)
+build: build-js build-python
 
 ## Build all JavaScript/TypeScript packages and plugins
-## Uses npm workspaces - builds in dependency order automatically
+## Root `npm run build`: js-core -> shims -> js-app (CSS is bundled by vite), then plugins
 build-js:
-	@for pkg in $(JS_PACKAGES); do \
-		pkg_name=$$(node -p "require('./$$pkg/package.json').name"); \
-		echo "Building JS package: $$pkg_name"; \
-		npm -w "$$pkg_name" run build; \
-	done
-	@for plugin in $(JS_PLUGINS); do \
+	npm run build
+	@set -e; for plugin in $(JS_PLUGINS); do \
 		pkg_name=$$(node -p "require('./$$plugin/package.json').name"); \
 		echo "Building JS plugin: $$pkg_name"; \
-		npm -w "$$pkg_name" run build 2>/dev/null || true; \
+		npm -w "$$pkg_name" run build; \
 	done
 
 ## Build Python packages
-build-python: build-js build-css
+build-python: build-js
 	@for pkg in $(PYTHON_PACKAGES) $(PYTHON_PLUGINS); do \
 		echo "Building Python package: $$pkg"; \
 		uv build --package $$(basename $$pkg); \
 	done
 
-## Build CSS from SCSS
-build-css:
-	npm run build:css
-
 # ============================================================================
 # Development (watch mode)
 # ============================================================================
 
-## Start development mode (watch for JS changes)
-dev: dev-js
+## Start development mode: vite serve on :5173 (proxies to Flask on :5000), Flask and the release runner
+dev:
+	@echo ">>> Open http://localhost:5173 (vite dev server, proxies the API to Flask on :5000)"
+	$(MAKE) -j3 dev-js dev-python dev-release-runner
 
-## Watch and rebuild JS on changes
+## Run the vite dev server on :5173 (generates the shims first)
 dev-js:
 	npm run dev
 
 ## Run the Flask development server
 dev-python:
-	flask --app ose_app:create_app run --debug
+	uv run flask --app ose_app:create_app run --debug --port 5000
+
+## Run the release runner, which executes the releases started in the web app
+dev-release-runner:
+	uv run flask --app ose_app:create_app release-runner
 
 # ============================================================================
 # Database
@@ -180,7 +178,7 @@ build-prod: clean build
 	find dist -mindepth 1 -and -name "ose*" -and -not \(\
 		-name "ose_app*" \
 		-o -name "ose_cli*" \
-		-o -name "ose_core*" \
+		-o -name "ose_lib*" \
 		-o -name "ose_plugin_hierarchical_spreadsheets*" \
 		-o -name "ose_plugin_annotation_sheets*" \
 	\) -exec rm -rf {} + 
@@ -204,7 +202,7 @@ help:
 	@echo "  all              - Install dependencies and build everything (default)"
 	@echo "  install          - Install all dependencies"
 	@echo "  build            - Build all packages"
-	@echo "  dev              - Start development mode (watch)"
+	@echo "  dev              - Start vite serve (:5173) and Flask (:5000); open http://localhost:5173"
 	@echo "  test             - Run all tests"
 	@echo "  lint             - Run linting"
 	@echo "  clean            - Clean build artifacts"
@@ -213,8 +211,7 @@ help:
 	@echo "JavaScript targets:"
 	@echo "  install-js       - Install npm dependencies"
 	@echo "  build-js         - Build all JS/TS packages (auto-detected)"
-	@echo "  build-css        - Build CSS from SCSS"
-	@echo "  dev-js           - Watch and rebuild JS on changes"
+	@echo "  dev-js           - Run the vite dev server on :5173"
 	@echo "  clean-js         - Clean JS build artifacts"
 	@echo ""
 	@echo "Python targets:"

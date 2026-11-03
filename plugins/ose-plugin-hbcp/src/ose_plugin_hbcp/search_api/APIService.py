@@ -4,24 +4,25 @@ import logging
 from typing import List, Callable, Optional, Tuple
 
 import pyhornedowl
+import aiohttp
+from ose.utils.asyncio import check_cancelled
 
-from ose.services.ConfigurationService import ConfigurationService
 from .APIClient import APIClient
 from .HttpError import HttpError
-from ose.model.ExcelOntology import ExcelOntology
-from ose.model.Result import Result
-from ose.model.Term import Term
-from ose.model.TermIdentifier import TermIdentifier
+from ose.ontology.ExcelOntology import ExcelOntology
+from ose.result import Result, Log, Err, Success
+from ose.schema.Term import Term
+from ose.schema import termid
 from ose.utils import lower, str_empty
 
 
 class APIService[T: APIClient](abc.ABC):
-    _config: ConfigurationService
+    _prefixes: dict[str, str]
     _logger: logging.Logger
     _api_client: T
 
-    def __init__(self, config: ConfigurationService, api_client: T):
-        self._config = config
+    def __init__(self, prefixes: dict[str, str], api_client: T):
+        self._prefixes = prefixes
         self._api_client = api_client
 
     @property
@@ -36,20 +37,15 @@ class APIService[T: APIClient](abc.ABC):
         update_fn: Optional[Callable[[int, int, str], None]] = None,
     ) -> Result[Tuple]:
         self._logger.info("Starting update")
-        result = Result(())
-
-        config = self._config.get(self.repository_name)
-
-        if config is None:
-            self._logger.error(f"No config for repository '{self.repository_name}'!")
+        result = Log()
 
         external_ontologies_loaded = []
         for external in external_ontologies:
-            ext_ontology = pyhornedowl.open_ontology(external)
+            await check_cancelled()
+            ext_ontology = pyhornedowl.open_ontology_from_file(external)
 
-            if config is not None:
-                for prefix, iri in config.prefixes.items():
-                    ext_ontology.prefix_mapping.add_prefix(prefix, iri)
+            for prefix, iri in self._prefixes.items():
+                ext_ontology.prefix_mapping.add_prefix(prefix, iri)
 
             external_ontologies_loaded.append(ext_ontology)
 
@@ -65,8 +61,16 @@ class APIService[T: APIClient](abc.ABC):
         # Only allow 5 concurrent calls to the API
         sem = asyncio.Semaphore(5)
 
+        async def guard(task):
+            try:
+                await task
+            except HttpError as e:
+                result.error(type="http-error", status_code=e.status_code, details=e.message, response=e.response)
+            except aiohttp.ClientError as e:
+                result.error(type="http-error", details=str(e))
+
         async def handle_external(o: pyhornedowl.PyIndexedOntology, term_iri: str):
-            nonlocal step, total
+            nonlocal step, total, result
             async with sem:
                 async with lock:
                     step += 1
@@ -113,7 +117,7 @@ class APIService[T: APIClient](abc.ABC):
                     # specific parent.
                     ext_superclasses -= set().union(*[o.get_ancestors(i) for i in ext_superclasses])
                     ext_parent_ids = [o.get_id_for_iri(cls) for cls in ext_superclasses]
-                    ext_parents = [TermIdentifier(id=p) for p in ext_parent_ids if p is not None]
+                    ext_parents = [termid(id=p) for p in ext_parent_ids if p is not None]
 
                     if len(ext_parents) == 0:
                         self._logger.warning(f"External term has no parents: {term_id}")
@@ -127,8 +131,8 @@ class APIService[T: APIClient](abc.ABC):
 
                 if term is None:
                     ext_relations = [
-                        (TermIdentifier("IAO:0000115", "definition"), ext_definition),
-                        (TermIdentifier("IAO:0000114", "has curation status"), "External"),
+                        (termid(id="IAO:0000115", label="definition"), ext_definition),
+                        (termid(id="IAO:0000114", label="has curation status"), "External"),
                     ]
                     term = Term(term_id, ext_label, ("<external>", -1), ext_relations, ext_parents, [], [])
                 else:
@@ -136,17 +140,20 @@ class APIService[T: APIClient](abc.ABC):
                     term.definition(ext_definition)
                     term.sub_class_of = ext_parents
 
-                await self._api_client.declare_term(term)
+                declaration = await self._api_client.declare_term(term)
+                result = result.merge(declaration.log)
+                if declaration.failed:
+                    return
 
                 async with lock:
                     queue.append(term)
                     total += 1
 
         tasks = [handle_external(o, term_iri) for o, classes in external_classes for term_iri in classes]
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*(guard(task) for task in tasks))
 
         async def declare_term(term: Term):
-            nonlocal step, total
+            nonlocal step, total, result
             async with sem:
                 async with lock:
                     step += 1
@@ -157,14 +164,17 @@ class APIService[T: APIClient](abc.ABC):
                 if lower(term.curation_status()) in ["obsolete", "pre-proposed"]:
                     self._logger.info(f"Skipping {term.curation_status()} term '{term.label}'")
                 else:
-                    await self._api_client.declare_term(term)
+                    declaration = await self._api_client.declare_term(term)
+                    result = result.merge(declaration.log)
+                    if declaration.failed:
+                        return
 
                     async with lock:
                         queue.append(term)
                         total += 1
 
         tasks = [declare_term(term) for term in ontology.terms()]
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*(guard(task) for task in tasks))
 
         async def work_queue(term: Term):
             nonlocal step
@@ -187,10 +197,9 @@ class APIService[T: APIClient](abc.ABC):
                     )
 
         tasks = [work_queue(term) for term in queue]
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*(guard(task) for task in tasks))
 
-        result.value = ()
-        return result
+        return Err(result) if result.has_errors() else Success((), result)
 
     async def get_all_terms(self) -> List[Term]:
         next_page = 1

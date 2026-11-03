@@ -16,6 +16,7 @@ except PackageNotFoundError:
 import json
 import logging
 from os import path
+import os
 
 import yaml
 from flask import Flask, session, g
@@ -25,7 +26,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 
 from .custom_json import *  # noqa: F403, F401
-from ose.database.User import User
+from ose_app.database.User import User
 
 
 def load_config(app: Flask, config_filename):
@@ -57,23 +58,39 @@ def load_config(app: Flask, config_filename):
             repository_obj = dict()
             if "repositories" in file_config:
                 repositories = file_config["repositories"]
+                source = repositories.get("source", "repository")
                 repository_obj = {
-                    f"REPOSITORIES_{repositories['source'].upper()}_CONFIG_{k.replace('-', '_').upper()}": v
+                    f"REPOSITORIES_{source.upper()}_CONFIG_{k.replace('-', '_').upper()}": v
                     for k, v in repositories.get("data", dict()).items()
                 }
-                repository_obj["REPOSITORIES_SOURCE"] = file_config["repositories"]["source"]
                 del config_obj["REPOSITORIES"]
 
             config_obj = {**config_obj, **repository_obj}
 
+            if "PLUGINS" in config_obj:
+                config_obj["PLUGINS"] = {
+                    plugin.replace("-", "_").upper(): {
+                        setting.replace("-", "_").upper(): value for setting, value in settings.items()
+                    }
+                    for plugin, settings in config_obj["PLUGINS"].items()
+                }
             app.config.from_mapping(config_obj)
 
     # load from env
     app.config.from_prefixed_env()
     app.config.from_prefixed_env("OSE")
 
+    # Share YAML/JSON plugin settings with stages running outside Flask.
+    for plugin, settings in app.config.get("PLUGINS", {}).items():
+        for setting, value in settings.items():
+            key = f"OSE_PLUGINS__{plugin.upper()}__{setting.upper()}"
+            os.environ[key] = str(value)
+
     # add aliases
     app.config["SQLALCHEMY_DATABASE_URI"] = app.config.get("DATABASE_URI")
+
+    # The prefix is prepended to absolute paths, so '/' would produce protocol-relative URLs like '//api/...'
+    app.config["URL_PREFIX"] = (app.config.get("URL_PREFIX") or "").rstrip("/")
 
     # set version
     app.config["APP_VERSION"] = __version__
@@ -92,9 +109,6 @@ def create_app(config_filename=None):
     if config_filename is None:
         config_filename = "config.yaml"
 
-    # Clear type annotations to get around errors using url_for in jinja template
-    # Source: https://github.com/python-injector/flask_injector/issues/78
-    Flask.url_for.__annotations__ = {}
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     CORS(app)  # cross origin across all
@@ -109,6 +123,10 @@ def create_app(config_filename=None):
     from . import routes
 
     routes.init_app(app)
+
+    from .release import cli as release_cli
+
+    release_cli.init_app(app)
 
     @app.before_request
     def before_request(db: SQLAlchemy):
@@ -126,9 +144,6 @@ def create_app(config_filename=None):
         module.init_app(app)
 
     injector = FlaskInjector(app=app, modules=[module])
-    from . import jinja_extensions
-
-    jinja_extensions.init_app(app, injector.injector)
 
     # CLI is optional - only initialize if ose-cli is installed
     try:

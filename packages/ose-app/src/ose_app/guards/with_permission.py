@@ -1,7 +1,7 @@
 import functools
 from typing import Optional, Sequence
 
-from flask import g, redirect, url_for, request, jsonify, render_template
+from flask import g, jsonify
 
 from ose_app.PermissionManager import PermissionManager
 
@@ -23,12 +23,8 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
         def wrapped(*args, **kwargs):
             permission_manager = kwargs.pop("__permission_manager")
 
-            # If the user is not logged in, then redirect him to the "logged out" page:
             if not g.user:
-                if request.accept_mimetypes.accept_html:
-                    return redirect(url_for("authentication.login", next=request.url))
-                else:
-                    return jsonify({"success": False, "error": "You are not logged in!"}), 401
+                return jsonify({"success": False, "error": "You are not logged in!"}), 401
 
             user_name = g.user.github_login
 
@@ -39,12 +35,7 @@ def requires_permissions(*permissions: str, any_of: Optional[Sequence[str]] = No
                 permitted = permission_manager.has_permissions(user_name, *all_of)
 
             if not permitted:
-                if request.accept_mimetypes.accept_html:
-                    return render_template("forbidden.html"), 403
-                else:
-                    return jsonify(
-                        {"success": False, "error": "You don't have permission to access this page!"}
-                    ), 403
+                return jsonify({"success": False, "error": "You don't have permission to access this page!"}), 403
 
             return fn(*args, **kwargs)
 
