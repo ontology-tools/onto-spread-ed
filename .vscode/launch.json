@@ -5,7 +5,8 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Flask",
+            // Flask behind the Vite dev server: plain HTTP on :5000, Vite terminates TLS on :8080
+            "name": "Python Debugger: Flask behind Vite",
             "type": "debugpy",
             "request": "launch",
             "module": "flask",
@@ -14,36 +15,52 @@
                 "FLASK_APP": "ose_app:create_app",
                 "FLASK_DEBUG": "1",
                 "FLASK_ENV": "development",
-                "FLASK_PORT": "8080",
                 "FLASK_SECRET_KEY": "fsasfdjoi",
                 "OSE_LOG_LEVEL": "debug",
                 "OSE_ENVIRONMENT": "development",
-                "ROBOT": "${env:HOME}/.local/bin/robot"
+                "ROBOT": "${env:HOME}/.local/bin/robot",
             },
             "envFile": "${workspaceFolder}/.env",
             "args": [
                 "run",
                 "--debug",
                 "--port",
-                "8080",
+                "5000",
             ],
             "justMyCode": false,
             "autoStartBrowser": false,
-            "preLaunchTask": "OSE: Update DB"
+            "preLaunchTask": "OSE: Update DB",
+            "presentation": {
+                "hidden": true
+            }
         },
         {
-            "name": "OSE CLI: Externals Build",
-            "type": "debugpy",
+            // Builds js-core and the shims, then serves the SPA with HMR on https://localhost:8080
+            "name": "Vite dev server on :8080",
+            "type": "node-terminal",
             "request": "launch",
-            "module": "ose_cli",
-            "python": "${workspaceFolder}/.venv/bin/python",
-            "args": [
-                "externals",
-                "build",
-                "-vvv"
-            ],
-            "cwd": "${workspaceFolder}/../BCIO",
-            "justMyCode": false
+            "command": "npm run dev",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "FLASK_PORT": "5000",
+                "OSE_DEV_PORT": "8080",
+                "OSE_DEV_SSL_CERT": "${workspaceFolder}/ssl/cert.pem",
+                "OSE_DEV_SSL_KEY": "${workspaceFolder}/ssl/key.pem"
+            },
+            "presentation": {
+                "hidden": true
+            }
         },
+    ],
+    "compounds": [
+        {
+            // Open https://localhost:8080; the GitHub OAuth callback also reaches Flask through Vite
+            "name": "OSE: Dev (Flask debugger + Vite)",
+            "configurations": ["Python Debugger: Flask behind Vite", "Vite dev server on :8080"],
+            "stopAll": true,
+            "presentation": {
+                "order": 1
+            }
+        }
     ]
 }

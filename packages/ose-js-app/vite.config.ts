@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import Components from 'unplugin-vue-components/vite';
 import { BootstrapVueNextResolver } from 'bootstrap-vue-next';
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import type { Plugin } from 'vite';
 
@@ -26,6 +27,12 @@ const oseHead = (): Plugin => ({
 const flask = `http://localhost:${process.env.FLASK_PORT ?? 5000}`;
 const proxiedPaths = ['/api', '/login', '/logout', '/github-callback', '/status', '/static'];
 
+// Optional dev server port and TLS, e.g. to serve on the port the GitHub OAuth callback points to
+const devPort = Number(process.env.OSE_DEV_PORT ?? 5173);
+const devCert = process.env.OSE_DEV_SSL_CERT;
+const devKey = process.env.OSE_DEV_SSL_KEY;
+const https = devCert && devKey ? { cert: readFileSync(devCert), key: readFileSync(devKey) } : undefined;
+
 export default defineConfig(({mode}) => ({
   base: './',
   plugins: [
@@ -41,8 +48,9 @@ export default defineConfig(({mode}) => ({
     },
   },
   server: {
-    port: 5173,
+    port: devPort,
     strictPort: true,
+    https,
     proxy: Object.fromEntries(proxiedPaths.map((p) => [p, { target: flask }])),
   },
   // Strip debug output in production, but keep console.error/warn for diagnosing problems
