@@ -9,6 +9,7 @@ import { COLUMN_NAMES, CURATION_STATUS, isRow, Row } from "@ontospreaded/js-core
 import { alertDialog, confirmDialog, promptDialog } from "../common/bootbox"
 import { Diagnostic as DiagnosticM, MergeConflict, Project } from "@ontospreaded/js-core";
 import Diagnostic from "../common/Diagnostic.vue"
+import TableSkeleton from "../common/TableSkeleton.vue"
 import { BModal, BSpinner, BToast, ControllerKey, useToastController } from "bootstrap-vue-next"
 import { DIAGNOSTIC_DATA } from "@ontospreaded/js-core";
 import { debounce, SpreadsheetData, generateCommitMessage } from "@ontospreaded/js-core";
@@ -1307,9 +1308,7 @@ function defColumnSize(field: string): number {
           <RouterLink class="btn btn-secondary" :to="{ path: `/repo/${repo}${fileFolder ? '/' + fileFolder : ''}`, query: route.query.branch ? { branch: route.query.branch } : {} }">Back to folder</RouterLink>
         </div>
       </div>
-      <div v-else-if="!tabulator" class="loading-data">
-        <div class="loader"></div>
-      </div>
+      <TableSkeleton v-else-if="!tabulator" class="flex-fill"/>
     </div>
 
 
@@ -1698,10 +1697,6 @@ function defColumnSize(field: string): number {
     align-items: center;
     justify-items: center;
     height: 100%;
-
-    .loader {
-      transform: scale(2)
-    }
   }
 
 }

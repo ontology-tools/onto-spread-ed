@@ -20,6 +20,12 @@ const tree = ref<RepoTree | null>(null);
 const error = ref<string | null>(null);
 const expanded = ref(new Set<string>());
 
+// Rows of the loading skeleton: the repository root followed by a few folders and files
+const treeSkeleton = [
+  {depth: 0, width: 6}, {depth: 1, width: 9}, {depth: 1, width: 7}, {depth: 2, width: 12}, {depth: 2, width: 10},
+  {depth: 2, width: 14}, {depth: 1, width: 8}, {depth: 1, width: 11}, {depth: 1, width: 9},
+];
+
 // The breadcrumb only depends on the route, so it is shown immediately
 function setBreadcrumb() {
   const segments = [repo.value, ...folder.value.split("/").filter(Boolean)];
@@ -205,8 +211,14 @@ async function search(type: "search" | "initials") {
       <div v-else ref="tableEl" class="mt-2" style="font-size: 0.8em; width: 100%;"></div>
     </div>
 
-    <div v-if="!tree" class="loading-tree" role="status">
-      <div class="loader"></div>
+    <div v-if="!tree" class="file-tree mt-3 placeholder-wave" role="status">
+      <span class="visually-hidden">Loading files…</span>
+      <ul aria-hidden="true" class="list-unstyled">
+        <li v-for="(row, i) in treeSkeleton" :key="i" :style="{marginLeft: `${row.depth * 20}px`}" class="p-1">
+          <span class="placeholder me-2" style="width: 1.1em"></span>
+          <span :style="{width: `${row.width}rem`}" class="placeholder"></span>
+        </li>
+      </ul>
     </div>
     <template v-else>
       <p v-if="tree.truncated" class="alert alert-warning mt-3">
@@ -245,16 +257,5 @@ async function search(type: "search" | "initials") {
   flex: 1;
   min-height: 8rem;
   overflow-y: auto;
-}
-
-/* Centered in the space left below the search */
-.loading-tree {
-  flex: 1;
-  display: grid;
-  place-items: center;
-}
-
-.loading-tree .loader {
-  transform: scale(2);
 }
 </style>

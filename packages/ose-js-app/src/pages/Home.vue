@@ -43,5 +43,16 @@ fetchRepos().then(show).catch(e => {
       </div>
     </template>
   </template>
-  <div v-else class="spinner-border spinner-border-sm mt-3" role="status"></div>
+  <div v-else class="placeholder-wave" role="status">
+    <span class="visually-hidden">Loading repositories…</span>
+    <h2 aria-hidden="true"><span class="placeholder col-4"></span></h2>
+    <div aria-hidden="true" class="row align-stretch">
+      <div v-for="i in 4" :key="i" class="col-sm-6 col-md-4 col-lg-3 m-2">
+        <div class="card bg-light" style="height: 100%; border-width: 2px 2px 4px 2px">
+          <div class="section p-5 text-center fs-2"><span class="placeholder col-6"></span></div>
+          <div class="card-body text-center"><span class="placeholder col-8"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
