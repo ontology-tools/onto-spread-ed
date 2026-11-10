@@ -97,7 +97,7 @@ function toggle(path: string) {
 const query = ref("");
 const searched = ref(false);
 const noResults = ref(false);
-const searching = ref(false);
+const searching = ref<"search" | "initials" | null>(null);
 let searchType: "search" | "initials" = "search";
 const tableEl = ref<HTMLElement | null>(null);
 let table: Tabulator | null = null;
@@ -156,7 +156,7 @@ function openSheet(hit: SearchHit) {
 
 async function search(type: "search" | "initials") {
   searchType = type;
-  searching.value = true;
+  searching.value = type;
   const [r, b] = [repo.value, branch.value];
   try {
     const body = type === "search" ? {query: query.value} : {initials: me.value?.initials ?? ""};
@@ -172,7 +172,7 @@ async function search(type: "search" | "initials") {
     bootbox.alert("Something went wrong");
     console.error(e);
   } finally {
-    searching.value = false;
+    searching.value = null;
   }
 }
 </script>
@@ -185,11 +185,15 @@ async function search(type: "search" | "initials") {
     <label class="font-weight-bold form-label" for="inputText">Search across all spreadsheets:</label>
     <form class="d-flex" @submit.prevent="search('search')">
       <input id="inputText" v-model="query" placeholder="search terms" class="form-control me-2 d-inline-block w-auto"/>
-      <button type="submit" class="btn btn-outline-success me-2" :disabled="searching">
-        <i class="fas fa-search"></i> Search
+      <button type="submit" class="btn btn-outline-success me-2" :disabled="!!searching">
+        <span v-if="searching === 'search'" class="spinner-border spinner-border-sm"
+              aria-hidden="true"></span>
+        <i v-else class="fas fa-search"></i> Search
       </button>
-      <button type="button" class="btn btn-outline-warning" :disabled="searching" @click="search('initials')">
-        <i class="fas fa-search-plus"></i> Show all assigned to me
+      <button type="button" class="btn btn-outline-warning" :disabled="!!searching" @click="search('initials')">
+        <span v-if="searching === 'initials'" class="spinner-border spinner-border-sm"
+              aria-hidden="true"></span>
+        <i v-else class="fas fa-search-plus"></i> Show all assigned to me
       </button>
     </form>
 
