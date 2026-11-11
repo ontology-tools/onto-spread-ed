@@ -38,6 +38,28 @@ test('invalid versions and failed setup do not commit registrations', async () =
     assert.equal(registry.stageView('UNKNOWN'), undefined);
 });
 
+test('stage view options are stored per registration and replaced by overrides', async () => {
+    const view = {render() {}};
+    assert.deepEqual(registry.stageViewOptions('TEST_OPTIONS'), {});
+    await setupPlugin('options', definePlugin({apiVersion: 1, setup(ose) {
+        ose.release.addStageView('TEST_OPTIONS', view, {showsDiagnostics: true});
+        ose.release.addStageView('TEST_NO_OPTIONS', view);
+    }}));
+    assert.equal(registry.stageViewOptions('TEST_OPTIONS').showsDiagnostics, true);
+    assert.deepEqual(registry.stageViewOptions('TEST_NO_OPTIONS'), {});
+
+    const warn = console.warn;
+    console.warn = () => {};
+    try {
+        await setupPlugin('options-override', definePlugin({apiVersion: 1, setup(ose) {
+            ose.release.addStageView('TEST_OPTIONS', view);
+        }}));
+    } finally {
+        console.warn = warn;
+    }
+    assert.deepEqual(registry.stageViewOptions('TEST_OPTIONS'), {});
+});
+
 test('stage view loaders remain lazy and resolve default exports', async () => {
     let loaded = false;
     const component = {render() {}};

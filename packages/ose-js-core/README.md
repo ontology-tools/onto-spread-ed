@@ -35,9 +35,10 @@ LGPL-3.0-or-later
 ## Plugin API
 
 Default-export `definePlugin({apiVersion: 1, setup(ose) { ... }})`. The context provides
-`id` and `release.addStageView(stageName, component | loader)`. Exported contracts include
-`PLUGIN_API_VERSION`, `PluginContext`, `PluginDefinition`, `StageViewProps<Data>` and
-`ReleaseControlEmit`. The host uses `setupPlugin` and `registry.stageView(name)`.
+`id` and `release.addStageView(stageName, component | loader, options?)`. Exported contracts include
+`PLUGIN_API_VERSION`, `PluginContext`, `PluginDefinition`, `StageViewOptions`, `StageViewProps<Data>` and
+`ReleaseControlEmit`. The host uses `setupPlugin`, `registry.stageView(name)` and
+`registry.stageViewOptions(name)`.
 
 ```ts
 export default definePlugin({
