@@ -20,6 +20,12 @@ const tree = ref<RepoTree | null>(null);
 const error = ref<string | null>(null);
 const expanded = ref(new Set<string>());
 
+// Rows of the loading skeleton: the repository root followed by a few folders and files
+const treeSkeleton = [
+  {depth: 0, width: 6}, {depth: 1, width: 9}, {depth: 1, width: 7}, {depth: 2, width: 12}, {depth: 2, width: 10},
+  {depth: 2, width: 14}, {depth: 1, width: 8}, {depth: 1, width: 11}, {depth: 1, width: 9},
+];
+
 // The breadcrumb only depends on the route, so it is shown immediately
 function setBreadcrumb() {
   const segments = [repo.value, ...folder.value.split("/").filter(Boolean)];
@@ -97,7 +103,7 @@ function toggle(path: string) {
 const query = ref("");
 const searched = ref(false);
 const noResults = ref(false);
-const searching = ref(false);
+const searching = ref<"search" | "initials" | null>(null);
 let searchType: "search" | "initials" = "search";
 const tableEl = ref<HTMLElement | null>(null);
 let table: Tabulator | null = null;
@@ -156,7 +162,7 @@ function openSheet(hit: SearchHit) {
 
 async function search(type: "search" | "initials") {
   searchType = type;
-  searching.value = true;
+  searching.value = type;
   const [r, b] = [repo.value, branch.value];
   try {
     const body = type === "search" ? {query: query.value} : {initials: me.value?.initials ?? ""};
@@ -172,7 +178,7 @@ async function search(type: "search" | "initials") {
     bootbox.alert("Something went wrong");
     console.error(e);
   } finally {
-    searching.value = false;
+    searching.value = null;
   }
 }
 </script>
@@ -185,11 +191,15 @@ async function search(type: "search" | "initials") {
     <label class="font-weight-bold form-label" for="inputText">Search across all spreadsheets:</label>
     <form class="d-flex" @submit.prevent="search('search')">
       <input id="inputText" v-model="query" placeholder="search terms" class="form-control me-2 d-inline-block w-auto"/>
-      <button type="submit" class="btn btn-outline-success me-2" :disabled="searching">
-        <i class="fas fa-search"></i> Search
+      <button type="submit" class="btn btn-outline-success me-2" :disabled="!!searching">
+        <span v-if="searching === 'search'" class="spinner-border spinner-border-sm"
+              aria-hidden="true"></span>
+        <i v-else class="fas fa-search"></i> Search
       </button>
-      <button type="button" class="btn btn-outline-warning" :disabled="searching" @click="search('initials')">
-        <i class="fas fa-search-plus"></i> Show all assigned to me
+      <button type="button" class="btn btn-outline-warning" :disabled="!!searching" @click="search('initials')">
+        <span v-if="searching === 'initials'" class="spinner-border spinner-border-sm"
+              aria-hidden="true"></span>
+        <i v-else class="fas fa-search-plus"></i> Show all assigned to me
       </button>
     </form>
 
@@ -201,8 +211,14 @@ async function search(type: "search" | "initials") {
       <div v-else ref="tableEl" class="mt-2" style="font-size: 0.8em; width: 100%;"></div>
     </div>
 
-    <div v-if="!tree" class="loading-tree" role="status">
-      <div class="loader"></div>
+    <div v-if="!tree" class="file-tree mt-3 placeholder-wave" role="status">
+      <span class="visually-hidden">Loading files…</span>
+      <ul aria-hidden="true" class="list-unstyled">
+        <li v-for="(row, i) in treeSkeleton" :key="i" :style="{marginLeft: `${row.depth * 20}px`}" class="p-1">
+          <span class="placeholder me-2" style="width: 1.1em"></span>
+          <span :style="{width: `${row.width}rem`}" class="placeholder"></span>
+        </li>
+      </ul>
     </div>
     <template v-else>
       <p v-if="tree.truncated" class="alert alert-warning mt-3">
@@ -241,16 +257,5 @@ async function search(type: "search" | "initials") {
   flex: 1;
   min-height: 8rem;
   overflow-y: auto;
-}
-
-/* Centered in the space left below the search */
-.loading-tree {
-  flex: 1;
-  display: grid;
-  place-items: center;
-}
-
-.loading-tree .loader {
-  transform: scale(2);
 }
 </style>

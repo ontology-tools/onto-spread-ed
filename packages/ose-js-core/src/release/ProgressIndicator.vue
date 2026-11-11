@@ -45,11 +45,12 @@ const state = computed(() => props.release?.state === 'running' && currentStage(
       </div>
     </div>
   </template>
-  <div v-else-if="state == 'running' || state == 'starting'" class="d-flex justify-content-center mt-5">
-    <div class="spinner-border text-primary" role="status" style="width: 5rem; height: 5rem">
-      <span class="visually-hidden">Waiting...</span>
+  <template v-else-if="state == 'running' || state == 'starting'">
+    <p class="text-secondary mb-3">{{ state == 'starting' ? 'Starting' : 'Running' }}…</p>
+    <div aria-label="Step is running" class="progress" role="progressbar">
+      <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
     </div>
-  </div>
+  </template>
 </template>
 
 <style scoped lang="scss"></style>

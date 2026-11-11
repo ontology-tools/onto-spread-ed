@@ -633,9 +633,13 @@ onMounted(async () => {
       </div>
     </div>
     <div ref="svgContainer" class="svg-container">
-      <div v-if="loading" class="loading-overlay">
-        <div class="spinner"></div>
-        <span>Loading visualisation...</span>
+      <div v-if="loading" class="loading-overlay placeholder-wave" role="status">
+        <span class="visually-hidden">Loading visualisation…</span>
+        <!-- A hierarchy of node placeholders, like the graph that is being loaded -->
+        <div v-for="(count, level) in [1, 3, 5, 4]" :key="level" aria-hidden="true" class="skeleton-level">
+          <span v-for="i in count" :key="i" :style="{width: `${5 + ((level * 3 + i * 5) % 5)}rem`}"
+                class="placeholder skeleton-node"></span>
+        </div>
       </div>
       <div v-else-if="error" class="error-overlay">
         <i class="fa-solid fa-circle-exclamation"></i>
@@ -1031,23 +1035,21 @@ onMounted(async () => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 3rem;
     background: rgba(250, 250, 250, 0.9);
     z-index: 10;
     border-radius: 4px;
 
-    span {
-      color: #666;
-      font-size: 0.9rem;
+    .skeleton-level {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
     }
 
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid #e0e0e0;
-      border-top-color: #3b82f6;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .skeleton-node {
+      height: 1.75rem;
+      border-radius: 4px;
+      color: #6c757d;
     }
   }
 
@@ -1125,12 +1127,6 @@ onMounted(async () => {
       max-width: 500px;
       text-align: center;
       line-height: 1.5;
-    }
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
     }
   }
 

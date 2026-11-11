@@ -165,8 +165,21 @@ onBeforeUnmount(() => {
       Loading the configuration of {{ repo }} failed: {{ loadError }}
       <RouterLink class="alert-link ms-2" to="/admin/settings">Back to the settings</RouterLink>
     </div>
-    <div v-else-if="!project" class="text-center py-5">
-      <i class="fa fa-spin fa-spinner fa-2x"></i>
+    <div v-else-if="!project" class="placeholder-wave" role="status">
+      <span class="visually-hidden">Loading the configuration…</span>
+      <div aria-hidden="true">
+        <ul class="nav nav-tabs mb-3">
+          <li v-for="t in tabs" :key="t.id" class="nav-item">
+            <span :class="{active: t.id === tab}" class="nav-link">
+              <i :class="t.icon" class="fa"></i> {{ t.name }}
+            </span>
+          </li>
+        </ul>
+        <div v-for="w in [3, 5, 2, 4]" :key="w" class="mb-3">
+          <span :class="`col-${w}`" class="placeholder d-block mb-2"></span>
+          <span class="placeholder placeholder-lg col-12" style="height: 2.4rem"></span>
+        </div>
+      </div>
     </div>
 
     <template v-else>

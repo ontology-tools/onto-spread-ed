@@ -417,9 +417,32 @@ async function doReleaseControl(type: string) {
     </template>
     </template>
 
+    <!-- Initial load: placeholders for the release layout (step sidebar and step content) -->
+    <div v-if="loading && !release && !notFound" class="placeholder-wave" role="status">
+      <span class="visually-hidden">Loading…</span>
+      <h1 v-if="repo === null" aria-hidden="true"><span class="placeholder col-3"></span></h1>
+      <div aria-hidden="true" class="w-100 mt-3" style="display: grid; grid-template-columns: 240px 1fr; grid-gap: 50px">
+        <div class="sidebar border p-2">
+          <div v-for="w in [8, 6, 9, 7, 5]" :key="w" class="d-flex align-items-center gap-2 py-2">
+            <span class="placeholder" style="width: 1em"></span>
+            <span :class="`col-${w}`" class="placeholder"></span>
+          </div>
+        </div>
+        <div>
+          <h4><span class="placeholder col-4"></span></h4>
+          <p>
+            <span class="placeholder col-10"></span>
+            <span class="placeholder col-8"></span>
+            <span class="placeholder col-6"></span>
+          </p>
+          <span class="placeholder placeholder-lg col-12"></span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="loading" v-if="loading">
+  <!-- Actions on a loaded release (start, cancel, continue, rerun) block the page until they are done -->
+  <div class="loading" v-if="loading && release">
     <div class="inner text-light">
       <div class="spinner-border" style="width: 5rem; height: 5rem;" role="status">
       </div>
