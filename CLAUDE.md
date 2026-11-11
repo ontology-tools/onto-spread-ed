@@ -243,8 +243,9 @@ ose-js-core ──► ose-js-app
    `OSE_CONFIG` and the importmap itself and proxies `/api`, `/login`, `/logout`, `/github-callback`, `/status` and
    `/static` to Flask on :5000 (override with `FLASK_PORT`). `OSE_DEV_PORT` and `OSE_DEV_SSL_CERT`/`OSE_DEV_SSL_KEY`
    change Vite's port and enable HTTPS. The VS Code compound launch config "OSE: Dev (Flask debugger + Vite)" (F5) runs
-   Flask under the debugger on plain HTTP :5000 and Vite on https://localhost:8080 with `ssl/cert.pem`/`ssl/key.pem`, so
-   the GitHub OAuth callback on :8080 reaches Flask through Vite.
+   `db upgrade` once, then Flask on plain HTTP :5000 and the release runner (both under the debugger) and Vite on
+   https://localhost:8080 with `ssl/cert.pem`/`ssl/key.pem`, so the GitHub OAuth callback on :8080 reaches Flask through
+   Vite.
 5. **Database migrations**: `flask --app ose_app:create_app db upgrade`. Add a migration for every model change.
 6. **Persisted releases** store their build context; changes to `BuildContext`/`ReleaseContext` or artifact schemas must
    stay compatible with releases already in the database.

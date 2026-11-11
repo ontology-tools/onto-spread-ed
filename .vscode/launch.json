@@ -29,13 +29,37 @@
             ],
             "justMyCode": false,
             "autoStartBrowser": false,
-            "preLaunchTask": "OSE: Update DB",
             "presentation": {
                 "hidden": true
             }
         },
         {
-            // Builds js-core and the shims, then serves the SPA with HMR on https://localhost:8080
+            // Executes the releases started in the web app
+            "name": "Python Debugger: Release runner",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "env": {
+                "FLASK_APP": "ose_app:create_app",
+                "FLASK_DEBUG": "1",
+                "FLASK_ENV": "development",
+                "FLASK_SECRET_KEY": "fsasfdjoi",
+                "OSE_LOG_LEVEL": "debug",
+                "OSE_ENVIRONMENT": "development",
+                "ROBOT": "${env:HOME}/.local/bin/robot",
+            },
+            "envFile": "${workspaceFolder}/.env",
+            "args": [
+                "release-runner",
+            ],
+            "justMyCode": false,
+            "presentation": {
+                "hidden": true
+            }
+        },
+        {
+            // Builds js-core and the shims, then serves the SPA with HMR on https://localhost:8080.
             "name": "Vite dev server on :8080",
             "type": "node-terminal",
             "request": "launch",
@@ -54,9 +78,14 @@
     ],
     "compounds": [
         {
-            // Open https://localhost:8080; the GitHub OAuth callback also reaches Flask through Vite
+            // Starts Flask, the release runner and Vite
             "name": "OSE: Dev (Flask debugger + Vite)",
-            "configurations": ["Python Debugger: Flask behind Vite", "Vite dev server on :8080"],
+            "configurations": [
+                "Python Debugger: Flask behind Vite",
+                "Python Debugger: Release runner",
+                "Vite dev server on :8080"
+            ],
+            "preLaunchTask": "OSE: Update DB",
             "stopAll": true,
             "presentation": {
                 "order": 1
