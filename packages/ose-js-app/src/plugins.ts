@@ -10,7 +10,7 @@ export async function loadPlugins(): Promise<void> {
     await setupPlugin("builtin", definePlugin({
         apiVersion: 1,
         setup(ose) {
-            ose.release.addStageView("VALIDATION", Validation);
+            ose.release.addStageView("VALIDATION", Validation, {showsDiagnostics: true});
             ose.release.addStageView("HUMAN_VERIFICATION", HumanVerification);
             ose.release.addStageView("GITHUB_PUBLISH", GithubPublish);
         },

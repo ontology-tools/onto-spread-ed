@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { BuildConfiguration, BuildStep, Diagnostic, Release, currentStage, releaseStages, stageDetails, registry } from "@ontospreaded/js-core";
 import Setup from "./Setup.vue";
 import Generic from "./steps/Generic.vue";
+import StageDiagnostics from "./StageDiagnostics.vue";
 import { BToast, useToastController } from "bootstrap-vue-next";
 import RepositorySelector from "./RepositorySelector.vue";
 import { api } from "../api";
@@ -29,6 +30,9 @@ const { show: showToast } = useToastController();
 const shownStep = computed(() => selected_step.value ?? currentStage(release.value))
 const currentStep = computed<BuildStep | null>(() => releaseStages(release.value)[shownStep.value] ?? null)
 const stepComponent = computed(() => (currentStep.value ? registry.stageView(currentStep.value.name) : undefined) ?? Generic)
+// The stage's warnings and infos are listed below its view, unless the view was registered as showing them itself
+const showDiagnostics = computed(() =>
+  !!currentStep.value && !registry.stageViewOptions(currentStep.value.name).showsDiagnostics)
 
 const stepProps = computed(() => {
   const possibleProps = {
@@ -412,6 +416,7 @@ async function doReleaseControl(type: string) {
           </div>
 
           <component :is="stepComponent" v-bind="stepProps" @release-control="doReleaseControl"></component>
+          <StageDiagnostics v-if="showDiagnostics" :details="details"/>
         </div>
       </div>
     </template>

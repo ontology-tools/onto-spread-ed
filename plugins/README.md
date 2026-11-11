@@ -50,11 +50,15 @@ export default definePlugin({
 ```
 
 `definePlugin` provides types and returns its argument. `PLUGIN_API_VERSION` is 1.
-`PluginContext` supplies `id` and `release.addStageView(name, component | loader)`.
+`PluginContext` supplies `id` and `release.addStageView(name, component | loader, options?)`.
 Bare functions are treated as loaders; wrap functional Vue components with
 `defineComponent`. `StageViewProps<Data>` describes `data`, `release` and
 `selectedSubStep`; `ReleaseControlEmit` describes the `release-control` event.
 Stage views are read through `registry.stageView(name)` with a generic fallback.
+
+The app lists a stage's warnings and infos below its view. A view that lists them itself
+passes `{showsDiagnostics: true}` as `options` (`StageViewOptions`, read through
+`registry.stageViewOptions(name)`); the built-in `VALIDATION` view does.
 
 Before mounting, the SPA registers built-in views, fetches plugins, filters to entries
 with a `module_url`, imports them in
